@@ -332,8 +332,8 @@ export default function AdminInvoiceDetailPage() {
             {invoice.taxAmount !== undefined && invoice.taxAmount !== null && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Tax Amount</h3>
-                <p className="text-lg font-medium">
-                  ${typeof invoice.taxAmount === 'number' ? invoice.taxAmount.toFixed(2) : '0.00'}
+                <p className="text-lg font-medium text-accent">
+                  +${typeof invoice.taxAmount === 'number' ? Math.abs(invoice.taxAmount).toFixed(2) : '0.00'}
                 </p>
               </div>
             )}
@@ -348,8 +348,8 @@ export default function AdminInvoiceDetailPage() {
             {invoice.totalAmount !== undefined && invoice.totalAmount !== null && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Total Amount</h3>
-                <p className="text-lg font-medium">
-                  ${typeof invoice.totalAmount === 'number' ? invoice.totalAmount.toFixed(2) : '0.00'}
+                <p className="text-lg font-medium text-accent">
+                  +${typeof invoice.totalAmount === 'number' ? Math.abs(invoice.totalAmount).toFixed(2) : '0.00'}
                 </p>
               </div>
             )}
@@ -471,11 +471,11 @@ export default function AdminInvoiceDetailPage() {
                           return itemsArray.map((item: any, index: number) => (
                             <tr key={index}>
                               <td className="px-4 py-3 text-sm">{item.description || 'N/A'}</td>
-                              <td className="px-4 py-3 text-sm text-right">
-                                ${typeof item.amount === 'number' || !isNaN(parseFloat(item.amount)) 
-                                  ? parseFloat(item.amount).toFixed(2) 
+                              <td className="px-4 py-3 text-sm text-right text-accent">
+                                +${typeof item.amount === 'number' || !isNaN(parseFloat(item.amount)) 
+                                  ? Math.abs(parseFloat(item.amount)).toFixed(2) 
                                   : typeof item.totalPrice === 'number' || !isNaN(parseFloat(item.totalPrice))
-                                    ? parseFloat(item.totalPrice).toFixed(2)
+                                    ? Math.abs(parseFloat(item.totalPrice)).toFixed(2)
                                     : '0.00'}
                               </td>
                             </tr>
@@ -485,9 +485,9 @@ export default function AdminInvoiceDetailPage() {
                           return (
                             <tr>
                               <td className="px-4 py-3 text-sm">{itemsArray.description || 'N/A'}</td>
-                              <td className="px-4 py-3 text-sm text-right">
-                                ${typeof itemsArray.totalPrice === 'number' || !isNaN(parseFloat(itemsArray.totalPrice))
-                                  ? parseFloat(itemsArray.totalPrice).toFixed(2)
+                              <td className="px-4 py-3 text-sm text-right text-accent">
+                                +${typeof itemsArray.totalPrice === 'number' || !isNaN(parseFloat(itemsArray.totalPrice))
+                                  ? Math.abs(parseFloat(itemsArray.totalPrice)).toFixed(2)
                                   : '0.00'}
                               </td>
                             </tr>

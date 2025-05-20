@@ -381,10 +381,10 @@ export default function BillingPage() {
       header: "Amount",
       cell: (invoice: Invoice) => (
         <div className="text-sm">
-          <div>${invoice.totalAmount.toFixed(2)}</div>
+          <div className="text-accent">+${Math.abs(invoice.totalAmount).toFixed(2)}</div>
           {invoice.taxAmount > 0 && (
             <div className="text-xs text-gray-500">
-              Tax: ${invoice.taxAmount.toFixed(2)}
+              Tax: +${Math.abs(invoice.taxAmount).toFixed(2)}
             </div>
           )}
         </div>

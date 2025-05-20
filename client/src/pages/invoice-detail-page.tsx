@@ -317,11 +317,11 @@ export default function InvoiceDetailPage() {
                           return itemsArray.map((item: any, index: number) => (
                             <tr key={index}>
                               <td className="px-4 py-3 text-sm">{item.description || 'N/A'}</td>
-                              <td className="px-4 py-3 text-sm text-right">
-                                ${typeof item.amount === 'number' || !isNaN(parseFloat(item.amount)) 
-                                  ? parseFloat(item.amount).toFixed(2) 
+                              <td className="px-4 py-3 text-sm text-right text-accent">
+                                +${typeof item.amount === 'number' || !isNaN(parseFloat(item.amount)) 
+                                  ? Math.abs(parseFloat(item.amount)).toFixed(2) 
                                   : typeof item.totalPrice === 'number' || !isNaN(parseFloat(item.totalPrice))
-                                    ? parseFloat(item.totalPrice).toFixed(2)
+                                    ? Math.abs(parseFloat(item.totalPrice)).toFixed(2)
                                     : '0.00'}
                               </td>
                             </tr>
@@ -331,9 +331,9 @@ export default function InvoiceDetailPage() {
                           return (
                             <tr>
                               <td className="px-4 py-3 text-sm">{itemsArray.description || 'N/A'}</td>
-                              <td className="px-4 py-3 text-sm text-right">
-                                ${typeof itemsArray.totalPrice === 'number' || !isNaN(parseFloat(itemsArray.totalPrice))
-                                  ? parseFloat(itemsArray.totalPrice).toFixed(2)
+                              <td className="px-4 py-3 text-sm text-right text-accent">
+                                +${typeof itemsArray.totalPrice === 'number' || !isNaN(parseFloat(itemsArray.totalPrice))
+                                  ? Math.abs(parseFloat(itemsArray.totalPrice)).toFixed(2)
                                   : '0.00'}
                               </td>
                             </tr>
