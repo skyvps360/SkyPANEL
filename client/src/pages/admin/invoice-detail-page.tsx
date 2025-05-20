@@ -314,8 +314,8 @@ export default function AdminInvoiceDetailPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Amount</h3>
-              <p className="text-lg font-medium">
-                ${typeof invoice.amount === 'number' ? invoice.amount.toFixed(2) : '0.00'}
+              <p className="text-lg font-medium text-accent">
+                +${typeof invoice.amount === 'number' ? Math.abs(invoice.amount).toFixed(2) : '0.00'}
               </p>
             </div>
             <div>
