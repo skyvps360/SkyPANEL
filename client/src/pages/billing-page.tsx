@@ -379,16 +379,24 @@ export default function BillingPage() {
     {
       accessorKey: "totalAmount" as keyof Invoice,
       header: "Amount",
-      cell: (invoice: Invoice) => (
-        <div className="text-sm">
-          <div className="text-accent">+${Math.abs(invoice.totalAmount).toFixed(2)}</div>
-          {invoice.taxAmount > 0 && (
-            <div className="text-xs text-gray-500">
-              Tax: +${Math.abs(invoice.taxAmount).toFixed(2)}
+      cell: (invoice: Invoice) => {
+        // Determine if the invoice amount is negative (credit removal)
+        const isNegativeAmount = invoice.totalAmount < 0 || (invoice.notes && invoice.notes.toLowerCase().includes('removal'));
+        const displaySign = isNegativeAmount ? '-' : '+';
+        
+        return (
+          <div className="text-sm">
+            <div className={isNegativeAmount ? 'text-destructive' : 'text-accent'}>
+              {displaySign}${Math.abs(invoice.totalAmount).toFixed(2)}
             </div>
-          )}
-        </div>
-      ),
+            {invoice.taxAmount > 0 && (
+              <div className="text-xs text-gray-500">
+                Tax: {displaySign}${Math.abs(invoice.taxAmount).toFixed(2)}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "createdAt" as keyof Invoice,
