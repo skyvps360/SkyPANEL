@@ -140,58 +140,7 @@ export default function BillingPage() {
     }
   };
   
-  // Handle generating missing invoices
-  const handleGenerateMissingInvoices = async () => {
-    try {
-      setGeneratingInvoices(true);
-      console.log("Generating missing invoices...");
-      
-      // Call the API endpoint to generate missing invoices
-      const response = await fetch('/api/invoices/generate-missing', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'same-origin' // Make sure cookies are sent
-      });
-      
-      console.log("API response status:", response.status);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to generate invoices: ${response.statusText}`);
-      }
-      
-      const result = await response.json();
-      console.log("Generate missing invoices API result:", result);
-      
-      // Show appropriate message based on the result
-      if (result.generatedCount > 0) {
-        // Immediately force-refetch the invoices to update the UI
-        console.log("Force refetching invoices...");
-        
-        // Use Promise.all to ensure we refetch both invoices and transactions
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["/api/invoices"] }),
-          queryClient.invalidateQueries({ queryKey: ["/api/transactions"] })
-        ]);
-        
-        // Show success message AFTER refetching data to ensure UI is updated
-        alert(`Successfully generated ${result.generatedCount} invoice(s).`);
-        
-        // If we're not already on the invoices tab, switch to it
-        if (activeTab !== "invoices") {
-          setActiveTab("invoices");
-        }
-      } else {
-        alert('No missing invoices to generate. All transactions already have invoices.');
-      }
-    } catch (error) {
-      console.error('Error generating missing invoices:', error);
-      alert('Failed to generate invoices. Please try again later.');
-    } finally {
-      setGeneratingInvoices(false);
-    }
-  };
+  // Invoice generation handler removed (invoices deprecated)
 
   // Helper function to determine if a transaction is a credit/addition
   const isCredit = (transaction: Transaction) => {
@@ -312,79 +261,7 @@ export default function BillingPage() {
     },
   ];
   
-  // Columns for invoices table
-  const invoiceColumns = [
-    {
-      accessorKey: "invoiceNumber" as keyof Invoice,
-      header: "Invoice #",
-      cell: (invoice: Invoice) => (
-        <div className="flex items-center">
-          <Avatar className="h-8 w-8 mr-3">
-            <AvatarFallback style={{
-              backgroundColor: brandColors.primary.light,
-              color: brandColors.primary.full
-            }}>
-              <FileText className="h-4 w-4" />
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="text-sm font-medium">{invoice.invoiceNumber}</div>
-            <div className="text-xs text-gray-500">
-              {invoice.notes || "Credit purchase"}
-            </div>
-          </div>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "createdAt" as keyof Invoice,
-      header: "Date",
-      cell: (invoice: Invoice) => (
-        <span className="text-sm text-gray-500">
-          {format(new Date(invoice.createdAt), 'MMM d, yyyy')}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "status" as keyof Invoice,
-      header: "Status",
-      cell: (invoice: Invoice) => {
-        const getStatusBadge = (status: string) => {
-          switch (status.toLowerCase()) {
-            case "paid":
-              return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>;
-            case "pending":
-              return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
-            case "overdue":
-              return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Overdue</Badge>;
-            default:
-              return <Badge>{status}</Badge>;
-          }
-        };
-        
-        return getStatusBadge(invoice.status);
-      },
-    },
-    {
-      id: "actions",
-      header: "",
-      cell: (invoice: Invoice) => (
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => handleDownloadInvoice(invoice)}
-          style={{ 
-            backgroundColor: 'transparent', 
-            color: brandColors.primary.full, 
-            borderColor: brandColors.primary.medium 
-          }}
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Download
-        </Button>
-      ),
-    },
-  ];
+
 
   // Credit amount options
   const creditOptions = [1, 2, 5, 10, 25, 50, 100, 250, 500];
@@ -773,64 +650,7 @@ export default function BillingPage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="invoices" className="mt-0">
-              <div className="p-0">
-                <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-                  <div>
-                    <h3 className="text-lg font-medium">Your Invoices</h3>
-                    <p className="text-sm text-muted-foreground">View and download invoices for your transactions</p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <Button 
-                      onClick={handleGenerateMissingInvoices}
-                      disabled={generatingInvoices}
-                      variant="default"
-                      size="sm"
-                      style={{ 
-                        backgroundColor: brandColors.primary.full,
-                        color: 'white',
-                        borderColor: brandColors.primary.full
-                      }}
-                    >
-                      {generatingInvoices ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <FileText className="h-4 w-4 mr-2" />
-                          Generate Missing Invoices
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                
-                {isLoadingInvoices ? (
-                  <div className="flex justify-center items-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <p className="ml-2">Loading invoices...</p>
-                  </div>
-                ) : invoices.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Receipt className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No Invoices Available</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Your invoices and receipts will appear here when they are generated.
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      If you have completed transactions without invoices, you can generate them using the "Generate Missing Invoices" button above.
-                    </p>
-                  </div>
-                ) : (
-                  <DataTable
-                    data={invoices}
-                    columns={invoiceColumns}
-                  />
-                )}
-              </div>
-            </TabsContent>
+
           </Tabs>
         </CardContent>
       </Card>
