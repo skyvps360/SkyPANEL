@@ -81,10 +81,7 @@ export default function BillingPage() {
     queryKey: ["/api/transactions"],
   });
 
-  // Fetch invoices
-  const { data: invoices = [], isLoading: isLoadingInvoices } = useQuery<Invoice[]>({
-    queryKey: ["/api/invoices"],
-  });
+  // Invoices are deprecated; do not fetch or use them anymore
 
   // Fetch credit balance
   const { data: balanceData } = useQuery<{ credits: number, virtFusionCredits: number, virtFusionTokens: number }>({
@@ -102,44 +99,7 @@ export default function BillingPage() {
     }
   });
   
-  // Handle invoice download
-  const handleDownloadInvoice = async (invoice: Invoice) => {
-    try {
-      const response = await fetch(`/api/invoices/${invoice.id}/download`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to download invoice: ${response.statusText}`);
-      }
-      
-      // Get filename from the Content-Disposition header if available
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = `invoice-${invoice.invoiceNumber}.pdf`;
-      
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-        if (filenameMatch) {
-          filename = filenameMatch[1];
-        }
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      // Create a link and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      link.parentNode?.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading invoice:', error);
-      alert('Failed to download invoice. Please try again later.');
-    }
-  };
+  // Invoice download handler removed (invoices deprecated)
   
   // Handle transactions PDF export/download
   const handleExportTransactions = async () => {
@@ -527,18 +487,7 @@ export default function BillingPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={() => handleTabChange("invoices")}
-              style={{ 
-                backgroundColor: 'transparent', 
-                color: brandColors.primary.full, 
-                borderColor: brandColors.primary.medium 
-              }}
-            >
-              View Invoices
-            </Button>
+            {/* View Invoices button removed as invoices are deprecated in favor of transactions */}
           </CardFooter>
         </Card>
 
@@ -600,10 +549,11 @@ export default function BillingPage() {
                   Add Credits
                 </TabsTrigger>
               )}
-              <TabsTrigger value="invoices" className="data-[state=active]:bg-background">
+              {/* Invoices tab hidden for client side */}
+              {/* <TabsTrigger value="invoices" className="data-[state=active]:bg-background">
                 <FileText className="h-4 w-4 mr-2" />
                 Invoices
-              </TabsTrigger>
+              </TabsTrigger> */}
             </TabsList>
             
             <TabsContent value="transactions" className="mt-0">
