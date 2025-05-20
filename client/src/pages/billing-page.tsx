@@ -380,18 +380,33 @@ export default function BillingPage() {
       accessorKey: "totalAmount" as keyof Invoice,
       header: "Amount",
       cell: (invoice: Invoice) => {
-        // Determine if the invoice amount is negative (credit removal)
-        const isNegativeAmount = invoice.totalAmount < 0 || (invoice.notes && invoice.notes.toLowerCase().includes('removal'));
-        const displaySign = isNegativeAmount ? '-' : '+';
+        // Check transaction ID to find the associated transaction
+        const transactionId = invoice.transactionId;
+        
+        // Check for keywords in the notes or description that indicate this is a removal/negative transaction
+        const hasRemovalKeywords = 
+          (invoice.notes && (
+            invoice.notes.toLowerCase().includes('remov') || 
+            invoice.notes.toLowerCase().includes('credit removal') ||
+            invoice.notes.toLowerCase().includes('virtfusion_credit_removal')
+          ));
+        
+        // Check directly if amount is negative
+        const hasNegativeAmount = 
+          (typeof invoice.amount === 'number' && invoice.amount < 0) ||
+          (typeof invoice.totalAmount === 'number' && invoice.totalAmount < 0);
+          
+        // Final determination
+        const isNegative = hasRemovalKeywords || hasNegativeAmount;
         
         return (
           <div className="text-sm">
-            <div className={isNegativeAmount ? 'text-destructive' : 'text-accent'}>
-              {displaySign}${Math.abs(invoice.totalAmount).toFixed(2)}
+            <div className={isNegative ? 'text-destructive' : 'text-accent'}>
+              {isNegative ? '-' : '+'}${Math.abs(invoice.totalAmount).toFixed(2)}
             </div>
             {invoice.taxAmount > 0 && (
               <div className="text-xs text-gray-500">
-                Tax: {displaySign}${Math.abs(invoice.taxAmount).toFixed(2)}
+                Tax: {isNegative ? '-' : '+'}${Math.abs(invoice.taxAmount).toFixed(2)}
               </div>
             )}
           </div>
