@@ -201,8 +201,8 @@ export default function InvoiceDetailPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Amount</h3>
-              <p className="text-lg font-medium text-accent">
-                +${typeof invoice.amount === 'number' ? Math.abs(invoice.amount).toFixed(2) : '0.00'}
+              <p className={`text-lg font-medium ${invoice.amount < 0 || (invoice.notes && invoice.notes.toLowerCase().includes('removal')) ? 'text-destructive' : 'text-accent'}`}>
+                {invoice.amount < 0 || (invoice.notes && invoice.notes.toLowerCase().includes('removal')) ? '-' : '+'}${typeof invoice.amount === 'number' ? Math.abs(invoice.amount).toFixed(2) : '0.00'}
               </p>
             </div>
             <div>
@@ -219,8 +219,8 @@ export default function InvoiceDetailPage() {
             {invoice.taxAmount !== undefined && invoice.taxAmount !== null && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Tax Amount</h3>
-                <p className="text-lg font-medium text-accent">
-                  +${typeof invoice.taxAmount === 'number' ? Math.abs(invoice.taxAmount).toFixed(2) : '0.00'}
+                <p className={`text-lg font-medium ${invoice.amount < 0 || (invoice.notes && invoice.notes.toLowerCase().includes('removal')) ? 'text-destructive' : 'text-accent'}`}>
+                  {invoice.amount < 0 || (invoice.notes && invoice.notes.toLowerCase().includes('removal')) ? '-' : '+'}${typeof invoice.taxAmount === 'number' ? Math.abs(invoice.taxAmount).toFixed(2) : '0.00'}
                 </p>
               </div>
             )}
@@ -235,8 +235,8 @@ export default function InvoiceDetailPage() {
             {invoice.totalAmount !== undefined && invoice.totalAmount !== null && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Total Amount</h3>
-                <p className="text-lg font-medium text-accent">
-                  +${typeof invoice.totalAmount === 'number' ? Math.abs(invoice.totalAmount).toFixed(2) : '0.00'}
+                <p className={`text-lg font-medium ${invoice.totalAmount < 0 || (invoice.notes && invoice.notes.toLowerCase().includes('removal')) ? 'text-destructive' : 'text-accent'}`}>
+                  {invoice.totalAmount < 0 || (invoice.notes && invoice.notes.toLowerCase().includes('removal')) ? '-' : '+'}${typeof invoice.totalAmount === 'number' ? Math.abs(invoice.totalAmount).toFixed(2) : '0.00'}
                 </p>
               </div>
             )}

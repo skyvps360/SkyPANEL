@@ -240,9 +240,17 @@ export default function AdminBillingPage() {
     {
       accessorKey: "totalAmount" as keyof Invoice,
       header: "Total Amount",
-      cell: (item: Invoice) => (
-        <span className="font-medium text-accent">+${Math.abs(Number(item.totalAmount)).toFixed(2)}</span>
-      )
+      cell: (item: Invoice) => {
+        // Determine if the invoice amount is negative (credit removal)
+        const isNegativeAmount = item.totalAmount < 0 || (item.notes && item.notes.toLowerCase().includes('removal'));
+        const displaySign = isNegativeAmount ? '-' : '+';
+        
+        return (
+          <span className={`font-medium ${isNegativeAmount ? 'text-destructive' : 'text-accent'}`}>
+            {displaySign}${Math.abs(Number(item.totalAmount)).toFixed(2)}
+          </span>
+        );
+      }
     },
     {
       accessorKey: "status" as keyof Invoice,
