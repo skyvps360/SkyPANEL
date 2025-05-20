@@ -1,0 +1,57 @@
+VirtFusion Global API
+Endpoints
+powered by Stoplight
+Add, remove or modify a backup plan
+put
+https://cp.domain.com/api/v1/servers/{serverId}/backups/plan/{planId}
+Request
+Provide your bearer token in the Authorization header when making requests to protected resources.
+
+Example: Authorization: Bearer 123
+
+Path Parameters
+planId
+integer
+required
+A valid backup plan ID as shown in VirtFusion. A value of 0 (zero) will remove the plan.
+
+Examples:
+0
+serverId
+integer
+required
+A valid server ID as shown in VirtFusion.
+
+Examples:
+9
+Responses
+201
+401
+Body
+
+*/*
+
+*/*
+Token
+:
+123
+planId*
+:
+0
+serverId*
+:
+9
+const axios = require('axios').default;
+
+const options = {
+  method: 'PUT',
+  url: 'https://cp.domain.com/api/v1/servers/9/backups/plan/0',
+  headers: {'Content-Type': 'application/json', Accept: '*/*', Authorization: 'Bearer 123'}
+};
+
+try {
+  const { data } = await axios.request(options);
+  console.log(data);
+} catch (error) {
+  console.error(error);
+}

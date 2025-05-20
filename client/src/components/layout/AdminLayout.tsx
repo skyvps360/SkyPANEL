@@ -1,0 +1,1007 @@
+import { useEffect, useState, useRef, useCallback } from "react";
+import { Link, useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Users,
+  Settings,
+  Ticket,
+  Mail,
+  FileText,
+  PenTool,
+  Globe,
+  List,
+  HelpCircle,
+  LogOut,
+  Menu,
+  X,
+  Home,
+  DollarSign,
+  FileCheck,
+  Search,
+  CreditCard,
+  Receipt,
+  Download,
+  Server,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { getBrandColors } from "@/lib/brand-theme";
+
+const adminMenuItems = [
+  { href: "/admin", icon: Home, label: "Admin Dashboard" },
+  { href: "/admin/tickets", icon: Ticket, label: "Tickets" },
+  { href: "/admin/users", icon: Users, label: "Users" },
+  { href: "/admin/billing", icon: DollarSign, label: "Billing" },
+  { href: "/admin/servers", icon: Server, label: "Servers" },
+  { href: "/admin/mail", icon: Mail, label: "Email Logs" },
+  { href: "/admin/blog", icon: PenTool, label: "Company Blog" },
+  { href: "/admin/docs", icon: FileText, label: "Documentation" },
+  { href: "/admin/api-docs", icon: FileText, label: "API Documentation" },
+  { href: "/admin/datacenter-locations", icon: Globe, label: "Datacenter Locations" },
+  { href: "/admin/plan-features", icon: List, label: "Plan Features" },
+  { href: "/admin/package-pricing", icon: DollarSign, label: "Package Pricing" },
+  { href: "/admin/faq-management", icon: HelpCircle, label: "FAQ Management" },
+  { href: "/admin/legal", icon: FileCheck, label: "Legal Content" },
+  { href: "/admin/settings", icon: Settings, label: "Settings" },
+];
+
+interface AdminLayoutProps {
+  children: React.ReactNode;
+}
+
+// Define search result types
+interface SearchResult {
+  id: number | string;
+  type: "user" | "ticket" | "billing" | "setting" | "server";
+  name: string;
+  description?: string;
+  url: string;
+  icon?: React.ReactNode;
+}
+
+// Define user types for search
+interface UserType {
+  id: number;
+  fullName: string;
+  email: string;
+  username: string;
+  deletedAt?: string | null;
+}
+
+// Define ticket types for search
+interface TicketType {
+  id: number;
+  userId: number;
+  subject: string;
+  status: string;
+  deletedAt?: string | null;
+}
+
+// Define transaction types for search
+interface TransactionType {
+  id: number;
+  userId: number;
+  type: string;
+  description: string;
+  amount: number;
+  status: string;
+  paymentId?: string;
+  invoiceNumber?: string;
+}
+
+// Define invoice types for search
+interface InvoiceType {
+  id: number;
+  invoiceNumber: string;
+  userId: number;
+  amount: number;
+  status: string;
+  createdAt: string;
+}
+
+// Define server types for search
+interface ServerType {
+  id: number;
+  name: string;
+  uuid: string;
+  owner: number | { id: number; username?: string };
+  hypervisorId?: number;
+  status?: string;
+  state?: string;
+  suspended?: boolean;
+  protected?: boolean;
+  updated?: string;
+  created?: string;
+  powerStatus?: { powerState: string };
+}
+
+export default function AdminLayout({ children }: AdminLayoutProps) {
+  const [location] = useLocation();
+  const [open, setOpen] = useState(false);
+  const { logoutMutation, user } = useAuth();
+  const { toast } = useToast();
+  
+  // Search-related state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [activeResultIndex, setActiveResultIndex] = useState(-1);
+  const [showSearchPopup, setShowSearchPopup] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
+
+  // Get the brand settings for customization
+  const { data: brandSettings } = useQuery<{
+    company_name?: string;
+    company_color?: string;
+    primary_color?: string;
+    secondary_color?: string;
+    accent_color?: string;
+  }>({
+    queryKey: ["/api/settings/branding"],
+    retry: false,
+  });
+  
+  // Fetch users for search
+  const { data: usersData = [] } = useQuery<UserType[]>({
+    queryKey: ["/api/admin/users"],
+    staleTime: 60 * 1000, // 1 minute
+  });
+  
+  // Fetch tickets for search
+  const { data: ticketsResponse } = useQuery<{ data: TicketType[], pagination: any }>({
+    queryKey: ["/api/admin/tickets"],
+    staleTime: 60 * 1000, // 1 minute
+  });
+  
+  // Fetch transactions for search
+  const { data: transactionsData = [] } = useQuery<TransactionType[]>({
+    queryKey: ["/api/admin/transactions"],
+    staleTime: 60 * 1000, // 1 minute
+  });
+  
+  // Fetch invoices for search
+  const { data: invoicesData = [] } = useQuery<InvoiceType[]>({
+    queryKey: ["/api/admin/invoices"],
+    staleTime: 60 * 1000, // 1 minute
+  });
+  
+  // Fetch servers for search
+  const { data: serversResponse = { data: [] } } = useQuery<{
+    data: ServerType[];
+    current_page: number;
+    last_page: number;
+    total: number;
+  }>({
+    queryKey: ["/api/admin/servers"],
+    staleTime: 60 * 1000, // 1 minute
+  });
+  
+  // Extract the servers array from the paginated response
+  const serversData = serversResponse.data || [];
+
+  // Function to handle logout
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+
+  // Get company name from brand settings
+  const companyName = brandSettings?.company_name || "Admin Portal";
+  
+  // Get brand colors using the utility with the new color system
+  const brandColorOptions = {
+    primaryColor: brandSettings?.primary_color || brandSettings?.company_color,  // Fallback to company_color for backward compatibility
+    secondaryColor: brandSettings?.secondary_color,
+    accentColor: brandSettings?.accent_color
+  };
+  const brandColors = getBrandColors(brandColorOptions);
+  
+  // Apply brand colors to CSS variables and Shadcn theme when settings are loaded
+  useEffect(() => {
+    if (brandSettings) {
+      // Force immediate cache invalidation with timestamp
+      const cacheKey = Date.now();
+      
+      import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
+        // Clear any existing CSS variable cache
+        const root = document.documentElement;
+        const cssVarProps = Array.from(root.style);
+        cssVarProps.forEach(prop => {
+          if (prop.startsWith('--')) {
+            root.style.removeProperty(prop);
+          }
+        });
+        
+        // Apply brand colors to both our CSS variables and Shadcn theme variables
+        applyBrandColorVars(brandColorOptions);
+        
+        // Add a cache buster class to force stylesheet recalculation
+        document.body.classList.add(`theme-refresh-${cacheKey}`);
+        setTimeout(() => {
+          document.body.classList.remove(`theme-refresh-${cacheKey}`);
+        }, 50);
+        
+        console.log('Applied brand colors to Shadcn theme in Admin with cache bust');
+      });
+    }
+  }, [brandSettings]);
+
+  // Close the mobile menu when a navigation item is selected
+  useEffect(() => {
+    setOpen(false);
+  }, [location]);
+  
+  // Set up navigate for wouter - use a stable reference with real navigation
+  const [, nativeNavigate] = useLocation();
+  const navigate = useRef((url: string) => {
+    console.log("Navigating to:", url);
+    if (url.startsWith("/admin/tickets/") && url !== "/admin/tickets") {
+      console.log("Special navigation to ticket detail page:", url);
+      // Force page to reload for ticket detail pages to ensure proper rendering
+      window.location.href = url;
+      return;
+    }
+    nativeNavigate(url);
+  }).current;
+  
+  // Handle navigation to search result - memoized to avoid recreation
+  const navigateToResult = useRef((result: SearchResult) => {
+    setSearchQuery(''); // Clear search after selecting a result
+    setShowSearchPopup(false);
+    navigate(result.url);
+  }).current;
+  
+  // Perform search with the current query
+  const performSearch = useCallback((query: string) => {
+    if (!query || (query.length < 2 && isNaN(parseInt(query)))) {
+      // Allow single character searches if it's a number (for ticket IDs)
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    const lowerQuery = query.toLowerCase();
+    
+    // Debug logging - will show in console what we're searching with
+    console.log('Performing search with query:', query);
+    console.log('Server data available for search:', serversData);
+    
+    const results: SearchResult[] = [];
+    
+    // Search users
+    usersData?.forEach((user) => {
+      if (
+        !user.deletedAt && 
+        (user.fullName?.toLowerCase().includes(lowerQuery) ||
+        user.username?.toLowerCase().includes(lowerQuery) ||
+        user.email?.toLowerCase().includes(lowerQuery))
+      ) {
+        results.push({
+          id: user.id,
+          type: "user",
+          name: user.fullName || user.username,
+          description: user.email,
+          url: `/admin/users/${user.id}`,
+          icon: <Users className="h-4 w-4" />,
+        });
+      }
+    });
+    
+    // Search tickets
+    ticketsResponse?.data?.forEach((ticket) => {
+      if (
+        !ticket.deletedAt && 
+        (
+          ticket.id.toString() === lowerQuery || // Exact match for ticket ID
+          ticket.subject?.toLowerCase().includes(lowerQuery)
+        )
+      ) {
+        // Route to /tickets/{id} if admin is the ticket creator, otherwise to /admin/tickets/{id}
+        const ticketUrl = ticket.userId === user?.id 
+          ? `/tickets/${ticket.id}` 
+          : `/admin/tickets/${ticket.id}`;
+          
+        results.push({
+          id: ticket.id,
+          type: "ticket",
+          name: `Ticket #${ticket.id}`,
+          description: ticket.subject,
+          url: ticketUrl,
+          icon: <Ticket className="h-4 w-4" />,
+        });
+      }
+    });
+    
+    // Search transactions
+    transactionsData?.forEach((transaction) => {
+      if (
+        transaction.description?.toLowerCase().includes(lowerQuery) ||
+        transaction.type?.toLowerCase().includes(lowerQuery) ||
+        transaction.paymentId?.toLowerCase().includes(lowerQuery)
+      ) {
+        const isInvoice = !!transaction.invoiceNumber;
+        results.push({
+          id: transaction.id,
+          type: "billing",
+          name: isInvoice 
+            ? `Invoice #${transaction.invoiceNumber}` 
+            : `Payment ${transaction.type}`,
+          description: `${transaction.description} - $${transaction.amount}`,
+          url: `/admin/billing/transactions/${transaction.id}`,
+          icon: isInvoice ? <Receipt className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />,
+        });
+      }
+    });
+    
+    // Search invoices
+    invoicesData?.forEach((invoice) => {
+      if (
+        invoice.invoiceNumber?.toLowerCase().includes(lowerQuery)
+      ) {
+        results.push({
+          id: invoice.id,
+          type: "billing",
+          name: `Invoice #${invoice.invoiceNumber}`,
+          description: `Amount: $${invoice.amount} - Status: ${invoice.status}`,
+          url: `/admin/billing/invoices/${invoice.id}`,
+          icon: <Receipt className="h-4 w-4" />,
+        });
+      }
+    });
+    
+    // Search servers
+    serversData?.forEach((server) => {
+      // For debugging - check each server being examined
+      console.log(`Checking server:`, server, `against query: ${lowerQuery}`);
+      
+      // Check if this server matches the search query
+      const nameMatch = server.name?.toLowerCase().includes(lowerQuery);
+      const uuidMatch = server.uuid?.toLowerCase().includes(lowerQuery);
+      const idMatch = server.id.toString() === lowerQuery;
+      
+      // Log match results
+      if (nameMatch || uuidMatch || idMatch) {
+        console.log(`MATCH FOUND! Server matches search:`, 
+          nameMatch ? 'by name' : uuidMatch ? 'by UUID' : 'by ID', 
+          server
+        );
+      }
+      
+      if (nameMatch || uuidMatch || idMatch) {
+        // Determine server status for display
+        let statusText = "Unknown";
+        
+        // First check power status if available
+        if (server.powerStatus && server.powerStatus.powerState) {
+          statusText = server.powerStatus.powerState === "RUNNING" ? "Running" : 
+                       server.powerStatus.powerState === "STOPPED" ? "Stopped" : 
+                       server.powerStatus.powerState;
+        } 
+        // Fall back to server.state or status
+        else if (server.state) {
+          statusText = server.state;
+        } else if (server.status) {
+          statusText = server.status;
+        }
+        
+        // Format owner information if available
+        let ownerDisplay = "";
+        if (typeof server.owner === 'object' && server.owner) {
+          ownerDisplay = server.owner.username ? ` • Owner: ${server.owner.username}` : "";
+        }
+        
+        // Create search result object and add to results
+        const serverResult: SearchResult = {
+          id: server.id,
+          type: "server", // Now we're explicitly typing this
+          name: server.name || `Server #${server.id}`,
+          description: `Status: ${statusText}${ownerDisplay} • UUID: ${server.uuid || 'Unknown'}`,
+          url: `/admin/servers/${server.id}`,
+          icon: <Server className="h-4 w-4" />,
+        };
+        
+        // Log the result object being added
+        console.log('Adding server search result:', serverResult);
+        
+        results.push(serverResult);
+      }
+    });
+    
+    // Log all results found
+    console.log('ALL SEARCH RESULTS:', results);
+    console.log('Search results by type:', {
+      users: results.filter(r => r.type === "user").length,
+      tickets: results.filter(r => r.type === "ticket").length,
+      billing: results.filter(r => r.type === "billing").length,
+      servers: results.filter(r => r.type === "server").length,
+      settings: results.filter(r => r.type === "setting").length,
+    });
+    
+    setSearchResults(results);
+    setIsSearching(false);
+    if (results.length > 0) {
+      setActiveResultIndex(0);
+    }
+  }, [usersData, ticketsResponse, transactionsData, invoicesData, serversData, user]);
+  
+  // Handle search query debounce
+  useEffect(() => {
+    if (searchQuery.length > 1 || (searchQuery.length === 1 && !isNaN(parseInt(searchQuery)))) {
+      // Add a delay before searching to avoid excessive searches while typing
+      const delaySearch = setTimeout(() => {
+        performSearch(searchQuery);
+      }, 300);
+      
+      return () => clearTimeout(delaySearch);
+    } else if (searchQuery === '') {
+      // Immediately clear results when query is cleared
+      setSearchResults([]);
+    }
+  }, [searchQuery, performSearch]);
+  
+  // Enhanced keyboard navigation for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K or Command+K to focus search and show popup
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setShowSearchPopup(true);
+        // Wait for next tick to ensure popup is rendered before focusing
+        setTimeout(() => {
+          if (searchInputRef.current) {
+            searchInputRef.current.focus();
+          }
+        }, 10);
+      }
+      
+      // Handle popup navigation with arrow keys
+      if (showSearchPopup && searchResults.length > 0) {
+        // Arrow down
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setActiveResultIndex((prevIndex) => {
+            const nextIndex = prevIndex + 1 >= searchResults.length ? 0 : prevIndex + 1;
+            return nextIndex;
+          });
+        }
+        
+        // Arrow up
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setActiveResultIndex((prevIndex) => {
+            const nextIndex = prevIndex - 1 < 0 ? searchResults.length - 1 : prevIndex - 1;
+            return nextIndex;
+          });
+        }
+        
+        // Enter to select
+        if (e.key === "Enter" && activeResultIndex >= 0) {
+          e.preventDefault();
+          const selectedResult = searchResults[activeResultIndex];
+          if (selectedResult) {
+            navigateToResult(selectedResult);
+          }
+        }
+        
+        // Escape to close
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setShowSearchPopup(false);
+          setSearchQuery('');
+        }
+      }
+    };
+    
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchResults, activeResultIndex, showSearchPopup, navigateToResult]);
+
+  return (
+    <div className="grid min-h-screen w-full overflow-hidden lg:grid-cols-[280px_1fr]">
+      {/* Sidebar for larger screens */}
+      <div className="hidden border-r bg-background lg:block">
+        <div className="flex h-full max-h-screen flex-col gap-2">
+          <div className="flex h-16 items-center border-b px-6">
+            <Link
+              className="flex items-center gap-2 font-semibold"
+              href="/admin"
+            >
+              <span 
+                className="w-6 h-6 text-white flex items-center justify-center font-bold rounded"
+                style={{ backgroundColor: brandColors.primary?.full }}
+              >
+                A
+              </span>
+              <span className="font-bold">{companyName} Admin</span>
+            </Link>
+          </div>
+          <ScrollArea className="flex-1 py-2">
+            <nav className="grid items-start px-2 text-sm font-medium space-y-1">
+              <Button
+                variant="ghost"
+                className="justify-start font-medium rounded-lg hover:bg-opacity-80 hover:text-opacity-100 hover:bg-[var(--hover-bg)]"
+                style={{
+                  color: brandColors.primary?.full,
+                  "--hover-bg": brandColors.primary?.full,
+                  "--hover-color": "white"
+                } as React.CSSProperties}
+                asChild
+              >
+                <Link href="/dashboard" className="group w-full">
+                  <Home className="mr-2 h-4 w-4 text-primary group-hover:text-[var(--hover-color)]" />
+                  <span className="group-hover:text-[var(--hover-color)]">Return to Dashboard</span>
+                </Link>
+              </Button>
+
+              <Separator className="my-2" />
+
+              {adminMenuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.href;
+
+                return (
+                  <Button
+                    key={item.href}
+                    variant={isActive ? "secondary" : "ghost"}
+                    className={cn(
+                      "justify-start font-medium rounded-lg",
+                      !isActive && "hover:bg-opacity-80 hover:text-opacity-100"
+                    )}
+                    style={{
+                      ...(isActive 
+                        ? {
+                            backgroundColor: brandColors.primary?.lighter,
+                            color: brandColors.primary?.full
+                          } 
+                        : {}),
+                      "--hover-bg": brandColors.primary?.full,
+                      "--hover-color": "white"
+                    } as React.CSSProperties}
+                    asChild
+                  >
+                    <Link href={item.href} className={!isActive ? "group w-full" : "w-full"}>
+                      <Icon className={cn(
+                        "mr-2 h-4 w-4",
+                        !isActive && "group-hover:text-[var(--hover-color)]"
+                      )} 
+                      style={isActive ? { color: brandColors.primary?.full } : undefined} />
+                      <span className={!isActive ? "group-hover:text-[var(--hover-color)]" : ""}>
+                        {item.label}
+                      </span>
+                    </Link>
+                  </Button>
+                );
+              })}
+
+              <Separator className="my-2" />
+
+              <Button
+                variant="ghost"
+                className="justify-start font-medium rounded-lg text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                onClick={handleLogout}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </nav>
+          </ScrollArea>
+        </div>
+      </div>
+
+      {/* Mobile sidebar */}
+      <div className="flex h-16 items-center gap-2 border-b bg-background px-4 lg:hidden">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0 lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle Menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="flex flex-col p-0">
+            <div className="flex items-center border-b px-6 h-16">
+              <Link
+                className="flex items-center gap-2 font-semibold"
+                href="/admin"
+              >
+                <span 
+                  className="w-6 h-6 text-white flex items-center justify-center font-bold rounded"
+                  style={{ backgroundColor: brandColors.primary?.full }}
+                >
+                  A
+                </span>
+                <span className="font-bold">{companyName} Admin</span>
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-auto"
+                onClick={() => setOpen(false)}
+              >
+                <X className="h-5 w-5" />
+                <span className="sr-only">Close Menu</span>
+              </Button>
+            </div>
+            <ScrollArea className="flex-1 py-2">
+              <nav className="grid items-start px-2 text-sm font-medium space-y-1">
+                <Button
+                  variant="ghost"
+                  className="justify-start font-medium rounded-lg hover:bg-[var(--hover-bg)] w-full"
+                  style={{
+                    color: brandColors.primary?.full,
+                    "--hover-bg": brandColors.primary?.full,
+                    "--hover-color": "white"
+                  } as React.CSSProperties}
+                  asChild
+                >
+                  <Link href="/dashboard" className="flex items-center group w-full">
+                    <Home className="mr-2 h-4 w-4 group-hover:text-[var(--hover-color)]" style={{ color: brandColors.primary?.full }} />
+                    <span className="group-hover:text-[var(--hover-color)]">Return to Dashboard</span>
+                  </Link>
+                </Button>
+
+                <Separator className="my-2" />
+
+                {adminMenuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location === item.href;
+
+                  return (
+                    <Button
+                      key={item.href}
+                      variant={isActive ? "secondary" : "ghost"}
+                      className={cn(
+                        "justify-start font-medium rounded-lg",
+                        !isActive && "hover:bg-opacity-80 hover:text-opacity-100"
+                      )}
+                      style={{
+                        ...(isActive 
+                          ? {
+                              backgroundColor: brandColors.primary?.lighter,
+                              color: brandColors.primary?.full
+                            } 
+                          : {}),
+                        "--hover-bg": brandColors.primary?.full,
+                        "--hover-color": "white"
+                      } as React.CSSProperties}
+                      asChild
+                    >
+                      <Link href={item.href} className={!isActive ? "hover:text-[var(--hover-color)] group" : ""}>
+                        <Icon className={cn(
+                          "mr-2 h-4 w-4",
+                          !isActive && "group-hover:text-[var(--hover-color)]"
+                        )} 
+                        style={isActive ? { color: brandColors.primary?.full } : undefined} />
+                        {item.label}
+                      </Link>
+                    </Button>
+                  );
+                })}
+
+                <Separator className="my-2" />
+
+                <Button
+                  variant="ghost"
+                  className="justify-start font-medium rounded-lg text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              </nav>
+            </ScrollArea>
+          </SheetContent>
+        </Sheet>
+        <div className="flex items-center">
+          <Link
+            href="/admin"
+            className="ml-2 flex items-center gap-2 font-semibold"
+          >
+            <span
+              className="w-6 h-6 text-white flex items-center justify-center font-bold rounded"
+              style={{ backgroundColor: brandColors.primary?.full }}
+            >
+              A
+            </span>
+            <span className="font-bold">{companyName} Admin</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="flex flex-col">
+        {/* Header with Search */}
+        <header className="bg-white border-b border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            {/* Mobile logo - already shown in sidebar toggle */}
+            <div className="flex-1 hidden lg:block" />
+
+            {/* Enhanced Navbar Search with Keyboard Shortcut Indicator */}
+            <div className="flex-1 flex max-w-2xl mx-4 relative z-10">
+              <div className="relative w-full">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search for anything... (press Ctrl+K or ⌘K)"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    // Directly trigger search if query is empty to clear results
+                    if (!e.target.value) {
+                      setSearchResults([]);
+                    }
+                  }}
+                  onFocus={() => setShowSearchPopup(true)}
+                  className="h-10 w-full pl-10 pr-20 py-2 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-brand focus:border-brand"
+                  style={{ "--ring-color": brandColors.primary?.medium } as React.CSSProperties}
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs">
+                  <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-400">
+                    ⌘K
+                  </kbd>
+                </div>
+              </div>
+            </div>
+            
+            {/* User Actions */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-5 w-5" />
+                <span className="sr-only">Logout</span>
+              </Button>
+            </div>
+          </div>
+        </header>
+        
+        {/* Search Popup Dialog */}
+        {showSearchPopup && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-16 px-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
+              {/* Search Input in Dialog */}
+              <div className="p-4 border-b">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search for anything..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      // Directly trigger search if query is empty to clear results
+                      if (!e.target.value) {
+                        setSearchResults([]);
+                      } else if (e.target.value.length > 1) {
+                        // Directly trigger search for immediate feedback
+                        performSearch(e.target.value);
+                      }
+                    }}
+                    className="h-10 w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md text-sm focus:ring-2 focus:outline-none"
+                    style={{ "--ring-color": brandColors.primary?.medium } as React.CSSProperties}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => setShowSearchPopup(false)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Search Results */}
+              <div className="p-2">
+                {isSearching ? (
+                  <div className="flex justify-center items-center p-4">
+                    <div className="animate-spin h-5 w-5 border-2 border-gray-300 rounded-full border-t-brand-600"
+                      style={{ borderTopColor: brandColors.primary?.full }} />
+                    <span className="ml-2 text-sm text-gray-500">Searching...</span>
+                  </div>
+                ) : (
+                  <>
+                    {searchQuery.length > 0 && searchResults.length === 0 ? (
+                      <div className="text-center p-4 text-gray-500">
+                        No results found for "{searchQuery}"
+                      </div>
+                    ) : (
+                      <div ref={searchResultsRef} className="overflow-y-auto max-h-[60vh]">
+                        {searchResults.length > 0 ? (
+                          <div className="py-2">
+                            {/* User Results */}
+                            {searchResults.filter(result => result.type === "user").length > 0 && (
+                              <div className="mb-4">
+                                <h3 className="text-xs font-semibold text-gray-500 uppercase px-3 mb-2">
+                                  Users
+                                </h3>
+                                <div className="space-y-1">
+                                  {searchResults
+                                    .filter(result => result.type === "user")
+                                    .map((result, index) => {
+                                      const overallIndex = searchResults.findIndex(r => r.id === result.id && r.type === result.type);
+                                      return (
+                                        <button
+                                          key={`${result.type}-${result.id}`}
+                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-gray-100 focus:outline-none"
+                                          onClick={() => navigateToResult(result)}
+                                          onMouseEnter={() => setActiveResultIndex(overallIndex)}
+                                          style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
+                                        >
+                                          <div className="flex-shrink-0 mr-2">
+                                            {result.icon}
+                                          </div>
+                                          <div className="flex-1 overflow-hidden">
+                                            <div className="font-medium truncate">{result.name}</div>
+                                            {result.description && (
+                                              <div className="text-xs text-gray-500 truncate">{result.description}</div>
+                                            )}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Ticket Results */}
+                            {searchResults.filter(result => result.type === "ticket").length > 0 && (
+                              <div className="mb-4">
+                                <h3 className="text-xs font-semibold text-gray-500 uppercase px-3 mb-2">
+                                  Tickets
+                                </h3>
+                                <div className="space-y-1">
+                                  {searchResults
+                                    .filter(result => result.type === "ticket")
+                                    .map((result, index) => {
+                                      const overallIndex = searchResults.findIndex(r => r.id === result.id && r.type === result.type);
+                                      return (
+                                        <button
+                                          key={`${result.type}-${result.id}`}
+                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-gray-100 focus:outline-none"
+                                          onClick={() => navigateToResult(result)}
+                                          onMouseEnter={() => setActiveResultIndex(overallIndex)}
+                                          style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
+                                        >
+                                          <div className="flex-shrink-0 mr-2">
+                                            {result.icon}
+                                          </div>
+                                          <div className="flex-1 overflow-hidden">
+                                            <div className="font-medium truncate">{result.name}</div>
+                                            {result.description && (
+                                              <div className="text-xs text-gray-500 truncate">{result.description}</div>
+                                            )}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Billing Results */}
+                            {searchResults.filter(result => result.type === "billing").length > 0 && (
+                              <div className="mb-4">
+                                <h3 className="text-xs font-semibold text-gray-500 uppercase px-3 mb-2">
+                                  Billing
+                                </h3>
+                                <div className="space-y-1">
+                                  {searchResults
+                                    .filter(result => result.type === "billing")
+                                    .map((result, index) => {
+                                      const overallIndex = searchResults.findIndex(r => r.id === result.id && r.type === result.type);
+                                      return (
+                                        <button
+                                          key={`${result.type}-${result.id}`}
+                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-gray-100 focus:outline-none"
+                                          onClick={() => navigateToResult(result)}
+                                          onMouseEnter={() => setActiveResultIndex(overallIndex)}
+                                          style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
+                                        >
+                                          <div className="flex-shrink-0 mr-2">
+                                            {result.icon}
+                                          </div>
+                                          <div className="flex-1 overflow-hidden">
+                                            <div className="font-medium truncate">{result.name}</div>
+                                            {result.description && (
+                                              <div className="text-xs text-gray-500 truncate">{result.description}</div>
+                                            )}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Server Results */}
+                            {searchResults.filter(result => result.type === "server").length > 0 && (
+                              <div className="mb-4">
+                                <h3 className="text-xs font-semibold text-gray-500 uppercase px-3 mb-2">
+                                  Servers
+                                </h3>
+                                <div className="space-y-1">
+                                  {searchResults
+                                    .filter(result => result.type === "server")
+                                    .map((result, index) => {
+                                      const overallIndex = searchResults.findIndex(r => r.id === result.id && r.type === result.type);
+                                      console.log('Rendering server result:', result);
+                                      return (
+                                        <button
+                                          key={`${result.type}-${result.id}`}
+                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-gray-100 focus:outline-none"
+                                          onClick={() => navigateToResult(result)}
+                                          onMouseEnter={() => setActiveResultIndex(overallIndex)}
+                                          style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
+                                        >
+                                          <div className="flex-shrink-0 mr-2">
+                                            {result.icon}
+                                          </div>
+                                          <div className="flex-1 overflow-hidden">
+                                            <div className="font-medium truncate">{result.name}</div>
+                                            {result.description && (
+                                              <div className="text-xs text-gray-500 truncate">{result.description}</div>
+                                            )}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Keyboard Navigation Instructions */}
+                            <div className="px-3 pt-2 pb-3 text-xs text-gray-500 flex items-center justify-between border-t mt-2">
+                              <div className="flex items-center space-x-3">
+                                <div className="flex items-center">
+                                  <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 font-mono text-xs text-gray-400">↑</kbd>
+                                  <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 font-mono text-xs text-gray-400 ml-1">↓</kbd>
+                                  <span className="ml-1">to navigate</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 font-mono text-xs text-gray-400">Enter</kbd>
+                                  <span className="ml-1">to select</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center">
+                                <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 font-mono text-xs text-gray-400">Esc</kbd>
+                                <span className="ml-1">to close</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background">
+          <div className="container mx-auto py-6 px-3 sm:px-4 md:px-6">
+            {children}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,141 @@
+/* Light theme (for messages with dark background) */
+.markdown-light {
+  /* Add specific styling for markdown in light text on dark background */
+}
+
+.markdown-light a {
+  color: #e0e0ff;
+  text-decoration: underline;
+}
+
+.markdown-light h1,
+.markdown-light h2,
+.markdown-light h3,
+.markdown-light h4 {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.markdown-light h1 {
+  font-size: 1.25em;
+}
+
+.markdown-light h2 {
+  font-size: 1.15em;
+}
+
+.markdown-light h3 {
+  font-size: 1.05em;
+}
+
+.markdown-light code {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.markdown-light pre {
+  background-color: rgba(255, 255, 255, 0.2);
+  padding: 0.5em;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-light pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.markdown-light blockquote {
+  border-left: 3px solid rgba(255, 255, 255, 0.5);
+  padding-left: 0.5em;
+  margin-left: 0.5em;
+}
+
+.markdown-light ul,
+.markdown-light ol {
+  padding-left: 1.5em;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.markdown-light strong {
+  font-weight: bold;
+}
+
+.markdown-light em {
+  font-style: italic;
+}
+
+/* Dark theme (for messages with light background) */
+.markdown-dark {
+  /* Add specific styling for markdown in dark text on light background */
+}
+
+.markdown-dark a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.markdown-dark h1,
+.markdown-dark h2,
+.markdown-dark h3,
+.markdown-dark h4 {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.markdown-dark h1 {
+  font-size: 1.25em;
+}
+
+.markdown-dark h2 {
+  font-size: 1.15em;
+}
+
+.markdown-dark h3 {
+  font-size: 1.05em;
+}
+
+.markdown-dark code {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.markdown-dark pre {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.5em;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-dark pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.markdown-dark blockquote {
+  border-left: 3px solid rgba(0, 0, 0, 0.2);
+  padding-left: 0.5em;
+  margin-left: 0.5em;
+}
+
+.markdown-dark ul,
+.markdown-dark ol {
+  padding-left: 1.5em;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.markdown-dark strong {
+  font-weight: bold;
+}
+
+.markdown-dark em {
+  font-style: italic;
+}

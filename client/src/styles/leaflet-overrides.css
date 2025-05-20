@@ -1,0 +1,31 @@
+/* Leaflet Map Custom Styles */
+
+/* Ensure popups appear above other map elements */
+.leaflet-popup {
+  z-index: 1000 !important;
+}
+
+/* Additional class for even higher popups when needed */
+.leaflet-popup-higher {
+  z-index: 1500 !important;
+}
+
+/* Increase z-index for popup content to ensure it's always on top */
+.leaflet-popup-content-wrapper {
+  z-index: 1001 !important;
+}
+
+/* Ensure the map container doesn't obscure dialogs */
+.leaflet-container {
+  z-index: 1 !important;
+}
+
+/* Make sure map controls have a higher z-index than the map but lower than popups */
+.leaflet-control {
+  z-index: 800 !important;
+}
+
+/* Make sure the popup tip appears correctly */
+.leaflet-popup-tip {
+  z-index: 1001 !important;
+}
