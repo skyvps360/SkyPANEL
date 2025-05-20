@@ -377,29 +377,6 @@ export default function BillingPage() {
       ),
     },
     {
-      accessorKey: "totalAmount" as keyof Invoice,
-      header: "Amount",
-      cell: (invoice: Invoice) => {
-        // Directly check for removal keywords in notes to match transaction display logic
-        const isRemoval = invoice.notes && 
-          (invoice.notes.toLowerCase().includes("removal") || 
-           invoice.notes.toLowerCase().includes("virtfusion_credit_removal"));
-       
-        return (
-          <div className="text-sm">
-            <div className={isRemoval ? 'text-destructive' : 'text-accent'}>
-              {isRemoval ? '-' : '+'}${Math.abs(invoice.totalAmount).toFixed(2)}
-            </div>
-            {invoice.taxAmount > 0 && (
-              <div className="text-xs text-gray-500">
-                Tax: {isRemoval ? '-' : '+'}${Math.abs(invoice.taxAmount).toFixed(2)}
-              </div>
-            )}
-          </div>
-        );
-      },
-    },
-    {
       accessorKey: "createdAt" as keyof Invoice,
       header: "Date",
       cell: (invoice: Invoice) => (
