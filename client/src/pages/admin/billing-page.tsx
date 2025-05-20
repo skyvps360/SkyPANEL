@@ -241,7 +241,7 @@ export default function AdminBillingPage() {
       accessorKey: "totalAmount" as keyof Invoice,
       header: "Total Amount",
       cell: (item: Invoice) => (
-        <span className="font-medium">${Number(item.totalAmount).toFixed(2)}</span>
+        <span className="font-medium text-accent">+${Math.abs(Number(item.totalAmount)).toFixed(2)}</span>
       )
     },
     {
