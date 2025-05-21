@@ -211,6 +211,20 @@ export default function AdminBillingPage() {
       header: "Date",
       cell: (item: Transaction) => <span>{format(new Date(item.createdAt), "MMM d, yyyy HH:mm")}</span>
     },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: (item: Transaction) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(`/admin/billing/transactions/${item.id}`)}
+          title="View Transaction"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+      )
+    },
   ];
 
   const invoiceColumns: DataTableColumn<Invoice>[] = [

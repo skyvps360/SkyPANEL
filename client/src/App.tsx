@@ -42,6 +42,7 @@ import AdminTicketsPage from "@/pages/admin/tickets-page";
 import AdminTicketDetailPage from "@/pages/admin/ticket-detail-page";
 import AdminInvoiceDetailPage from "@/pages/admin/invoice-detail-page";
 import AdminBillingPage from "@/pages/admin/billing-page";
+import AdminTransactionDetailPage from "@/pages/admin/transaction-detail-page";
 import EmailLogsPage from "@/pages/admin/email-logs-page";
 import AdminDocsPage from "@/pages/admin/docs-page";
 import AdminBlogPage from "@/pages/admin/blog-page";
@@ -298,6 +299,7 @@ function Router() {
         <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage} />
         <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage} />
         <AdminProtectedRoute path="/admin/billing/invoices/:id" component={AdminInvoiceDetailPage} />
+        <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage} />
         <Route component={NotFound} />
       </Switch>
     </MaintenanceGuard>
