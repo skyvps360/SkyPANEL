@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
@@ -91,13 +91,18 @@ export default function BillingPage() {
   // Fetch VirtFusion usage data for last 30 days
   const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: any }>({
     queryKey: ["/api/billing/usage/last30days"],
-    onSuccess: (data) => {
-      console.log("VirtFusion usage data:", data);
-    },
-    onError: (error) => {
-      console.error("VirtFusion usage API error:", error);
-    }
+    staleTime: 300000, // 5 minutes
   });
+  
+  // Log usage data when it changes
+  React.useEffect(() => {
+    if (usageData) {
+      console.log("VirtFusion usage data:", usageData);
+    }
+    if (usageError) {
+      console.error("VirtFusion usage API error:", usageErrorData);
+    }
+  }, [usageData, usageError, usageErrorData]);
   
   // Invoice download handler removed (invoices deprecated)
   
@@ -157,22 +162,27 @@ export default function BillingPage() {
   // Calculate billing summary
   const hasVirtFusionBalance = balanceData?.virtFusionCredits && balanceData.virtFusionCredits > 0;
   
+  // Calculate the spent and added amounts for the last 30 days from transactions
+  const spentFromTransactions = transactions
+    .filter(t => isDebit(t) && new Date(t.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  
+  const addedFromTransactions = transactions
+    .filter(t => isCredit(t) && new Date(t.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
   const summaryData = {
     // Prioritize VirtFusion balance when available
     balance: hasVirtFusionBalance ? 
-      balanceData.virtFusionCredits : 
+      balanceData?.virtFusionCredits || 0 : 
       (balanceData?.credits || user?.credits || 0),
     
     virtFusionTokens: balanceData?.virtFusionTokens || 0,
     localBalance: balanceData?.credits || user?.credits || 0,
     
     // Use VirtFusion API data if available, otherwise fall back to transaction calculation
-    spent30Days: usageData?.usage ?? transactions
-      .filter(t => isDebit(t) && new Date(t.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0),
-    added30Days: transactions
-      .filter(t => isCredit(t) && new Date(t.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0),
+    spent30Days: (usageData && 'usage' in usageData) ? usageData.usage : spentFromTransactions,
+    added30Days: addedFromTransactions,
   };
 
   // Columns for transactions table
@@ -309,6 +319,7 @@ export default function BillingPage() {
                 <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
             </div>
+            
             {/* Show VirtFusion tokens section when available */}
             {hasVirtFusionBalance ? (
               <div className="mt-3 pt-3 border-t border-border/60">
@@ -331,7 +342,6 @@ export default function BillingPage() {
               </div>
             )}
           </CardContent>
-          {/* Removed Add Credits button from inside the card */}
         </Card>
 
         {/* Spent Last 30 Days Card */}
@@ -373,11 +383,11 @@ export default function BillingPage() {
         </Card>
       </div>
 
-      {/* Add Credits button below all cards */}
+      {/* Add Credits Button - Outside Cards, Full Width */}
       {user?.isActive && (
-        <div className="mb-8 flex justify-center">
+        <div className="mb-6 w-full">
           <Button 
-            className="px-8 py-3 text-lg font-semibold shadow-md transition-all hover:translate-y-[-1px]"
+            className="w-full py-3 transition-all hover:translate-y-[-1px] shadow-sm text-center flex items-center justify-center"
             onClick={() => handleTabChange("addCredits")}
             style={{ 
               backgroundColor: brandColors.primary.full,
@@ -385,7 +395,7 @@ export default function BillingPage() {
             }}
           >
             <PlusCircle className="h-5 w-5 mr-2" />
-            Add Credits
+            <span className="font-medium">Add Credits</span>
           </Button>
         </div>
       )}
