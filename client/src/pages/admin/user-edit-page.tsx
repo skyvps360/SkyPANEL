@@ -41,12 +41,12 @@ import { format } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-// User schema
+
+// User schema (no local credits)
 const userSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
   email: z.string().email("Invalid email address"),
   role: z.string().min(1, "Role is required"),
-  credits: z.number().min(0, "Credits must be 0 or greater"),
 });
 
 type UserFormData = z.infer<typeof userSchema>;
@@ -57,7 +57,6 @@ interface User {
   email: string;
   fullName: string;
   role: string;
-  credits: number;
   virtFusionId?: number;
   isActive?: boolean;
   createdAt: string;
@@ -157,7 +156,6 @@ export default function UserEditPage() {
       fullName: "",
       email: "",
       role: "",
-      credits: 0,
     },
   });
 
@@ -168,7 +166,6 @@ export default function UserEditPage() {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
-        credits: user.credits,
       });
     }
   }, [user, form]);
@@ -587,10 +584,12 @@ export default function UserEditPage() {
                 <UserCog className="h-4 w-4 mr-2" />
                 Permissions
               </TabsTrigger>
-              <TabsTrigger value="credits" className="data-[state=active]:bg-background">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Credits
-              </TabsTrigger>
+              {user.virtFusionId && (
+                <TabsTrigger value="credits" className="data-[state=active]:bg-background">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  VirtFusion Credits
+                </TabsTrigger>
+              )}
               {user.virtFusionId && (
                 <TabsTrigger value="usage" className="data-[state=active]:bg-background">
                   <BarChart3 className="h-4 w-4 mr-2" />
@@ -673,82 +672,42 @@ export default function UserEditPage() {
               </CardContent>
             </TabsContent>
 
-            <TabsContent value="credits" className="m-0">
-              <CardContent className="p-6">
-                <div className="space-y-8">
-                  {/* Credits Balance Section */}
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Credits Balance</h3>
-                    
+            {user.virtFusionId && (
+              <TabsContent value="credits" className="m-0">
+                <CardContent className="p-6">
+                  <div className="space-y-8">
                     {/* VirtFusion Credit Display - Main Credit Source */}
-                    {user.virtFusionId && (
-                      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 className="font-medium text-blue-800 mb-2">VirtFusion Credits <span className="text-xs font-normal bg-blue-100 text-blue-700 px-2 py-0.5 rounded ml-2">Primary</span></h4>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-white rounded p-3 shadow-sm">
-                            <div className="text-sm font-medium text-muted-foreground">Token Balance</div>
-                            <div className="text-2xl font-bold text-blue-600">
-                              {usageData && usageData.data && usageData.data.data && usageData.data.data.credit && usageData.data.data.credit.tokens
-                                ? parseFloat(usageData.data.data.credit.tokens).toLocaleString() 
-                                : "0"} <span className="text-sm font-normal">tokens</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              100 tokens = $1.00 USD
-                            </p>
+                    <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-medium text-blue-800 mb-2">VirtFusion Credits <span className="text-xs font-normal bg-blue-100 text-blue-700 px-2 py-0.5 rounded ml-2">Primary</span></h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white rounded p-3 shadow-sm">
+                          <div className="text-sm font-medium text-muted-foreground">Token Balance</div>
+                          <div className="text-2xl font-bold text-blue-600">
+                            {usageData && usageData.data && usageData.data.data && usageData.data.data.credit && usageData.data.data.credit.tokens
+                              ? parseFloat(usageData.data.data.credit.tokens).toLocaleString() 
+                              : "0"} <span className="text-sm font-normal">tokens</span>
                           </div>
-                          
-                          <div className="bg-white rounded p-3 shadow-sm">
-                            <div className="text-sm font-medium text-muted-foreground">USD Value</div>
-                            <div className="text-2xl font-bold text-blue-600">
-                              ${usageData && usageData.data && usageData.data.data && usageData.data.data.credit && usageData.data.data.credit.value
-                                ? parseFloat(usageData.data.data.credit.value.replace(/,/g, '')).toFixed(2)
-                                : "0.00"}
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Based on current exchange rate
-                            </p>
-                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            100 tokens = $1.00 USD
+                          </p>
                         </div>
-                        
-                        <p className="text-xs text-blue-600 mt-3">
-                          <Info className="h-3 w-3 inline mr-1" /> VirtFusion credits are managed through the VirtFusion API
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Local Credits - Secondary/Legacy */}
-                    <div className={user.virtFusionId ? "opacity-70" : ""}>
-                      <h4 className="font-medium mb-2">
-                        Local Credits 
-                        {user.virtFusionId && <span className="text-xs font-normal bg-gray-100 text-gray-700 px-2 py-0.5 rounded ml-2">Secondary</span>}
-                      </h4>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="credits">Local Credits Balance</Label>
-                          <Input 
-                            id="credits"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            {...form.register("credits", { valueAsNumber: true })}
-                            disabled={!canEdit || updateUserMutation.isPending}
-                          />
-                          {form.formState.errors.credits && (
-                            <p className="text-sm text-destructive">{form.formState.errors.credits.message}</p>
-                          )}
-                          <p className="text-sm text-muted-foreground">
-                            {user.virtFusionId 
-                              ? "Legacy credits in our local system. VirtFusion credits are now the primary balance." 
-                              : "These credits are used in our local billing system."}
+                        <div className="bg-white rounded p-3 shadow-sm">
+                          <div className="text-sm font-medium text-muted-foreground">USD Value</div>
+                          <div className="text-2xl font-bold text-blue-600">
+                            ${usageData && usageData.data && usageData.data.data && usageData.data.data.credit && usageData.data.data.credit.value
+                              ? parseFloat(usageData.data.data.credit.value.replace(/,/g, '')).toFixed(2)
+                              : "0.00"}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Based on current exchange rate
                           </p>
                         </div>
                       </div>
+                      <p className="text-xs text-blue-600 mt-3">
+                        <Info className="h-3 w-3 inline mr-1" /> VirtFusion credits are managed through the VirtFusion API
+                      </p>
                     </div>
-                  </div>
-                  
-                  {/* VirtFusion Credits */}
-                  {user.virtFusionId && (
+                    {/* VirtFusion Credits Actions */}
                     <div>
                       <h3 className="text-lg font-medium mb-4">VirtFusion Credits</h3>
                       <div className="space-y-6">
@@ -801,7 +760,6 @@ export default function UserEditPage() {
                             </Button>
                           </div>
                         </div>
-                        
                         {/* Remove Credits Form */}
                         <div className="border rounded-lg p-4 bg-muted/20">
                           <h4 className="font-medium mb-3">Remove Credits from VirtFusion</h4>
@@ -822,8 +780,6 @@ export default function UserEditPage() {
                                 The Credit ID is returned when credits are added to VirtFusion
                               </p>
                             </div>
-                            
-
                           </div>
                           <div className="mt-4 flex justify-end">
                             <Button
@@ -844,7 +800,6 @@ export default function UserEditPage() {
                             </Button>
                           </div>
                         </div>
-                        
                         <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-amber-800">
                           <div className="flex items-start">
                             <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
@@ -860,10 +815,10 @@ export default function UserEditPage() {
                         </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              </CardContent>
-            </TabsContent>
+                  </div>
+                </CardContent>
+              </TabsContent>
+            )}
 
             <Separator />
             
