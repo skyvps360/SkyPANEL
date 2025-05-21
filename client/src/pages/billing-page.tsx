@@ -291,21 +291,27 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Billing Summary */}
+      {/* Billing Summary - Modern Card Layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Current Balance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <DollarSign className="h-8 w-8 mr-2 text-primary" />
-              <div className="text-3xl font-bold">${summaryData.balance.toFixed(2)}</div>
+        {/* Current Balance Card */}
+        <Card className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="bg-primary/5 px-6 py-4 flex items-center justify-between border-b">
+            <CardTitle className="text-base font-medium">Current Balance</CardTitle>
+            <div className="h-10 w-10 rounded-full flex items-center justify-center" 
+                 style={{ backgroundColor: brandColors.primary.extraLight }}>
+              <DollarSign className="h-5 w-5" style={{ color: brandColors.primary.full }} />
             </div>
-            
+          </div>
+          <CardContent className="px-6 py-5">
+            <div className="mb-2">
+              <div className="flex items-center gap-1">
+                <span className="text-3xl font-bold">${summaryData.balance.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
+              </div>
+            </div>
             {/* Show VirtFusion tokens section when available */}
             {hasVirtFusionBalance ? (
-              <div className="mt-2 pt-2 border-t border-gray-200">
+              <div className="mt-3 pt-3 border-t border-border/60">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">VirtFusion Tokens:</span>
                   <span className="font-medium" style={{ color: brandColors.primary.full }}>{summaryData.virtFusionTokens.toLocaleString()}</span>
@@ -317,7 +323,7 @@ export default function BillingPage() {
               </div>
             ) : (
               /* Show local balance only if no VirtFusion balance */
-              <div className="mt-2 pt-2 border-t border-gray-200">
+              <div className="mt-3 pt-3 border-t border-border/60">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Local Balance:</span>
                   <span className="font-medium">${summaryData.localBalance.toFixed(2)}</span>
@@ -325,103 +331,81 @@ export default function BillingPage() {
               </div>
             )}
           </CardContent>
-          <CardFooter>
-            {user?.isActive ? (
-              <Button 
-                className="w-full" 
-                onClick={() => handleTabChange("addCredits")}
-                style={{ 
-                  backgroundColor: brandColors.primary.full,
-                  color: 'white',
-                  borderColor: brandColors.primary.full
-                }}
-              >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Credits
-              </Button>
-            ) : (
-              <Button 
-                className="w-full" 
-                variant="outline" 
-                disabled
-                style={{ borderColor: brandColors.primary.medium }}
-              >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Account Suspended
-              </Button>
-            )}
-          </CardFooter>
+          {/* Removed Add Credits button from inside the card */}
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Spent Last 30 Days</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Receipt className="h-8 w-8 mr-2 text-destructive" />
-              <div className="text-3xl font-bold">${summaryData.spent30Days.toFixed(2)}</div>
+        {/* Spent Last 30 Days Card */}
+        <Card className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="bg-destructive/5 px-6 py-4 flex items-center justify-between border-b">
+            <CardTitle className="text-base font-medium">Spent Last 30 Days</CardTitle>
+            <div className="h-10 w-10 rounded-full flex items-center justify-center bg-red-50">
+              <Receipt className="h-5 w-5 text-red-500" />
             </div>
+          </div>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-1">
+              <span className="text-3xl font-bold">${summaryData.spent30Days.toFixed(2)}</span>
+              <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Total amount spent in the last 30 days
+            </p>
           </CardContent>
-          <CardFooter>
-            {/* View Invoices button removed as invoices are deprecated in favor of transactions */}
-          </CardFooter>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Added Last 30 Days</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <CreditCard className="h-8 w-8 mr-2 text-accent" />
-              <div className="text-3xl font-bold">${summaryData.added30Days.toFixed(2)}</div>
+        {/* Added Last 30 Days Card */}
+        <Card className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="bg-accent/5 px-6 py-4 flex items-center justify-between border-b">
+            <CardTitle className="text-base font-medium">Added Last 30 Days</CardTitle>
+            <div className="h-10 w-10 rounded-full flex items-center justify-center bg-green-50">
+              <CreditCard className="h-5 w-5 text-green-500" />
             </div>
+          </div>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-1">
+              <span className="text-3xl font-bold">${summaryData.added30Days.toFixed(2)}</span>
+              <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Total credits added in the last 30 days
+            </p>
           </CardContent>
-          <CardFooter>
-            {user?.isActive ? (
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => handleTabChange("addCredits")}
-                style={{ 
-                  backgroundColor: 'transparent', 
-                  color: brandColors.primary.full, 
-                  borderColor: brandColors.primary.medium 
-                }}
-              >
-                Add More Credits
-              </Button>
-            ) : (
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                disabled
-                style={{ borderColor: brandColors.primary.medium }}
-              >
-                Account Suspended
-              </Button>
-            )}
-          </CardFooter>
         </Card>
       </div>
 
+      {/* Add Credits button below all cards */}
+      {user?.isActive && (
+        <div className="mb-8 flex justify-center">
+          <Button 
+            className="px-8 py-3 text-lg font-semibold shadow-md transition-all hover:translate-y-[-1px]"
+            onClick={() => handleTabChange("addCredits")}
+            style={{ 
+              backgroundColor: brandColors.primary.full,
+              color: 'white'
+            }}
+          >
+            <PlusCircle className="h-5 w-5 mr-2" />
+            Add Credits
+          </Button>
+        </div>
+      )}
+
       {/* Tabs: Transactions, Add Credits, Invoices */}
-      <Card>
-        <CardHeader className="border-b px-6">
+      <Card className="border border-border/40 shadow-sm overflow-hidden">
+        <CardHeader className="border-b px-6 bg-card/30">
           <h2 className="text-lg font-semibold">Billing & Transactions</h2>
         </CardHeader>
 
         <CardContent className="p-6">
           <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="bg-muted/50 mb-6">
-              <TabsTrigger value="transactions" className="data-[state=active]:bg-background">
+            <TabsList className="bg-muted/50 mb-6 p-1 rounded-md">
+              <TabsTrigger value="transactions" className="data-[state=active]:bg-background rounded-md">
                 <History className="h-4 w-4 mr-2" />
                 Transactions
               </TabsTrigger>
               {/* Only show Add Credits tab if user is not suspended */}
               {user?.isActive && (
-                <TabsTrigger value="addCredits" className="data-[state=active]:bg-background">
+                <TabsTrigger value="addCredits" className="data-[state=active]:bg-background rounded-md">
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Add Credits
                 </TabsTrigger>
@@ -437,34 +421,36 @@ export default function BillingPage() {
               <div className="p-0">
                 {isLoading ? (
                   <div className="flex justify-center items-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <p className="ml-2">Loading transactions...</p>
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: brandColors.primary.full }}></div>
+                    <p className="ml-2 font-medium text-muted-foreground">Loading transactions...</p>
                   </div>
                 ) : transactions.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <div className="text-center py-12 bg-muted/5 rounded-lg border border-border/40 px-6">
+                    <div className="p-4 rounded-full mx-auto w-16 h-16 mb-4 flex items-center justify-center" style={{ backgroundColor: brandColors.primary.extraLight }}>
+                      <FileText className="h-8 w-8" style={{ color: brandColors.primary.full }} />
+                    </div>
                     <h3 className="text-lg font-medium mb-2">No Transactions Found</h3>
-                    <p className="text-muted-foreground mb-4">
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                       {user?.isActive 
-                       ? "You don't have any transactions yet. Add credits to get started."
+                       ? "You don't have any transactions yet. Add credits to get started with your account."
                        : "You don't have any transactions yet. Your account is currently suspended."}
                     </p>
                     {user?.isActive ? (
                       <Button 
                         onClick={() => handleTabChange("addCredits")} 
+                        className="px-6 py-2 transition-all hover:translate-y-[-1px]"
                         style={{ 
                           backgroundColor: brandColors.primary.full,
-                          color: 'white',
-                          borderColor: brandColors.primary.full
+                          color: 'white'
                         }}
                       >
+                        <PlusCircle className="h-4 w-4 mr-2" />
                         Add Credits
                       </Button>
                     ) : (
                       <Button 
                         variant="outline" 
                         disabled
-                        style={{ borderColor: brandColors.primary.medium }}
                       >
                         Account Suspended
                       </Button>
@@ -479,13 +465,14 @@ export default function BillingPage() {
                         header: "Transaction",
                         cell: (transaction) => (
                           <div className="flex items-center">
-                            <Avatar className="h-8 w-8 mr-3">
+                            <Avatar className="h-9 w-9 mr-3 shadow-sm">
                               <AvatarFallback 
+                                className="rounded-full flex items-center justify-center"
                                 style={isCredit(transaction) ? {
-                                  backgroundColor: brandColors.primary.light,
+                                  background: `linear-gradient(135deg, ${brandColors.primary.lighter}, ${brandColors.primary.light})`,
                                   color: brandColors.primary.full
                                 } : {
-                                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.2))',
                                   color: 'rgb(220, 38, 38)'
                                 }}
                               >
@@ -494,10 +481,18 @@ export default function BillingPage() {
                             </Avatar>
                             <div>
                               <div className="text-sm font-medium">{transaction.description}</div>
-                              <div className="text-xs text-gray-500">
-                                Transaction ID: #{transaction.id}
+                              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                <span>ID: #{transaction.id}</span>
                                 {transaction.paymentMethod && (
-                                  <span className="ml-2 capitalize">{transaction.paymentMethod}</span>
+                                  <>
+                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
+                                    <span className="capitalize flex items-center">
+                                      {transaction.paymentMethod === 'paypal' && 
+                                        <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@develop/icons/paypal.svg" 
+                                             className="h-3 w-3 mr-1 inline opacity-70" alt="PayPal" />}
+                                      {transaction.paymentMethod}
+                                    </span>
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -508,16 +503,14 @@ export default function BillingPage() {
                         accessorKey: "createdAt" as keyof Transaction,
                         header: "Date",
                         cell: (transaction) => (
-                          <span className="text-sm text-gray-500">
-                            {format(new Date(transaction.createdAt), 'MMM d, yyyy')}
-                          </span>
-                        ),
-                      },
-                      {
-                        accessorKey: "type" as keyof Transaction,
-                        header: "Type",
-                        cell: (transaction) => (
-                          <span className="text-sm capitalize">{transaction.type}</span>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium">
+                              {format(new Date(transaction.createdAt), 'MMM d, yyyy')}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {format(new Date(transaction.createdAt), 'h:mm a')}
+                            </span>
+                          </div>
                         ),
                       },
                       {
@@ -525,24 +518,22 @@ export default function BillingPage() {
                         header: "Status",
                         cell: (transaction) => {
                           const status = transaction.status.toLowerCase();
-                          let badgeClass = "";
+                          let variant = "default";
                           
                           switch (status) {
                             case "completed":
-                              badgeClass = "bg-green-100 text-green-800";
+                              variant = "success";
                               break;
                             case "pending":
-                              badgeClass = "bg-yellow-100 text-yellow-800";
+                              variant = "outline";
                               break;
                             case "failed":
-                              badgeClass = "bg-red-100 text-red-800";
+                              variant = "destructive";
                               break;
-                            default:
-                              badgeClass = "bg-gray-100 text-gray-800";
                           }
                           
                           return (
-                            <Badge className={`${badgeClass} hover:${badgeClass}`}>
+                            <Badge variant={variant as any} className="capitalize font-normal">
                               {transaction.status}
                             </Badge>
                           );
@@ -552,26 +543,24 @@ export default function BillingPage() {
                         accessorKey: "amount" as keyof Transaction,
                         header: "Amount",
                         cell: (transaction) => (
-                          <div className={`text-sm ${isCredit(transaction) ? 'text-accent' : 'text-destructive'}`}>
-                            {isCredit(transaction) ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
+                          <div className={`font-medium ${isCredit(transaction) ? 'text-green-600' : 'text-red-600'}`}>
+                            <span className="mr-1">{isCredit(transaction) ? '+' : '-'}</span>
+                            ${Math.abs(transaction.amount).toFixed(2)}
                           </div>
                         ),
                       },
                       {
                         id: "actions",
-                        header: "Actions",
+                        header: "",
                         cell: (transaction) => (
                           <Button 
-                            variant="outline" 
+                            variant="ghost" 
                             size="sm"
                             onClick={() => window.location.href = `/billing/transactions/${transaction.id}`}
-                            style={{ 
-                              backgroundColor: 'transparent', 
-                              color: brandColors.primary.full, 
-                              borderColor: brandColors.primary.medium 
-                            }}
+                            className="hover:bg-primary/5 transition-colors"
+                            style={{ color: brandColors.primary.full }}
                           >
-                            <Eye className="h-4 w-4 mr-2" />
+                            <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
                         ),
@@ -584,28 +573,36 @@ export default function BillingPage() {
 
             <TabsContent value="addCredits" className="mt-0">
               <div className="max-w-2xl mx-auto">
-                <div className="mb-8">
-                  <h3 className="text-lg font-medium mb-2">Add Credits to Your Account</h3>
+                <div className="mb-8 bg-primary/5 p-6 rounded-lg border border-primary/20">
+                  <h3 className="text-xl font-medium mb-2 flex items-center gap-2">
+                    <div className="p-2 rounded-full" style={{ backgroundColor: brandColors.primary.extraLight }}>
+                      <PlusCircle className="h-5 w-5" style={{ color: brandColors.primary.full }} />
+                    </div>
+                    Add Credits to Your Account
+                  </h3>
                   <p className="text-muted-foreground">
                     Select the amount you want to add to your account. Credits are used to pay for server resources and other services.
                   </p>
                 </div>
 
                 <div className="mb-8">
-                  <h4 className="text-sm font-medium mb-3">Select Amount</h4>
-                  <div className="grid grid-cols-3 gap-3">
+                  <h4 className="text-sm font-medium mb-4 flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1" style={{ color: brandColors.primary.full }} />
+                    Select Amount
+                  </h4>
+                  <div className="grid grid-cols-3 gap-4">
                     {creditOptions.map((amount) => (
                       <Button
                         key={amount}
                         variant={creditAmount === amount ? "default" : "outline"}
                         onClick={() => setCreditAmount(amount)}
+                        className={`font-medium transition-all ${creditAmount === amount ? 'shadow-md hover:shadow-lg' : 'hover:bg-primary/5'}`}
                         style={creditAmount === amount ? { 
                           backgroundColor: brandColors.primary.full,
-                          color: 'white',
-                          borderColor: brandColors.primary.full
+                          color: 'white'
                         } : { 
                           backgroundColor: 'transparent', 
-                          color: brandColors.primary.full, 
+                          color: brandColors.primary.full,
                           borderColor: brandColors.primary.medium 
                         }}
                       >
@@ -615,25 +612,27 @@ export default function BillingPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border p-4 mb-6">
-                  <div className="flex justify-between mb-2">
-                    <span className="font-medium">Selected Amount:</span>
-                    <span className="font-medium">${creditAmount.toFixed(2)}</span>
+                <div className="rounded-lg border border-border/60 p-4 mb-8 bg-card/30 shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Selected Amount:</span>
+                    <span className="text-xl font-bold" style={{ color: brandColors.primary.full }}>${creditAmount.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <div className="mb-8">
                   <h4 className="text-sm font-medium mb-3">Payment Method</h4>
-                  <div className="rounded-lg border p-4">
+                  <div className="rounded-lg border border-border/60 p-4 shadow-sm bg-card/30">
                     <div className="flex items-center">
-                      <img 
-                        src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" 
-                        alt="PayPal" 
-                        className="h-8 mr-3" 
-                      />
+                      <div className="mr-4 p-2 bg-blue-50 rounded-lg">
+                        <img 
+                          src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" 
+                          alt="PayPal" 
+                          className="h-8" 
+                        />
+                      </div>
                       <div>
                         <h5 className="font-medium">PayPal</h5>
-                        <p className="text-sm text-muted-foreground">Pay securely using PayPal</p>
+                        <p className="text-sm text-muted-foreground">Pay securely using PayPal or credit card</p>
                       </div>
                     </div>
                   </div>
