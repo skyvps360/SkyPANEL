@@ -383,22 +383,7 @@ export default function BillingPage() {
         </Card>
       </div>
 
-      {/* Add Credits Button - Outside Cards, Full Width */}
-      {user?.isActive && (
-        <div className="mb-6 w-full">
-          <Button 
-            className="w-full py-3 transition-all hover:translate-y-[-1px] shadow-sm text-center flex items-center justify-center"
-            onClick={() => handleTabChange("addCredits")}
-            style={{ 
-              backgroundColor: brandColors.primary.full,
-              color: 'white'
-            }}
-          >
-            <PlusCircle className="h-5 w-5 mr-2" />
-            <span className="font-medium">Add Credits</span>
-          </Button>
-        </div>
-      )}
+      {/* Add Credits Button under the 3 cards has been removed as requested. */}
 
       {/* Tabs: Transactions, Add Credits, Invoices */}
       <Card className="border border-border/40 shadow-sm overflow-hidden">
