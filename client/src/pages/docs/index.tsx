@@ -148,10 +148,11 @@ export default function DocsPage() {
   const renderDocsList = () => {
     return (
       <div className="w-full">
-        {/* Hero section with primary brand color background */}
+        {/* Hero section with primary brand color background - using inline style to match other pages */}
         <div 
-          className="relative overflow-hidden w-full bg-primary"
+          className="relative overflow-hidden w-full"
           style={{ 
+            backgroundColor: 'var(--brand-primary)',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
           }}
         >
