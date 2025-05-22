@@ -29,6 +29,9 @@ The client portal has the following features:
 - SSO Login: Users can log in to VirtFusion using Single Sign-On (SSO) integration.
 - Billing Management: Users can manage their billing information and payment methods.
 
+
+# Instructions for Copilot
+## General Instructions
 Make sure to follow the best practices for coding, including:
 - Writing clean and maintainable code
 - Using meaningful variable and function names
@@ -36,3 +39,4 @@ Make sure to follow the best practices for coding, including:
 - Following the project's coding style and conventions
 - Asking for clarification if you're unsure about something before implementing it
 - Dont ever assume anything, always ask for clarification
+- If ever stuck in a loop, please double check the conversation and not to repeat fixes you already performed.

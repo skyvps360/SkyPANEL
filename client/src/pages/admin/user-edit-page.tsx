@@ -638,7 +638,12 @@ export default function UserEditPage() {
                     <Label htmlFor="role">Role</Label>
                     <Select
                       defaultValue={user.role}
-                      onValueChange={(value) => form.setValue("role", value)}
+                      onValueChange={(value) => {
+                        form.setValue("role", value, { 
+                          shouldDirty: true,  // This will mark the form as dirty
+                          shouldTouch: true   // This marks the field as touched
+                        });
+                      }}
                       disabled={!canEdit || currentUser?.id === user.id || updateUserMutation.isPending}
                     >
                       <SelectTrigger id="role">
