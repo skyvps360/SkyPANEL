@@ -1,15 +1,15 @@
-name = "skyvps360"
+name = "skypanel"
 type = "javascript"
 account_id = "your_account_id"
 workers_dev = true
 compatibility_date = "2023-01-01"
 
 [env.production]
-name = "skyvps360-production"
+name = "skypanel-production"
 route = "https://your-production-domain.com/*"
 zone_id = "your_zone_id"
 
 [env.staging]
-name = "skyvps360-staging"
+name = "skypanel-staging"
 route = "https://your-staging-domain.com/*"
 zone_id = "your_zone_id"
