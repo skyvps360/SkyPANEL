@@ -217,40 +217,14 @@ button[data-nav-button="true"]:active,
   background: hsl(var(--primary));
 }
 
-/* Documentation page specific overrides */
+/* Documentation page styles using correct brand green from database */
 .docs-page a,
 .docs-page button,
-.docs-page .read-more-link,
-.docs-page svg,
 .docs-page [role="link"] {
-  color: var(--brand-primary, hsl(var(--primary))) !important;
-  transition: all 0.2s ease-in-out !important;
+  color: #33be00 !important;
 }
 
 .docs-page a:hover,
-.docs-page button:hover,
-.docs-page .read-more-link:hover {
-  color: var(--brand-primary-dark, hsl(var(--primary))) !important;
-}
-
-/* Documentation content */
-.docs-page .prose a {
-  color: var(--brand-primary, hsl(var(--primary))) !important;
-  text-decoration-color: var(--brand-primary-light, hsl(var(--primary) / 0.4)) !important;
-}
-
-.docs-page .prose a:hover {
-  color: var(--brand-primary-dark, hsl(var(--primary))) !important;
-  text-decoration-color: var(--brand-primary, hsl(var(--primary))) !important;
-}
-
-/* Target read more buttons specifically */
-.docs-page a.flex.items-center {
-  color: var(--brand-primary, hsl(var(--primary))) !important;
-}
-
-/* Any buttons with background need brand styling */
-.docs-page button[style*="background"],
-.docs-page a[style*="background"] {
-  background-color: var(--brand-primary, hsl(var(--primary))) !important;
+.docs-page button:hover {
+  color: #33be00 !important;
 }
