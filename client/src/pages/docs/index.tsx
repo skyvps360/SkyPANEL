@@ -556,7 +556,7 @@ export default function DocsPage() {
                                     height: 'auto' 
                                   }}
                                 >
-                                  <Link href={`/docs/${doc.slug}`} className="flex items-center">
+                                  <Link href={`/docs/${doc.slug}`} className="flex items-center" style={{ color: brandColors.primary.full }}>
                                     Read More
                                     <ExternalLink className="ml-1 h-3 w-3" />
                                   </Link>
