@@ -219,10 +219,23 @@ button[data-nav-button="true"]:active,
 
 /* Documentation page specific overrides */
 .docs-page {
-  /* Override link hover colors */
-  & a:hover, 
-  & button:hover {
+  /* Override ALL link and button colors to use brand theme */
+  & a, 
+  & button, 
+  & .read-more-link, 
+  & .prose a, 
+  & [role="link"] {
     color: var(--brand-primary, hsl(var(--primary))) !important;
+    transition: all 0.2s ease-in-out !important;
+  }
+  
+  /* Override ALL link hover states */
+  & a:hover, 
+  & button:hover, 
+  & .read-more-link:hover, 
+  & .prose a:hover, 
+  & [role="link"]:hover {
+    color: var(--brand-primary-dark, hsl(var(--primary))) !important;
     border-color: var(--brand-primary-light, hsl(var(--primary) / 0.2)) !important;
   }
   
@@ -238,7 +251,23 @@ button[data-nav-button="true"]:active,
   }
   
   & .prose a:hover {
-    color: var(--brand-primary-dark, hsl(var(--primary) / 0.8)) !important;
+    color: var(--brand-primary-dark, hsl(var(--primary))) !important;
     text-decoration-color: var(--brand-primary, hsl(var(--primary))) !important;
+  }
+  
+  /* Specifically target those blue buttons */
+  & .bg-blue-500,
+  & [style*="background-color: rgb(59, 130, 246)"],
+  & [style*="background-color: #3b82f6"],
+  & [style*="background: rgb(59, 130, 246)"],
+  & [style*="background: #3b82f6"] {
+    background-color: var(--brand-primary, hsl(var(--primary))) !important;
+  }
+  
+  /* Force all React Router links to use brand theme */
+  & a[href^="/docs"],
+  & .docs-link,
+  & .read-more {
+    color: var(--brand-primary, hsl(var(--primary))) !important;
   }
 }
