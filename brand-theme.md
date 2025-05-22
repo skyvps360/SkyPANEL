@@ -242,3 +242,51 @@ This ensures all action buttons across the admin UI have consistent hover effect
 6. When brand colors don't apply through theme variables, use the direct hex approach: `hover:bg-[#${brandColors.primary?.hex}]`
 
 By following these practices, the application will maintain a consistent brand identity across all UI components.
+
+## Issue and Fix: Docs Page Color Inconsistency
+
+### Issue Identified
+The docs page was using hardcoded color values instead of pulling brand colors from the database, which caused it to appear with different colors (blue/green default colors) compared to other pages like Status and Speed Test (which were correctly using teal/green brand colors from the database).
+
+### Root Cause
+1. The docs page wasn't importing the `getBrandColors` utility from `@/lib/brand-theme`
+2. The page wasn't fetching the branding data from the `/api/settings/branding` API endpoint
+3. UI elements were using hardcoded colors or CSS class names with default primary colors instead of dynamic brand colors
+
+### Solution Implemented
+1. Added the proper import for brand utilities:
+   ```typescript
+   import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
+   ```
+
+2. Added database color fetching in the component:
+   ```typescript
+   const { data: brandingData } = useQuery<{
+     primary_color: string;
+     secondary_color: string;
+     accent_color: string;
+   }>({
+     queryKey: ["/api/settings/branding"],
+   });
+   
+   const brandColors = getBrandColors({
+     primaryColor: brandingData?.primary_color || '',
+     secondaryColor: brandingData?.secondary_color || '',
+     accentColor: brandingData?.accent_color || '',
+   });
+   ```
+
+3. Updated UI elements to use the database colors:
+   - Hero section background now uses `brandColors.primary.full`
+   - Category buttons use dynamic styling with database colors
+   - Card hover effects use database colors
+   - Pagination uses the database brand colors
+
+### Best Practice for Color Consistency
+When adding new pages to the application, always:
+1. Import the brand utilities (`getBrandColors`)
+2. Fetch branding data from the API
+3. Apply the colors to UI elements using direct style properties or dynamic class names
+4. Never hardcode color values that should come from the brand system
+
+This ensures that if the brand colors are changed in the admin panel, all pages will automatically reflect the new branding without requiring code changes.
