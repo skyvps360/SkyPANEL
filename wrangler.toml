@@ -1,8 +1,0 @@
-name = "skypanel"
-type = "javascript"
-workers_dev = true
-compatibility_date = "2023-01-01"
-
-[assets]
-directory = "./dist"
-
