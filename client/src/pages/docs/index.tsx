@@ -983,8 +983,13 @@ export default function DocsPage() {
   // Apply brand colors from API to the root element for consistent theme colors
   useEffect(() => {
     if (brandingData?.company_color) {
-      document.documentElement.style.setProperty('--brand-primary', `#${brandingData.company_color}`);
-      document.documentElement.style.setProperty('--primary', `${brandingData.company_color}`);
+      import('@/lib/brand-theme').then(({ applyBrandColorVars }) => {
+        applyBrandColorVars({
+          primaryColor: brandingData.company_color,
+          secondaryColor: brandingData.secondary_color,
+          accentColor: brandingData.accent_color
+        });
+      });
     }
   }, [brandingData]);
   
