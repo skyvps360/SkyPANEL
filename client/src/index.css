@@ -219,29 +219,36 @@ button[data-nav-button="true"]:active,
 
 /* Documentation page specific overrides */
 .docs-page {
-  /* Override ALL link and button colors to use brand theme */
+  /* Aggressively override ALL blue elements with brand color */
   & a, 
   & button, 
   & .read-more-link, 
   & .prose a, 
-  & [role="link"] {
+  & [role="link"],
+  & a[href^="/"],
+  & [class*="text-blue"],
+  & [style*="color: blue"],
+  & [style*="color: #3b82f6"],
+  & [style*="color: rgb(59, 130, 246)"],
+  & svg {
     color: var(--brand-primary, hsl(var(--primary))) !important;
     transition: all 0.2s ease-in-out !important;
   }
   
-  /* Override ALL link hover states */
+  /* Target read more links specifically */
+  & a:has(.ml-1.h-3.w-3) {
+    color: var(--brand-primary, hsl(var(--primary))) !important;
+  }
+  
+  /* Override ALL hover states */
   & a:hover, 
   & button:hover, 
   & .read-more-link:hover, 
   & .prose a:hover, 
-  & [role="link"]:hover {
+  & [role="link"]:hover,
+  & a[href^="/"]:hover {
     color: var(--brand-primary-dark, hsl(var(--primary))) !important;
     border-color: var(--brand-primary-light, hsl(var(--primary) / 0.2)) !important;
-  }
-  
-  /* Override button hover backgrounds */
-  & button:hover:not([data-variant="default"]) {
-    background-color: var(--brand-primary-lighter, hsl(var(--primary) / 0.04)) !important;
   }
   
   /* Documentation prose content */
@@ -255,12 +262,14 @@ button[data-nav-button="true"]:active,
     text-decoration-color: var(--brand-primary, hsl(var(--primary))) !important;
   }
   
-  /* Specifically target those blue buttons */
+  /* Completely override any blue backgrounds */
   & .bg-blue-500,
   & [style*="background-color: rgb(59, 130, 246)"],
   & [style*="background-color: #3b82f6"],
   & [style*="background: rgb(59, 130, 246)"],
-  & [style*="background: #3b82f6"] {
+  & [style*="background: #3b82f6"],
+  & .text-white.bg-blue-600,
+  & [class*="bg-blue"] {
     background-color: var(--brand-primary, hsl(var(--primary))) !important;
   }
   
@@ -268,6 +277,19 @@ button[data-nav-button="true"]:active,
   & a[href^="/docs"],
   & .docs-link,
   & .read-more {
+    color: var(--brand-primary, hsl(var(--primary))) !important;
+  }
+  
+  /* Make sure all buttons follow brand color */
+  & .read-more,
+  & button[class*="blue"] {
+    color: var(--brand-primary, hsl(var(--primary))) !important;
+    background-color: transparent !important;
+  }
+  
+  /* Target read more button specifically */
+  & a:has(> .ml-1.h-3.w-3),
+  & .flex.items-center:has(> .ml-1.h-3.w-3) {
     color: var(--brand-primary, hsl(var(--primary))) !important;
   }
 }
