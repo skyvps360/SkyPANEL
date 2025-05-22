@@ -28,4 +28,10 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
+  // Wrangler configuration
+  wrangler: {
+    account_id: process.env.CF_ACCOUNT_ID,
+    zone_id: process.env.CF_ZONE_ID,
+    route: process.env.CF_ROUTE,
+  },
 });
