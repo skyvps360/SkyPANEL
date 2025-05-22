@@ -76,13 +76,8 @@ export default function DocsPage() {
     queryKey: ["/api/settings/branding"],
   });
   
-  // Use the proper approach to prioritize primary_color over company_color
-  const brandColorOptions = {
-    primaryColor: brandingData?.primary_color || 'ef4444', // Don't fallback to company_color!
-    secondaryColor: brandingData?.secondary_color || 'f87171',
-    accentColor: brandingData?.accent_color || 'dc2626'
-  };
-  const brandColors = getBrandColors(brandColorOptions);
+  // Use direct styling with CSS variables as recommended in brand-theme.md
+  // This ensures the docs page uses the same brand colors as set by BrandThemeProvider
   
   // Fetch all doc categories
   const { data: categoriesData = [], isLoading: isLoadingCategories } = useQuery<DocCategory[]>({
@@ -199,16 +194,16 @@ export default function DocsPage() {
 
   // The docs list view
   const renderDocsList = () => {
-    // Get background pattern for visual interest
-    const patterns = getPatternBackgrounds(brandColors.primary.hex);
+    // Use CSS variables for all styling as recommended in brand-theme.md
+    // This ensures the docs page uses the same brand colors as the rest of the app
     
     return (
       <div className="w-full">
         {/* Modern Hero section with gradient background */}
         <div 
-          className="relative overflow-hidden w-full" 
+          className="relative overflow-hidden w-full bg-primary" 
           style={{ 
-            background: brandColors.gradient.primary, 
+            background: 'var(--brand-primary)',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)' 
           }}
         >
