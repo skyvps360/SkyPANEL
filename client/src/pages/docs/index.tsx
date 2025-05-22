@@ -20,6 +20,7 @@ import {
   ExternalLink,
   X
 } from "lucide-react";
+import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -64,6 +65,22 @@ export default function DocsPage() {
   const slug = match ? match[1] : null;
   
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // Fetch branding data from API - just like status and speed-test pages
+  const { data: brandingData } = useQuery<{
+    primary_color: string;
+    secondary_color: string;
+    accent_color: string;
+  }>({
+    queryKey: ["/api/settings/branding"],
+  });
+  
+  // Get brand colors using the data from API
+  const brandColors = getBrandColors({
+    primaryColor: brandingData?.primary_color || '',
+    secondaryColor: brandingData?.secondary_color || '',
+    accentColor: brandingData?.accent_color || '',
+  });
   
   // Fetch all doc categories
   const { data: categoriesData = [], isLoading: isLoadingCategories } = useQuery<DocCategory[]>({
@@ -152,11 +169,11 @@ export default function DocsPage() {
         <div 
           className="relative overflow-hidden w-full"
           style={{ 
-            backgroundColor: 'var(--brand-primary)',
+            backgroundColor: brandColors.primary.full,
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
           }}
         >
-          {/* Simple pattern overlay */}
+          {/* Simple pattern overlay - using pattern backgrounds from brand theme */}
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)]" style={{ backgroundSize: '20px 20px' }}></div>
           
           <div className="max-w-screen-xl mx-auto py-16 px-4 sm:px-6 relative z-10">
@@ -202,8 +219,9 @@ export default function DocsPage() {
                     variant={selectedCategory === null ? "secondary" : "outline"} 
                     size="sm"
                     className={selectedCategory === null 
-                      ? "bg-white text-primary hover:bg-white/90" 
+                      ? "bg-white hover:bg-white/90" 
                       : "bg-white/10 text-white hover:bg-white/20 border-white/20"}
+                    style={selectedCategory === null ? { color: brandColors.primary.full } : {}}
                     onClick={() => setSelectedCategory(null)}
                   >
                     <Library className="mr-1 h-4 w-4" />
@@ -216,8 +234,9 @@ export default function DocsPage() {
                       variant={selectedCategory === category.id.toString() ? "secondary" : "outline"}
                       size="sm"
                       className={selectedCategory === category.id.toString() 
-                        ? "bg-white text-primary hover:bg-white/90" 
+                        ? "bg-white hover:bg-white/90" 
                         : "bg-white/10 text-white hover:bg-white/20 border-white/20"}
+                      style={selectedCategory === category.id.toString() ? { color: brandColors.primary.full } : {}}
                       onClick={() => setSelectedCategory(category.id.toString())}
                     >
                       <BookMarked className="mr-1 h-4 w-4" />
@@ -287,7 +306,7 @@ export default function DocsPage() {
           {/* Loading state */}
           {isLoadingDocs && (
             <div className="flex justify-center items-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin" style={{ color: brandColors.primary.full }} />
               <span className="ml-3 text-lg">Loading documents...</span>
             </div>
           )}
@@ -324,7 +343,12 @@ export default function DocsPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {paginatedDocs.map(doc => (
                 <Link key={doc.id} href={`/docs/${doc.slug}`}>
-                  <Card className="h-full flex flex-col transition-all duration-300 hover:shadow-md hover:border-primary/20 cursor-pointer">
+                  <Card className="h-full flex flex-col transition-all duration-300 hover:shadow-md cursor-pointer" 
+                  style={{ 
+                    '&:hover': { 
+                      borderColor: `${brandColors.primary.full}20` 
+                    } 
+                  }}>
                     <CardHeader className="pb-3">
                       <CardTitle className="line-clamp-2 text-xl text-primary-foreground hover:text-primary group">
                         {doc.title}
@@ -389,7 +413,10 @@ export default function DocsPage() {
                           variant={currentPage === page ? "default" : "outline"}
                           size="icon"
                           onClick={() => handlePageChange(page)}
-                          className={currentPage === page ? "bg-primary text-primary-foreground" : ""}
+                          style={currentPage === page ? { 
+                            backgroundColor: brandColors.primary.full,
+                            color: 'white'
+                          } : {}}
                         >
                           {page}
                         </Button>
