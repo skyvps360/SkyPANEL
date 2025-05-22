@@ -92,17 +92,6 @@ interface TransactionType {
   amount: number;
   status: string;
   paymentId?: string;
-  invoiceNumber?: string;
-}
-
-// Define invoice types for search
-interface InvoiceType {
-  id: number;
-  invoiceNumber: string;
-  userId: number;
-  amount: number;
-  status: string;
-  createdAt: string;
 }
 
 // Define server types for search
@@ -166,11 +155,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     staleTime: 60 * 1000, // 1 minute
   });
   
-  // Fetch invoices for search
-  const { data: invoicesData = [] } = useQuery<InvoiceType[]>({
-    queryKey: ["/api/admin/invoices"],
-    staleTime: 60 * 1000, // 1 minute
-  });
+  // Invoice functionality has been removed
   
   // Fetch servers for search
   const { data: serversResponse = { data: [] } } = useQuery<{
@@ -325,35 +310,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         transaction.type?.toLowerCase().includes(lowerQuery) ||
         transaction.paymentId?.toLowerCase().includes(lowerQuery)
       ) {
-        const isInvoice = !!transaction.invoiceNumber;
         results.push({
           id: transaction.id,
           type: "billing",
-          name: isInvoice 
-            ? `Invoice #${transaction.invoiceNumber}` 
-            : `Payment ${transaction.type}`,
+          name: `Payment ${transaction.type}`,
           description: `${transaction.description} - $${transaction.amount}`,
           url: `/admin/billing/transactions/${transaction.id}`,
-          icon: isInvoice ? <Receipt className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />,
+          icon: <CreditCard className="h-4 w-4" />,
         });
       }
     });
     
-    // Search invoices
-    invoicesData?.forEach((invoice) => {
-      if (
-        invoice.invoiceNumber?.toLowerCase().includes(lowerQuery)
-      ) {
-        results.push({
-          id: invoice.id,
-          type: "billing",
-          name: `Invoice #${invoice.invoiceNumber}`,
-          description: `Amount: $${invoice.amount} - Status: ${invoice.status}`,
-          url: `/admin/billing/invoices/${invoice.id}`,
-          icon: <Receipt className="h-4 w-4" />,
-        });
-      }
-    });
+    // Search invoices functionality removed as invoices are no longer supported
     
     // Search servers
     serversData?.forEach((server) => {
@@ -428,7 +396,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (results.length > 0) {
       setActiveResultIndex(0);
     }
-  }, [usersData, ticketsResponse, transactionsData, invoicesData, serversData, user]);
+  }, [usersData, ticketsResponse, transactionsData, serversData, user]);
   
   // Handle search query debounce
   useEffect(() => {

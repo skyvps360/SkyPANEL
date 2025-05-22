@@ -12,7 +12,7 @@ import VerifyPage from "@/pages/auth/verify-page";
 import PackagesPage from "@/pages/packages-page";
 import BillingPage from "@/pages/billing-page";
 import TransactionDetailPage from "@/pages/transaction-detail-page";
-import InvoiceDetailPage from "@/pages/invoice-detail-page";
+// Invoice-related pages have been removed
 import TicketsPage from "@/pages/tickets-page";
 import TicketDetailPage from "@/pages/ticket-detail-page";
 import NotificationsPage from "@/pages/notifications-page";
@@ -40,7 +40,6 @@ import AdminDashboard from "@/pages/admin/index";
 import SettingsPage from "@/pages/admin/settings-page";
 import AdminTicketsPage from "@/pages/admin/tickets-page";
 import AdminTicketDetailPage from "@/pages/admin/ticket-detail-page";
-import AdminInvoiceDetailPage from "@/pages/admin/invoice-detail-page";
 import AdminBillingPage from "@/pages/admin/billing-page";
 import AdminTransactionDetailPage from "@/pages/admin/transaction-detail-page";
 import EmailLogsPage from "@/pages/admin/email-logs-page";
@@ -261,7 +260,6 @@ function Router() {
         <ProtectedRoute path="/packages" component={PackagesPage} />
         <ProtectedRoute path="/billing" component={BillingPage} allowSuspended={true} />
         <ProtectedRoute path="/billing/transactions/:id" component={TransactionDetailPage} allowSuspended={true} />
-        <ProtectedRoute path="/billing/invoices/:id" component={InvoiceDetailPage} allowSuspended={true} />
         <ProtectedRoute path="/tickets" component={TicketsPage} allowSuspended={true} />
         <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} allowSuspended={true} />
         <ProtectedRoute path="/notifications" component={NotificationsPage} />
@@ -298,7 +296,6 @@ function Router() {
         <AdminProtectedRoute path="/admin/servers/:id" component={ServerDetailPage} />
         <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage} />
         <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage} />
-        <AdminProtectedRoute path="/admin/billing/invoices/:id" component={AdminInvoiceDetailPage} />
         <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage} />
         <Route component={NotFound} />
       </Switch>

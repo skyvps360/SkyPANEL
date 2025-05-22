@@ -1,3 +1,11 @@
+// Note: This file was updated to use consistent network speed formatting across all pages.
+// Network speeds are displayed as "MB Port" or "GB Port" instead of "Mbps" or "Gbps"
+// to match the format used in the /plans and /package pages.
+// The conversion used is: 125000 KB/s = 1 Gbps = 0.125 GB/s = "1 GB Port"
+//
+// This file was also updated to use the package name and description directly from the VirtFusion API
+// instead of allowing custom name and description fields in the pricing form.
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
@@ -74,8 +82,7 @@ interface PricingRecord {
 
 // Form schema for adding/editing pricing
 const pricingFormSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  description: z.string().nullable().optional(),
+  // Removed name and description fields to use VirtFusion API values directly
   price: z.coerce.number().min(0, "Price must be 0 or greater"),
   displayOrder: z.coerce.number().int().min(0, "Display order must be 0 or greater"),
   enabled: z.boolean().default(true),
@@ -100,8 +107,6 @@ export default function PackagePricingPage() {
   const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
     defaultValues: {
-      name: '',
-      description: '',
       price: 0,
       displayOrder: 0,
       enabled: true,
@@ -117,6 +122,9 @@ export default function PackagePricingPage() {
         method: 'POST',
         data: {
           ...data,
+          // Use VirtFusion API values directly
+          name: selectedPackage.name,
+          description: selectedPackage.description,
           // Store price in cents (100 = $1.00)
           price: data.price * 100,
         }
@@ -176,14 +184,18 @@ export default function PackagePricingPage() {
     return storageGB + ' GB';
   };
 
-  // Format network speed (Kbps to human-readable)
-  const formatNetworkSpeed = (speedKbps: number) => {
-    if (speedKbps >= 1000000) {
-      return (speedKbps / 1000000).toFixed(1) + ' Gbps';
-    } else if (speedKbps >= 1000) {
-      return (speedKbps / 1000).toFixed(1) + ' Mbps';
+  // Format network speed from KB/s to GB/MB Port (consistent with plans and packages pages)
+  const formatNetworkSpeed = (speed: number) => {
+    if (!speed || speed === 0) return '1 GB Port';
+    
+    // VirtFusion provides speed in KB/s, convert to GB
+    // 125000 KB/s = 1 Gbps = 0.125 GB/s
+    const gbSpeed = speed / 125000;
+    
+    if (gbSpeed < 1) {
+      return `${(gbSpeed * 1000).toFixed(0)} MB Port`;
     } else {
-      return speedKbps + ' Kbps';
+      return `${gbSpeed.toFixed(0)} GB Port`;
     }
   };
 
@@ -194,8 +206,6 @@ export default function PackagePricingPage() {
     // Set form values from existing pricing or defaults
     if (pkg.pricing) {
       form.reset({
-        name: pkg.pricing.name,
-        description: pkg.pricing.description || '',
         // Convert price from cents to dollars for display/editing
         price: pkg.pricing.price / 100,
         displayOrder: pkg.pricing.displayOrder,
@@ -204,8 +214,6 @@ export default function PackagePricingPage() {
     } else {
       // Default values when no pricing exists
       form.reset({
-        name: pkg.name,
-        description: pkg.description || '',
         price: 0,
         displayOrder: 0,
         enabled: true,
@@ -496,11 +504,9 @@ export default function PackagePricingPage() {
                           <div className="text-sm">
                             <span className="font-semibold">Order:</span> {pkg.pricing.displayOrder}
                           </div>
-                          {pkg.pricing.name !== pkg.name && (
-                            <div className="text-sm">
-                              <span className="font-semibold">Name:</span> {pkg.pricing.name}
-                            </div>
-                          )}
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <span>Using VirtFusion name</span>
+                          </div>
                         </div>
                       ) : (
                         <span className="text-sm text-muted-foreground">No pricing</span>
@@ -585,6 +591,7 @@ export default function PackagePricingPage() {
               {selectedPackage?.pricing 
                 ? "Update pricing information for this package" 
                 : "Configure pricing for this package to display it on your plans page"}
+              <p className="mt-1 text-xs">Using name and description directly from VirtFusion.</p>
             </DialogDescription>
           </DialogHeader>
           
@@ -610,43 +617,17 @@ export default function PackagePricingPage() {
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Display Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Basic Plan" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Name shown to customers (can differ from VirtFusion name)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
+              {/* Note: Name and description fields have been removed - using VirtFusion values directly */}
+              <div className="bg-primary/5 p-4 rounded-md mb-2">
+                <p className="text-sm font-medium">Package Details from VirtFusion</p>
+                <p className="text-sm mt-1"><span className="font-semibold">Name:</span> {selectedPackage?.name}</p>
+                {selectedPackage?.description && (
+                  <p className="text-sm mt-1"><span className="font-semibold">Description:</span> {selectedPackage?.description}</p>
                 )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="e.g. Perfect for small websites and development environments" 
-                        {...field} 
-                        value={field.value || ''}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Optional description to display on the plans page
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Package name and description are now used directly from VirtFusion
+                </p>
+              </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <FormField
