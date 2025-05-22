@@ -26,7 +26,6 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
 
 // Define the DocCategory type
 interface DocCategory {
@@ -66,18 +65,8 @@ export default function DocsPage() {
   
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
-  // Fetch brand colors from settings
-  const { data: brandingData } = useQuery<{
-    primary_color?: string;
-    company_color?: string;
-    secondary_color?: string;
-    accent_color?: string;
-  }>({
-    queryKey: ["/api/settings/branding"],
-  });
-  
-  // Use direct styling with CSS variables as recommended in brand-theme.md
-  // This ensures the docs page uses the same brand colors as set by BrandThemeProvider
+  // No need to fetch or process branding data here
+  // The BrandThemeProvider in App.tsx already sets all the CSS variables we need
   
   // Fetch all doc categories
   const { data: categoriesData = [], isLoading: isLoadingCategories } = useQuery<DocCategory[]>({
@@ -194,21 +183,17 @@ export default function DocsPage() {
 
   // The docs list view
   const renderDocsList = () => {
-    // Use CSS variables for all styling as recommended in brand-theme.md
-    // This ensures the docs page uses the same brand colors as the rest of the app
-    
     return (
       <div className="w-full">
-        {/* Modern Hero section with gradient background */}
+        {/* Modern Hero section with gradient background - using bg-primary */}
         <div 
-          className="relative overflow-hidden w-full bg-primary" 
+          className="relative overflow-hidden w-full bg-primary"
           style={{ 
-            background: 'var(--brand-primary)',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)' 
           }}
         >
-          {/* Decorative pattern overlay */}
-          <div className="absolute inset-0 opacity-10" style={patterns.dots.style}></div>
+          {/* Simple pattern overlay without complex patterns */}
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)]" style={{ backgroundSize: '20px 20px' }}></div>
           
           <div className="max-w-screen-xl mx-auto py-16 px-4 sm:px-6 relative z-10">
             <div className="max-w-3xl">
