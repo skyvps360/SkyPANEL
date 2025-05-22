@@ -34,6 +34,9 @@ export class GeminiRateLimiter {
   // In-memory storage for tracking usage (for authenticated users)
   private userUsage: Map<string, UserUsage> = new Map();
   
+  // Discord user rate limiting
+  private discordUsers: Map<string, UserUsage> = new Map();
+  
   private constructor() {}
   
   /**
@@ -189,6 +192,140 @@ export class GeminiRateLimiter {
       minuteRemaining: Math.max(0, this.RPM_LIMIT - minuteRequests),
       dayRemaining: Math.max(0, this.RPD_LIMIT - dayRequests)
     };
+  }
+  
+  /**
+   * Check if a Discord user is allowed to make a request
+   * @param userId Discord user ID
+   * @returns Object with allowed flag and message
+   */
+  public checkDiscordUserAllowed(userId: string): { allowed: boolean; message?: string } {
+    const now = Date.now();
+    
+    // Get or create user usage
+    let usage = this.discordUsers.get(userId);
+    if (!usage) {
+      usage = {
+        minuteRequests: 0,
+        dayRequests: 0,
+        lastMinuteReset: now,
+        lastDayReset: now
+      };
+      this.discordUsers.set(userId, usage);
+    }
+    
+    // Check if we need to reset minute counter
+    if (now - usage.lastMinuteReset > this.MINUTE_MS) {
+      usage.minuteRequests = 0;
+      usage.lastMinuteReset = now;
+    }
+    
+    // Check if we need to reset day counter
+    if (now - usage.lastDayReset > this.DAY_MS) {
+      usage.dayRequests = 0;
+      usage.lastDayReset = now;
+    }
+    
+    // Check limits
+    if (usage.minuteRequests >= this.RPM_LIMIT) {
+      return { 
+        allowed: false, 
+        message: `You've reached the limit of ${this.RPM_LIMIT} requests per minute. Please try again in a moment.` 
+      };
+    }
+    
+    if (usage.dayRequests >= this.RPD_LIMIT) {
+      return { 
+        allowed: false, 
+        message: `You've reached the daily limit of ${this.RPD_LIMIT} requests. Please try again tomorrow.` 
+      };
+    }
+    
+    // Increment counters
+    usage.minuteRequests++;
+    usage.dayRequests++;
+    this.discordUsers.set(userId, usage);
+    
+    return { allowed: true };
+  }
+  
+  /**
+   * Track usage for a Discord user
+   * @param userId Discord user ID
+   */
+  public trackUsageForDiscordUser(userId: string): void {
+    const now = Date.now();
+    
+    // Get or create user usage
+    let usage = this.discordUsers.get(userId);
+    if (!usage) {
+      usage = {
+        minuteRequests: 1,
+        dayRequests: 1,
+        lastMinuteReset: now,
+        lastDayReset: now
+      };
+    } else {
+      // Check if we need to reset minute counter
+      if (now - usage.lastMinuteReset > this.MINUTE_MS) {
+        usage.minuteRequests = 1;
+        usage.lastMinuteReset = now;
+      } else {
+        usage.minuteRequests++;
+      }
+      
+      // Check if we need to reset day counter
+      if (now - usage.lastDayReset > this.DAY_MS) {
+        usage.dayRequests = 1;
+        usage.lastDayReset = now;
+      } else {
+        usage.dayRequests++;
+      }
+    }
+    
+    this.discordUsers.set(userId, usage);
+  }
+
+  /**
+   * Track usage for a request
+   * @param req Express request
+   */
+  public trackUsageForRequest(req: Request): void {
+    const userId = req.user?.id ? `user_${req.user.id}` : null;
+    const trackingId = userId || req.cookies?.[this.COOKIE_NAME];
+    
+    if (!trackingId) return;
+    
+    const now = Date.now();
+    
+    // Get or create user usage
+    let usage = this.userUsage.get(trackingId);
+    if (!usage) {
+      usage = {
+        minuteRequests: 1,
+        dayRequests: 1,
+        lastMinuteReset: now,
+        lastDayReset: now
+      };
+    } else {
+      // Check if we need to reset minute counter
+      if (now - usage.lastMinuteReset > this.MINUTE_MS) {
+        usage.minuteRequests = 1;
+        usage.lastMinuteReset = now;
+      } else {
+        usage.minuteRequests++;
+      }
+      
+      // Check if we need to reset day counter
+      if (now - usage.lastDayReset > this.DAY_MS) {
+        usage.dayRequests = 1;
+        usage.lastDayReset = now;
+      } else {
+        usage.dayRequests++;
+      }
+    }
+    
+    this.userUsage.set(trackingId, usage);
   }
 }
 

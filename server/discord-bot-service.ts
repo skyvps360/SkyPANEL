@@ -28,6 +28,7 @@ export class DiscordBotService {
   private ready: boolean = false;
   private ticketThreads: Map<number, string> = new Map(); // Maps ticketId to threadId
   private commandsRegistered: boolean = false;
+  private userConversations: Map<string, Array<{role: string, parts: Array<{text: string}>}>> = new Map();
 
   private constructor() {}
 
@@ -81,6 +82,7 @@ export class DiscordBotService {
           GatewayIntentBits.Guilds,
           GatewayIntentBits.GuildMessages,
           GatewayIntentBits.MessageContent,
+          GatewayIntentBits.DirectMessages, // Add intent for direct messages
         ]
       });
 
@@ -95,7 +97,12 @@ export class DiscordBotService {
       // Handle slash commands and button interactions
       this.client.on(Events.InteractionCreate, async (interaction) => {
         if (interaction.isChatInputCommand()) {
-          await this.handleCommand(interaction);
+          // Check if it's an AI command
+          if (interaction.commandName === 'ask') {
+            await this.handleAICommand(interaction);
+          } else {
+            await this.handleCommand(interaction);
+          }
         } else if (interaction.isButton()) {
           await this.handleButton(interaction);
         }
@@ -103,6 +110,12 @@ export class DiscordBotService {
 
       // Handle messages in threads
       this.client.on(Events.MessageCreate, async (message) => {
+        // Handle direct messages to bot
+        if (message.channel.type === 1) { // ChannelType.DM = 1
+          await this.handleDirectMessage(message);
+          return;
+        }
+        
         // Only process messages from threads in the configured channel
         if (!message.channel.isThread() || message.author.bot) {
           return;
@@ -653,6 +666,9 @@ export class DiscordBotService {
 
       // Define commands
       const commands = [
+        // Get AI chat commands
+        ...this.getAIChatCommands(),
+        
         new SlashCommandBuilder()
           .setName('ticket')
           .setDescription('Manage the current ticket')
@@ -846,6 +862,41 @@ export class DiscordBotService {
           });
         }
       }
+      else if (commandName === 'ask') {
+        // Handle AI chat command
+        const question = interaction.options.getString('question', true);
+
+        // Defer the reply since AI response might take time
+        await interaction.deferReply();
+
+        // Get the gemini service
+        const geminiService = await import('./gemini-service').then(m => m.GeminiService.getInstance());
+
+        if (!geminiService.isReady()) {
+          await interaction.editReply("Sorry, the AI assistant is not available right now. Please try again later.");
+          return;
+        }
+
+        // Track this user's conversation (simplified, just for the current question)
+        const username = interaction.user.username;
+
+        // Generate a response from the AI
+        const aiResponse = await geminiService.generateChatResponse(
+          question,
+          username,
+          [] // No conversation history for slash commands for simplicity
+        );
+
+        if (!aiResponse.success) {
+          await interaction.editReply(`Sorry, I couldn't process your question: ${aiResponse.response}`);
+          return;
+        }
+
+        // Reply with the AI's response
+        await interaction.editReply({
+          content: aiResponse.response
+        });
+      }
     } catch (error: any) {
       // Get a safe thread ID reference
       const threadId = interaction.channel?.isThread() ? (interaction.channel as ThreadChannel).id : 'unknown';
@@ -1005,6 +1056,123 @@ export class DiscordBotService {
   }
 
   /**
+   * Send a message that might be longer than Discord's 2000 character limit
+   * @param message The Discord message object or interaction to reply to
+   * @param content The content to send
+   * @param isInteraction Whether this is for a slash command interaction
+   * @returns Promise that resolves when all messages are sent
+   */
+  private async sendLongMessage(message: any, content: string, isInteraction: boolean = false): Promise<void> {
+    const MAX_LENGTH = 1990; // Slightly less than 2000 to be safe
+    
+    // If content is shorter than the limit, send it as a single message
+    if (content.length <= MAX_LENGTH) {
+      if (isInteraction) {
+        await message.editReply(content);
+      } else {
+        await message.reply(content);
+      }
+      return;
+    }
+    
+    // Split the content into chunks
+    const chunks: string[] = [];
+    let currentChunk = '';
+    
+    // Try to split on paragraphs, sentences, or words to make natural breaks
+    const paragraphs = content.split('\n\n');
+    
+    for (const paragraph of paragraphs) {
+      // If this paragraph alone is too long, we need to split it further
+      if (paragraph.length > MAX_LENGTH) {
+        // Split on sentences
+        const sentences = paragraph.split(/(?<=[.!?])\s+/);
+        
+        for (const sentence of sentences) {
+          // If this sentence alone is too long, we need to split it
+          if (sentence.length > MAX_LENGTH) {
+            // Split on words
+            let words = sentence.split(' ');
+            let tempChunk = '';
+            
+            for (const word of words) {
+              if ((tempChunk + ' ' + word).length > MAX_LENGTH) {
+                chunks.push(tempChunk);
+                tempChunk = word;
+              } else {
+                tempChunk += (tempChunk ? ' ' : '') + word;
+              }
+            }
+            
+            if (tempChunk) {
+              // Add any remaining part
+              if ((currentChunk + '\n\n' + tempChunk).length <= MAX_LENGTH) {
+                currentChunk += (currentChunk ? '\n\n' : '') + tempChunk;
+              } else {
+                if (currentChunk) chunks.push(currentChunk);
+                currentChunk = tempChunk;
+              }
+            }
+          } else {
+            // This sentence fits
+            if ((currentChunk + (currentChunk ? ' ' : '') + sentence).length <= MAX_LENGTH) {
+              currentChunk += (currentChunk ? ' ' : '') + sentence;
+            } else {
+              chunks.push(currentChunk);
+              currentChunk = sentence;
+            }
+          }
+        }
+      } else {
+        // This paragraph fits
+        if ((currentChunk + '\n\n' + paragraph).length <= MAX_LENGTH) {
+          currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
+        } else {
+          chunks.push(currentChunk);
+          currentChunk = paragraph;
+        }
+      }
+    }
+    
+    // Add the last chunk if there's anything left
+    if (currentChunk) {
+      chunks.push(currentChunk);
+    }
+    
+    // Send the first chunk as a reply
+    if (chunks.length > 0) {
+      const firstChunk = chunks[0] + (chunks.length > 1 ? "\n\n*(continued in next message...)*" : "");
+      
+      if (isInteraction) {
+        await message.editReply(firstChunk);
+      } else {
+        await message.reply(firstChunk);
+      }
+    }
+    
+    // Send the rest as follow-ups
+    for (let i = 1; i < chunks.length; i++) {
+      const isLastChunk = i === chunks.length - 1;
+      const chunk = chunks[i] + (!isLastChunk ? "\n\n*(continued in next message...)*" : "");
+      
+      if (isInteraction) {
+        await message.followUp({
+          content: chunk,
+          ephemeral: false
+        });
+      } else {
+        // For regular messages, we send a follow-up to the channel
+        await message.channel.send(chunk);
+      }
+      
+      // Add a small delay between messages to avoid rate limits
+      if (!isLastChunk) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+  }
+
+  /**
    * Get the Discord bot token
    * @returns The bot token or empty string if not set
    */
@@ -1029,6 +1197,186 @@ export class DiscordBotService {
   private async getChannelId(): Promise<string> {
     const setting = await storage.getSetting('discord_channel_id');
     return setting?.value || '';
+  }
+
+  /**
+   * Handle direct messages to the bot
+   * @param message The message object from Discord
+   */
+  private async handleDirectMessage(message: any): Promise<void> {
+    // Skip messages from the bot itself
+    if (message.author.bot) return;
+    
+    try {
+      // Show typing indicator
+      await message.channel.sendTyping();
+      
+      const userId = message.author.id;
+      const username = message.author.username;
+      const question = message.content;
+      
+      // Get properly formatted conversation history
+      const conversation = this.getFormattedConversation(userId);
+      
+      // Add the user's question to the conversation with proper formatting for Gemini API
+      conversation.push({role: "user", parts: [{text: question}]});
+      
+      // Get the gemini service and rate limiter
+      const geminiService = await import('./gemini-service').then(m => m.geminiService);
+      const rateLimiter = await import('./gemini-rate-limiter').then(m => m.geminiRateLimiter);
+      
+      if (!geminiService.isReady()) {
+        await message.reply("Sorry, the AI assistant is not available right now. Please try again later or create a support ticket.");
+        return;
+      }
+      
+      // Check rate limiting for Discord user
+      const rateCheck = rateLimiter.checkDiscordUserAllowed(userId);
+      if (!rateCheck.allowed) {
+        await message.reply(rateCheck.message || "You've reached the rate limit. Please try again later.");
+        return;
+      }
+      
+      // Track this request for rate limiting
+      rateLimiter.trackUsageForDiscordUser(userId);
+      
+      // Generate a response from the AI
+      const aiResponse = await geminiService.generateChatResponse(
+        question,
+        username,
+        conversation
+      );
+      
+      if (!aiResponse.success) {
+        await message.reply(`Sorry, I couldn't process your question: ${aiResponse.response}`);
+        return;
+      }
+      
+      // Add the AI's response to the conversation history with proper Gemini API formatting
+      conversation.push({role: "model", parts: [{text: aiResponse.response}]});
+      
+      // Update the conversation history
+      this.userConversations.set(userId, conversation);
+      
+      // Send the response, handling long messages
+      await this.sendLongMessage(message, aiResponse.response);
+      
+    } catch (error: any) {
+      console.error('Error handling direct message:', error);
+      try {
+        await message.reply(`Sorry, I encountered an error: ${error.message}. Please try again later or create a support ticket for assistance.`);
+      } catch (replyError) {
+        console.error('Error replying to message:', replyError);
+      }
+    }
+  }
+
+  /**
+   * Get a properly formatted conversation history for a user
+   * @param userId The Discord user ID
+   * @returns Properly formatted conversation history for Gemini API
+   */
+  private getFormattedConversation(userId: string): Array<{role: string, parts: Array<{text: string}>}> {
+    // Get existing conversation or create a new one
+    const conversation = this.userConversations.get(userId) || [];
+    
+    // Limit conversation history to last 10 messages for context
+    return conversation.length > 10 ? 
+      conversation.slice(conversation.length - 10) : 
+      [...conversation];
+  }
+
+  /**
+   * Get the AI chat commands for the bot
+   * @returns Array of SlashCommandBuilder objects for AI functionality
+   */
+  private getAIChatCommands(): any[] {
+    return [
+      new SlashCommandBuilder()
+        .setName('ask')
+        .setDescription('Ask the AI assistant a question about our services')
+        .addStringOption(option => 
+          option
+            .setName('question')
+            .setDescription('What would you like to know?')
+            .setRequired(true)
+        )
+        .toJSON()
+    ];
+  }
+
+  /**
+   * Handle AI-related slash commands
+   * @param interaction The Discord command interaction
+   */
+  private async handleAICommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    try {
+      // Defer the reply to give us time to generate a response
+      await interaction.deferReply({ ephemeral: false });
+      
+      const userId = interaction.user.id;
+      const username = interaction.user.username;
+      const question = interaction.options.getString('question')!;
+      
+      if (!question || question.trim() === '') {
+        await interaction.editReply("Please provide a question to ask the AI assistant.");
+        return;
+      }
+      
+      // Get properly formatted conversation history
+      const conversation = this.getFormattedConversation(userId);
+      
+      // Add the user's question to the conversation with proper formatting for Gemini API
+      conversation.push({role: "user", parts: [{text: question}]});
+      
+      // Get the gemini service and rate limiter
+      const geminiService = await import('./gemini-service').then(m => m.geminiService);
+      const rateLimiter = await import('./gemini-rate-limiter').then(m => m.geminiRateLimiter);
+      
+      if (!geminiService.isReady()) {
+        await interaction.editReply("Sorry, the AI assistant is not available right now. Please try again later or create a support ticket.");
+        return;
+      }
+      
+      // Check rate limiting for Discord user
+      const rateCheck = rateLimiter.checkDiscordUserAllowed(userId);
+      if (!rateCheck.allowed) {
+        await interaction.editReply(rateCheck.message || "You've reached the rate limit. Please try again later.");
+        return;
+      }
+      
+      // Track this request for rate limiting
+      rateLimiter.trackUsageForDiscordUser(userId);
+      
+      // Generate a response from the AI
+      const aiResponse = await geminiService.generateChatResponse(
+        question,
+        username,
+        conversation
+      );
+      
+      if (!aiResponse.success) {
+        await interaction.editReply(`Sorry, I couldn't process your question: ${aiResponse.response}`);
+        return;
+      }
+      
+      // Add the AI's response to the conversation history with proper Gemini API formatting
+      conversation.push({role: "model", parts: [{text: aiResponse.response}]});
+      
+      // Update the conversation history
+      this.userConversations.set(userId, conversation);
+      
+      // Send the response, handling long messages
+      await this.sendLongMessage(interaction, aiResponse.response, true);
+      
+    } catch (error: any) {
+      console.error('Error handling AI command:', error);
+      try {
+        await interaction.editReply(`Sorry, I encountered an error: ${error.message}. Please try again later or create a support ticket for assistance.`);
+      } catch (replyError) {
+        console.error('Error replying to interaction:', replyError);
+      }
+    }
   }
 }
 
