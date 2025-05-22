@@ -344,13 +344,11 @@ export default function DocsPage() {
               {paginatedDocs.map(doc => (
                 <Link key={doc.id} href={`/docs/${doc.slug}`}>
                   <Card className="h-full flex flex-col transition-all duration-300 hover:shadow-md cursor-pointer" 
-                  style={{ 
-                    '&:hover': { 
-                      borderColor: `${brandColors.primary.full}20` 
-                    } 
-                  }}>
+                    style={{ borderColor: "transparent" }}
+                    onMouseOver={(e) => e.currentTarget.style.borderColor = `${brandColors.primary.light}`}
+                    onMouseOut={(e) => e.currentTarget.style.borderColor = "transparent"}>
                     <CardHeader className="pb-3">
-                      <CardTitle className="line-clamp-2 text-xl text-primary-foreground hover:text-primary group">
+                      <CardTitle className="line-clamp-2 text-xl group">
                         {doc.title}
                         <ExternalLink className="h-4 w-4 ml-2 inline-block opacity-0 group-hover:opacity-100 transition-opacity" />
                       </CardTitle>
