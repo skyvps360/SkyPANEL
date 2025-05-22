@@ -217,14 +217,14 @@ button[data-nav-button="true"]:active,
   background: hsl(var(--primary));
 }
 
-/* Documentation page styles using correct brand green from database */
+/* Documentation page styles using CSS variables */
 .docs-page a,
 .docs-page button,
 .docs-page [role="link"] {
-  color: #33be00 !important;
+  color: var(--brand-primary) !important;
 }
 
 .docs-page a:hover,
 .docs-page button:hover {
-  color: #33be00 !important;
+  color: var(--brand-primary) !important;
 }

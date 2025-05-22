@@ -980,6 +980,14 @@ export default function DocsPage() {
     return renderDocsList();
   };
   
+  // Apply brand colors from API to the root element for consistent theme colors
+  useEffect(() => {
+    if (brandingData?.company_color) {
+      document.documentElement.style.setProperty('--brand-primary', `#${brandingData.company_color}`);
+      document.documentElement.style.setProperty('--primary', `${brandingData.company_color}`);
+    }
+  }, [brandingData]);
+  
   // Wrap the content in our layout with docs-page class to apply custom styling
   return (
     <PublicLayout>
