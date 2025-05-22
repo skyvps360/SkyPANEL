@@ -1308,18 +1308,6 @@ export class DatabaseStorage implements IStorage {
     return this.getAllBlogPosts(false);
   }
 
-  async getBlogPostsByCategory(categoryId: number, includeUnpublished: boolean = false): Promise<BlogPost[]> {
-    let query = db.select().from(blogPosts).where(eq(blogPosts.categoryId, categoryId));
-    
-    if (!includeUnpublished) {
-      query = query.where(eq(blogPosts.published, true));
-    }
-    
-    return await query.orderBy(desc(blogPosts.date))
-      .orderBy(blogPosts.displayOrder)
-      .orderBy(blogPosts.title);
-  }
-  
   async getBlogPostsWithCategories(includeUnpublished: boolean = false): Promise<(BlogPost & { categoryName?: string })[]> {
     const posts = await db
       .select({

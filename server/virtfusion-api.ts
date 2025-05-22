@@ -291,15 +291,6 @@ export class VirtFusionApi {
     return this.request("GET", `/users/${extRelationId}/byExtRelation`);
   }
 
-  async getUserUsageByExtRelationId(extRelationId: number, period?: string, range: string = "m") {
-    // Using format from VirtFusion API docs with optional period parameter
-    const endpoint = period 
-      ? `/selfService/usage/byUserExtRelationId/${extRelationId}?period[]=${period}&range=${range}` 
-      : `/selfService/usage/byUserExtRelationId/${extRelationId}`;
-    
-    return this.request("GET", endpoint);
-  }
-  
   async checkUserHasServers(extRelationId: number): Promise<boolean> {
     try {
       // Fetch user's usage data which includes server information
