@@ -216,3 +216,29 @@ button[data-nav-button="true"]:active,
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary));
 }
+
+/* Documentation page specific overrides */
+.docs-page {
+  /* Override link hover colors */
+  & a:hover, 
+  & button:hover {
+    color: var(--brand-primary, hsl(var(--primary))) !important;
+    border-color: var(--brand-primary-light, hsl(var(--primary) / 0.2)) !important;
+  }
+  
+  /* Override button hover backgrounds */
+  & button:hover:not([data-variant="default"]) {
+    background-color: var(--brand-primary-lighter, hsl(var(--primary) / 0.04)) !important;
+  }
+  
+  /* Documentation prose content */
+  & .prose a {
+    color: var(--brand-primary, hsl(var(--primary))) !important;
+    text-decoration-color: var(--brand-primary-light, hsl(var(--primary) / 0.4)) !important;
+  }
+  
+  & .prose a:hover {
+    color: var(--brand-primary-dark, hsl(var(--primary) / 0.8)) !important;
+    text-decoration-color: var(--brand-primary, hsl(var(--primary))) !important;
+  }
+}

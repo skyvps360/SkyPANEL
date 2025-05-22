@@ -926,6 +926,7 @@ export default function DocsPage() {
                     style={{
                       '--tw-prose-headings': brandColors.primary.full,
                       '--tw-prose-links': brandColors.primary.full,
+                      '--tw-prose-links-hover': brandColors.primary.dark,
                     } as React.CSSProperties}
                   >
                     <ReactMarkdown>
