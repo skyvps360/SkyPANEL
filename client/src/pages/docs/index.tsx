@@ -980,10 +980,12 @@ export default function DocsPage() {
     return renderDocsList();
   };
   
-  // Wrap the content in our layout
+  // Wrap the content in our layout with docs-page class to apply custom styling
   return (
     <PublicLayout>
-      {renderContent()}
+      <div className="docs-page">
+        {renderContent()}
+      </div>
     </PublicLayout>
   );
 }
