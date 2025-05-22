@@ -192,191 +192,80 @@ export default function DocsPage() {
 
   // The docs list view
   const renderDocsList = () => {
+    // Get background pattern for visual interest
+    const patterns = getPatternBackgrounds(brandColors.primary.hex);
+    
     return (
       <div className="w-full">
-        {/* Hero section with colored background - matching blog page exactly */}
-        <div style={{ backgroundColor: brandColors.primary.full }} className="relative overflow-hidden w-full">
-          {/* Decorative bubbles in the background, exactly matching blog page */}
-          <div className="absolute top-0 right-0 opacity-10">
-            <svg width="350" height="350" viewBox="0 0 350 350" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="175" cy="175" r="175" fill="white" />
-            </svg>
-          </div>
-          <div className="absolute bottom-0 left-0 opacity-10 translate-y-1/2 -translate-x-1/4">
-            <svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="150" cy="150" r="150" fill="white" />
-            </svg>
-          </div>
-          <div className="absolute top-1/4 right-1/4 opacity-10">
-            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="40" cy="40" r="40" fill="white" />
-            </svg>
-          </div>
+        {/* Modern Hero section with gradient background */}
+        <div 
+          className="relative overflow-hidden w-full" 
+          style={{ 
+            background: brandColors.gradient.primary, 
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)' 
+          }}
+        >
+          {/* Decorative pattern overlay */}
+          <div className="absolute inset-0 opacity-10" style={patterns.dots.style}></div>
           
-          <div className="max-w-screen-xl mx-auto py-12 px-4 sm:px-6 relative z-10">
+          <div className="max-w-screen-xl mx-auto py-16 px-4 sm:px-6 relative z-10">
             <div className="max-w-3xl">
-              <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-white">
-                Documentation
+              <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">
+                Knowledge Base
               </h1>
-              <p className="text-white text-lg opacity-90">
-                Browse our documentation to learn more about our services, get started guides and troubleshooting information.
+              <p className="text-white text-lg opacity-90 max-w-xl">
+                Browse our documentation to find answers, guides, and help with our services.
               </p>
-            </div>
-          </div>
-        </div>
-        
-        {/* Search bar section - exactly matching blog layout */}
-        <div className="max-w-screen-xl mx-auto py-8 px-4 sm:px-6">
-          {/* Search bar */}
-          <div className="w-full max-w-md mb-8">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search documentation..." 
-                value={searchQuery}
-                onChange={handleSearch}
-                className="pl-10 pr-10 py-6 rounded-full border-gray-200 input-brand-focus"
-                style={{
-                  borderColor: searchQuery ? brandColors.primary.light : undefined,
-                  boxShadow: searchQuery ? `0 0 0 1px ${brandColors.primary.light}` : undefined
-                }}
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
-                  onClick={() => setSearchQuery("")}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Sidebar for document categories on larger screens */}
-            <div className="hidden lg:block">
-              <div className="sticky top-20">
-                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                  <h3 className="font-medium text-lg mb-4 flex items-center" style={{ color: brandColors.primary.full }}>
-                    <Library className="mr-2 h-5 w-5" />
-                    Categories
-                  </h3>
-                  <ul className="space-y-2">
-                    <li>
-                      <Button 
-                        variant={!searchQuery ? "default" : "ghost"} 
-                        className="w-full justify-start text-left"
-                        style={!searchQuery ? 
-                          { backgroundColor: brandColors.primary.full, color: 'white' } :
-                          { color: brandColors.primary.full }
-                        }
-                        onClick={() => setSearchQuery("")}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        All Documents
-                      </Button>
-                    </li>
-                    {categoryOptions.map(category => (
-                      <li key={category.id}>
-                        <Button 
-                          variant={searchQuery === category.name ? "default" : "ghost"} 
-                          className="w-full justify-start text-left"
-                          style={searchQuery === category.name ? 
-                            { backgroundColor: brandColors.primary.full, color: 'white' } :
-                            { color: brandColors.primary.full }
-                          }
-                          onClick={() => setSearchQuery(category.name)}
-                        >
-                          <FileText className="mr-2 h-4 w-4" />
-                          {category.name}
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                {/* Recent documents section */}
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                  <h3 className="font-medium text-lg mb-4 flex items-center" style={{ color: brandColors.primary.full }}>
-                    <Clock className="mr-2 h-5 w-5" />
-                    Recently Updated
-                  </h3>
-                  <ul className="space-y-4">
-                    {publishedDocs.slice(0, 5).map(doc => (
-                      <li key={doc.id} className="border-b border-gray-100 pb-2 last:border-0 last:pb-0">
-                        <Button 
-                          variant="ghost" 
-                          className="w-full justify-start text-left font-normal p-0 h-auto"
-                          style={{ color: brandColors.primary.full }}
-                          onClick={() => setLocation(`/docs/${doc.slug}`)}
-                        >
-                          <BookMarked className="mr-2 h-4 w-4 shrink-0" />
-                          <span className="truncate">{doc.title}</span>
-                        </Button>
-                        <div className="text-xs text-gray-500 ml-6 mt-1">
-                          {format(new Date(doc.updatedAt), 'MMM d, yyyy')}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            {/* Main content area */}
-            <div className="lg:col-span-3">
-              {/* Mobile filters */}
-              <div className="lg:hidden mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-medium text-lg flex items-center" style={{ color: brandColors.primary.full }}>
-                    <Filter className="mr-2 h-5 w-5" /> 
-                    Filter by Category
-                  </h3>
+              
+              {/* Modern search integrated directly in the hero */}
+              <div className="mt-8 relative w-full max-w-2xl">
+                <div className="relative flex items-center">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/70" />
+                  <Input
+                    placeholder="Search documentation..."
+                    value={searchQuery}
+                    onChange={handleSearch}
+                    className="pl-12 pr-12 py-6 text-base rounded-full border-white/20 bg-white/10 backdrop-blur-md text-white placeholder:text-white/60 focus:bg-white/20 transition-all duration-200"
+                    style={{
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                      boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
                   {searchQuery && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-white/10 hover:bg-white/20 text-white"
                       onClick={() => setSearchQuery("")}
-                      style={{ 
-                        borderColor: brandColors.primary.light,
-                        color: brandColors.primary.full
-                      }}
                     >
-                      Clear Filter
+                      <X className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
-                
-                <div className="flex flex-wrap gap-2 mb-6">
+              </div>
+              
+              {/* Category quick filters in hero section */}
+              {categoryOptions.length > 0 && (
+                <div className="mt-6 flex flex-wrap gap-2">
                   <Badge 
                     variant={!searchQuery ? "default" : "outline"}
-                    className="px-3 py-1 text-sm rounded-full cursor-pointer"
+                    className="px-3 py-1 text-sm rounded-full cursor-pointer border-white/20 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all duration-200"
                     style={!searchQuery ? 
-                      { backgroundColor: brandColors.primary.full, color: 'white' } :
-                      { 
-                        borderColor: brandColors.primary.lighter,
-                        color: 'inherit',
-                        backgroundColor: 'white' 
-                      }
+                      { backgroundColor: 'white', color: brandColors.primary.full } :
+                      { borderColor: 'rgba(255, 255, 255, 0.2)', color: 'white' }
                     }
                     onClick={() => setSearchQuery("")}
                   >
-                    All
+                    All Topics
                   </Badge>
-                  {categoryOptions.map(category => (
+                  {categoryOptions.slice(0, 5).map(category => (
                     <Badge 
                       key={category.id}
                       variant={searchQuery === category.name ? "default" : "outline"}
-                      className="px-3 py-1 text-sm rounded-full cursor-pointer"
+                      className="px-3 py-1 text-sm rounded-full cursor-pointer border-white/20 bg-white/10 backdrop-blur-md hover:bg-white/20 transition-all duration-200"
                       style={searchQuery === category.name ? 
-                        { backgroundColor: brandColors.primary.full, color: 'white' } :
-                        { 
-                          borderColor: brandColors.primary.lighter,
-                          color: 'inherit',
-                          backgroundColor: 'white' 
-                        }
+                        { backgroundColor: 'white', color: brandColors.primary.full } :
+                        { borderColor: 'rgba(255, 255, 255, 0.2)', color: 'white' }
                       }
                       onClick={() => setSearchQuery(category.name)}
                     >
@@ -384,56 +273,257 @@ export default function DocsPage() {
                     </Badge>
                   ))}
                 </div>
-              </div>
-              
-              {isLoadingDocs ? (
-                <div className="flex justify-center items-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin" />
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {/* Main content section */}
+        <div className="max-w-screen-xl mx-auto py-12 px-4 sm:px-6">
+          {/* If there's a search query active, show search results summary */}
+          {searchQuery && (
+            <div className="w-full mb-8 bg-white rounded-xl p-6 shadow-md border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center">
+                <div className="mr-4 p-3 rounded-full" style={{ backgroundColor: brandColors.primary.extraLight }}>
+                  <Search className="h-5 w-5" style={{ color: brandColors.primary.full }} />
                 </div>
-              ) : sortedDocs.length === 0 ? (
-                <Card>
-                  <CardContent className="py-12">
-                    <p className="text-center text-gray-500">
-                      {searchQuery 
-                        ? `No documentation found matching "${searchQuery}"`
-                        : "No documentation available yet."
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">
+                    Search Results
+                  </h2>
+                  <p className="text-gray-600">
+                    Found {sortedDocs.length} result{sortedDocs.length !== 1 ? 's' : ''} 
+                    for "{searchQuery}"
+                  </p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => setSearchQuery("")}
+                style={{ 
+                  borderColor: brandColors.primary.light,
+                  color: brandColors.primary.full
+                }}
+                className="shrink-0"
+              >
+                Clear Search
+              </Button>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Sidebar for desktop - redesigned with modern card style */}
+            <div className="hidden lg:block">
+              <div className="sticky top-20 space-y-6">
+                {/* Categories card */}
+                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                  <h3 className="font-bold text-lg mb-4 flex items-center" style={{ color: brandColors.primary.full }}>
+                    <Library className="mr-2 h-5 w-5" />
+                    Browse by Topic
+                  </h3>
+                  <div className="space-y-1.5">
+                    <Button 
+                      variant={!searchQuery ? "default" : "ghost"} 
+                      className="w-full justify-start text-left rounded-lg"
+                      style={!searchQuery ? 
+                        { backgroundColor: brandColors.primary.full, color: 'white' } :
+                        { color: brandColors.primary.full }
                       }
-                    </p>
-                    {searchQuery && (
-                      <div className="flex justify-center mt-4">
-                        <Button variant="outline" onClick={() => setSearchQuery("")}>
-                          Clear Search
+                      onClick={() => setSearchQuery("")}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      All Documents
+                    </Button>
+                    
+                    {categoryOptions.map(category => (
+                      <Button 
+                        key={category.id}
+                        variant={searchQuery === category.name ? "default" : "ghost"} 
+                        className="w-full justify-start text-left rounded-lg group transition-all duration-200"
+                        style={searchQuery === category.name ? 
+                          { backgroundColor: brandColors.primary.full, color: 'white' } :
+                          { color: brandColors.primary.full }
+                        }
+                        onClick={() => setSearchQuery(category.name)}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span className="truncate">{category.name}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Recent documents card */}
+                <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                  <h3 className="font-bold text-lg mb-4 flex items-center" style={{ color: brandColors.primary.full }}>
+                    <Clock className="mr-2 h-5 w-5" />
+                    Recently Updated
+                  </h3>
+                  <div className="space-y-3">
+                    {publishedDocs.slice(0, 5).map(doc => (
+                      <div key={doc.id} className="group">
+                        <Button 
+                          variant="ghost" 
+                          className="w-full justify-start text-left px-3 py-2 rounded-lg text-gray-700 hover:text-gray-900 font-medium"
+                          style={{ 
+                            height: 'auto',
+                            color: 'inherit'
+                          }}
+                          onClick={() => setLocation(`/docs/${doc.slug}`)}
+                        >
+                          <div className="flex items-start">
+                            <BookMarked className="mr-2 h-4 w-4 mt-0.5 shrink-0 transition-colors duration-200" 
+                              style={{ color: brandColors.primary.full }} 
+                            />
+                            <div className="space-y-1">
+                              <div className="text-sm font-medium group-hover:text-gray-900 group-hover:underline transition-all duration-200 line-clamp-2">
+                                {doc.title}
+                              </div>
+                              <div className="text-xs text-gray-500 flex items-center">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {format(new Date(doc.updatedAt), 'MMM d, yyyy')}
+                              </div>
+                            </div>
+                          </div>
                         </Button>
                       </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Main content area - Redesigned with modern cards */}
+            <div className="lg:col-span-3">
+              {/* Mobile filters */}
+              <div className="lg:hidden mb-8">
+                <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-lg flex items-center" style={{ color: brandColors.primary.full }}>
+                      <Filter className="mr-2 h-5 w-5" /> 
+                      Categories
+                    </h3>
+                    {searchQuery && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setSearchQuery("")}
+                        style={{ 
+                          borderColor: brandColors.primary.light,
+                          color: brandColors.primary.full
+                        }}
+                      >
+                        Clear
+                      </Button>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Badge 
+                      variant={!searchQuery ? "default" : "outline"}
+                      className="px-3 py-1.5 text-sm rounded-full cursor-pointer"
+                      style={!searchQuery ? 
+                        { backgroundColor: brandColors.primary.full, color: 'white' } :
+                        { 
+                          borderColor: brandColors.primary.lighter,
+                          color: 'inherit',
+                          backgroundColor: 'white' 
+                        }
+                      }
+                      onClick={() => setSearchQuery("")}
+                    >
+                      All
+                    </Badge>
+                    {categoryOptions.map(category => (
+                      <Badge 
+                        key={category.id}
+                        variant={searchQuery === category.name ? "default" : "outline"}
+                        className="px-3 py-1.5 text-sm rounded-full cursor-pointer"
+                        style={searchQuery === category.name ? 
+                          { backgroundColor: brandColors.primary.full, color: 'white' } :
+                          { 
+                            borderColor: brandColors.primary.lighter,
+                            color: 'inherit',
+                            backgroundColor: 'white' 
+                          }
+                        }
+                        onClick={() => setSearchQuery(category.name)}
+                      >
+                        {category.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Loading state */}
+              {isLoadingDocs ? (
+                <div className="flex flex-col justify-center items-center py-16 bg-white rounded-xl shadow-md">
+                  <Loader2 className="h-10 w-10 animate-spin mb-4" style={{ color: brandColors.primary.full }} />
+                  <p className="text-gray-500">Loading documentation...</p>
+                </div>
+              ) : sortedDocs.length === 0 ? (
+                // Empty state
+                <div className="bg-white rounded-xl shadow-md p-8 text-center border border-gray-100">
+                  <div className="inline-flex items-center justify-center p-4 rounded-full mb-4" 
+                    style={{ backgroundColor: brandColors.primary.extraLight }}
+                  >
+                    <Info className="h-8 w-8" style={{ color: brandColors.primary.full }} />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2">No documentation found</h3>
+                  <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                    {searchQuery 
+                      ? `We couldn't find any documentation matching "${searchQuery}"`
+                      : "There are no documentation articles available yet."
+                    }
+                  </p>
+                  {searchQuery && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setSearchQuery("")}
+                      style={{ 
+                        borderColor: brandColors.primary.light,
+                        color: brandColors.primary.full
+                      }}
+                    >
+                      Clear Search
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <>
-                  {/* When not searching, group by category */}
+                  {/* When not searching, group by category with new card design */}
                   {!searchQuery ? (
                     Object.entries(docsByCategory).map(([category, docs]) => (
                       <div key={category} className="mb-12">
-                        <h2 className="text-xl font-bold mb-5 flex items-center" style={{ color: brandColors.primary.full }}>
-                          <BookOpen className="mr-2 h-5 w-5" /> {category}
-                        </h2>
+                        <div className="flex items-center mb-5">
+                          <div className="p-2 rounded-lg mr-3" 
+                            style={{ backgroundColor: brandColors.primary.extraLight }}
+                          >
+                            <BookOpen className="h-5 w-5" style={{ color: brandColors.primary.full }} />
+                          </div>
+                          <h2 className="text-2xl font-bold" style={{ color: brandColors.primary.full }}>
+                            {category}
+                          </h2>
+                        </div>
+                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {docs.map(doc => (
-                            <Card key={doc.id} className="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-all duration-300 hover:border-transparent group">
-                              <div className="h-1 w-full" style={{ backgroundColor: brandColors.primary.full }}></div>
+                            <Card 
+                              key={doc.id} 
+                              className="overflow-hidden hover:shadow-lg transition-all duration-300 border-transparent group relative"
+                              style={{ 
+                                borderLeft: `4px solid ${brandColors.primary.full}`,
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' 
+                              }}
+                            >
                               <CardHeader className="pb-2 pt-5">
                                 <CardTitle className="text-lg flex justify-between items-start gap-2">
                                   <Link 
                                     href={`/docs/${doc.slug}`} 
-                                    className="hover:underline transition-colors"
+                                    className="group-hover:underline transition-colors"
                                     style={{
-                                      color: 'inherit'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      e.currentTarget.style.color = brandColors.primary.full;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      e.currentTarget.style.color = 'inherit';
+                                      color: brandColors.primary.full
                                     }}
                                   >
                                     {doc.title}
@@ -445,21 +535,22 @@ export default function DocsPage() {
                                       color: brandColors.primary.full,
                                     }}
                                   >
+                                    <Clock className="mr-1 h-3 w-3 inline" />
                                     {format(new Date(doc.updatedAt), 'MMM d, yyyy')}
                                   </Badge>
                                 </CardTitle>
                               </CardHeader>
                               <CardContent className="pt-1">
-                                <p className="text-gray-500 line-clamp-2 text-sm">
+                                <p className="text-gray-600 line-clamp-2 text-sm leading-relaxed">
                                   {doc.content.substring(0, 120)}...
                                 </p>
                               </CardContent>
-                              <CardFooter className="pt-0">
+                              <CardFooter className="pt-0 flex justify-between items-center">
                                 <Button 
                                   variant="ghost" 
                                   asChild 
                                   size="sm"
-                                  className="p-0 hover:bg-transparent underline-offset-4 font-medium"
+                                  className="p-0 hover:bg-transparent group-hover:underline font-medium -ml-1"
                                   style={{ 
                                     color: brandColors.primary.full,
                                     height: 'auto' 
@@ -470,6 +561,22 @@ export default function DocsPage() {
                                     <ExternalLink className="ml-1 h-3 w-3" />
                                   </Link>
                                 </Button>
+                                
+                                {/* Optional: Show category badge */}
+                                {(doc.categoryId || doc.category) && (
+                                  <Badge 
+                                    variant="outline"
+                                    className="rounded-full px-2 py-0.5 text-xs"
+                                    style={{
+                                      borderColor: brandColors.primary.lighter,
+                                      color: brandColors.primary.dark,
+                                    }}
+                                  >
+                                    {doc.categoryId 
+                                      ? categoriesData.find(c => c.id === doc.categoryId)?.name 
+                                      : doc.category}
+                                  </Badge>
+                                )}
                               </CardFooter>
                             </Card>
                           ))}
@@ -477,107 +584,98 @@ export default function DocsPage() {
                       </div>
                     ))
                   ) : (
-                    // When searching, show a flat list with pagination
+                    // When searching, show a modern list with pagination
                     <>
-                      {searchQuery && (
-                        <div className="bg-white rounded-xl p-6 shadow-sm mb-6 border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-center">
-                            <Info className="h-5 w-5 mr-3 text-gray-400" />
-                            <div>
-                              <p className="font-medium text-gray-900 mb-1">
-                                Search Results
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                Found {sortedDocs.length} result{sortedDocs.length !== 1 ? 's' : ''} 
-                                for "{searchQuery}"
-                              </p>
-                            </div>
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => setSearchQuery("")}
-                            style={{ 
-                              borderColor: brandColors.primary.light,
-                              color: brandColors.primary.full
-                            }}
-                            className="shrink-0"
-                          >
-                            Clear Search
-                          </Button>
-                        </div>
-                      )}
-                      
                       <div className="space-y-6">
                         {paginatedDocs.map(doc => (
-                          <Card key={doc.id} className="border border-gray-100 rounded-xl overflow-hidden hover:shadow-sm transition-all duration-300">
-                            <div className="h-1 w-full" style={{ backgroundColor: brandColors.primary.full }}></div>
-                            <CardHeader className="pb-2 pt-5">
-                              <CardTitle className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-1">
+                          <Card 
+                            key={doc.id} 
+                            className="overflow-hidden hover:shadow-lg transition-all duration-300 group relative"
+                            style={{ 
+                              borderLeft: `4px solid ${brandColors.primary.full}`,
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
+                            }}
+                          >
+                            <div className="flex flex-col md:flex-row md:items-center gap-4 p-6">
+                              {/* Left side content */}
+                              <div className="flex-1">
+                                <div className="flex items-center mb-2">
+                                  <Badge 
+                                    variant="outline"
+                                    className="rounded-full px-2 py-0.5 text-xs mr-2"
+                                    style={{
+                                      backgroundColor: brandColors.primary.extraLight,
+                                      borderColor: 'transparent',
+                                      color: brandColors.primary.full
+                                    }}
+                                  >
+                                    {doc.categoryId 
+                                      ? categoriesData.find(c => c.id === doc.categoryId)?.name 
+                                      : doc.category || "Uncategorized"}
+                                  </Badge>
+                                  
+                                  <span className="text-xs text-gray-500 flex items-center">
+                                    <Clock className="mr-1 h-3 w-3" />
+                                    {format(new Date(doc.updatedAt), 'MMM d, yyyy')}
+                                  </span>
+                                </div>
+                                
                                 <Link 
                                   href={`/docs/${doc.slug}`} 
-                                  className="text-lg hover:underline"
+                                  className="text-xl font-bold mb-2 block group-hover:underline"
                                   style={{ color: brandColors.primary.full }}
                                 >
                                   {doc.title}
                                 </Link>
-                                <div className="flex items-center">
-                                  {(doc.categoryId || doc.category) && (
-                                    <Badge 
-                                      className="rounded-full px-2 py-0.5 text-xs font-medium mr-2"
-                                      style={{
-                                        backgroundColor: brandColors.primary.extraLight,
-                                        color: brandColors.primary.full
-                                      }}
-                                    >
-                                      {doc.categoryId 
-                                        ? categoriesData.find(c => c.id === doc.categoryId)?.name 
-                                        : doc.category}
-                                    </Badge>
-                                  )}
-                                  <span className="text-xs text-gray-500">
-                                    {format(new Date(doc.updatedAt), 'MMM d, yyyy')}
-                                  </span>
+                                
+                                <p className="text-gray-600 line-clamp-2 text-sm leading-relaxed mb-4">
+                                  {doc.content.substring(0, 200)}...
+                                </p>
+                                
+                                <Button 
+                                  variant="outline" 
+                                  asChild 
+                                  size="sm"
+                                  className="rounded-full"
+                                  style={{ 
+                                    borderColor: brandColors.primary.light,
+                                    color: brandColors.primary.full
+                                  }}
+                                >
+                                  <Link href={`/docs/${doc.slug}`} className="flex items-center">
+                                    Read Full Document
+                                    <ExternalLink className="ml-1.5 h-3 w-3" />
+                                  </Link>
+                                </Button>
+                              </div>
+                              
+                              {/* Optional: Show a visual indicator for the document type */}
+                              <div className="hidden md:block">
+                                <div 
+                                  className="p-3 rounded-full" 
+                                  style={{ backgroundColor: brandColors.primary.extraLight }}
+                                >
+                                  <BookMarked 
+                                    className="h-6 w-6"
+                                    style={{ color: brandColors.primary.full }}
+                                  />
                                 </div>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-1">
-                              <p className="text-gray-500 line-clamp-3 text-sm mb-2">
-                                {doc.content.substring(0, 200)}...
-                              </p>
-                              <Button 
-                                variant="ghost" 
-                                asChild 
-                                size="sm"
-                                className="p-0 hover:bg-transparent underline-offset-4 font-medium"
-                                style={{ 
-                                  color: brandColors.primary.full,
-                                  height: 'auto' 
-                                }}
-                              >
-                                <Link href={`/docs/${doc.slug}`} className="flex items-center">
-                                  Read Full Document
-                                  <ExternalLink className="ml-1 h-3 w-3" />
-                                </Link>
-                              </Button>
-                            </CardContent>
+                              </div>
+                            </div>
                           </Card>
                         ))}
                       </div>
                       
-                      {/* Pagination controls */}
+                      {/* Pagination controls - redesigned */}
                       {totalPages > 1 && (
-                        <div className="flex justify-center mt-8">
-                          <div className="flex items-center space-x-2">
+                        <div className="flex justify-center mt-10">
+                          <div className="inline-flex items-center p-1 bg-white rounded-full shadow-md border border-gray-100">
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="icon"
                               onClick={() => handlePageChange(currentPage - 1)}
                               disabled={currentPage === 1}
-                              style={{ 
-                                borderColor: brandColors.primary.lighter,
-                                color: brandColors.primary.full
-                              }}
+                              className="rounded-full text-gray-500 hover:text-gray-700"
                             >
                               <ChevronLeft className="h-4 w-4" />
                             </Button>
@@ -585,15 +683,12 @@ export default function DocsPage() {
                             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                               <Button
                                 key={page}
-                                variant={currentPage === page ? "default" : "outline"}
-                                size="sm"
+                                variant={currentPage === page ? "default" : "ghost"}
+                                className="rounded-full mx-0.5 w-9 h-9"
                                 onClick={() => handlePageChange(page)}
                                 style={currentPage === page ? 
                                   { backgroundColor: brandColors.primary.full, color: 'white' } :
-                                  { 
-                                    borderColor: brandColors.primary.lighter,
-                                    color: brandColors.primary.full
-                                  }
+                                  { color: 'inherit' }
                                 }
                               >
                                 {page}
@@ -601,14 +696,11 @@ export default function DocsPage() {
                             ))}
                             
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="icon"
                               onClick={() => handlePageChange(currentPage + 1)}
                               disabled={currentPage === totalPages}
-                              style={{ 
-                                borderColor: brandColors.primary.lighter,
-                                color: brandColors.primary.full
-                              }}
+                              className="rounded-full text-gray-500 hover:text-gray-700"
                             >
                               <ChevronRight className="h-4 w-4" />
                             </Button>
