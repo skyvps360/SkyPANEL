@@ -218,78 +218,39 @@ button[data-nav-button="true"]:active,
 }
 
 /* Documentation page specific overrides */
-.docs-page {
-  /* Aggressively override ALL blue elements with brand color */
-  & a, 
-  & button, 
-  & .read-more-link, 
-  & .prose a, 
-  & [role="link"],
-  & a[href^="/"],
-  & [class*="text-blue"],
-  & [style*="color: blue"],
-  & [style*="color: #3b82f6"],
-  & [style*="color: rgb(59, 130, 246)"],
-  & svg {
-    color: var(--brand-primary, hsl(var(--primary))) !important;
-    transition: all 0.2s ease-in-out !important;
-  }
-  
-  /* Target read more links specifically */
-  & a:has(.ml-1.h-3.w-3) {
-    color: var(--brand-primary, hsl(var(--primary))) !important;
-  }
-  
-  /* Override ALL hover states */
-  & a:hover, 
-  & button:hover, 
-  & .read-more-link:hover, 
-  & .prose a:hover, 
-  & [role="link"]:hover,
-  & a[href^="/"]:hover {
-    color: var(--brand-primary-dark, hsl(var(--primary))) !important;
-    border-color: var(--brand-primary-light, hsl(var(--primary) / 0.2)) !important;
-  }
-  
-  /* Documentation prose content */
-  & .prose a {
-    color: var(--brand-primary, hsl(var(--primary))) !important;
-    text-decoration-color: var(--brand-primary-light, hsl(var(--primary) / 0.4)) !important;
-  }
-  
-  & .prose a:hover {
-    color: var(--brand-primary-dark, hsl(var(--primary))) !important;
-    text-decoration-color: var(--brand-primary, hsl(var(--primary))) !important;
-  }
-  
-  /* Completely override any blue backgrounds */
-  & .bg-blue-500,
-  & [style*="background-color: rgb(59, 130, 246)"],
-  & [style*="background-color: #3b82f6"],
-  & [style*="background: rgb(59, 130, 246)"],
-  & [style*="background: #3b82f6"],
-  & .text-white.bg-blue-600,
-  & [class*="bg-blue"] {
-    background-color: var(--brand-primary, hsl(var(--primary))) !important;
-  }
-  
-  /* Force all React Router links to use brand theme */
-  & a[href^="/docs"],
-  & .docs-link,
-  & .read-more {
-    color: var(--brand-primary, hsl(var(--primary))) !important;
-  }
-  
-  /* Make sure all buttons follow brand color */
-  & .read-more,
-  & button[class*="blue"] {
-    color: var(--brand-primary, hsl(var(--primary))) !important;
-    background-color: transparent !important;
-  }
-  
-  /* Target read more button specifically */
-  & a:has(> .ml-1.h-3.w-3),
-  & .flex.items-center:has(> .ml-1.h-3.w-3) {
-    color: var(--brand-primary, hsl(var(--primary))) !important;
-  }
+.docs-page a,
+.docs-page button,
+.docs-page .read-more-link,
+.docs-page svg,
+.docs-page [role="link"] {
+  color: var(--brand-primary, hsl(var(--primary))) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.docs-page a:hover,
+.docs-page button:hover,
+.docs-page .read-more-link:hover {
+  color: var(--brand-primary-dark, hsl(var(--primary))) !important;
+}
+
+/* Documentation content */
+.docs-page .prose a {
+  color: var(--brand-primary, hsl(var(--primary))) !important;
+  text-decoration-color: var(--brand-primary-light, hsl(var(--primary) / 0.4)) !important;
+}
+
+.docs-page .prose a:hover {
+  color: var(--brand-primary-dark, hsl(var(--primary))) !important;
+  text-decoration-color: var(--brand-primary, hsl(var(--primary))) !important;
+}
+
+/* Target read more buttons specifically */
+.docs-page a.flex.items-center {
+  color: var(--brand-primary, hsl(var(--primary))) !important;
+}
+
+/* Any buttons with background need brand styling */
+.docs-page button[style*="background"],
+.docs-page a[style*="background"] {
+  background-color: var(--brand-primary, hsl(var(--primary))) !important;
 }
