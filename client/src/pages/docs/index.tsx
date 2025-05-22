@@ -76,8 +76,13 @@ export default function DocsPage() {
     queryKey: ["/api/settings/branding"],
   });
   
-  // Use just the hex string approach for simplicity, with the correct red color from your DB
-  const brandColors = getBrandColors('ef4444');
+  // Use the proper approach to prioritize primary_color over company_color
+  const brandColorOptions = {
+    primaryColor: brandingData?.primary_color || 'ef4444', // Don't fallback to company_color!
+    secondaryColor: brandingData?.secondary_color || 'f87171',
+    accentColor: brandingData?.accent_color || 'dc2626'
+  };
+  const brandColors = getBrandColors(brandColorOptions);
   
   // Fetch all doc categories
   const { data: categoriesData = [], isLoading: isLoadingCategories } = useQuery<DocCategory[]>({
