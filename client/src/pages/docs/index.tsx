@@ -448,10 +448,18 @@ export default function DocsPage() {
       return (
         <div className="max-w-screen-lg mx-auto p-8">
           <div className="text-center py-12">
-            <Info className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Document Not Found</h2>
+            <Info className="h-12 w-12 mx-auto mb-4" style={{ color: brandColors.primary.light }} />
+            <h2 className="text-2xl font-bold mb-2" style={{ color: brandColors.primary.full }}>Document Not Found</h2>
             <p className="text-muted-foreground mb-6">The document you're looking for doesn't exist or may have been moved.</p>
-            <Button onClick={() => setLocation("/docs")} className="gap-2">
+            <Button 
+              onClick={() => setLocation("/docs")} 
+              className="gap-2"
+              style={{
+                backgroundColor: brandColors.primary.full,
+                color: 'white',
+                borderColor: brandColors.primary.full
+              }}
+            >
               <ArrowLeft className="h-4 w-4" />
               Back to Documentation
             </Button>
@@ -463,13 +471,39 @@ export default function DocsPage() {
     return (
       <div className="max-w-screen-lg mx-auto px-4 py-8">
         <div className="mb-6 flex items-center">
-          <Button variant="outline" size="sm" onClick={() => setLocation("/docs")} className="gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setLocation("/docs")} 
+            className="gap-2"
+            style={{
+              borderColor: brandColors.primary.light,
+              color: brandColors.primary.full
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = brandColors.primary.full;
+              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.borderColor = brandColors.primary.full;
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = '';
+              e.currentTarget.style.color = brandColors.primary.full;
+              e.currentTarget.style.borderColor = brandColors.primary.light;
+            }}
+          >
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
           
           {currentDoc.categoryId && (
-            <Badge variant="outline" className="ml-4">
+            <Badge 
+              variant="outline" 
+              className="ml-4"
+              style={{
+                borderColor: brandColors.secondary.lighter,
+                color: brandColors.secondary.full
+              }}
+            >
               {(categoriesData.find(c => c.id === currentDoc.categoryId)?.name || '').split('|')[1] || ''}
             </Badge>
           )}
@@ -480,17 +514,112 @@ export default function DocsPage() {
           </span>
         </div>
         
-        <div className="bg-card rounded-lg border shadow-sm p-6 md:p-10">
-          <h1 className="text-3xl md:text-4xl font-bold mb-6 text-card-foreground">{currentDoc.title}</h1>
-          <Separator className="mb-6" />
+        <div 
+          className="bg-card rounded-lg border shadow-sm p-6 md:p-10"
+          style={{
+            borderColor: brandColors.primary.extraLight,
+            boxShadow: `0 4px 20px rgba(${parseInt(brandColors.primary.hex.slice(0,2), 16)}, ${parseInt(brandColors.primary.hex.slice(2,4), 16)}, ${parseInt(brandColors.primary.hex.slice(4,6), 16)}, 0.05)`
+          }}
+        >
+          <h1 
+            className="text-3xl md:text-4xl font-bold mb-6 text-card-foreground"
+            style={{ color: brandColors.primary.full }}
+          >
+            {currentDoc.title}
+          </h1>
+          <Separator 
+            className="mb-6" 
+            style={{ backgroundColor: brandColors.primary.lighter }}
+          />
           
-          <div className="prose prose-lg prose-primary max-w-none">
-            <ReactMarkdown>{currentDoc.content}</ReactMarkdown>
+          <div 
+            className="prose prose-lg prose-primary max-w-none" 
+            style={{
+              // Apply brand colors to markdown content
+              '--tw-prose-links': brandColors.primary.full,
+              '--tw-prose-headings': brandColors.primary.full,
+              '--tw-prose-code': brandColors.secondary.full,
+              '--tw-prose-quote-borders': brandColors.primary.light,
+              '--tw-prose-bullets': brandColors.secondary.full,
+            }}
+          >
+            <ReactMarkdown 
+              components={{
+                code: ({node, inline, className, children, ...props}) => {
+                  if (inline) {
+                    return (
+                      <code 
+                        className={className} 
+                        style={{
+                          backgroundColor: brandColors.secondary.extraLight,
+                          padding: '0.2rem 0.4rem',
+                          borderRadius: '0.2rem',
+                          color: brandColors.secondary.full
+                        }} 
+                        {...props}
+                      >
+                        {children}
+                      </code>
+                    )
+                  }
+                  return (
+                    <code
+                      className={className}
+                      style={{
+                        background: brandColors.secondary.extraLight,
+                        borderLeftColor: brandColors.secondary.light,
+                        borderLeftWidth: '4px',
+                        borderLeftStyle: 'solid',
+                        padding: '1rem',
+                        borderRadius: '0.25rem'
+                      }}
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  );
+                },
+                blockquote: ({node, children, ...props}) => {
+                  return (
+                    <blockquote 
+                      style={{
+                        borderLeftColor: brandColors.primary.light,
+                        backgroundColor: brandColors.primary.extraLight,
+                        padding: '0.5rem 1rem',
+                      }} 
+                      {...props}
+                    >
+                      {children}
+                    </blockquote>
+                  );
+                }
+              }}
+            >
+              {currentDoc.content}
+            </ReactMarkdown>
           </div>
         </div>
         
         <div className="mt-8">
-          <Button variant="outline" onClick={() => setLocation("/docs")} className="gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setLocation("/docs")} 
+            className="gap-2"
+            style={{
+              borderColor: brandColors.primary.light,
+              color: brandColors.primary.full
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = brandColors.primary.full;
+              e.currentTarget.style.color = 'white';
+              e.currentTarget.style.borderColor = brandColors.primary.full;
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = '';
+              e.currentTarget.style.color = brandColors.primary.full;
+              e.currentTarget.style.borderColor = brandColors.primary.light;
+            }}
+          >
             <ArrowLeft className="h-4 w-4" />
             Back to Documentation
           </Button>
