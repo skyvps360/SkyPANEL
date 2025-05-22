@@ -74,8 +74,8 @@ export default function DocsPage() {
     queryKey: ["/api/settings/branding"],
   });
   
-  // Set up brand colors
-  const brandColors = getBrandColors(brandingData?.primary_color || brandingData?.company_color || '');
+  // Set up brand colors - use the same approach as the rest of the app with a default fallback
+  const brandColors = getBrandColors(brandingData?.primary_color || brandingData?.company_color || '2563eb');
   
   // Fetch all doc categories
   const { data: categoriesData = [], isLoading: isLoadingCategories } = useQuery<DocCategory[]>({
