@@ -42,13 +42,8 @@ export default function AdminTransactionDetailPage() {
   }, [transactionId, setLocation]);
 
   const { data: transaction, isLoading, error } = useQuery<Transaction>({
-    queryKey: [`/api/admin/transactions/${transactionId}`],
+    queryKey: [`/api/transactions/${transactionId}`],
     enabled: !!transactionId,
-    queryFn: async () => {
-      const res = await fetch(`/api/admin/transactions/${transactionId}`);
-      if (!res.ok) throw new Error('Failed to fetch transaction');
-      return res.json();
-    },
     retry: 1,
   });
 
