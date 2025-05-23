@@ -2817,10 +2817,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Transaction not found" });
       }
       
-      // Log the transaction being returned
-      console.log(`Returning transaction:`, JSON.stringify(transaction));
-      
-      res.json(transaction);
+      // If admin is requesting, include user data
+      if (isAdmin) {
+        const transactionUser = await storage.getUser(transaction.userId);
+        const transactionWithUser = {
+          ...transaction,
+          user: transactionUser ? {
+            id: transactionUser.id,
+            username: transactionUser.username || transactionUser.fullName || `User #${transactionUser.id}`,
+            email: transactionUser.email || 'No email available'
+          } : undefined
+        };
+        
+        // Log the transaction being returned
+        console.log(`Returning transaction with user data:`, JSON.stringify(transactionWithUser));
+        
+        res.json(transactionWithUser);
+      } else {
+        // Log the transaction being returned
+        console.log(`Returning transaction:`, JSON.stringify(transaction));
+        
+        res.json(transaction);
+      }
     } catch (error: any) {
       console.error("Error retrieving transaction:", error);
       res.status(500).json({ error: error.message });

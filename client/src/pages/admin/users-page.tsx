@@ -282,11 +282,6 @@ export default function UsersPage() {
       cell: (user: User) => getRoleBadge(user.role),
     },
     {
-      accessorKey: "credits" as keyof User,
-      header: "Credits",
-      cell: (user: User) => <span className="text-sm">${user.credits.toFixed(2)}</span>,
-    },
-    {
       accessorKey: "isActive" as keyof User,
       header: "Status",
       cell: (user: User) => (
