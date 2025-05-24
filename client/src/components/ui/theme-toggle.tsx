@@ -15,13 +15,30 @@ export const ThemeToggle: React.FC = () => {
 
   useEffect(() => {
     const root = window.document.documentElement;
+
+    // Force remove any existing theme classes first
+    root.classList.remove("light", "dark");
+
     if (theme === "dark") {
       root.classList.add("dark");
+      console.log("Applied dark theme class to document");
     } else {
-      root.classList.remove("dark");
+      root.classList.add("light");
+      console.log("Applied light theme class to document");
     }
     setStoredTheme(theme);
   }, [theme]);
+
+  // Initialize theme on component mount
+  useEffect(() => {
+    const root = window.document.documentElement;
+    const storedTheme = getStoredTheme();
+
+    // Force apply the theme immediately
+    root.classList.remove("light", "dark");
+    root.classList.add(storedTheme);
+    console.log("Initialized theme:", storedTheme);
+  }, []);
 
   // Sync with system preference changes
   useEffect(() => {
