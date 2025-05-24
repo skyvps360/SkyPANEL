@@ -173,7 +173,7 @@ export default function UsersPage() {
         // User has active servers
         toast({
           title: "Cannot Delete User",
-          description: "This user has active servers in VirtFusion. Please delete or transfer all servers before deleting the user account to maintain data synchronization.",
+          description: "Please check to make sure the user doesn't have servers. This user has active servers in VirtFusion that must be deleted or transferred before the user account can be removed.",
           variant: "destructive",
         });
       } else if (error.status === 500 && error.details?.includes("verify server status")) {
@@ -194,7 +194,7 @@ export default function UsersPage() {
         // Generic server-related error
         toast({
           title: "Cannot Delete User",
-          description: "This user has active servers. Please delete or transfer all servers before deleting the user account.",
+          description: "Please check to make sure the user doesn't have servers. Active servers must be deleted or transferred before the user account can be removed.",
           variant: "destructive",
         });
       } else {
