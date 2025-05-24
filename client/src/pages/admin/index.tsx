@@ -237,16 +237,17 @@ export default function AdminPage() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto space-y-8 px-4 py-6">
-        {/* Page header */}
-        <div className="flex items-center justify-between gap-6 bg-card rounded-xl p-6 border border-border shadow-sm">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">{companyName} Administration</h2>
-            <p className="text-muted-foreground mt-1">
-              Manage all aspects of your platform from one central location
-            </p>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto space-y-8 px-4 py-6">
+          {/* Page header */}
+          <div className="flex items-center justify-between gap-6 bg-card rounded-xl p-6 border border-border shadow-sm">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">{companyName} Administration</h2>
+              <p className="text-muted-foreground mt-1">
+                Manage all aspects of your platform from one central location
+              </p>
+            </div>
           </div>
-        </div>
 
         {/* Cards for mobile */}
         <div className="block md:hidden">
@@ -264,6 +265,7 @@ export default function AdminPage() {
               <AdminSectionRow key={section.href} section={section} />
             ))}
           </div>
+        </div>
         </div>
       </div>
     </AdminLayout>
