@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TicketForm } from "@/components/tickets/TicketForm";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -40,16 +41,33 @@ export default function TicketsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(5); // Set to 5 tickets per page
+  const [statusFilter, setStatusFilter] = useState<string>("open"); // "all", "open", "closed"
+
+  // Reset page when filter changes
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
 
   // Fetch tickets
   const { data, isLoading, refetch } = useQuery<PaginatedResponse>({
-    queryKey: ["/api/tickets", { page: currentPage, limit: pageSize }],
+    queryKey: ["/api/tickets", { page: currentPage, limit: pageSize, status: statusFilter }],
     queryFn: async () => {
-      const url = `/api/tickets?page=${currentPage}&limit=${pageSize}`;
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+      });
+
+      // Only add status parameter if it's not "all"
+      if (statusFilter !== "all") {
+        params.append("status", statusFilter);
+      }
+
+      const url = `/api/tickets?${params.toString()}`;
       return apiRequest(url);
     },
   });
-  
+
   const tickets = data?.data || [];
 
   // Create ticket mutation
@@ -209,7 +227,7 @@ export default function TicketsPage() {
           <p className="text-gray-500 mt-1">Get help from our support team</p>
         </div>
         <div className="mt-4 md:mt-0">
-          <Button 
+          <Button
             onClick={() => setCreateDialogOpen(true)}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
@@ -222,7 +240,22 @@ export default function TicketsPage() {
       {/* Tickets Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Your Support Tickets</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="text-lg">Your Support Tickets</CardTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Filter by status:</span>
+              <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Tickets</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -233,17 +266,27 @@ export default function TicketsPage() {
           ) : tickets.length === 0 ? (
             <div className="text-center py-12">
               <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Support Tickets</h3>
+              <h3 className="text-lg font-medium mb-2">
+                {statusFilter === "all"
+                  ? "No Support Tickets"
+                  : `No ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Tickets`
+                }
+              </h3>
               <p className="text-muted-foreground mb-4">
-                You don't have any support tickets yet. Create one if you need assistance.
+                {statusFilter === "all"
+                  ? "You don't have any support tickets yet. Create one if you need assistance."
+                  : `You don't have any ${statusFilter} tickets at the moment.`
+                }
               </p>
-              <Button 
-                onClick={() => setCreateDialogOpen(true)}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create Ticket
-              </Button>
+              {statusFilter === "all" && (
+                <Button
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Ticket
+                </Button>
+              )}
             </div>
           ) : (
             <DataTable
@@ -254,12 +297,12 @@ export default function TicketsPage() {
               actions={renderActions}
             />
           )}
-          
+
           {/* Pagination Controls */}
           {data?.pagination && data.pagination.pages > 1 && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t">
               <div className="text-sm text-muted-foreground">
-                Showing {tickets.length} of {data.pagination.total} tickets
+                Showing {tickets.length} of {data.pagination.total} {statusFilter === "all" ? "tickets" : `${statusFilter} tickets`}
               </div>
               <div className="flex items-center space-x-2">
                 <Button
@@ -272,11 +315,11 @@ export default function TicketsPage() {
                   <ChevronLeft className="h-4 w-4" />
                   <span className="sr-only">Previous Page</span>
                 </Button>
-                
+
                 <div className="text-sm">
                   Page {data.pagination.current} of {data.pagination.pages}
                 </div>
-                
+
                 <Button
                   variant="outline"
                   size="sm"

@@ -4735,12 +4735,20 @@ Generated on ${new Date().toLocaleString()}
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
+      const status = req.query.status as string; // 'open', 'closed', or undefined for all
 
-      // Get total count for pagination
-      const totalTickets = await storage.getUserTicketsCount(req.user!.id);
+      console.log(`Fetching tickets for user ${req.user!.id}, page ${page}, limit ${limit}, status: ${status || 'all'}`);
 
-      // Get paginated tickets
-      const tickets = await storage.getUserTicketsPaginated(req.user!.id, limit, offset);
+      // Get total count for pagination (with status filter)
+      const totalTickets = await storage.getUserTicketsCount(req.user!.id, status);
+
+      // Get paginated tickets (with status filter)
+      const tickets = await storage.getUserTicketsPaginated(req.user!.id, limit, offset, status);
+
+      console.log(`Found ${totalTickets} total tickets, returning ${tickets.length} tickets`);
+      if (tickets.length > 0) {
+        console.log(`First ticket status: "${tickets[0].status}"`);
+      }
 
       res.json({
         data: tickets,
@@ -5891,12 +5899,13 @@ Generated on ${new Date().toLocaleString()}
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
+      const status = req.query.status as string; // 'open', 'closed', or undefined for all
 
-      // Get total count for pagination
-      const totalTickets = await storage.getAllTicketsCount();
+      // Get total count for pagination (with status filter)
+      const totalTickets = await storage.getAllTicketsCount(status);
 
-      // Get paginated tickets
-      const allTickets = await storage.getAllTicketsPaginated(limit, offset);
+      // Get paginated tickets (with status filter)
+      const allTickets = await storage.getAllTicketsPaginated(limit, offset, status);
 
       // Enrich tickets with user information
       const enrichedTickets = await Promise.all(

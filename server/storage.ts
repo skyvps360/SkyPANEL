@@ -78,7 +78,7 @@ export interface IStorage {
   getServerPowerStatus(serverId: number): Promise<ServerPowerStatus | undefined>;
   updateServerPowerStatus(serverId: number, data: Partial<ServerPowerStatus>): Promise<void>;
   upsertServerPowerStatus(serverId: number, powerState: string): Promise<void>;
-  
+
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -87,7 +87,7 @@ export interface IStorage {
   updateUser(id: number, updates: Partial<User>): Promise<void>;
   deleteUser(id: number): Promise<void>;
   getUsersByIds(ids: number[]): Promise<User[]>;
-  
+
   // Transaction operations
   getUserTransactions(userId: number): Promise<Transaction[]>;
   getAllTransactions(): Promise<Transaction[]>;
@@ -102,7 +102,7 @@ export interface IStorage {
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   updateTransaction(id: number, updates: Partial<Transaction>): Promise<void>;
   getTransaction(id: number): Promise<Transaction | undefined>;
-  
+
   // Invoice operations
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   getInvoice(id: number): Promise<Invoice | undefined>;
@@ -119,7 +119,7 @@ export interface IStorage {
   }): Promise<Invoice[]>;
   updateInvoice(id: number, updates: Partial<Invoice>): Promise<void>;
   generateInvoiceNumber(): Promise<string>;
-  
+
   // Ticket Department operations
   getAllTicketDepartments(): Promise<TicketDepartment[]>;
   getActiveTicketDepartments(): Promise<TicketDepartment[]>;
@@ -128,7 +128,7 @@ export interface IStorage {
   createTicketDepartment(department: InsertTicketDepartment): Promise<TicketDepartment>;
   updateTicketDepartment(id: number, updates: Partial<TicketDepartment>): Promise<void>;
   deleteTicketDepartment(id: number): Promise<void>;
-  
+
   // Ticket operations
   getUserTickets(userId: number): Promise<Ticket[]>;
   getTicket(id: number): Promise<Ticket | undefined>;
@@ -138,17 +138,17 @@ export interface IStorage {
   getAllTickets(): Promise<Ticket[]>;
   getTicketsByDepartment(departmentId: number): Promise<Ticket[]>;
   getRecentOpenTickets(limit?: number): Promise<Ticket[]>;
-  
+
   // Ticket message operations
   getTicketMessages(ticketId: number): Promise<TicketMessage[]>;
   createTicketMessage(message: InsertTicketMessage): Promise<TicketMessage>;
-  
+
   // Discord ticket thread operations
   getDiscordTicketThread(ticketId: number): Promise<DiscordTicketThread | undefined>;
   createDiscordTicketThread(thread: InsertDiscordTicketThread): Promise<DiscordTicketThread>;
   updateDiscordTicketThread(ticketId: number, updates: Partial<DiscordTicketThread>): Promise<void>;
   deleteDiscordTicketThread(ticketId: number): Promise<void>;
-  
+
   // Package pricing operations
   getAllPackagePricing(): Promise<PackagePricing[]>;
   getEnabledPackagePricing(): Promise<PackagePricing[]>;
@@ -164,10 +164,10 @@ export interface IStorage {
   upsertSetting(key: string, value: string): Promise<void>;
   saveOrUpdateSetting(key: string, value: string): Promise<void>;
   deleteSetting(key: string): Promise<void>;
-  
+
   // Admin operations
   getAdminUsers(): Promise<User[]>;
-  
+
   // Notification operations
   getUserNotifications(userId: number): Promise<Notification[]>;
   getUnreadNotificationCount(userId: number): Promise<number>;
@@ -175,20 +175,20 @@ export interface IStorage {
   markNotificationAsRead(id: number): Promise<void>;
   markAllNotificationsAsRead(userId: number): Promise<void>;
   deleteNotification(id: number): Promise<void>;
-  
+
   // Password reset operations
   createPasswordResetToken(userId: number, token: string, expiresAt: Date): Promise<PasswordResetToken>;
   getPasswordResetToken(token: string): Promise<PasswordResetToken | undefined>;
   markPasswordResetTokenAsUsed(id: number): Promise<void>;
   invalidatePasswordResetTokens(userId: number): Promise<void>;
-  
+
   // Email verification operations
   createEmailVerificationToken(userId: number, token: string, expiresAt: Date): Promise<EmailVerificationToken>;
   getEmailVerificationToken(token: string): Promise<EmailVerificationToken | undefined>;
   markEmailVerificationTokenAsUsed(id: number): Promise<void>;
   invalidateEmailVerificationTokens(userId: number): Promise<void>;
   verifyUserEmail(userId: number): Promise<void>;
-  
+
   // Email logs operations
   logEmail(emailLog: InsertEmailLog): Promise<EmailLog>;
   getEmailLogs(): Promise<EmailLog[]>;
@@ -211,10 +211,10 @@ export interface IStorage {
     totalPages: number;
   }>;
   getEmailLog(id: number): Promise<EmailLog | undefined>;
-  
+
   // Session store
   sessionStore: session.Store;
-  
+
   // Documentation category operations
   getAllDocCategories(): Promise<DocCategory[]>;
   getDocCategoryById(id: number): Promise<DocCategory | undefined>;
@@ -222,7 +222,7 @@ export interface IStorage {
   createDocCategory(category: InsertDocCategory): Promise<DocCategory>;
   updateDocCategory(id: number, updates: Partial<DocCategory>): Promise<void>;
   deleteDocCategory(id: number): Promise<void>;
-  
+
   // Documentation operations
   getAllDocs(includeUnpublished?: boolean, categoryId?: number): Promise<Doc[]>;
   getPublishedDocs(categoryId?: number): Promise<Doc[]>;
@@ -231,7 +231,7 @@ export interface IStorage {
   createDoc(doc: InsertDoc): Promise<Doc>;
   updateDoc(id: number, updates: Partial<Doc>): Promise<void>;
   deleteDoc(id: number): Promise<void>;
-  
+
   // Blog category operations
   getAllBlogCategories(): Promise<BlogCategory[]>;
   getBlogCategoryById(id: number): Promise<BlogCategory | undefined>;
@@ -239,7 +239,7 @@ export interface IStorage {
   createBlogCategory(category: InsertBlogCategory): Promise<BlogCategory>;
   updateBlogCategory(id: number, updates: Partial<BlogCategory>): Promise<void>;
   deleteBlogCategory(id: number): Promise<void>;
-  
+
   // Blog post operations
   getAllBlogPosts(includeUnpublished?: boolean): Promise<BlogPost[]>;
   getPublishedBlogPosts(): Promise<BlogPost[]>;
@@ -250,7 +250,7 @@ export interface IStorage {
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<void>;
   deleteBlogPost(id: number): Promise<void>;
-  
+
   // Datacenter location operations
   getAllDatacenterLocations(): Promise<DatacenterLocation[]>;
   getActiveDatacenterLocations(): Promise<DatacenterLocation[]>;
@@ -259,7 +259,7 @@ export interface IStorage {
   createDatacenterLocation(location: InsertDatacenterLocation): Promise<DatacenterLocation>;
   updateDatacenterLocation(id: number, updates: Partial<DatacenterLocation>): Promise<void>;
   deleteDatacenterLocation(id: number): Promise<void>;
-  
+
   // Plan features operations
   getAllPlanFeatures(): Promise<PlanFeature[]>;
   getActivePlanFeatures(): Promise<PlanFeature[]>;
@@ -267,7 +267,7 @@ export interface IStorage {
   createPlanFeature(feature: InsertPlanFeature): Promise<PlanFeature>;
   updatePlanFeature(id: number, updates: Partial<PlanFeature>): Promise<void>;
   deletePlanFeature(id: number): Promise<void>;
-  
+
   // FAQ operations
   getAllFaqItems(): Promise<FaqItem[]>;
   getActiveFaqItems(): Promise<FaqItem[]>;
@@ -276,7 +276,7 @@ export interface IStorage {
   createFaqItem(item: InsertFaqItem): Promise<FaqItem>;
   updateFaqItem(id: number, updates: Partial<FaqItem>): Promise<FaqItem>;
   deleteFaqItem(id: number): Promise<void>;
-  
+
   // Legal content operations
   getLegalContent(type: string): Promise<LegalContent | undefined>;
   getAllLegalContent(): Promise<LegalContent[]>;
@@ -286,16 +286,16 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
-  
+
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
+    this.sessionStore = new PostgresSessionStore({
       conObject: {
         connectionString: process.env.DATABASE_URL,
       },
       createTableIfMissing: true
     });
   }
-  
+
   // Server power status operations
   async getServerPowerStatus(serverId: number): Promise<ServerPowerStatus | undefined> {
     const [status] = await db.select()
@@ -306,7 +306,7 @@ export class DatabaseStorage implements IStorage {
 
   async updateServerPowerStatus(serverId: number, data: Partial<ServerPowerStatus>): Promise<void> {
     const status = await this.getServerPowerStatus(serverId);
-    
+
     if (status) {
       // Update existing status
       await db.update(serverPowerStatus)
@@ -325,68 +325,68 @@ export class DatabaseStorage implements IStorage {
         });
     }
   }
-  
+
   async upsertServerPowerStatus(serverId: number, powerState: string): Promise<void> {
     await this.updateServerPowerStatus(serverId, { powerState });
   }
-  
+
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
-  
+
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
-  
+
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
   }
-  
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
-  
+
   async updateUser(id: number, updates: Partial<User>): Promise<void> {
     console.log(`Updating user ${id} with:`, updates);
     await db.update(users).set(updates).where(eq(users.id, id));
   }
-  
+
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
   }
-  
+
   async getUsersByIds(ids: number[]): Promise<User[]> {
     if (!ids.length) return [];
-    
+
     return await db.select()
       .from(users)
       .where(inArray(users.id, ids));
   }
-  
+
   async updateUserRole(id: number, role: string): Promise<void> {
     await db.update(users).set({ role }).where(eq(users.id, id));
   }
-  
+
   async updateUserCredits(id: number, amount: number): Promise<void> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     if (!user) throw new Error("User not found");
-    
+
     await db.update(users)
       .set({ credits: user.credits + amount })
       .where(eq(users.id, id));
   }
-  
+
   async deleteUser(id: number): Promise<void> {
     console.log(`Deleting user with ID: ${id}`);
     // Delete the user record
     await db.delete(users).where(eq(users.id, id));
   }
-  
+
   // Transaction operations
   async getUserTransactions(userId: number): Promise<Transaction[]> {
     return await db.select()
@@ -394,28 +394,28 @@ export class DatabaseStorage implements IStorage {
       .where(eq(transactions.userId, userId))
       .orderBy(desc(transactions.createdAt));
   }
-  
+
   async getAllTransactions(): Promise<Transaction[]> {
     return await db.select()
       .from(transactions)
       .orderBy(desc(transactions.createdAt));
   }
-  
+
   async createTransaction(insertTransaction: InsertTransaction): Promise<Transaction> {
     const [transaction] = await db.insert(transactions).values(insertTransaction).returning();
     return transaction;
   }
-  
+
   async updateTransaction(id: number, updates: Partial<Transaction>): Promise<void> {
     console.log(`Updating transaction ${id} with:`, updates);
     await db.update(transactions).set(updates).where(eq(transactions.id, id));
   }
-  
+
   async getTransaction(id: number): Promise<Transaction | undefined> {
     const [transaction] = await db.select().from(transactions).where(eq(transactions.id, id));
     return transaction;
   }
-  
+
   async searchTransactions(params: {
     userId?: number;
     startDate?: Date;
@@ -425,33 +425,33 @@ export class DatabaseStorage implements IStorage {
     search?: string;
   }): Promise<Transaction[]> {
     let query = db.select().from(transactions);
-    
+
     // Build filters
     const filters = [];
-    
+
     if (params.userId) {
       filters.push(eq(transactions.userId, params.userId));
     }
-    
+
     if (params.startDate) {
       filters.push(gte(transactions.createdAt, params.startDate));
     }
-    
+
     if (params.endDate) {
       // Add one day to include the end date fully
       const endDate = new Date(params.endDate);
       endDate.setDate(endDate.getDate() + 1);
       filters.push(lt(transactions.createdAt, endDate));
     }
-    
+
     if (params.status) {
       filters.push(eq(transactions.status, params.status));
     }
-    
+
     if (params.type) {
       filters.push(eq(transactions.type, params.type));
     }
-    
+
     if (params.search) {
       filters.push(or(
         ilike(transactions.description, `%${params.search}%`),
@@ -459,45 +459,45 @@ export class DatabaseStorage implements IStorage {
         ilike(transactions.invoiceNumber, `%${params.search}%`)
       ));
     }
-    
+
     // Apply filters if any
     if (filters.length > 0) {
       query = query.where(and(...filters));
     }
-    
+
     // Order by created date descending
     return await query.orderBy(desc(transactions.createdAt));
   }
-  
+
   // Invoice operations
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
     const [createdInvoice] = await db.insert(invoices).values(invoice).returning();
     return createdInvoice;
   }
-  
+
   async getInvoice(id: number): Promise<Invoice | undefined> {
     const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
     return invoice;
   }
-  
+
   async getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined> {
     const [invoice] = await db.select().from(invoices).where(eq(invoices.invoiceNumber, invoiceNumber));
     return invoice;
   }
-  
+
   async getUserInvoices(userId: number): Promise<Invoice[]> {
     return await db.select()
       .from(invoices)
       .where(eq(invoices.userId, userId))
       .orderBy(desc(invoices.createdAt));
   }
-  
+
   async getAllInvoices(): Promise<Invoice[]> {
     return await db.select()
       .from(invoices)
       .orderBy(desc(invoices.createdAt));
   }
-  
+
   async searchInvoices(params: {
     userId?: number;
     startDate?: Date;
@@ -507,55 +507,55 @@ export class DatabaseStorage implements IStorage {
     search?: string;
   }): Promise<Invoice[]> {
     let query = db.select().from(invoices);
-    
+
     // Build filters
     const filters = [];
-    
+
     if (params.userId) {
       filters.push(eq(invoices.userId, params.userId));
     }
-    
+
     if (params.startDate) {
       filters.push(gte(invoices.createdAt, params.startDate));
     }
-    
+
     if (params.endDate) {
       // Add one day to include the end date fully
       const endDate = new Date(params.endDate);
       endDate.setDate(endDate.getDate() + 1);
       filters.push(lt(invoices.createdAt, endDate));
     }
-    
+
     if (params.status) {
       filters.push(eq(invoices.status, params.status));
     }
-    
+
     if (params.invoiceNumber) {
       filters.push(eq(invoices.invoiceNumber, params.invoiceNumber));
     }
-    
+
     if (params.search) {
       filters.push(or(
         ilike(invoices.invoiceNumber, `%${params.search}%`),
         ilike(invoices.notes, `%${params.search}%`)
       ));
     }
-    
+
     // Apply filters if any
     if (filters.length > 0) {
       query = query.where(and(...filters));
     }
-    
+
     // Order by created date descending
     return await query.orderBy(desc(invoices.createdAt));
   }
-  
+
   async updateInvoice(id: number, updates: Partial<Invoice>): Promise<void> {
     await db.update(invoices)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(invoices.id, id));
   }
-  
+
   async generateInvoiceNumber(): Promise<string> {
     // Get current date in YYYYMMDD format
     const today = new Date();
@@ -563,41 +563,41 @@ export class DatabaseStorage implements IStorage {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     const datePrefix = `${year}${month}${day}`;
-    
+
     // Use millisecond timestamp for uniqueness
     const timestamp = Date.now();
-    
+
     // Generate a completely unique invoice number with format INV-YYYYMMDD-TIMESTAMP
     const uniqueSuffix = timestamp.toString().slice(-6);
-    
+
     // Log this for debugging purpose
     console.log(`Generating unique invoice number with timestamp: ${timestamp}`);
-    
+
     // Try up to 3 times to ensure unique invoice number if we have a conflict
     for (let attempt = 0; attempt < 3; attempt++) {
       const invoiceNumber = `INV-${datePrefix}-${uniqueSuffix}${attempt > 0 ? `-${attempt}` : ''}`;
-      
+
       // Check if this invoice number already exists
       const existingInvoice = await db.select()
         .from(invoices)
         .where(eq(invoices.invoiceNumber, invoiceNumber))
         .limit(1);
-      
+
       if (existingInvoice.length === 0) {
         console.log(`Generated unique invoice number: ${invoiceNumber}`);
         return invoiceNumber;
       }
-      
+
       console.log(`Invoice number ${invoiceNumber} already exists, trying another one...`);
     }
-    
+
     // As a last resort, use millisecond timestamp + random number
     const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const finalNumber = `INV-${datePrefix}-${timestamp % 1000000}-${randomSuffix}`;
     console.log(`Final fallback invoice number: ${finalNumber}`);
     return finalNumber;
   }
-  
+
   // Ticket Department operations
   async getAllTicketDepartments(): Promise<TicketDepartment[]> {
     return await db.select()
@@ -634,7 +634,7 @@ export class DatabaseStorage implements IStorage {
         .set({ isDefault: false })
         .where(eq(ticketDepartments.isDefault, true));
     }
-    
+
     const [newDepartment] = await db.insert(ticketDepartments).values(department).returning();
     return newDepartment;
   }
@@ -649,7 +649,7 @@ export class DatabaseStorage implements IStorage {
           not(eq(ticketDepartments.id, id))
         ));
     }
-    
+
     await db.update(ticketDepartments)
       .set(updates)
       .where(eq(ticketDepartments.id, id));
@@ -658,7 +658,7 @@ export class DatabaseStorage implements IStorage {
   async deleteTicketDepartment(id: number): Promise<void> {
     await db.delete(ticketDepartments).where(eq(ticketDepartments.id, id));
   }
-  
+
   // Ticket operations
   async getUserTickets(userId: number): Promise<Ticket[]> {
     return await db.select()
@@ -666,79 +666,106 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tickets.userId, userId))
       .orderBy(desc(tickets.createdAt));
   }
-  
-  async getUserTicketsCount(userId: number): Promise<number> {
+
+  async getUserTicketsCount(userId: number, status?: string): Promise<number> {
+    const filters = [eq(tickets.userId, userId)];
+
+    if (status) {
+      filters.push(eq(tickets.status, status));
+    }
+
     const result = await db.select({ count: sql<number>`count(*)` })
       .from(tickets)
-      .where(eq(tickets.userId, userId));
+      .where(and(...filters));
+
     return result[0].count;
   }
-  
-  async getUserTicketsPaginated(userId: number, limit: number, offset: number): Promise<Ticket[]> {
+
+  async getUserTicketsPaginated(userId: number, limit: number, offset: number, status?: string): Promise<Ticket[]> {
+    const filters = [eq(tickets.userId, userId)];
+
+    if (status) {
+      filters.push(eq(tickets.status, status));
+    }
+
     return await db.select()
       .from(tickets)
-      .where(eq(tickets.userId, userId))
+      .where(and(...filters))
       .orderBy(desc(tickets.createdAt))
       .limit(limit)
       .offset(offset);
   }
-  
+
   async getTicket(id: number): Promise<Ticket | undefined> {
     const [ticket] = await db.select().from(tickets).where(eq(tickets.id, id));
     return ticket;
   }
-  
+
   async createTicket(insertTicket: InsertTicket): Promise<Ticket> {
     const [ticket] = await db.insert(tickets).values(insertTicket).returning();
     return ticket;
   }
-  
+
   async updateTicket(id: number, updates: Partial<Ticket>): Promise<void> {
     await db.update(tickets)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(tickets.id, id));
   }
-  
+
   async deleteTicket(id: number): Promise<void> {
     // First delete all messages associated with this ticket
     await db.delete(ticketMessages).where(eq(ticketMessages.ticketId, id));
-    
+
     // Then delete the ticket itself
     await db.delete(tickets).where(eq(tickets.id, id));
     console.log(`Deleted ticket with ID ${id} and all associated messages`);
   }
-  
+
   async getAllTickets(): Promise<Ticket[]> {
     return await db.select()
       .from(tickets)
       .orderBy(desc(tickets.createdAt));
   }
-  
-  async getAllTicketsCount(): Promise<number> {
-    const result = await db.select({ count: sql<number>`count(*)` })
+
+  async getAllTicketsCount(status?: string): Promise<number> {
+    let query = db.select({ count: sql<number>`count(*)` })
       .from(tickets);
+
+    if (status) {
+      query = query.where(eq(tickets.status, status));
+    }
+
+    const result = await query;
     return result[0].count;
   }
-  
-  async getAllTicketsPaginated(limit: number, offset: number): Promise<Ticket[]> {
-    return await db.select()
-      .from(tickets)
+
+  async getAllTicketsPaginated(limit: number, offset: number, status?: string): Promise<Ticket[]> {
+    let query = db.select()
+      .from(tickets);
+
+    if (status) {
+      query = query.where(eq(tickets.status, status));
+    }
+
+    return await query
       .orderBy(desc(tickets.createdAt))
       .limit(limit)
       .offset(offset);
   }
-  
+
+
+
   async getTicketsByStatus(statuses: string[]): Promise<Ticket[]> {
     return await db.select()
       .from(tickets)
       .where(inArray(tickets.status, statuses))
       .orderBy(desc(tickets.createdAt));
   }
-  
+
   async getRecentOpenTickets(limit: number = 10): Promise<Ticket[]> {
     // Get tickets that are open and have not been responded to by admin
     // We'll need to join with ticket messages to check for admin responses
-    
+
     // First get all open tickets
     const openTickets = await db.select({
       id: tickets.id,
@@ -756,10 +783,10 @@ export class DatabaseStorage implements IStorage {
     .where(eq(tickets.status, 'Open'))
     .orderBy(desc(tickets.createdAt))
     .limit(limit * 2); // Get more than we need since we'll filter some out
-    
+
     // For each ticket, get the last message to see if it was from an admin
     const result: Ticket[] = [];
-    
+
     for (const ticket of openTickets) {
       // Get the last message for this ticket
       const [lastMessage] = await db.select({
@@ -770,22 +797,22 @@ export class DatabaseStorage implements IStorage {
       .where(eq(ticketMessages.ticketId, ticket.id))
       .orderBy(desc(ticketMessages.createdAt))
       .limit(1);
-      
+
       if (!lastMessage || lastMessage.userId === ticket.userId) {
         // If there's no message or the last message was from the ticket creator
         // This ticket needs a response
         result.push(ticket);
-        
+
         // If we have enough tickets, stop processing
         if (result.length >= limit) {
           break;
         }
       }
     }
-    
+
     return result;
   }
-  
+
   // Ticket message operations
   async getTicketMessages(ticketId: number): Promise<TicketMessage[]> {
     return await db.select()
@@ -793,12 +820,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(ticketMessages.ticketId, ticketId))
       .orderBy(ticketMessages.createdAt);
   }
-  
+
   async createTicketMessage(insertMessage: InsertTicketMessage): Promise<TicketMessage> {
     const [message] = await db.insert(ticketMessages).values(insertMessage).returning();
     return message;
   }
-  
+
   // Discord ticket thread operations
   async getDiscordTicketThread(ticketId: number): Promise<DiscordTicketThread | undefined> {
     const [thread] = await db.select()
@@ -806,53 +833,53 @@ export class DatabaseStorage implements IStorage {
       .where(eq(discordTicketThreads.ticketId, ticketId));
     return thread;
   }
-  
+
   async createDiscordTicketThread(thread: InsertDiscordTicketThread): Promise<DiscordTicketThread> {
     const [createdThread] = await db.insert(discordTicketThreads).values(thread).returning();
     return createdThread;
   }
-  
+
   async updateDiscordTicketThread(ticketId: number, updates: Partial<DiscordTicketThread>): Promise<void> {
     await db.update(discordTicketThreads)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(discordTicketThreads.ticketId, ticketId));
   }
-  
+
   async deleteDiscordTicketThread(ticketId: number): Promise<void> {
     await db.delete(discordTicketThreads)
       .where(eq(discordTicketThreads.ticketId, ticketId));
   }
-  
+
   // Settings operations
   async getSetting(key: string): Promise<Settings | undefined> {
     const [setting] = await db.select().from(settings).where(eq(settings.key, key));
     return setting;
   }
-  
+
   async getAllSettings(): Promise<Settings[]> {
     return await db.select().from(settings);
   }
-  
+
   async upsertSetting(key: string, value: string): Promise<void> {
     console.log(`Storage: Upserting setting ${key} = ${key.includes('token') ? '***' : value}`);
     try {
       const [existingSetting] = await db.select().from(settings).where(eq(settings.key, key));
-      
+
       console.log(`Storage: Existing setting found: ${existingSetting ? 'yes' : 'no'}`);
-      
+
       if (existingSetting) {
         console.log(`Storage: Updating existing setting ${key}`);
         await db.update(settings)
           .set({ value, updatedAt: new Date() })
           .where(eq(settings.key, key));
-          
+
         console.log(`Storage: Updated setting ${key}`);
       } else {
         console.log(`Storage: Inserting new setting ${key}`);
         await db.insert(settings).values({ key, value });
         console.log(`Storage: Inserted setting ${key}`);
       }
-      
+
       // Verify the setting was saved correctly
       const [verifiedSetting] = await db.select().from(settings).where(eq(settings.key, key));
       console.log(`Storage: Verification - Setting ${key} exists: ${verifiedSetting ? 'yes' : 'no'}`);
@@ -864,7 +891,7 @@ export class DatabaseStorage implements IStorage {
       throw error; // Rethrow to allow caller to handle
     }
   }
-  
+
   /**
    * Save or update a setting
    * @param key The setting key
@@ -874,7 +901,7 @@ export class DatabaseStorage implements IStorage {
   async saveOrUpdateSetting(key: string, value: string): Promise<void> {
     return this.upsertSetting(key, value);
   }
-  
+
   /**
    * Delete a setting
    * @param key The setting key
@@ -883,7 +910,7 @@ export class DatabaseStorage implements IStorage {
   async deleteSetting(key: string): Promise<void> {
     await db.delete(settings).where(eq(settings.key, key));
   }
-  
+
   /**
    * Get all admin users
    * @returns Promise that resolves with all admin users
@@ -893,7 +920,7 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(eq(users.role, 'admin'));
   }
-  
+
   // Notification operations
   async getUserNotifications(userId: number): Promise<Notification[]> {
     return await db.select()
@@ -901,7 +928,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt));
   }
-  
+
   async getUnreadNotificationCount(userId: number): Promise<number> {
     const result = await db.select({ count: count() })
       .from(notifications)
@@ -909,21 +936,21 @@ export class DatabaseStorage implements IStorage {
         eq(notifications.userId, userId),
         eq(notifications.read, false)
       ));
-    
+
     return result[0]?.count || 0;
   }
-  
+
   async createNotification(insertNotification: InsertNotification): Promise<Notification> {
     const [notification] = await db.insert(notifications).values(insertNotification).returning();
     return notification;
   }
-  
+
   async markNotificationAsRead(id: number): Promise<void> {
     await db.update(notifications)
       .set({ read: true })
       .where(eq(notifications.id, id));
   }
-  
+
   async markAllNotificationsAsRead(userId: number): Promise<void> {
     await db.update(notifications)
       .set({ read: true })
@@ -932,7 +959,7 @@ export class DatabaseStorage implements IStorage {
         eq(notifications.read, false)
       ));
   }
-  
+
   async deleteNotification(id: number): Promise<void> {
     await db.delete(notifications).where(eq(notifications.id, id));
   }
@@ -972,13 +999,13 @@ export class DatabaseStorage implements IStorage {
           isNull(passwordResetTokens.usedAt)
         )
       );
-    
+
     // Mark them all as used
     for (const token of tokensToInvalidate) {
       await this.markPasswordResetTokenAsUsed(token.id);
     }
   }
-  
+
   // Email verification operations
   async createEmailVerificationToken(userId: number, token: string, expiresAt: Date): Promise<EmailVerificationToken> {
     const [verificationToken] = await db.insert(emailVerificationTokens)
@@ -1014,52 +1041,52 @@ export class DatabaseStorage implements IStorage {
           isNull(emailVerificationTokens.usedAt)
         )
       );
-    
+
     // Mark them all as used
     for (const token of tokensToInvalidate) {
       await this.markEmailVerificationTokenAsUsed(token.id);
     }
   }
-  
+
   async verifyUserEmail(userId: number): Promise<void> {
     await db.update(users)
       .set({ isVerified: true, updatedAt: new Date() })
       .where(eq(users.id, userId));
   }
-  
+
   // Email logs operations
   async logEmail(emailLog: InsertEmailLog): Promise<EmailLog> {
     const [log] = await db.insert(emailLogs).values(emailLog).returning();
     return log;
   }
-  
+
   async getEmailLogs(): Promise<EmailLog[]> {
     return await db.select()
       .from(emailLogs)
       .orderBy(desc(emailLogs.sentAt));
   }
-  
+
   async getEmailLogsByType(type: string): Promise<EmailLog[]> {
     return await db.select()
       .from(emailLogs)
       .where(eq(emailLogs.type, type))
       .orderBy(desc(emailLogs.sentAt));
   }
-  
+
   async getEmailLogsByStatus(status: string): Promise<EmailLog[]> {
     return await db.select()
       .from(emailLogs)
       .where(eq(emailLogs.status, status))
       .orderBy(desc(emailLogs.sentAt));
   }
-  
+
   async getEmailLogsByUser(userId: number): Promise<EmailLog[]> {
     return await db.select()
       .from(emailLogs)
       .where(eq(emailLogs.userId, userId))
       .orderBy(desc(emailLogs.sentAt));
   }
-  
+
   async searchEmailLogs(params: {
     type?: string;
     status?: string;
@@ -1076,47 +1103,47 @@ export class DatabaseStorage implements IStorage {
     totalPages: number;
   }> {
     console.log('Searching email logs with params:', params);
-    
+
     try {
       // Set default pagination values
       const page = params.page || 1;
       const limit = params.limit || 10;
       const offset = (page - 1) * limit;
-      
+
       // Build query with filters
       let queryBuilder = db.select().from(emailLogs);
       let countQueryBuilder = db.select({ count: sql`count(*)` }).from(emailLogs);
-      
+
       // Build filters
       const filters = [];
-      
+
       if (params.type) {
         filters.push(eq(emailLogs.type, params.type));
       }
-      
+
       if (params.status) {
         filters.push(eq(emailLogs.status, params.status));
       }
-      
+
       if (params.userId) {
         filters.push(eq(emailLogs.userId, params.userId));
       }
-      
+
       if (params.recipient) {
         filters.push(ilike(emailLogs.recipientEmail, `%${params.recipient}%`));
       }
-      
+
       if (params.startDate) {
         filters.push(gte(emailLogs.sentAt, params.startDate));
       }
-      
+
       if (params.endDate) {
         // Add one day to include the end date fully
         const endDate = new Date(params.endDate);
         endDate.setDate(endDate.getDate() + 1);
         filters.push(lt(emailLogs.sentAt, endDate));
       }
-      
+
       if (params.search) {
         filters.push(or(
           ilike(emailLogs.recipientEmail, `%${params.search}%`),
@@ -1124,28 +1151,28 @@ export class DatabaseStorage implements IStorage {
           ilike(emailLogs.type, `%${params.search}%`)
         ));
       }
-      
+
       // Apply filters if any
       if (filters.length > 0) {
         queryBuilder = queryBuilder.where(and(...filters));
         countQueryBuilder = countQueryBuilder.where(and(...filters));
       }
-      
+
       // Get total count for pagination
       const [countResult] = await countQueryBuilder;
       const totalCount = Number(countResult?.count || 0);
       const totalPages = Math.ceil(totalCount / limit);
-      
+
       // Get paginated data
       queryBuilder = queryBuilder
         .orderBy(desc(emailLogs.sentAt))
         .limit(limit)
         .offset(offset);
-      
+
       const logs = await queryBuilder;
-      
+
       console.log(`Found ${logs.length} email logs (page ${page} of ${totalPages}, total: ${totalCount})`);
-      
+
       return {
         logs,
         totalCount,
@@ -1161,12 +1188,12 @@ export class DatabaseStorage implements IStorage {
       };
     }
   }
-  
+
   async getEmailLog(id: number): Promise<EmailLog | undefined> {
     const [log] = await db.select().from(emailLogs).where(eq(emailLogs.id, id));
     return log;
   }
-  
+
   // ---- Implementation of Documentation operations ----
   // ---- Implementation of Documentation Category operations ----
   async getAllDocCategories(): Promise<DocCategory[]> {
@@ -1174,136 +1201,136 @@ export class DatabaseStorage implements IStorage {
       .orderBy(docCategories.displayOrder)
       .orderBy(docCategories.name);
   }
-  
+
   async getDocCategoryById(id: number): Promise<DocCategory | undefined> {
     const [category] = await db.select().from(docCategories).where(eq(docCategories.id, id));
     return category;
   }
-  
+
   async getDocCategoryBySlug(slug: string): Promise<DocCategory | undefined> {
     const [category] = await db.select().from(docCategories).where(eq(docCategories.slug, slug));
     return category;
   }
-  
+
   async createDocCategory(category: InsertDocCategory): Promise<DocCategory> {
     const [createdCategory] = await db.insert(docCategories).values(category).returning();
     return createdCategory;
   }
-  
+
   async updateDocCategory(id: number, updates: Partial<DocCategory>): Promise<void> {
     await db.update(docCategories)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(docCategories.id, id));
   }
-  
+
   async deleteDocCategory(id: number): Promise<void> {
     // First update any docs in this category to remove the category link
     await db.update(docs)
       .set({ categoryId: null })
       .where(eq(docs.categoryId, id));
-      
+
     // Then delete the category
     await db.delete(docCategories).where(eq(docCategories.id, id));
   }
-  
+
   // ---- Implementation of Documentation operations ----
   async getAllDocs(includeUnpublished: boolean = false, categoryId?: number): Promise<Doc[]> {
     let query = db.select().from(docs);
-    
+
     // Build filters for query
     const filters = [];
-    
+
     if (!includeUnpublished) {
       filters.push(eq(docs.published, true));
     }
-    
+
     if (categoryId) {
       filters.push(eq(docs.categoryId, categoryId));
     }
-    
+
     // Apply filters if any
     if (filters.length > 0) {
       query = query.where(and(...filters));
     }
-    
+
     return await query.orderBy(docs.displayOrder)
       .orderBy(docs.title);
   }
-  
+
   async getPublishedDocs(categoryId?: number): Promise<Doc[]> {
     return this.getAllDocs(false, categoryId);
   }
-  
+
   async getDocById(id: number): Promise<Doc | undefined> {
     const [doc] = await db.select().from(docs).where(eq(docs.id, id));
     return doc;
   }
-  
+
   async getDocBySlug(slug: string): Promise<Doc | undefined> {
     const [doc] = await db.select().from(docs).where(eq(docs.slug, slug));
     return doc;
   }
-  
+
   async createDoc(doc: InsertDoc): Promise<Doc> {
     const [createdDoc] = await db.insert(docs).values(doc).returning();
     return createdDoc;
   }
-  
+
   async updateDoc(id: number, updates: Partial<Doc>): Promise<void> {
     await db.update(docs)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(docs.id, id));
   }
-  
+
   async deleteDoc(id: number): Promise<void> {
     await db.delete(docs).where(eq(docs.id, id));
   }
-  
+
   // ---- Implementation of Blog Category operations ----
   async getAllBlogCategories(): Promise<BlogCategory[]> {
     return await db.select().from(blogCategories)
       .orderBy(blogCategories.displayOrder)
       .orderBy(blogCategories.name);
   }
-  
+
   async getBlogCategoryById(id: number): Promise<BlogCategory | undefined> {
     const [category] = await db.select().from(blogCategories).where(eq(blogCategories.id, id));
     return category;
   }
-  
+
   async getBlogCategoryBySlug(slug: string): Promise<BlogCategory | undefined> {
     const [category] = await db.select().from(blogCategories).where(eq(blogCategories.slug, slug));
     return category;
   }
-  
+
   async createBlogCategory(category: InsertBlogCategory): Promise<BlogCategory> {
     const [createdCategory] = await db.insert(blogCategories).values(category).returning();
     return createdCategory;
   }
-  
+
   async updateBlogCategory(id: number, updates: Partial<BlogCategory>): Promise<void> {
     await db.update(blogCategories)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(blogCategories.id, id));
   }
-  
+
   async deleteBlogCategory(id: number): Promise<void> {
     await db.delete(blogCategories).where(eq(blogCategories.id, id));
   }
-  
+
   // ---- Implementation of Blog Post operations ----
   async getAllBlogPosts(includeUnpublished: boolean = false): Promise<BlogPost[]> {
     let query = db.select().from(blogPosts);
-    
+
     if (!includeUnpublished) {
       query = query.where(eq(blogPosts.published, true));
     }
-    
+
     return await query.orderBy(desc(blogPosts.date))
       .orderBy(blogPosts.displayOrder)
       .orderBy(blogPosts.title);
   }
-  
+
   async getPublishedBlogPosts(): Promise<BlogPost[]> {
     return this.getAllBlogPosts(false);
   }
@@ -1334,10 +1361,10 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(blogCategories, eq(blogPosts.categoryId, blogCategories.id))
       .where(includeUnpublished ? undefined : eq(blogPosts.published, true))
       .orderBy(desc(blogPosts.date), blogPosts.displayOrder, blogPosts.title);
-      
+
     return posts;
   }
-  
+
   async getBlogPostsByCategory(categoryId: number, includeUnpublished: boolean = false): Promise<(BlogPost & { categoryName?: string })[]> {
     const posts = await db
       .select({
@@ -1369,35 +1396,35 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(blogPosts.date), blogPosts.displayOrder, blogPosts.title);
-      
+
     return posts;
   }
-  
+
   async getBlogPostById(id: number): Promise<BlogPost | undefined> {
     const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
     return post;
   }
-  
+
   async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
     const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
     return post;
   }
-  
+
   async createBlogPost(post: InsertBlogPost): Promise<BlogPost> {
     const [createdPost] = await db.insert(blogPosts).values(post).returning();
     return createdPost;
   }
-  
+
   async updateBlogPost(id: number, updates: Partial<BlogPost>): Promise<void> {
     await db.update(blogPosts)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(blogPosts.id, id));
   }
-  
+
   async deleteBlogPost(id: number): Promise<void> {
     await db.delete(blogPosts).where(eq(blogPosts.id, id));
   }
-  
+
   // Datacenter location operations
   async getAllDatacenterLocations(): Promise<DatacenterLocation[]> {
     try {
@@ -1407,7 +1434,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(datacenterLocations.displayOrder)
         .orderBy(datacenterLocations.regionCode)
         .orderBy(datacenterLocations.name);
-      
+
       // Post-process to handle status field if it exists
       return locations.map(location => {
         // Add default values for new fields if they don't exist in the database
@@ -1425,11 +1452,11 @@ export class DatabaseStorage implements IStorage {
       const locations = await db.select()
         .from(datacenterLocations)
         .orderBy(datacenterLocations.regionCode, datacenterLocations.name);
-      
+
       return locations;
     }
   }
-  
+
   async getActiveDatacenterLocations(): Promise<DatacenterLocation[]> {
     try {
       // Use a simpler query that only references existing columns
@@ -1437,7 +1464,7 @@ export class DatabaseStorage implements IStorage {
         .from(datacenterLocations)
         .where(eq(datacenterLocations.isActive, true))
         .orderBy(datacenterLocations.regionCode, datacenterLocations.name);
-      
+
       // Post-process to handle fields that might not exist in the database
       return locations.map(loc => {
         return {
@@ -1454,118 +1481,118 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
-  
+
   async getDatacenterLocationById(id: number): Promise<DatacenterLocation | undefined> {
     const [location] = await db.select()
       .from(datacenterLocations)
       .where(eq(datacenterLocations.id, id));
     return location;
   }
-  
+
   async getDatacenterLocationByCode(code: string): Promise<DatacenterLocation | undefined> {
     const [location] = await db.select()
       .from(datacenterLocations)
       .where(eq(datacenterLocations.code, code));
     return location;
   }
-  
+
   async createDatacenterLocation(location: InsertDatacenterLocation): Promise<DatacenterLocation> {
     const [createdLocation] = await db.insert(datacenterLocations).values(location).returning();
     return createdLocation;
   }
-  
+
   async updateDatacenterLocation(id: number, updates: Partial<DatacenterLocation>): Promise<void> {
     await db.update(datacenterLocations)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(datacenterLocations.id, id));
   }
-  
+
   async deleteDatacenterLocation(id: number): Promise<void> {
     await db.delete(datacenterLocations).where(eq(datacenterLocations.id, id));
   }
-  
+
   // Plan Features operations
   async getAllPlanFeatures(): Promise<PlanFeature[]> {
     return await db.select()
       .from(planFeatures)
       .orderBy(planFeatures.displayOrder, planFeatures.title);
   }
-  
+
   async getActivePlanFeatures(): Promise<PlanFeature[]> {
     return await db.select()
       .from(planFeatures)
       .where(eq(planFeatures.isActive, true))
       .orderBy(planFeatures.displayOrder, planFeatures.title);
   }
-  
+
   async getPlanFeatureById(id: number): Promise<PlanFeature | undefined> {
     const [feature] = await db.select()
       .from(planFeatures)
       .where(eq(planFeatures.id, id));
     return feature;
   }
-  
+
   async createPlanFeature(feature: InsertPlanFeature): Promise<PlanFeature> {
     const [createdFeature] = await db.insert(planFeatures).values(feature).returning();
     return createdFeature;
   }
-  
+
   async updatePlanFeature(id: number, updates: Partial<PlanFeature>): Promise<void> {
     await db.update(planFeatures)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(planFeatures.id, id));
   }
-  
+
   async deletePlanFeature(id: number): Promise<void> {
     await db.delete(planFeatures).where(eq(planFeatures.id, id));
   }
-  
+
   // FAQ operations
   async getAllFaqItems(): Promise<FaqItem[]> {
     return await db.select()
       .from(faqItems)
       .orderBy(faqItems.displayOrder, faqItems.question);
   }
-  
+
   async getActiveFaqItems(): Promise<FaqItem[]> {
     return await db.select()
       .from(faqItems)
       .where(eq(faqItems.isActive, true))
       .orderBy(faqItems.displayOrder, faqItems.question);
   }
-  
+
   async getFaqItemById(id: number): Promise<FaqItem | undefined> {
     const [item] = await db.select()
       .from(faqItems)
       .where(eq(faqItems.id, id));
     return item;
   }
-  
+
   async getFaqItemsByCategory(category: string): Promise<FaqItem[]> {
     return await db.select()
       .from(faqItems)
       .where(eq(faqItems.category, category))
       .orderBy(faqItems.displayOrder, faqItems.question);
   }
-  
+
   async createFaqItem(item: InsertFaqItem): Promise<FaqItem> {
     const [createdItem] = await db.insert(faqItems).values(item).returning();
     return createdItem;
   }
-  
+
   async updateFaqItem(id: number, updates: Partial<FaqItem>): Promise<FaqItem> {
     const [updatedItem] = await db.update(faqItems)
       .set(updates)
       .where(eq(faqItems.id, id))
       .returning();
-    
+
     return updatedItem;
   }
-  
+
   async deleteFaqItem(id: number): Promise<void> {
     await db.delete(faqItems).where(eq(faqItems.id, id));
   }
-  
+
   // Legal content operations
   async getLegalContent(type: string): Promise<LegalContent | undefined> {
     const [content] = await db.select()
@@ -1573,20 +1600,20 @@ export class DatabaseStorage implements IStorage {
       .where(eq(legalContent.type, type));
     return content;
   }
-  
+
   async getAllLegalContent(): Promise<LegalContent[]> {
     return await db.select()
       .from(legalContent)
       .orderBy(legalContent.type);
   }
-  
+
   async createLegalContent(content: InsertLegalContent): Promise<LegalContent> {
     const [createdContent] = await db.insert(legalContent)
       .values(content)
       .returning();
     return createdContent;
   }
-  
+
   async updateLegalContent(id: number, updates: Partial<LegalContent>): Promise<void> {
     await db.update(legalContent)
       .set({ ...updates, updatedAt: new Date() })
