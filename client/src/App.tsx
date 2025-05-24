@@ -58,6 +58,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { VirtFusionSsoHandler } from "@/components/VirtFusionSsoHandler";
 import { DocumentTitle } from "@/components/DocumentTitle";
+import { useThemeManager } from "@/hooks/useThemeManager";
 
 // Component to handle maintenance mode redirects
 function MaintenanceGuard({ children }: { children: React.ReactNode }) {
@@ -65,30 +66,30 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
   const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [bypassGranted, setBypassGranted] = useState<boolean>(false);
-  
+
   // Check if a bypass token exists in localStorage, URL, or cookie
   useEffect(() => {
     // Check if the maintenance_bypass cookie is already set
     const cookies = document.cookie.split(';').map(cookie => cookie.trim());
     const maintenanceBypassCookie = cookies.find(cookie => cookie.startsWith('maintenance_bypass='));
-    
+
     if (maintenanceBypassCookie) {
       console.log('Maintenance bypass cookie already exists');
       setBypassGranted(true);
       return;
     }
-    
+
     // Check for bypass token in localStorage
     const savedBypassToken = localStorage.getItem('maintenanceBypassToken');
-    
+
     // Check for URL token parameter
     const urlParams = new URLSearchParams(window.location.search);
     const urlToken = urlParams.get('token');
-    
+
     // If either token exists, validate it
     if (savedBypassToken || urlToken) {
       const tokenToValidate = urlToken || savedBypassToken;
-      
+
       // Call the API to validate the token
       fetch('/api/maintenance/token/validate', {
         method: 'POST',
@@ -106,7 +107,7 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
           if (tokenToValidate) {
             localStorage.setItem('maintenanceBypassToken', tokenToValidate);
           }
-          
+
           // If there was a token in the URL, remove it to clean the URL
           if (urlToken) {
             const cleanUrl = window.location.pathname;
@@ -119,7 +120,7 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
       });
     }
   }, []);
-  
+
   // Allowed paths during maintenance (don't redirect these)
   const allowedPaths = [
     '/maintenance',         // The maintenance page itself
@@ -131,7 +132,7 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
     '/docs',                // Public documentation
     '/status',              // Status page
   ];
-  
+
   // Check if current path is allowed during maintenance
   const isPathAllowed = () => {
     // Always allow the home page (exact match only)
@@ -139,33 +140,33 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
       console.log('Home page access allowed during maintenance');
       return true;
     }
-    
+
     // Always allow the maintenance page itself and any variants with query params
     if (location === '/maintenance' || location.startsWith('/maintenance')) {
       console.log('Maintenance page access allowed');
       return true;
     }
-    
+
     // Direct match for exact paths
     if (allowedPaths.includes(location)) {
       console.log(`Path ${location} is explicitly allowed during maintenance`);
       return true;
     }
-    
-    // Prefix match for subpaths 
-    const isAllowed = allowedPaths.some(path => path !== '/' && location.startsWith(path)) || 
-           location.startsWith('/blog/') || 
+
+    // Prefix match for subpaths
+    const isAllowed = allowedPaths.some(path => path !== '/' && location.startsWith(path)) ||
+           location.startsWith('/blog/') ||
            location.startsWith('/docs/');
-           
+
     if (isAllowed) {
       console.log(`Path ${location} is allowed during maintenance due to prefix match`);
     } else {
       console.log(`Path ${location} is not allowed during maintenance`);
     }
-    
+
     return isAllowed;
   };
-  
+
   // Check user role
   useEffect(() => {
     async function checkUser() {
@@ -179,10 +180,10 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
         console.error('Error checking user:', error);
       }
     }
-    
+
     checkUser();
   }, []);
-  
+
   // Check maintenance status when component mounts or location changes
   useEffect(() => {
     let isMounted = true;
@@ -190,11 +191,11 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
       try {
         const response = await fetch('/api/maintenance/status');
         if (!isMounted) return;
-        
+
         if (response.ok) {
           const data = await response.json();
           setIsMaintenanceMode(data.enabled);
-          
+
           // If maintenance is enabled and we're not on an allowed path,
           // redirect to maintenance page (unless user is admin)
           if (data.enabled && !isPathAllowed() && !isAdmin && !bypassGranted && location !== '/maintenance') {
@@ -205,15 +206,15 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
         console.error('Error checking maintenance status:', error);
       }
     }
-    
+
     checkMaintenanceStatus();
-    
+
     // Cleanup function to prevent state updates after unmount
     return () => {
       isMounted = false;
     };
   }, [location, isAdmin, bypassGranted]);
-  
+
   // If still loading maintenance status, show loading spinner
   if (isMaintenanceMode === null) {
     return (
@@ -223,7 +224,7 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  
+
   // Render children if not in maintenance mode or user is admin or on allowed path
   return <>{children}</>;
 }
@@ -231,13 +232,16 @@ function MaintenanceGuard({ children }: { children: React.ReactNode }) {
 function Router() {
   const { showLoading } = usePageLoading();
   const [location] = useLocation();
-  
+
+  // Initialize global theme manager
+  useThemeManager();
+
   // Show loading screen only on initial render
   useEffect(() => {
     // This should only run once, not on every navigation
     showLoading();
   }, [showLoading]);
-  
+
   return (
     <MaintenanceGuard>
       <Switch>
@@ -264,7 +268,7 @@ function Router() {
         <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} allowSuspended={true} />
         <ProtectedRoute path="/notifications" component={NotificationsPage} />
         <ProtectedRoute path="/profile" component={ProfilePage} />
-      
+
         {/* Public standalone blog and docs pages */}
         <Route path="/blog" component={BlogListPage} />
         <Route path="/blog/:slug" component={BlogListPage} />
@@ -275,7 +279,7 @@ function Router() {
         <Route path="/plans" component={PlansPage} />
         <Route path="/tos" component={TermsOfServicePage} />
         <Route path="/privacy" component={PrivacyPolicyPage} />
-        
+
         {/* Admin Routes */}
         <AdminProtectedRoute path="/admin" component={AdminDashboard} />
         <AdminProtectedRoute path="/admin/users/:id" component={UserEditPage} />
@@ -307,7 +311,7 @@ function Router() {
 
 function BrandThemeProvider({ children }: { children: React.ReactNode }) {
   const { data: brandingData } = queryClient.getQueryState<any>(["/api/settings/branding"]) || {};
-  
+
   // Apply brand theme on mount and when branding data changes
   useEffect(() => {
     if (brandingData && brandingData.primary_color) {
@@ -321,7 +325,7 @@ function BrandThemeProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, [brandingData]);
-  
+
   return <>{children}</>;
 }
 

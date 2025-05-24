@@ -444,10 +444,10 @@ export function applyToShadcnTheme(colors: BrandColorsResult) {
 
   // Apply all shadcn theme variables
 
-  // Base colors - ONLY set these if they match the current theme mode
-  // This prevents overriding dark mode with light colors
-  root.style.setProperty("--background", backgroundHSL);
-  root.style.setProperty("--foreground", foregroundHSL);
+  // Base colors - DON'T set background/foreground to preserve dark mode
+  // The theme provider handles these based on the dark class
+  // root.style.setProperty("--background", backgroundHSL);
+  // root.style.setProperty("--foreground", foregroundHSL);
 
   // Primary colors
   root.style.setProperty("--primary", primaryHSL);

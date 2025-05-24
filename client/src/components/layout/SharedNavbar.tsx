@@ -4,6 +4,7 @@ import { Menu, X, LogIn } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { getBrandColors, getButtonStyles } from "@/lib/brand-theme";
+import FrontendThemeToggle from "@/components/ui/frontend-theme-toggle";
 
 interface BrandingSettings {
   company_name: string;
@@ -19,8 +20,8 @@ export function SharedNavbar() {
 
   // Fetch branding settings with default values
   const {
-    data: branding = { 
-      company_name: "SkyVPS360", 
+    data: branding = {
+      company_name: "SkyVPS360",
       company_color: "2563eb",
       primary_color: "2563eb",
       secondary_color: "10b981",
@@ -38,7 +39,7 @@ export function SharedNavbar() {
   }, [location]);
 
   const companyName = branding?.company_name || "SkyVPS360";
-  
+
   // Use the new color system with fallbacks
   const brandColorOptions = {
     primaryColor: branding?.primary_color || branding?.company_color || "2563eb",
@@ -113,7 +114,7 @@ export function SharedNavbar() {
       borderColor: 'transparent',
       // Direct styles applied instead of relying on &:hover CSS
     } as React.CSSProperties;
-    
+
     // Setup event handlers for consistent hover effects
     const handleMouseOver = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (active) {
@@ -123,7 +124,7 @@ export function SharedNavbar() {
       e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
       e.currentTarget.style.color = brandColors.primary.full;
     };
-    
+
     const handleMouseOut = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (active) {
         // Reset to active styling
@@ -134,7 +135,7 @@ export function SharedNavbar() {
       e.currentTarget.style.backgroundColor = 'transparent';
       e.currentTarget.style.color = 'var(--gray-700)';
     };
-    
+
     return (
       <Button
         variant={active ? "default" : "ghost"}
@@ -154,12 +155,12 @@ export function SharedNavbar() {
       </Button>
     );
   };
-  
+
   // Mobile menu item with consistent styling
-  const MobileNavItem = ({ 
-    active, 
-    children 
-  }: { 
+  const MobileNavItem = ({
+    active,
+    children
+  }: {
     active: boolean;
     children: React.ReactNode;
   }) => {
@@ -172,7 +173,7 @@ export function SharedNavbar() {
         color: !active ? brandColors.primary.full : undefined
       }
     } as React.CSSProperties;
-    
+
     return (
       <div
         className="block px-3 py-2 rounded-md text-base font-medium"
@@ -295,7 +296,7 @@ export function SharedNavbar() {
             ),
           )}
           <Link href="/auth">
-            <div 
+            <div
               className="mt-4"
             >
               <MobileNavItem active={false}>

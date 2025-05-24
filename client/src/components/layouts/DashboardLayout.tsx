@@ -129,13 +129,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const searchResultsRef = useRef<HTMLDivElement>(null);
 
   // Fetch branding settings to get company name and brand colors
-  const { data: brandingSettings = { 
-    company_name: 'SkyVPS360', 
+  const { data: brandingSettings = {
+    company_name: 'SkyVPS360',
     primary_color: '2563eb',
     secondary_color: '10b981',
     accent_color: 'f59e0b'
-  } } = useQuery<{ 
-    company_name: string, 
+  } } = useQuery<{
+    company_name: string,
     company_color?: string,  // Keep for backward compatibility
     primary_color?: string,
     secondary_color?: string,
@@ -145,7 +145,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-  
+
   // Fetch public settings
   const { data: settings = {} } = useQuery<Record<string, string>>({
     queryKey: ["/api/settings/public"],
@@ -160,14 +160,14 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       setCompanyName(settings.company_name);
     }
   }, [brandingSettings, settings]);
-  
+
   // Get brand colors using the new color system with appropriate fallbacks
   const brandColors = getBrandColors({
     primaryColor: brandingSettings?.primary_color || brandingSettings?.company_color || '2563eb',  // Fallback to company_color for backward compatibility
     secondaryColor: brandingSettings?.secondary_color || '10b981',
     accentColor: brandingSettings?.accent_color || 'f59e0b'
   });
-  
+
   // Apply brand colors to CSS variables and Shadcn theme
   useEffect(() => {
     import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
@@ -177,11 +177,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         secondaryColor: brandingSettings?.secondary_color || '10b981',
         accentColor: brandingSettings?.accent_color || 'f59e0b'
       });
-      
+
       console.log('Applied brand colors to Shadcn theme in Dashboard');
     });
   }, [brandingSettings]);
-  
+
   const queryClient = useQueryClient();
 
   // Define searchable content categories
@@ -212,105 +212,105 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     queryKey: [user?.role === "admin" ? "/api/admin/transactions" : "/api/transactions"],
     staleTime: 60 * 1000, // 1 minute
   });
-  
+
   // Fetch invoices for search - use admin endpoint for admins
   const { data: invoicesData = [] } = useQuery<InvoiceType[]>({
     queryKey: [user?.role === "admin" ? "/api/admin/invoices" : "/api/invoices"],
     staleTime: 60 * 1000, // 1 minute
   });
-  
+
   // Fetch balance data including VirtFusion balance
   const { data: balanceData } = useQuery<{ credits: number, virtFusionCredits: number, virtFusionTokens: number }>({
     queryKey: ["/api/billing/balance"],
     staleTime: 30 * 1000, // 30 seconds
     enabled: !!user,
   });
-  
+
   // Use API data without sample data fallbacks
   const users = usersData;
   const tickets = ticketsResponse?.data || [];
   const transactions = transactionsData;
   const invoices = invoicesData;
-  
+
   // Define global navigation shortcuts
   const globalShortcuts = [
-    { 
-      id: "dashboard", 
-      name: "Dashboard", 
+    {
+      id: "dashboard",
+      name: "Dashboard",
       description: "View your dashboard",
       url: "/dashboard",
       icon: <Gauge className="h-4 w-4" />
     },
-    { 
-      id: "billing", 
-      name: "Billing", 
+    {
+      id: "billing",
+      name: "Billing",
       description: "Manage billing and payments",
       url: "/billing",
       icon: <CreditCard className="h-4 w-4" />
     },
-    { 
-      id: "tickets", 
-      name: "Support Tickets", 
+    {
+      id: "tickets",
+      name: "Support Tickets",
       description: "View your support tickets",
       url: "/tickets",
       icon: <Ticket className="h-4 w-4" />
     },
-    { 
-      id: "packages", 
-      name: "Packages", 
+    {
+      id: "packages",
+      name: "Packages",
       description: "Browse available packages",
       url: "/packages",
       icon: <Server className="h-4 w-4" />
     },
-    { 
-      id: "profile", 
-      name: "Profile", 
+    {
+      id: "profile",
+      name: "Profile",
       description: "Manage your profile",
       url: "/profile",
       icon: <Users className="h-4 w-4" />
     },
-    { 
-      id: "blog", 
-      name: "Blog", 
+    {
+      id: "blog",
+      name: "Blog",
       description: "Read our latest updates",
       url: "/blog",
       icon: <FileText className="h-4 w-4" />
     },
-    { 
-      id: "docs", 
-      name: "Documentation", 
+    {
+      id: "docs",
+      name: "Documentation",
       description: "Browse product documentation",
       url: "/docs",
       icon: <BookOpen className="h-4 w-4" />
     },
-    { 
-      id: "status", 
-      name: "Status", 
+    {
+      id: "status",
+      name: "Status",
       description: "Check system status",
       url: "/status",
       icon: <Activity className="h-4 w-4" />
     },
-    { 
-      id: "speed-test", 
-      name: "Speed Test", 
+    {
+      id: "speed-test",
+      name: "Speed Test",
       description: "Test your connection speed",
       url: "/speed-test",
       icon: <Zap className="h-4 w-4" />
     },
-    // { 
-    //   id: "api-docs", 
-    //   name: "API Documentation", 
+    // {
+    //   id: "api-docs",
+    //   name: "API Documentation",
     //   description: "Explore our API documentation",
     //   url: "/api-docs",
     //   icon: <Code className="h-4 w-4" />
     // },
   ];
-  
+
   // Simplified admin shortcuts to direct to the new admin dashboard
   const adminShortcuts = [
-    { 
-      id: "admin-dashboard", 
-      name: "Admin Dashboard", 
+    {
+      id: "admin-dashboard",
+      name: "Admin Dashboard",
       description: "Access admin control panel",
       url: "/admin",
       icon: <SettingsIcon className="h-4 w-4" />,
@@ -359,14 +359,14 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
     setIsSearching(true);
     const cleanQuery = query.toLowerCase().trim();
-    
+
     try {
       // Start with empty results
       const results: SearchResult[] = [];
-      
+
       // Always include navigation shortcuts that match the query for all users
       globalShortcuts.forEach(shortcut => {
-        if (shortcut.name.toLowerCase().includes(cleanQuery) || 
+        if (shortcut.name.toLowerCase().includes(cleanQuery) ||
             shortcut.description.toLowerCase().includes(cleanQuery)) {
           results.push({
             id: `shortcut-${shortcut.id}`,
@@ -378,12 +378,12 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           });
         }
       });
-      
+
       // Admin-specific content
       if (user?.role === "admin") {
         // Add admin navigation shortcuts
         adminShortcuts.forEach(shortcut => {
-          if (shortcut.name.toLowerCase().includes(cleanQuery) || 
+          if (shortcut.name.toLowerCase().includes(cleanQuery) ||
               shortcut.description.toLowerCase().includes(cleanQuery)) {
             results.push({
               id: `shortcut-${shortcut.id}`,
@@ -395,20 +395,20 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             });
           }
         });
-        
+
         // Admins can search ALL tickets
         tickets.forEach((ticket: TicketType) => {
           // Skip only deleted tickets for admins
           if (ticket.deletedAt) return;
-          
+
           // Match by exact ticket ID or subject contains query
-          if (ticket.id.toString() === cleanQuery || 
+          if (ticket.id.toString() === cleanQuery ||
               (ticket.subject || "").toLowerCase().includes(cleanQuery)) {
             // Route to /tickets/{id} if admin is the ticket creator, otherwise to /admin/tickets/{id}
-            const ticketUrl = ticket.userId === user?.id 
-              ? `/tickets/${ticket.id}` 
+            const ticketUrl = ticket.userId === user?.id
+              ? `/tickets/${ticket.id}`
               : `/admin/tickets/${ticket.id}`;
-              
+
             results.push({
               id: ticket.id,
               type: "ticket",
@@ -419,15 +419,15 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             });
           }
         });
-        
+
         // Admins can search ALL users
         users.forEach((u: UserType) => {
           if (u.deletedAt) return;
-          
+
           const fullName = (u.fullName || "").toLowerCase();
           const email = (u.email || "").toLowerCase();
           const username = (u.username || "").toLowerCase();
-          
+
           if (fullName.includes(cleanQuery) || email.includes(cleanQuery) || username.includes(cleanQuery)) {
             results.push({
               id: u.id,
@@ -439,7 +439,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             });
           }
         });
-        
+
         // Admins can search ALL transactions - FIXED LINK TO SPECIFIC TRANSACTION
         transactions.forEach((tx: TransactionType) => {
           const description = (tx.description || "").toLowerCase();
@@ -447,19 +447,19 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           const txIdString = tx.id.toString();
           const paymentId = (tx.paymentId || "").toLowerCase();
           const invoiceNumber = (tx.invoiceNumber || "").toLowerCase();
-          
+
           // Search by description, type, transaction ID, payment ID, or invoice number
-          if (description.includes(cleanQuery) || 
-              type.includes(cleanQuery) || 
+          if (description.includes(cleanQuery) ||
+              type.includes(cleanQuery) ||
               txIdString === cleanQuery ||
               paymentId.includes(cleanQuery) ||
               invoiceNumber.includes(cleanQuery) ||
               'transaction'.includes(cleanQuery)) {
-            
+
             const txType = tx.type ? (tx.type.charAt(0).toUpperCase() + tx.type.slice(1)) : 'Transaction';
             // For admin view, show which user the transaction belongs to
             const userName = users.find(u => u.id === tx.userId)?.fullName || `User #${tx.userId}`;
-            
+
             // Include payment ID in description if it exists
             let additionalInfo = '';
             if (tx.paymentId) {
@@ -468,10 +468,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             if (tx.invoiceNumber) {
               additionalInfo += ` | Invoice: ${tx.invoiceNumber}`;
             }
-            
+
             // Correctly link to transaction page with specific ID
             const txLink = `/billing/transactions/${tx.id}`;
-            
+
             results.push({
               id: tx.id,
               type: "billing",
@@ -494,27 +494,27 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             });
           }
         });
-        
+
         // Admins can search ALL invoices
         invoices.forEach((invoice: InvoiceType) => {
           const invoiceNumber = (invoice.invoiceNumber || "").toLowerCase();
           const invoiceIdString = invoice.id.toString();
           const status = (invoice.status || "").toLowerCase();
-          
+
           // Search by invoice number, ID, or status
-          if (invoiceNumber.includes(cleanQuery) || 
+          if (invoiceNumber.includes(cleanQuery) ||
               invoiceIdString === cleanQuery ||
               status.includes(cleanQuery) ||
               'invoice'.includes(cleanQuery)) {
-            
+
             // For admin view, show which user the invoice belongs to
             const userName = users.find(u => u.id === invoice.userId)?.fullName || `User #${invoice.userId}`;
-            
+
             const formattedDate = new Date(invoice.createdAt).toLocaleDateString();
-            
+
             // Correctly link to invoice page
             const invoiceLink = `/billing/invoices/${invoice.id}`;
-            
+
             results.push({
               id: invoice.id,
               type: "billing",
@@ -537,10 +537,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             });
           }
         });
-        
+
         // System settings search for admins
-        if ("system settings".includes(cleanQuery) || 
-            "configure".includes(cleanQuery) || 
+        if ("system settings".includes(cleanQuery) ||
+            "configure".includes(cleanQuery) ||
             "admin settings".includes(cleanQuery)) {
           results.push({
             id: `settings-system`,
@@ -551,7 +551,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             icon: <SettingsIcon className="h-4 w-4" />,
           });
         }
-      } 
+      }
       // Regular user-specific content
       else {
         // Regular users can only search their own tickets
@@ -559,9 +559,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           // Skip deleted tickets and ensure proper access
           if (ticket.deletedAt) return;
           if (ticket.userId !== user?.id) return;
-          
+
           // Match by exact ticket ID or subject contains query
-          if (ticket.id.toString() === cleanQuery || 
+          if (ticket.id.toString() === cleanQuery ||
               (ticket.subject || "").toLowerCase().includes(cleanQuery)) {
             results.push({
               id: ticket.id,
@@ -573,27 +573,27 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             });
           }
         });
-        
+
         // Regular users can only search their own transactions - FIXED LINK TO SPECIFIC TRANSACTION
         transactions.forEach((tx: TransactionType) => {
           if (tx.userId !== user?.id) return;
-          
+
           const description = (tx.description || "").toLowerCase();
           const type = (tx.type || "").toLowerCase();
           const txIdString = tx.id.toString();
           const paymentId = (tx.paymentId || "").toLowerCase();
           const invoiceNumber = (tx.invoiceNumber || "").toLowerCase();
-          
+
           // Search by description, type, transaction ID, payment ID, or invoice number
-          if (description.includes(cleanQuery) || 
-              type.includes(cleanQuery) || 
+          if (description.includes(cleanQuery) ||
+              type.includes(cleanQuery) ||
               txIdString === cleanQuery ||
               paymentId.includes(cleanQuery) ||
               invoiceNumber.includes(cleanQuery) ||
               'transaction'.includes(cleanQuery)) {
-            
+
             const txType = tx.type ? (tx.type.charAt(0).toUpperCase() + tx.type.slice(1)) : 'Transaction';
-            
+
             // Include payment ID in description if it exists
             let additionalInfo = '';
             if (tx.paymentId) {
@@ -602,10 +602,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             if (tx.invoiceNumber) {
               additionalInfo += ` | Invoice: ${tx.invoiceNumber}`;
             }
-            
+
             // Correctly link to transaction page with specific ID
             const txLink = `/billing/transactions/${tx.id}`;
-            
+
             results.push({
               id: tx.id,
               type: "billing",
@@ -628,26 +628,26 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             });
           }
         });
-        
+
         // Regular users can only search their own invoices
         invoices.forEach((invoice: InvoiceType) => {
           if (invoice.userId !== user?.id) return;
-          
+
           const invoiceNumber = (invoice.invoiceNumber || "").toLowerCase();
           const invoiceIdString = invoice.id.toString();
           const status = (invoice.status || "").toLowerCase();
-          
+
           // Search by invoice number, ID, or status
-          if (invoiceNumber.includes(cleanQuery) || 
+          if (invoiceNumber.includes(cleanQuery) ||
               invoiceIdString === cleanQuery ||
               status.includes(cleanQuery) ||
               'invoice'.includes(cleanQuery)) {
-            
+
             const formattedDate = new Date(invoice.createdAt).toLocaleDateString();
-            
+
             // Correctly link to invoice page
             const invoiceLink = `/billing/invoices/${invoice.id}`;
-            
+
             results.push({
               id: invoice.id,
               type: "billing",
@@ -670,10 +670,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             });
           }
         });
-        
+
         // Add user profile search for regular users
-        if ("profile".includes(cleanQuery) || 
-            "account".includes(cleanQuery) || 
+        if ("profile".includes(cleanQuery) ||
+            "account".includes(cleanQuery) ||
             "settings".includes(cleanQuery) ||
             (user?.fullName || "").toLowerCase().includes(cleanQuery)) {
           results.push({
@@ -686,7 +686,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           });
         }
       }
-      
+
       // Reset index when results change
       setActiveResultIndex(-1);
       setSearchResults(results);
@@ -706,7 +706,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       const delaySearch = setTimeout(() => {
         performSearch(searchQuery);
       }, 300);
-      
+
       return () => clearTimeout(delaySearch);
     } else if (searchQuery === '') {
       // Immediately clear results when query is cleared
@@ -728,10 +728,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           }
         }, 10);
       }
-      
+
       // Escape to clear search when focused or close dropdown
       const isSearchFocused = document.activeElement === searchInputRef.current;
-      
+
       if (e.key === "Escape") {
         if (showSearchPopup) {
           setShowSearchPopup(false);
@@ -742,7 +742,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           searchInputRef.current?.blur(); // Remove focus if no content
         }
       }
-      
+
       // Handle arrow key navigation within search results
       if (showSearchPopup && searchResults.length > 0) {
         if (e.key === "ArrowDown") {
@@ -832,9 +832,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             </div>
             <span className="text-xl font-semibold">{companyName}</span>
           </Link>
-          
+
           {/* Close button for mobile */}
-          <button 
+          <button
             className="md:hidden rounded-md p-1.5 text-gray-300 hover:bg-gray-700 focus:outline-none"
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -936,7 +936,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
               </div>
               </div>
             </div>
-            
+
             {/* Search Popup Dialog */}
             {showSearchPopup && (
               <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-16 px-4">
@@ -955,7 +955,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                         className="w-full py-2 pl-10 pr-4 outline-none text-base"
                         autoFocus
                       />
-                      <button 
+                      <button
                         className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
                         onClick={() => {
                           setShowSearchPopup(false);
@@ -966,7 +966,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Search Results in Dialog */}
                   <div className="max-h-[calc(80vh-10rem)] overflow-y-auto">
                     {searchQuery.trim() !== "" && (
@@ -994,13 +994,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 </div>
                                 <div className="grid grid-cols-2 gap-1">
                                   {searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").map((result, index) => (
-                                    <div 
+                                    <div
                                       key={`nav-${result.id}`}
                                       onClick={() => navigateToResult(result)}
                                       className={`search-result-item flex items-center px-4 py-2 cursor-pointer rounded-sm ${activeResultIndex === index ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
                                       style={activeResultIndex === index ? { backgroundColor: brandColors.primary.lighter } : undefined}
                                     >
-                                      <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center" 
+                                      <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center"
                                        style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
                                         {result.icon}
                                       </div>
@@ -1015,7 +1015,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 </div>
                               </div>
                             )}
-                            
+
                             {/* Admin Shortcuts */}
                             {user?.role === "admin" && searchResults.filter(r => r.type === "user" && typeof r.id === "string").length > 0 && (
                               <div className="py-2">
@@ -1026,9 +1026,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                   {searchResults.filter(r => r.type === "user" && typeof r.id === "string").map((result, index) => {
                                     // Calculate overall index position in the combined results array
                                     const overallIndex = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length + index;
-                                    
+
                                     return (
-                                      <div 
+                                      <div
                                         key={`admin-${result.id}`}
                                         onClick={() => navigateToResult(result)}
                                         className={`search-result-item flex items-center px-4 py-2 cursor-pointer rounded-sm ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
@@ -1050,7 +1050,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 </div>
                               </div>
                             )}
-                            
+
                             {/* Tickets Results */}
                             {searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").length > 0 && (
                               <div className="py-2">
@@ -1063,9 +1063,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                   const navItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length;
                                   const adminItems = searchResults.filter(r => r.type === "user" && typeof r.id === "string").length;
                                   const overallIndex = navItems + adminItems + index;
-                                  
+
                                   return (
-                                    <div 
+                                    <div
                                       key={`ticket-${result.id}`}
                                       onClick={() => navigateToResult(result)}
                                       className={`search-result-item flex items-center px-4 py-2 cursor-pointer ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
@@ -1083,9 +1083,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                       </div>
                                       {/* Action buttons for tickets */}
                                       <div className="flex space-x-2 ml-2">
-                                        <Button 
-                                          variant="ghost" 
-                                          size="sm" 
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
                                           className="px-2 text-xs"
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -1101,7 +1101,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 })}
                               </div>
                             )}
-                            
+
                             {/* Users Results (Admin Only) */}
                             {searchResults.filter(r => r.type === "user" && typeof r.id === "number").length > 0 && (
                               <div className="py-2">
@@ -1115,9 +1115,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                   const adminItems = searchResults.filter(r => r.type === "user" && typeof r.id === "string").length;
                                   const ticketItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").length;
                                   const overallIndex = navItems + adminItems + ticketItems + index;
-                                  
+
                                   return (
-                                    <div 
+                                    <div
                                       key={`user-${result.id}`}
                                       onClick={() => navigateToResult(result)}
                                       className={`search-result-item flex items-center px-4 py-2 cursor-pointer ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
@@ -1138,7 +1138,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 })}
                               </div>
                             )}
-                            
+
                             {/* Billing & Transactions Results */}
                             {searchResults.filter(r => r.type === "billing").length > 0 && (
                               <div className="py-2">
@@ -1153,25 +1153,25 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                   const ticketItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").length;
                                   const userItems = searchResults.filter(r => r.type === "user" && typeof r.id === "number").length;
                                   const overallIndex = navItems + adminItems + ticketItems + userItems + index;
-                                  
+
                                   // Check if it's a credit transaction (which should use invoice download)
                                   const isCreditTransaction = result.name.toLowerCase().includes('credit');
-                                  
+
                                   // For other types of transactions
-                                  const isTransaction = result.name.toLowerCase().includes('transaction') || 
+                                  const isTransaction = result.name.toLowerCase().includes('transaction') ||
                                                        result.name.toLowerCase().includes('debit');
-                                                       
+
                                   // For invoices
                                   const isInvoice = result.name.toLowerCase().includes('invoice') || isCreditTransaction;
-                                  
+
                                   return (
-                                    <div 
+                                    <div
                                       key={`billing-${result.id}`}
                                       onClick={() => navigateToResult(result)}
                                       className={`search-result-item flex items-center px-4 py-2 cursor-pointer ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
                                       style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
                                     >
-                                      <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center" 
+                                      <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
                                        style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
                                         {isInvoice ? <Receipt className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                                       </div>
@@ -1181,7 +1181,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                           <p className="text-xs text-gray-500 truncate">{result.description}</p>
                                         )}
                                       </div>
-                                      
+
                                       {/* Add action buttons - only show direct download buttons if no action buttons exist */}
                                       {result.actionButtons && result.actionButtons.length > 0 ? (
                                         <div className="ml-2 flex space-x-1">
@@ -1229,7 +1229,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                               </Button>
                                             </div>
                                           )}
-                                          
+
                                           {isInvoice && (
                                             <div className="ml-2">
                                               <Button
@@ -1256,7 +1256,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 })}
                               </div>
                             )}
-                            
+
                             {/* Footer with keyboard tips */}
                             <div className="py-2 px-4 text-xs text-gray-500 border-t border-gray-100 bg-gray-50">
                               <div className="flex items-center justify-between">
@@ -1309,8 +1309,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link 
-                      href="/profile" 
+                    <Link
+                      href="/profile"
                       className="flex items-center dropdown-menu-link"
                       style={{ '--hover-color': brandColors.primary.full } as React.CSSProperties}
                     >
@@ -1319,8 +1319,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link 
-                      href="/billing" 
+                    <Link
+                      href="/billing"
                       className="flex items-center dropdown-menu-link"
                       style={{ '--hover-color': brandColors.primary.full } as React.CSSProperties}
                     >
@@ -1329,8 +1329,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link 
-                      href="/tickets" 
+                    <Link
+                      href="/tickets"
                       className="flex items-center dropdown-menu-link"
                       style={{ '--hover-color': brandColors.primary.full } as React.CSSProperties}
                     >
@@ -1340,8 +1340,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   </DropdownMenuItem>
                   {user?.role === "admin" && (
                     <DropdownMenuItem asChild>
-                      <Link 
-                        href="/admin/settings" 
+                      <Link
+                        href="/admin/settings"
                         className="flex items-center dropdown-menu-link"
                         style={{ '--hover-color': brandColors.primary.full } as React.CSSProperties}
                       >
@@ -1368,7 +1368,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         <main className="flex-1 overflow-y-auto bg-background p-4 md:p-6">
           {children}
         </main>
-        
+
         {/* Footer with SkyVPS360.xyz branding */}
         <footer className="bg-gray-50 border-t border-gray-200 py-4">
           <div className="container mx-auto px-4">

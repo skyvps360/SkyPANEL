@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -52,7 +52,7 @@ const virtFusionSchema = z.object({
   apiUrl: z.string().url({ message: "Please enter a valid URL" }),
   apiToken: z.string().min(10, { message: "API token is required" }),
   sslVerify: z.boolean().default(true),
-  
+
   // User registration settings
   selfServiceValue: z.coerce.number().min(0).max(1).default(1),
   selfServiceHourlyCredit: z.boolean().default(true),
@@ -140,7 +140,7 @@ const designSchema = z.object({
   contactEmail: z.string().email({ message: "Valid contact email is required" }),
   contactSupportText: z.string(),
   contactPhone: z.string(),
-  
+
   // Features section settings
   featuresHeading: z.string().min(1, { message: "Features heading is required" }),
   featuresSubheading: z.string(),
@@ -151,7 +151,7 @@ const designSchema = z.object({
       description: z.string().min(1, { message: "Feature description is required" }),
     })
   ).min(1, { message: "At least one feature card is required" }).max(4, { message: "Maximum of 4 feature cards allowed" }),
-  
+
   // Enterprise-Grade Features section settings
   enterpriseFeaturesHeading: z.string().min(1, { message: "Enterprise features heading is required" }),
   enterpriseFeaturesSubheading: z.string().min(1, { message: "Enterprise features subheading is required" }),
@@ -182,19 +182,19 @@ type GeneralFormData = z.infer<typeof generalSchema>;
 const notificationsSchema = z.object({
   discordWebhookUrl: z.string().url({ message: "Please enter a valid Discord webhook URL" }).or(z.literal("")),
   discordRoleId: z.string().regex(/^\d*$/, { message: "Role ID must contain only numbers" }).optional(),
-  
+
   // Discord Bot settings
   discordBotEnabled: z.boolean().default(false),
   discordBotToken: z.string().min(10, { message: "Bot token must be valid" }).or(z.literal("")),
   discordGuildId: z.string().regex(/^\d*$/, { message: "Guild ID must contain only numbers" }).or(z.literal("")),
   discordChannelId: z.string().regex(/^\d*$/, { message: "Channel ID must contain only numbers" }).or(z.literal("")),
-  
+
   // Discord Bot Permission Settings
-  discordAllowedRoleIds: z.string().regex(/^(\d+(,\s*\d+)*)?$/, { 
-    message: "Role IDs must be comma-separated numbers" 
+  discordAllowedRoleIds: z.string().regex(/^(\d+(,\s*\d+)*)?$/, {
+    message: "Role IDs must be comma-separated numbers"
   }).optional(),
-  discordAllowedUserIds: z.string().regex(/^(\d+(,\s*\d+)*)?$/, { 
-    message: "User IDs must be comma-separated numbers" 
+  discordAllowedUserIds: z.string().regex(/^(\d+(,\s*\d+)*)?$/, {
+    message: "User IDs must be comma-separated numbers"
   }).optional(),
 });
 
@@ -247,20 +247,31 @@ export default function SettingsPage() {
   const [regeneratingToken, setRegeneratingToken] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<TicketDepartment | null>(null);
   const [isAddingDepartment, setIsAddingDepartment] = useState(false);
-  
+  const [themeKey, setThemeKey] = useState(0); // Force re-render key
+
   // State for color pickers
   const [activeColorPicker, setActiveColorPicker] = useState<"primary" | "secondary" | "accent" | null>(null);
+
+  // Listen for theme changes to force re-render
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setThemeKey(prev => prev + 1);
+    };
+
+    window.addEventListener('theme-changed', handleThemeChange);
+    return () => window.removeEventListener('theme-changed', handleThemeChange);
+  }, []);
 
   // Fetch settings
   const { data: settings = [], isLoading } = useQuery<Setting[]>({
     queryKey: ["/api/admin/settings"],
   });
-  
+
   // Fetch ticket departments
   const { data: departments = [], isLoading: isLoadingDepartments } = useQuery<TicketDepartment[]>({
     queryKey: ["/api/ticket-departments"],
   });
-  
+
   // Notifications settings form
   const notificationsForm = useForm<NotificationsFormData>({
     resolver: zodResolver(notificationsSchema),
@@ -275,7 +286,7 @@ export default function SettingsPage() {
       discordAllowedUserIds: getSettingValue("discord_allowed_user_ids", ""),
     },
   });
-  
+
   // General settings form
   const generalForm = useForm<GeneralFormData>({
     resolver: zodResolver(generalSchema),
@@ -303,7 +314,7 @@ export default function SettingsPage() {
       apiUrl: getSettingValue("virtfusion_api_url", "https://skyvps360.xyz/api/v1"),
       apiToken: getSettingValue("virtfusion_api_token", ""),
       sslVerify: getSettingValue("virtfusion_ssl_verify", "true") === "true",
-      
+
       // User registration settings with safer parsing
       selfServiceValue: Number(getSettingValue("virtfusion_self_service", "1")) || 1,
       selfServiceHourlyCredit: getSettingValue("virtfusion_self_service_hourly_credit", "true") === "true",
@@ -337,13 +348,13 @@ export default function SettingsPage() {
   // Update setting mutation
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string, value: string }) => {
-      return apiRequest(`/api/admin/settings/${key}`, { 
-        method: "PUT", 
-        body: { value } 
+      return apiRequest(`/api/admin/settings/${key}`, {
+        method: "PUT",
+        body: { value }
       });
     },
   });
-  
+
   // Test connection mutation
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
@@ -375,30 +386,30 @@ export default function SettingsPage() {
     if (!Array.isArray(settingsArray)) {
       return defaultValue;
     }
-    
+
     // Type check to ensure we're working with Setting objects
     const typedSettings = settingsArray as Setting[];
     const setting = typedSettings.find(s => s.key === key);
     return setting ? setting.value : defaultValue;
   }
-  
+
   // Get brand colors for styling
   const brandColorOptions = {
     primaryColor: getSettingValue("primary_color", "2563eb"),
     secondaryColor: getSettingValue("secondary_color", "10b981"),
     accentColor: getSettingValue("accent_color", "f59e0b")
   };
-  
+
   // Get brand color variations
   const brandColors = getBrandColors(brandColorOptions);
-  
+
   // Helper function to get brand button styling
   const getBrandButtonStyle = (isDisabled: boolean = false) => ({
     backgroundColor: isDisabled ? `${brandColors.primary.full}80` : brandColors.primary.full,
     color: 'white',
     borderColor: 'transparent',
   });
-  
+
   // Maintenance mode form
   const maintenanceForm = useForm<MaintenanceFormData>({
     resolver: zodResolver(maintenanceSchema),
@@ -426,12 +437,12 @@ export default function SettingsPage() {
         title: data.enabled ? "Maintenance mode enabled" : "Maintenance mode disabled",
         description: data.message,
       });
-      
+
       // Fetch the maintenance token if we just enabled it
       if (data.enabled) {
         fetchMaintenanceToken();
       }
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
     },
     onError: (error: any) => {
@@ -442,7 +453,7 @@ export default function SettingsPage() {
       });
     },
   });
-  
+
   // Regenerate maintenance token mutation
   const regenerateTokenMutation = useMutation({
     mutationFn: async () => {
@@ -475,16 +486,16 @@ export default function SettingsPage() {
       });
     },
   });
-  
+
   // Fetch maintenance token
   const fetchMaintenanceToken = async () => {
     try {
       // Use the updated apiRequest function which already handles the response parsing
-      const data = await apiRequest("/api/maintenance/token", { 
+      const data = await apiRequest("/api/maintenance/token", {
         method: "GET",
         responseType: "json"
       });
-      
+
       // If we got a valid response with a token property
       if (data && typeof data === 'object' && 'token' in data) {
         setMaintenanceToken(data.token);
@@ -498,7 +509,7 @@ export default function SettingsPage() {
       console.error("Error fetching maintenance token:", error);
     }
   };
-  
+
   // Handle token regeneration
   const handleRegenerateToken = async () => {
     setRegeneratingToken(true);
@@ -510,7 +521,7 @@ export default function SettingsPage() {
       setRegeneratingToken(false);
     }
   };
-  
+
   // Copy token to clipboard
   const copyTokenToClipboard = () => {
     navigator.clipboard.writeText(maintenanceToken).then(() => {
@@ -520,11 +531,11 @@ export default function SettingsPage() {
       });
     });
   };
-  
+
   // Handle maintenance form submission
   const onMaintenanceSubmit = async (data: MaintenanceFormData) => {
     setSaveInProgress(true);
-    
+
     try {
       await toggleMaintenanceMutation.mutateAsync(data);
     } catch (error) {
@@ -546,38 +557,38 @@ export default function SettingsPage() {
       showOnAllPages: getSettingValue("loading_screen_show_on_all_pages", "false") === "true",
     }
   });
-  
+
   // Handle loading screen settings submission
   const onLoadingScreenSubmit = async (data: LoadingScreenFormData) => {
     setSaveInProgress(true);
-    
+
     try {
       // Update all loading screen settings
-      await updateSettingMutation.mutateAsync({ 
-        key: "loading_screen_enabled", 
-        value: data.enabled.toString() 
+      await updateSettingMutation.mutateAsync({
+        key: "loading_screen_enabled",
+        value: data.enabled.toString()
       });
-      
-      await updateSettingMutation.mutateAsync({ 
-        key: "loading_screen_animation_duration", 
-        value: data.animationDuration.toString() 
+
+      await updateSettingMutation.mutateAsync({
+        key: "loading_screen_animation_duration",
+        value: data.animationDuration.toString()
       });
-      
-      await updateSettingMutation.mutateAsync({ 
-        key: "loading_screen_min_duration", 
-        value: data.minDuration.toString() 
+
+      await updateSettingMutation.mutateAsync({
+        key: "loading_screen_min_duration",
+        value: data.minDuration.toString()
       });
-      
-      await updateSettingMutation.mutateAsync({ 
-        key: "loading_screen_show_on_all_pages", 
-        value: data.showOnAllPages.toString() 
+
+      await updateSettingMutation.mutateAsync({
+        key: "loading_screen_show_on_all_pages",
+        value: data.showOnAllPages.toString()
       });
-      
+
       toast({
         title: "Loading screen settings updated",
         description: "Loading screen settings have been saved successfully",
       });
-      
+
       // Refresh settings
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/branding"] });
@@ -746,7 +757,7 @@ export default function SettingsPage() {
       contactEmail: getSettingValue("footer_contact_email", "support@example.com"),
       contactSupportText: getSettingValue("footer_contact_support_text", "24/7 Available"),
       contactPhone: getSettingValue("footer_contact_phone", "+1 (555) 123-4567"),
-      
+
       // Features section settings
       featuresHeading: getSettingValue("features_heading", "Why Choose SkyVPS360?"),
       featuresSubheading: getSettingValue("features_subheading", "Experience the perfect blend of performance, reliability, and affordability."),
@@ -772,7 +783,7 @@ export default function SettingsPage() {
           description: getSettingValue("feature_description_4", "Strategic data center locations ensure minimal latency for your global audience.")
         }
       ],
-      
+
       // Enterprise-Grade Features section settings
       enterpriseFeaturesHeading: getSettingValue("enterprise_features_heading", "Enterprise-Grade Features"),
       enterpriseFeaturesSubheading: getSettingValue("enterprise_features_subheading", "Our platform delivers the performance, security, and flexibility you need to build and scale with confidence."),
@@ -800,47 +811,47 @@ export default function SettingsPage() {
       ],
     },
   });
-  
+
   // Handle design form submission
   const onDesignSubmit = async (data: DesignFormData) => {
     setSaveInProgress(true);
-    
+
     try {
       // Update footer description
       await updateSettingMutation.mutateAsync({ key: "footer_description", value: data.footerDescription });
-      
+
       // Update social icons settings
       await updateSettingMutation.mutateAsync({ key: "footer_social_icons_enabled", value: data.enableSocialIcons.toString() });
-      
+
       // Clear all existing social URLs first to avoid stale data
       const platformsToUpdate = ['github', 'x', 'facebook', 'discord', 'linkedin', 'youtube', 'instagram'];
-      
+
       // Also clear the legacy twitter URL if it exists
       await updateSettingMutation.mutateAsync({ key: "footer_twitter_url", value: "" });
-      
+
       for (const platform of platformsToUpdate) {
         await updateSettingMutation.mutateAsync({ key: `footer_${platform}_url`, value: "" });
       }
-      
+
       // Now add the new social links
       for (const socialLink of data.socialLinks) {
         if (socialLink.url) {
-          await updateSettingMutation.mutateAsync({ 
-            key: `footer_${socialLink.platform}_url`, 
-            value: socialLink.url 
+          await updateSettingMutation.mutateAsync({
+            key: `footer_${socialLink.platform}_url`,
+            value: socialLink.url
           });
         }
       }
-      
+
       // Update contact info
       await updateSettingMutation.mutateAsync({ key: "footer_contact_email", value: data.contactEmail });
       await updateSettingMutation.mutateAsync({ key: "footer_contact_support_text", value: data.contactSupportText });
       await updateSettingMutation.mutateAsync({ key: "footer_contact_phone", value: data.contactPhone });
-      
+
       // Update features section settings
       await updateSettingMutation.mutateAsync({ key: "features_heading", value: data.featuresHeading });
       await updateSettingMutation.mutateAsync({ key: "features_subheading", value: data.featuresSubheading });
-      
+
       // Update feature cards
       for (let i = 0; i < data.featureCards.length; i++) {
         const card = data.featureCards[i];
@@ -849,41 +860,41 @@ export default function SettingsPage() {
         await updateSettingMutation.mutateAsync({ key: `feature_title_${index}`, value: card.title });
         await updateSettingMutation.mutateAsync({ key: `feature_description_${index}`, value: card.description });
       }
-      
+
       // Clear any extra feature cards that may have been removed
       for (let i = data.featureCards.length + 1; i <= 4; i++) {
         await updateSettingMutation.mutateAsync({ key: `feature_icon_${i}`, value: "" });
         await updateSettingMutation.mutateAsync({ key: `feature_title_${i}`, value: "" });
         await updateSettingMutation.mutateAsync({ key: `feature_description_${i}`, value: "" });
       }
-      
+
       // Update Enterprise-Grade Features section settings
       await updateSettingMutation.mutateAsync({ key: "enterprise_features_heading", value: data.enterpriseFeaturesHeading });
       await updateSettingMutation.mutateAsync({ key: "enterprise_features_subheading", value: data.enterpriseFeaturesSubheading });
-      
+
       // Update enterprise feature cards - store in both legacy format and new format to ensure compatibility
       for (let i = 0; i < data.enterpriseFeatureCards.length; i++) {
         const card = data.enterpriseFeatureCards[i];
         const index = i + 1;
-        
+
         // Save in legacy format (enterprise_feature_icon_1, etc.)
         await updateSettingMutation.mutateAsync({ key: `enterprise_feature_icon_${index}`, value: card.icon });
         await updateSettingMutation.mutateAsync({ key: `enterprise_feature_title_${index}`, value: card.title });
         await updateSettingMutation.mutateAsync({ key: `enterprise_feature_description_${index}`, value: card.description });
-        
+
         // Save in new format (enterpriseFeatureCards.0.icon, etc.)
         await updateSettingMutation.mutateAsync({ key: `enterpriseFeatureCards.${i}.icon`, value: card.icon });
         await updateSettingMutation.mutateAsync({ key: `enterpriseFeatureCards.${i}.title`, value: card.title });
         await updateSettingMutation.mutateAsync({ key: `enterpriseFeatureCards.${i}.description`, value: card.description });
       }
-      
+
       // Clear any extra enterprise feature cards that may have been removed
       for (let i = data.enterpriseFeatureCards.length + 1; i <= 4; i++) {
         // Clear legacy format
         await updateSettingMutation.mutateAsync({ key: `enterprise_feature_icon_${i}`, value: "" });
         await updateSettingMutation.mutateAsync({ key: `enterprise_feature_title_${i}`, value: "" });
         await updateSettingMutation.mutateAsync({ key: `enterprise_feature_description_${i}`, value: "" });
-        
+
         // Clear new format (for items that might have been removed)
         if (i <= 3) {  // New format is 0-indexed, so we only need to clear up to 3
           await updateSettingMutation.mutateAsync({ key: `enterpriseFeatureCards.${i-1}.icon`, value: "" });
@@ -891,22 +902,22 @@ export default function SettingsPage() {
           await updateSettingMutation.mutateAsync({ key: `enterpriseFeatureCards.${i-1}.description`, value: "" });
         }
       }
-      
+
       toast({
         title: "Design settings saved",
         description: "The design settings have been updated successfully",
       });
-      
+
       // Invalidate all queries that might use this data
       await queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       await queryClient.invalidateQueries({ queryKey: ["/api/settings/public"] });
-      
+
       // Refetch settings data to update the form
       const fetchedSettings = await queryClient.fetchQuery({ queryKey: ["/api/admin/settings"] });
-      
+
       // Cast the settings to the correct type
       const settings = (fetchedSettings as Setting[]) || [];
-      
+
       // Reset the form with updated values from the database
       const socialLinks = [
         ...(settings.find(s => s.key === "footer_github_url")?.value ? [{ platform: 'github' as SocialPlatform, url: settings.find(s => s.key === "footer_github_url")?.value }] : []),
@@ -916,7 +927,7 @@ export default function SettingsPage() {
         ...(settings.find(s => s.key === "footer_youtube_url")?.value ? [{ platform: 'youtube' as SocialPlatform, url: settings.find(s => s.key === "footer_youtube_url")?.value }] : []),
         ...(settings.find(s => s.key === "footer_instagram_url")?.value ? [{ platform: 'instagram' as SocialPlatform, url: settings.find(s => s.key === "footer_instagram_url")?.value }] : []),
       ];
-      
+
       // Completely reset the form with freshly loaded data from the database
       designForm.reset({
         // Footer settings
@@ -926,7 +937,7 @@ export default function SettingsPage() {
         contactEmail: getSettingValue("footer_contact_email", "support@example.com", settings),
         contactSupportText: getSettingValue("footer_contact_support_text", "24/7 Available", settings),
         contactPhone: getSettingValue("footer_contact_phone", "", settings),
-        
+
         // Features section settings
         featuresHeading: getSettingValue("features_heading", "Why Choose SkyVPS360?", settings),
         featuresSubheading: getSettingValue("features_subheading", "Experience the perfect blend of performance, reliability, and affordability.", settings),
@@ -972,20 +983,20 @@ export default function SettingsPage() {
         apiUrl: getSettingValue("virtfusion_api_url", "https://skyvps360.xyz/api/v1"),
         apiToken: getSettingValue("virtfusion_api_token", ""),
         sslVerify: getSettingValue("virtfusion_ssl_verify", "true") === "true",
-        
+
         // Add user registration settings
         selfServiceValue: Number(getSettingValue("virtfusion_self_service", "1")) || 1,
         selfServiceHourlyCredit: getSettingValue("virtfusion_self_service_hourly_credit", "true") === "true",
         selfServiceHourlyResourcePackId: Number(getSettingValue("virtfusion_self_service_hourly_resource_pack_id", "1")) || 1,
         defaultResourcePackId: Number(getSettingValue("virtfusion_default_resource_pack_id", "1")) || 1,
       });
-      
+
       // Update Billing form
       billingForm.reset({
         currency: getSettingValue("currency", "USD"),
         taxRate: getSettingValue("tax_rate", "0"),
       });
-      
+
       // Update Email form
       emailForm.reset({
         smtpHost: getSettingValue("smtp_host", ""),
@@ -995,7 +1006,7 @@ export default function SettingsPage() {
         emailFrom: getSettingValue("email_from", ""),
         emailName: getSettingValue("email_name", "VirtFusion Billing"),
       });
-      
+
       // Update Loading Screen form
       loadingScreenForm.reset({
         enabled: getSettingValue("loading_screen_enabled", "true") === "true",
@@ -1003,7 +1014,7 @@ export default function SettingsPage() {
         minDuration: parseInt(getSettingValue("loading_screen_min_duration", "1000"), 10),
         showOnAllPages: getSettingValue("loading_screen_show_on_all_pages", "false") === "true",
       });
-      
+
       // Update General form
       generalForm.reset({
         companyName: getSettingValue("company_name", "SkyVPS360"),
@@ -1019,7 +1030,7 @@ export default function SettingsPage() {
         platformCpuCores: getSettingValue("platform_cpu_cores", ""),
         platformMemoryGB: getSettingValue("platform_memory_gb", ""),
       });
-      
+
       // Update Notifications form
       notificationsForm.reset({
         discordWebhookUrl: getSettingValue("discord_webhook_url", ""),
@@ -1031,14 +1042,14 @@ export default function SettingsPage() {
         discordAllowedRoleIds: getSettingValue("discord_allowed_role_ids", ""),
         discordAllowedUserIds: getSettingValue("discord_allowed_user_ids", ""),
       });
-      
+
       // Update Maintenance form
       maintenanceForm.reset({
         enabled: getSettingValue("maintenance_mode", "false") === "true",
         message: getSettingValue("maintenance_message", "System is currently under maintenance."),
         estimatedCompletion: getSettingValue("maintenance_estimated_completion", ""),
       });
-      
+
       // Load social media links from settings
       const socialLinks = [
         ...(getSettingValue("footer_github_url", "") ? [{ platform: 'github' as SocialPlatform, url: getSettingValue("footer_github_url", "") }] : []),
@@ -1048,7 +1059,7 @@ export default function SettingsPage() {
         ...(getSettingValue("footer_youtube_url", "") ? [{ platform: 'youtube' as SocialPlatform, url: getSettingValue("footer_youtube_url", "") }] : []),
         ...(getSettingValue("footer_instagram_url", "") ? [{ platform: 'instagram' as SocialPlatform, url: getSettingValue("footer_instagram_url", "") }] : []),
       ];
-      
+
       // Update Design form with both footer and features section settings
       designForm.reset({
         // Footer settings
@@ -1058,7 +1069,7 @@ export default function SettingsPage() {
         contactEmail: getSettingValue("footer_contact_email", "support@example.com"),
         contactSupportText: getSettingValue("footer_contact_support_text", "24/7 Available"),
         contactPhone: getSettingValue("footer_contact_phone", "+1 (555) 123-4567"),
-        
+
         // Features section settings
         featuresHeading: getSettingValue("features_heading", "Why Choose SkyVPS360?"),
         featuresSubheading: getSettingValue("features_subheading", "Experience the perfect blend of performance, reliability, and affordability."),
@@ -1084,7 +1095,7 @@ export default function SettingsPage() {
             description: getSettingValue("feature_description_4", "Strategic data center locations ensure minimal latency for your global audience.")
           }
         ],
-        
+
         // Enterprise-Grade Features section settings
         enterpriseFeaturesHeading: getSettingValue("enterprise_features_heading", "Enterprise-Grade Features"),
         enterpriseFeaturesSubheading: getSettingValue("enterprise_features_subheading", "Our platform delivers the performance, security, and flexibility you need to build and scale with confidence."),
@@ -1111,7 +1122,7 @@ export default function SettingsPage() {
           }
         ]
       });
-      
+
       // If maintenance mode is enabled, fetch the bypass token
       if (getSettingValue("maintenance_mode", "false") === "true") {
         fetchMaintenanceToken();
@@ -1122,24 +1133,24 @@ export default function SettingsPage() {
   // Handle VirtFusion API form submission
   const onVirtFusionSubmit = async (data: VirtFusionFormData) => {
     setSaveInProgress(true);
-    
+
     try {
       // Save API connection settings
       await updateSettingMutation.mutateAsync({ key: "virtfusion_api_url", value: data.apiUrl });
       await updateSettingMutation.mutateAsync({ key: "virtfusion_api_token", value: data.apiToken });
       await updateSettingMutation.mutateAsync({ key: "virtfusion_ssl_verify", value: data.sslVerify.toString() });
-      
+
       // Save user registration settings
       await updateSettingMutation.mutateAsync({ key: "virtfusion_self_service", value: data.selfServiceValue.toString() });
       await updateSettingMutation.mutateAsync({ key: "virtfusion_self_service_hourly_credit", value: data.selfServiceHourlyCredit.toString() });
       await updateSettingMutation.mutateAsync({ key: "virtfusion_self_service_hourly_resource_pack_id", value: data.selfServiceHourlyResourcePackId.toString() });
       await updateSettingMutation.mutateAsync({ key: "virtfusion_default_resource_pack_id", value: data.defaultResourcePackId.toString() });
-      
+
       toast({
         title: "Settings saved",
         description: "VirtFusion API settings have been updated",
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
     } catch (error: any) {
       toast({
@@ -1155,16 +1166,16 @@ export default function SettingsPage() {
   // Handle Billing form submission
   const onBillingSubmit = async (data: BillingFormData) => {
     setSaveInProgress(true);
-    
+
     try {
       await updateSettingMutation.mutateAsync({ key: "currency", value: data.currency });
       await updateSettingMutation.mutateAsync({ key: "tax_rate", value: data.taxRate });
-      
+
       toast({
         title: "Settings saved",
         description: "Billing settings have been updated",
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
     } catch (error: any) {
       toast({
@@ -1180,7 +1191,7 @@ export default function SettingsPage() {
   // Handle Email form submission
   const onEmailSubmit = async (data: EmailFormData) => {
     setSaveInProgress(true);
-    
+
     try {
       await updateSettingMutation.mutateAsync({ key: "smtp_host", value: data.smtpHost });
       await updateSettingMutation.mutateAsync({ key: "smtp_port", value: data.smtpPort });
@@ -1188,12 +1199,12 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "smtp_pass", value: data.smtpPass });
       await updateSettingMutation.mutateAsync({ key: "email_from", value: data.emailFrom });
       await updateSettingMutation.mutateAsync({ key: "email_name", value: data.emailName });
-      
+
       toast({
         title: "Settings saved",
         description: "Email settings have been updated",
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
     } catch (error: any) {
       toast({
@@ -1205,44 +1216,44 @@ export default function SettingsPage() {
       setSaveInProgress(false);
     }
   };
-  
+
   // Handle General settings form submission
   const onGeneralSubmit = async (data: GeneralFormData) => {
     setSaveInProgress(true);
-    
+
     try {
       await updateSettingMutation.mutateAsync({ key: "company_name", value: data.companyName });
       await updateSettingMutation.mutateAsync({ key: "platform_name", value: data.platformName });
       await updateSettingMutation.mutateAsync({ key: "support_email", value: data.supportEmail });
       await updateSettingMutation.mutateAsync({ key: "default_timezone", value: data.defaultTimezone });
       await updateSettingMutation.mutateAsync({ key: "date_format", value: data.dateFormat });
-      
+
       // Check if brand colors have changed
       const oldPrimaryColor = getSettingValue("primary_color", "2563eb");
       const oldSecondaryColor = getSettingValue("secondary_color", "10b981");
       const oldAccentColor = getSettingValue("accent_color", "f59e0b");
-      
-      const colorChanged = 
-        oldPrimaryColor !== data.primaryColor || 
-        oldSecondaryColor !== data.secondaryColor || 
+
+      const colorChanged =
+        oldPrimaryColor !== data.primaryColor ||
+        oldSecondaryColor !== data.secondaryColor ||
         oldAccentColor !== data.accentColor;
-      
+
       // Update brand colors
       await updateSettingMutation.mutateAsync({ key: "primary_color", value: data.primaryColor });
       await updateSettingMutation.mutateAsync({ key: "secondary_color", value: data.secondaryColor });
       await updateSettingMutation.mutateAsync({ key: "accent_color", value: data.accentColor });
-      
+
       // Update platform statistics
       await updateSettingMutation.mutateAsync({ key: "platform_server_count", value: data.platformServerCount || "" });
       await updateSettingMutation.mutateAsync({ key: "platform_hypervisor_count", value: data.platformHypervisorCount || "" });
       await updateSettingMutation.mutateAsync({ key: "platform_cpu_cores", value: data.platformCpuCores || "" });
       await updateSettingMutation.mutateAsync({ key: "platform_memory_gb", value: data.platformMemoryGB || "" });
-      
+
       // Update cache for both settings and platform stats
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/public/platform-stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/branding"] });
-      
+
       // Show different toast message if colors were changed
       if (colorChanged) {
         toast({
@@ -1250,7 +1261,7 @@ export default function SettingsPage() {
           description: "A full page reload is required to see all color changes. Reload now?",
           action: (
             <ToastAction altText="Reload" onClick={() => {
-              // Force a cache invalidation reload 
+              // Force a cache invalidation reload
               window.location.reload();
             }}>
               Reload
@@ -1274,31 +1285,31 @@ export default function SettingsPage() {
       setSaveInProgress(false);
     }
   };
-  
+
   // Handle Notifications settings form submission
   const onNotificationsSubmit = async (data: NotificationsFormData) => {
     setSaveInProgress(true);
-    
+
     try {
       // Discord webhook settings
       await updateSettingMutation.mutateAsync({ key: "discord_webhook_url", value: data.discordWebhookUrl });
       await updateSettingMutation.mutateAsync({ key: "discord_role_id", value: data.discordRoleId || "" });
-      
+
       // Discord bot settings
       await updateSettingMutation.mutateAsync({ key: "discord_bot_enabled", value: data.discordBotEnabled.toString() });
       await updateSettingMutation.mutateAsync({ key: "discord_bot_token", value: data.discordBotToken });
       await updateSettingMutation.mutateAsync({ key: "discord_guild_id", value: data.discordGuildId });
       await updateSettingMutation.mutateAsync({ key: "discord_channel_id", value: data.discordChannelId });
-      
+
       // Discord bot permission settings
       await updateSettingMutation.mutateAsync({ key: "discord_allowed_role_ids", value: data.discordAllowedRoleIds || "" });
       await updateSettingMutation.mutateAsync({ key: "discord_allowed_user_ids", value: data.discordAllowedUserIds || "" });
-      
+
       toast({
         title: "Settings saved",
         description: "Notification settings have been updated",
       });
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
     } catch (error: any) {
       toast({
@@ -1332,20 +1343,20 @@ export default function SettingsPage() {
       </div>
 
       {/* Settings Tabs */}
-      <Card>
-        <CardHeader className="border-b px-6">
-          <h2 className="text-lg font-semibold">Settings</h2>
+      <Card key={themeKey} className="bg-card border-border">
+        <CardHeader className="border-b border-border px-6 bg-card">
+          <h2 className="text-lg font-semibold text-card-foreground">Settings</h2>
         </CardHeader>
 
         {isLoading ? (
-          <CardContent className="p-6">
+          <CardContent className="p-6 bg-card">
             <div className="flex justify-center items-center py-12">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="ml-2">Loading settings...</p>
+              <p className="ml-2 text-card-foreground">Loading settings...</p>
             </div>
           </CardContent>
         ) : (
-          <CardContent className="p-6">
+          <CardContent className="p-6 bg-card">
             <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
               <div className="mb-6 max-w-xs">
                 <style>{`
@@ -1379,8 +1390,8 @@ export default function SettingsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {settingsOptions.map((option) => (
-                      <SelectItem 
-                        key={option.value} 
+                      <SelectItem
+                        key={option.value}
                         value={option.value}
                         className="settings-select-item"
                       >
@@ -1393,7 +1404,7 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               </div>
-            
+
               <TabsContent value="virtfusion">
                 <form onSubmit={virtFusionForm.handleSubmit(onVirtFusionSubmit)}>
                   <div className="space-y-6">
@@ -1456,7 +1467,7 @@ export default function SettingsPage() {
                     </div>
 
                     <Separator />
-                    
+
                     {/* User Creation Settings */}
                     <div>
                       <h3 className="text-lg font-medium">VirtFusion User Creation Settings</h3>
@@ -1464,7 +1475,7 @@ export default function SettingsPage() {
                         Configure how users are created in VirtFusion when they sign up
                       </p>
                     </div>
-                    
+
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="selfServiceValue">Self Service Value</Label>
@@ -1484,7 +1495,7 @@ export default function SettingsPage() {
                           Controls whether users can use hourly billing in VirtFusion
                         </p>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="selfServiceHourlyResourcePackId">Self Service Hourly Resource Pack ID</Label>
                         <Input
@@ -1504,14 +1515,14 @@ export default function SettingsPage() {
                           ID of the resource pack to use for hourly billing (default: 1)
                         </p>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="defaultResourcePackId">Default Resource Pack ID</Label>
                         <Input
                           id="defaultResourcePackId"
                           type="number"
                           min="1"
-                          step="1" 
+                          step="1"
                           value={virtFusionForm.watch("defaultResourcePackId") ?? 1}
                           onChange={(e) => virtFusionForm.setValue("defaultResourcePackId", parseInt(e.target.value) || 1, { shouldDirty: true })}
                         />
@@ -1530,13 +1541,13 @@ export default function SettingsPage() {
 
                     <div className="flex justify-between">
                       <div>
-                        <Button 
+                        <Button
                           type="button"
                           variant="outline"
                           className="w-auto"
                           onClick={handleTestConnection}
-                          disabled={testConnectionInProgress || 
-                            !virtFusionForm.getValues().apiUrl || 
+                          disabled={testConnectionInProgress ||
+                            !virtFusionForm.getValues().apiUrl ||
                             !virtFusionForm.getValues().apiToken}
                         >
                           {testConnectionInProgress ? (
@@ -1553,7 +1564,7 @@ export default function SettingsPage() {
                         </Button>
                       </div>
                       <div>
-                        <Button 
+                        <Button
                           type="submit"
                           className="w-32"
                           disabled={saveInProgress || !virtFusionForm.formState.isDirty}
@@ -1625,7 +1636,7 @@ export default function SettingsPage() {
                     <Separator />
 
                     <div className="flex justify-end">
-                      <Button 
+                      <Button
                         type="submit"
                         className="w-32"
                         disabled={saveInProgress || !billingForm.formState.isDirty}
@@ -1749,7 +1760,7 @@ export default function SettingsPage() {
                     <Separator />
 
                     <div className="flex justify-end">
-                      <Button 
+                      <Button
                         type="submit"
                         className="w-32"
                         disabled={saveInProgress || !emailForm.formState.isDirty}
@@ -1840,9 +1851,9 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                               <Label htmlFor="primaryColor">Primary Color</Label>
                               <div className="flex items-center space-x-2">
-                                <div 
+                                <div
                                   className="w-10 h-10 rounded-full border shadow-sm transition-colors cursor-pointer relative"
-                                  style={{ 
+                                  style={{
                                     backgroundColor: `#${generalForm.watch("primaryColor") || "2563eb"}`,
                                     borderColor: generalForm.formState.errors.primaryColor ? "rgb(239, 68, 68)" : "rgb(226, 232, 240)"
                                   }}
@@ -1861,8 +1872,8 @@ export default function SettingsPage() {
                                   <div className="absolute z-10 mt-2 ml-10" style={{ top: "100%" }}>
                                     <div className="fixed inset-0" onClick={() => setActiveColorPicker(null)} />
                                     <div className="relative">
-                                      <HexColorPicker 
-                                        color={`#${generalForm.watch("primaryColor")}`} 
+                                      <HexColorPicker
+                                        color={`#${generalForm.watch("primaryColor")}`}
                                         onChange={(color) => {
                                           // Remove the # and set the value
                                           generalForm.setValue("primaryColor", color.replace("#", ""), { shouldDirty: true });
@@ -1872,7 +1883,7 @@ export default function SettingsPage() {
                                   </div>
                                 )}
                               </div>
-                              
+
                               {generalForm.formState.errors.primaryColor && (
                                 <p className="text-sm text-destructive mt-1">
                                   {generalForm.formState.errors.primaryColor.message}
@@ -1882,14 +1893,14 @@ export default function SettingsPage() {
                                 Main brand color for primary elements and actions
                               </p>
                             </div>
-                            
+
                             {/* Secondary Color */}
                             <div className="space-y-2">
                               <Label htmlFor="secondaryColor">Secondary Color</Label>
                               <div className="flex items-center space-x-2">
-                                <div 
+                                <div
                                   className="w-10 h-10 rounded-full border shadow-sm transition-colors cursor-pointer relative"
-                                  style={{ 
+                                  style={{
                                     backgroundColor: `#${generalForm.watch("secondaryColor") || "10b981"}`,
                                     borderColor: generalForm.formState.errors.secondaryColor ? "rgb(239, 68, 68)" : "rgb(226, 232, 240)"
                                   }}
@@ -1908,8 +1919,8 @@ export default function SettingsPage() {
                                   <div className="absolute z-10 mt-2 ml-10" style={{ top: "100%" }}>
                                     <div className="fixed inset-0" onClick={() => setActiveColorPicker(null)} />
                                     <div className="relative">
-                                      <HexColorPicker 
-                                        color={`#${generalForm.watch("secondaryColor")}`} 
+                                      <HexColorPicker
+                                        color={`#${generalForm.watch("secondaryColor")}`}
                                         onChange={(color) => {
                                           // Remove the # and set the value
                                           generalForm.setValue("secondaryColor", color.replace("#", ""), { shouldDirty: true });
@@ -1919,7 +1930,7 @@ export default function SettingsPage() {
                                   </div>
                                 )}
                               </div>
-                              
+
                               {generalForm.formState.errors.secondaryColor && (
                                 <p className="text-sm text-destructive mt-1">
                                   {generalForm.formState.errors.secondaryColor.message}
@@ -1929,14 +1940,14 @@ export default function SettingsPage() {
                                 Supporting color for secondary elements and accents
                               </p>
                             </div>
-                            
+
                             {/* Accent Color */}
                             <div className="space-y-2">
                               <Label htmlFor="accentColor">Accent Color</Label>
                               <div className="flex items-center space-x-2">
-                                <div 
+                                <div
                                   className="w-10 h-10 rounded-full border shadow-sm transition-colors cursor-pointer relative"
-                                  style={{ 
+                                  style={{
                                     backgroundColor: `#${generalForm.watch("accentColor") || "f59e0b"}`,
                                     borderColor: generalForm.formState.errors.accentColor ? "rgb(239, 68, 68)" : "rgb(226, 232, 240)"
                                   }}
@@ -1955,8 +1966,8 @@ export default function SettingsPage() {
                                   <div className="absolute z-10 mt-2 ml-10" style={{ top: "100%" }}>
                                     <div className="fixed inset-0" onClick={() => setActiveColorPicker(null)} />
                                     <div className="relative">
-                                      <HexColorPicker 
-                                        color={`#${generalForm.watch("accentColor")}`} 
+                                      <HexColorPicker
+                                        color={`#${generalForm.watch("accentColor")}`}
                                         onChange={(color) => {
                                           // Remove the # and set the value
                                           generalForm.setValue("accentColor", color.replace("#", ""), { shouldDirty: true });
@@ -1966,7 +1977,7 @@ export default function SettingsPage() {
                                   </div>
                                 )}
                               </div>
-                              
+
                               {generalForm.formState.errors.accentColor && (
                                 <p className="text-sm text-destructive mt-1">
                                   {generalForm.formState.errors.accentColor.message}
@@ -1977,26 +1988,26 @@ export default function SettingsPage() {
                               </p>
                             </div>
                           </div>
-                            
+
                           <div className="p-3 border rounded-lg">
                             <h5 className="text-sm font-medium mb-2">Color Preview</h5>
                             <div className="grid grid-cols-3 gap-2">
                               <div className="flex flex-col space-y-1 items-center">
-                                <div 
+                                <div
                                   className="w-full h-8 rounded-md shadow-sm"
                                   style={{ backgroundColor: `#${generalForm.watch("primaryColor") || "2563eb"}` }}
                                 ></div>
                                 <span className="text-xs text-muted-foreground">Primary</span>
                               </div>
                               <div className="flex flex-col space-y-1 items-center">
-                                <div 
+                                <div
                                   className="w-full h-8 rounded-md shadow-sm"
                                   style={{ backgroundColor: `#${generalForm.watch("secondaryColor") || "10b981"}` }}
                                 ></div>
                                 <span className="text-xs text-muted-foreground">Secondary</span>
                               </div>
                               <div className="flex flex-col space-y-1 items-center">
-                                <div 
+                                <div
                                   className="w-full h-8 rounded-md shadow-sm"
                                   style={{ backgroundColor: `#${generalForm.watch("accentColor") || "f59e0b"}` }}
                                 ></div>
@@ -2044,7 +2055,7 @@ export default function SettingsPage() {
                               </div>
                             </div>
                           </div>
-                            
+
                           <div className="grid grid-cols-3 gap-3">
                             <div>
                               <h6 className="text-xs font-medium mb-1">Primary Presets</h6>
@@ -2103,8 +2114,8 @@ export default function SettingsPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="defaultTimezone">Default Timezone</Label>
-                      <select 
-                        id="defaultTimezone" 
+                      <select
+                        id="defaultTimezone"
                         className="w-full rounded-md border border-input bg-background px-3 py-2"
                         {...generalForm.register("defaultTimezone")}
                       >
@@ -2121,8 +2132,8 @@ export default function SettingsPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="dateFormat">Date Format</Label>
-                      <select 
-                        id="dateFormat" 
+                      <select
+                        id="dateFormat"
                         className="w-full rounded-md border border-input bg-background px-3 py-2"
                         {...generalForm.register("dateFormat")}
                       >
@@ -2223,7 +2234,7 @@ export default function SettingsPage() {
                 </div>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="notifications">
                 <form onSubmit={notificationsForm.handleSubmit(onNotificationsSubmit)}>
                 <div className="space-y-6">
@@ -2258,7 +2269,7 @@ export default function SettingsPage() {
                         Enter the Discord webhook URL to receive notifications for new tickets and replies
                       </p>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="discordRoleId">Discord Role ID to Ping</Label>
                       <Input
@@ -2278,7 +2289,7 @@ export default function SettingsPage() {
                   </div>
 
                   <Separator />
-                  
+
                   <div className="space-y-6 mt-6">
                     <div>
                       <h4 className="text-md font-medium">Discord Bot Integration</h4>
@@ -2360,7 +2371,7 @@ export default function SettingsPage() {
                           <p className="text-sm text-muted-foreground mb-3">
                             Restrict who can use ticket commands in Discord threads
                           </p>
-                          
+
                           <div className="space-y-2">
                             <Label htmlFor="discordAllowedRoleIds">Allowed Role IDs</Label>
                             <Input
@@ -2377,7 +2388,7 @@ export default function SettingsPage() {
                               Enter comma-separated list of role IDs that can use ticket commands (leave empty to allow all roles)
                             </p>
                           </div>
-                          
+
                           <div className="space-y-2 mt-4">
                             <Label htmlFor="discordAllowedUserIds">Allowed User IDs</Label>
                             <Input
@@ -2402,7 +2413,7 @@ export default function SettingsPage() {
                   <Separator />
 
                   <div className="flex justify-end">
-                    <Button 
+                    <Button
                       type="submit"
                       className="w-32"
                       disabled={saveInProgress || !notificationsForm.formState.isDirty}
@@ -2423,7 +2434,7 @@ export default function SettingsPage() {
                 </div>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="maintenance">
                 <form onSubmit={maintenanceForm.handleSubmit(onMaintenanceSubmit)}>
                   <div className="space-y-6">
@@ -2466,7 +2477,7 @@ export default function SettingsPage() {
                           Message to display to users during maintenance
                         </p>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <Label htmlFor="estimatedCompletion">Estimated Completion</Label>
                         <Input
@@ -2478,7 +2489,7 @@ export default function SettingsPage() {
                           Estimated time when maintenance will be complete (optional)
                         </p>
                       </div>
-                      
+
                       {maintenanceForm.watch("enabled") && (
                         <div className="p-4 border rounded-md bg-amber-50 border-amber-200">
                           <div className="space-y-3">
@@ -2489,10 +2500,10 @@ export default function SettingsPage() {
                             <p className="text-xs text-muted-foreground">
                               Use this token to bypass maintenance mode. Add it to the URL like: {window.location.origin}/<strong>{maintenanceToken}</strong>
                             </p>
-                            
+
                             <div className="flex items-center space-x-2">
-                              <Input 
-                                readOnly 
+                              <Input
+                                readOnly
                                 value={maintenanceToken}
                                 className="font-mono text-xs"
                               />
@@ -2505,7 +2516,7 @@ export default function SettingsPage() {
                                 <Copy className="h-4 w-4" />
                               </Button>
                             </div>
-                            
+
                             <Button
                               type="button"
                               variant="outline"
@@ -2529,7 +2540,7 @@ export default function SettingsPage() {
                     <Separator />
 
                     <div className="flex justify-end">
-                      <Button 
+                      <Button
                         type="submit"
                         className="w-32"
                         disabled={saveInProgress}
@@ -2550,7 +2561,7 @@ export default function SettingsPage() {
                   </div>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="tickets">
                 <div className="space-y-6">
                   <div>
@@ -2571,8 +2582,8 @@ export default function SettingsPage() {
                         {departments.length === 0 ? (
                           <div className="text-center py-8 border rounded-md">
                             <p className="text-muted-foreground">No departments created yet</p>
-                            <Button 
-                              className="mt-4" 
+                            <Button
+                              className="mt-4"
                               onClick={() => setIsAddingDepartment(true)}
                               disabled={isAddingDepartment}
                             >
@@ -2583,7 +2594,7 @@ export default function SettingsPage() {
                           <>
                             <div className="flex justify-between items-center">
                               <h3 className="text-sm font-medium">Available Departments</h3>
-                              <Button 
+                              <Button
                                 size="sm"
                                 onClick={() => setIsAddingDepartment(true)}
                                 disabled={isAddingDepartment || editingDepartment !== null}
@@ -2783,7 +2794,7 @@ export default function SettingsPage() {
                               >
                                 Cancel
                               </Button>
-                              <Button 
+                              <Button
                                 type="submit"
                                 disabled={saveInProgress || !ticketDepartmentForm.formState.isDirty}
                               >
@@ -2828,10 +2839,10 @@ export default function SettingsPage() {
                       <Switch
                         id="enableLoadingScreen"
                         checked={loadingScreenForm.watch("enabled")}
-                        onCheckedChange={(checked) => loadingScreenForm.setValue("enabled", checked)}
+                        onCheckedChange={(checked) => loadingScreenForm.setValue("enabled", checked, { shouldDirty: true })}
                       />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="showOnAllPages">Show On All Pages</Label>
@@ -2842,7 +2853,7 @@ export default function SettingsPage() {
                       <Switch
                         id="showOnAllPages"
                         checked={loadingScreenForm.watch("showOnAllPages")}
-                        onCheckedChange={(checked) => loadingScreenForm.setValue("showOnAllPages", checked)}
+                        onCheckedChange={(checked) => loadingScreenForm.setValue("showOnAllPages", checked, { shouldDirty: true })}
                       />
                     </div>
 
@@ -2889,7 +2900,7 @@ export default function SettingsPage() {
                     <Separator />
 
                     <div className="flex justify-end">
-                      <Button 
+                      <Button
                         type="submit"
                         className="w-32"
                         disabled={saveInProgress || !loadingScreenForm.formState.isDirty}
@@ -2910,7 +2921,7 @@ export default function SettingsPage() {
                   </div>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="design">
                 <form onSubmit={designForm.handleSubmit(onDesignSubmit)}>
                   <div className="space-y-8">
@@ -2927,7 +2938,7 @@ export default function SettingsPage() {
                         <p className="text-sm text-muted-foreground mt-1">
                           The text displayed in the footer that describes your company
                         </p>
-                        
+
                         <div className="mt-4 space-y-2">
                           <Label htmlFor="footerDescription">Footer Description</Label>
                           <Textarea
@@ -2974,7 +2985,7 @@ export default function SettingsPage() {
                                 Add links to your social media profiles. These will appear as icons in the footer.
                               </p>
                             </div>
-                            
+
                             {/* Dynamic social links field array */}
                             <div>
                               {designForm.watch("socialLinks")?.map((link, index) => (
@@ -3021,9 +3032,9 @@ export default function SettingsPage() {
                                       </p>
                                     )}
                                   </div>
-                                  <Button 
-                                    type="button" 
-                                    variant="destructive" 
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
                                     size="icon"
                                     onClick={() => {
                                       const newSocialLinks = [...designForm.watch("socialLinks")];
@@ -3041,16 +3052,16 @@ export default function SettingsPage() {
                                   </Button>
                                 </div>
                               ))}
-                              
-                              <Button 
-                                type="button" 
-                                variant="outline" 
+
+                              <Button
+                                type="button"
+                                variant="outline"
                                 className="mt-2 w-full"
                                 disabled={(designForm.watch("socialLinks") || []).length >= 6}
                                 onClick={() => {
                                   const currentLinks = designForm.watch("socialLinks") || [];
                                   designForm.setValue("socialLinks", [
-                                    ...currentLinks, 
+                                    ...currentLinks,
                                     { platform: 'github', url: '' }
                                   ], { shouldDirty: true });
                                 }}
@@ -3134,7 +3145,7 @@ export default function SettingsPage() {
                         <p className="text-sm text-muted-foreground mt-1">
                           Customize the Enterprise-Grade Features section shown on the homepage
                         </p>
-                        
+
                         <div className="mt-4 space-y-4">
                           <div className="space-y-2">
                             <Label htmlFor="enterpriseFeaturesHeading">Section Heading</Label>
@@ -3157,11 +3168,11 @@ export default function SettingsPage() {
                           {/* Feature Cards */}
                           <div className="mt-6 space-y-6">
                             <h5 className="text-md font-medium">Feature Cards</h5>
-                            
+
                             {/* Feature Card 1 */}
                             <div className="p-4 border border-gray-200 rounded-md">
                               <h6 className="font-medium mb-3">Feature 1</h6>
-                              
+
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                   <Label htmlFor="enterpriseFeature1Icon">Icon</Label>
@@ -3179,7 +3190,7 @@ export default function SettingsPage() {
                                     <option value="network">Network</option>
                                   </select>
                                 </div>
-                                
+
                                 <div className="space-y-2 md:col-span-2">
                                   <Label htmlFor="enterpriseFeature1Title">Title</Label>
                                   <Input
@@ -3189,7 +3200,7 @@ export default function SettingsPage() {
                                   />
                                 </div>
                               </div>
-                              
+
                               <div className="mt-3 space-y-2">
                                 <Label htmlFor="enterpriseFeature1Description">Description</Label>
                                 <Textarea
@@ -3199,11 +3210,11 @@ export default function SettingsPage() {
                                 />
                               </div>
                             </div>
-                            
+
                             {/* Feature Card 2 */}
                             <div className="p-4 border border-gray-200 rounded-md">
                               <h6 className="font-medium mb-3">Feature 2</h6>
-                              
+
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                   <Label htmlFor="enterpriseFeature2Icon">Icon</Label>
@@ -3221,7 +3232,7 @@ export default function SettingsPage() {
                                     <option value="network">Network</option>
                                   </select>
                                 </div>
-                                
+
                                 <div className="space-y-2 md:col-span-2">
                                   <Label htmlFor="enterpriseFeature2Title">Title</Label>
                                   <Input
@@ -3231,7 +3242,7 @@ export default function SettingsPage() {
                                   />
                                 </div>
                               </div>
-                              
+
                               <div className="mt-3 space-y-2">
                                 <Label htmlFor="enterpriseFeature2Description">Description</Label>
                                 <Textarea
@@ -3241,11 +3252,11 @@ export default function SettingsPage() {
                                 />
                               </div>
                             </div>
-                            
+
                             {/* Feature Card 3 */}
                             <div className="p-4 border border-gray-200 rounded-md">
                               <h6 className="font-medium mb-3">Feature 3</h6>
-                              
+
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                   <Label htmlFor="enterpriseFeature3Icon">Icon</Label>
@@ -3263,7 +3274,7 @@ export default function SettingsPage() {
                                     <option value="network">Network</option>
                                   </select>
                                 </div>
-                                
+
                                 <div className="space-y-2 md:col-span-2">
                                   <Label htmlFor="enterpriseFeature3Title">Title</Label>
                                   <Input
@@ -3273,7 +3284,7 @@ export default function SettingsPage() {
                                   />
                                 </div>
                               </div>
-                              
+
                               <div className="mt-3 space-y-2">
                                 <Label htmlFor="enterpriseFeature3Description">Description</Label>
                                 <Textarea
@@ -3283,11 +3294,11 @@ export default function SettingsPage() {
                                 />
                               </div>
                             </div>
-                            
+
                             {/* Feature Card 4 */}
                             <div className="p-4 border border-gray-200 rounded-md">
                               <h6 className="font-medium mb-3">Feature 4</h6>
-                              
+
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                   <Label htmlFor="enterpriseFeature4Icon">Icon</Label>
@@ -3305,7 +3316,7 @@ export default function SettingsPage() {
                                     <option value="network">Network</option>
                                   </select>
                                 </div>
-                                
+
                                 <div className="space-y-2 md:col-span-2">
                                   <Label htmlFor="enterpriseFeature4Title">Title</Label>
                                   <Input
@@ -3315,7 +3326,7 @@ export default function SettingsPage() {
                                   />
                                 </div>
                               </div>
-                              
+
                               <div className="mt-3 space-y-2">
                                 <Label htmlFor="enterpriseFeature4Description">Description</Label>
                                 <Textarea

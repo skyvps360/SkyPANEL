@@ -37,7 +37,7 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ 
+export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -49,6 +49,21 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Sessions
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSessionSchema = createInsertSchema(sessions).omit({
+  createdAt: true,
+});
+
+export type InsertSession = z.infer<typeof insertSessionSchema>;
+export type Session = typeof sessions.$inferSelect;
 
 // Transactions
 export const transactions = pgTable("transactions", {
@@ -64,7 +79,7 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertTransactionSchema = createInsertSchema(transactions).omit({ 
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
   createdAt: true,
   invoiceNumber: true, // We'll generate this on the server
@@ -92,7 +107,7 @@ export const invoices = pgTable("invoices", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertInvoiceSchema = createInsertSchema(invoices).omit({ 
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -135,7 +150,7 @@ export const tickets = pgTable("tickets", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertTicketSchema = createInsertSchema(tickets).omit({ 
+export const insertTicketSchema = createInsertSchema(tickets).omit({
   id: true,
   status: true,
   createdAt: true,
@@ -174,7 +189,7 @@ export const insertDiscordTicketThreadSchema = createInsertSchema(discordTicketT
 export type InsertDiscordTicketThread = z.infer<typeof insertDiscordTicketThreadSchema>;
 export type DiscordTicketThread = typeof discordTicketThreads.$inferSelect;
 
-export const insertTicketMessageSchema = createInsertSchema(ticketMessages).omit({ 
+export const insertTicketMessageSchema = createInsertSchema(ticketMessages).omit({
   id: true,
   createdAt: true,
 });
@@ -192,7 +207,7 @@ export const settings = pgTable("settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertSettingsSchema = createInsertSchema(settings).omit({ 
+export const insertSettingsSchema = createInsertSchema(settings).omit({
   id: true,
   updatedAt: true,
 });
@@ -212,8 +227,8 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertNotificationSchema = createInsertSchema(notifications).omit({ 
-  id: true, 
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
   createdAt: true,
 });
 
@@ -230,7 +245,7 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   usedAt: timestamp("used_at"),
 });
 
-export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ 
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({
   id: true,
   createdAt: true,
   usedAt: true,
@@ -249,7 +264,7 @@ export const emailVerificationTokens = pgTable("email_verification_tokens", {
   usedAt: timestamp("used_at"),
 });
 
-export const insertEmailVerificationTokenSchema = createInsertSchema(emailVerificationTokens).omit({ 
+export const insertEmailVerificationTokenSchema = createInsertSchema(emailVerificationTokens).omit({
   id: true,
   createdAt: true,
   usedAt: true,
@@ -295,7 +310,7 @@ export const emailLogs = pgTable("email_logs", {
   metadata: json("metadata").default({}), // Additional data about the email, like tokens, message, etc.
 });
 
-export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({ 
+export const insertEmailLogSchema = createInsertSchema(emailLogs).omit({
   id: true,
   sentAt: true,
 });

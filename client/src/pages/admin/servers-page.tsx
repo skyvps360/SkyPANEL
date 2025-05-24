@@ -5,13 +5,13 @@ import AdminLayout from "@/components/layout/AdminLayout";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 // Input component removed as search bar has been removed
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import {
   Card,
@@ -37,28 +37,29 @@ import {
 import { AlertCircle, ChevronRight, ArrowRight, Server, RefreshCw, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function getStatusBadgeVariant(status: string) {
   // Normalize the status to lowercase for comparison
   const normalizedStatus = status.toLowerCase();
-  
+
   switch (normalizedStatus) {
     // Running states
     case 'online':
     case 'running':
       return 'success';
-    
+
     // Stopped states
     case 'offline':
     case 'stopped':
       return 'default';
-    
-    // Error states  
+
+    // Error states
     case 'suspended':
     case 'failed':
       return 'destructive';
-    
-    // In-progress states  
+
+    // In-progress states
     case 'installing':
     case 'provisioning':
     case 'shutting down':
@@ -66,12 +67,12 @@ function getStatusBadgeVariant(status: string) {
     case 'rebooting':
     case 'restarting':
       return 'warning';
-    
+
     // Unknown or other states
     case 'unknown':
     case 'complete': // Special VirtFusion status for newly provisioned servers
       return 'secondary';
-      
+
     default:
       return 'secondary';
   }
@@ -84,7 +85,7 @@ export default function ServersListPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-  
+
   // Fetch all users to create VirtFusion ID -> User ID mapping
   const { data: users } = useQuery({
     queryKey: ['/api/admin/users'],
@@ -98,7 +99,7 @@ export default function ServersListPage() {
       return Array.isArray(data) ? data : [];
     },
   });
-  
+
   // Build the mapping when users are loaded
   useEffect(() => {
     if (users && users.length > 0) {
@@ -112,24 +113,24 @@ export default function ServersListPage() {
       setUserMappings(mappings);
     }
   }, [users]);
-  
+
   // Fetch servers from API with pagination
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
     queryKey: ['/api/admin/servers', page],
     queryFn: async () => {
       let url = `/api/admin/servers?page=${page}`;
-      
+
       try {
         const response = await fetch(url);
-        
+
         if (!response.ok) {
           console.error('API Response not OK:', response.status, response.statusText);
           throw new Error('Failed to fetch servers');
         }
-        
+
         const data = await response.json();
         console.log('Server API response:', data);
-        
+
         // Check if the response is in the expected format with pagination data
         if (data && typeof data === 'object' && 'data' in data) {
           // If we received a paginated response (with data and pagination properties)
@@ -162,38 +163,38 @@ export default function ServersListPage() {
       }
     },
   });
-  
+
   // Handle manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refetch();
   };
-  
+
   // Set up auto-refresh interval
   useEffect(() => {
     if (!autoRefreshEnabled) return;
-    
+
     const interval = setInterval(() => {
       console.log('Auto-refreshing server list...');
       refetch();
       setLastRefreshed(new Date());
     }, 60 * 1000); // Refresh every 60 seconds
-    
+
     return () => clearInterval(interval);
   }, [autoRefreshEnabled, refetch]);
-  
+
   // Add server sorting and management options
   const [sortField, setSortField] = useState<string>('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [perPage, setPerPage] = useState<number>(10);
-  
+
   // Get the servers array from the response and sort it
   const servers = serversResponse?.data || [];
-  
+
   // Sort servers based on the current sort field and direction
   const sortedServers = [...servers].sort((a, b) => {
     if (sortField === 'id') {
-      return sortDirection === 'desc' 
+      return sortDirection === 'desc'
         ? Number(b.id) - Number(a.id)  // Show highest IDs first by default
         : Number(a.id) - Number(b.id);
     } else if (sortField === 'name') {
@@ -207,11 +208,11 @@ export default function ServersListPage() {
     }
     return 0;
   });
-  
+
   // Get pagination details from the API response or use defaults
   const totalPages = serversResponse?.last_page || 1;
   const currentPage = serversResponse?.current_page || page;
-  
+
   // Function to toggle sort direction or change sort field
   const toggleSort = (field: string) => {
     if (sortField === field) {
@@ -221,7 +222,7 @@ export default function ServersListPage() {
       setSortDirection('desc'); // Default to descending when changing fields
     }
   };
-  
+
   return (
     <AdminLayout>
       <div className="container py-6">
@@ -241,7 +242,7 @@ export default function ServersListPage() {
           </p>
           <div className="bg-muted/30 p-4 rounded-lg mt-3 border text-sm">
             <p className="text-muted-foreground">
-              <strong>Note:</strong> Servers in VirtFusion are linked to users via the <code className="inline-block bg-muted px-1 rounded">virtfusion_id</code> field. 
+              <strong>Note:</strong> Servers in VirtFusion are linked to users via the <code className="inline-block bg-muted px-1 rounded">virtfusion_id</code> field.
               Server owners are automatically mapped to local users when available.
               Hover over owner names for detailed mapping information.
             </p>
@@ -260,8 +261,8 @@ export default function ServersListPage() {
               <CardDescription className="text-destructive/90">
                 There was a problem connecting to the VirtFusion API. Please check your API credentials and try again.
               </CardDescription>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="mt-4"
                 onClick={() => {
                   setIsRefreshing(true);
@@ -284,7 +285,7 @@ export default function ServersListPage() {
                 <span>Last updated: {lastRefreshed.toLocaleTimeString()}</span>
                 <div className="ml-4 flex items-center">
                   <label className="flex items-center gap-2 cursor-pointer">
-                    <div 
+                    <div
                       className={`flex h-[18px] w-[32px] shrink-0 cursor-pointer rounded-full border-2 border-transparent p-[1px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${autoRefreshEnabled ? 'bg-primary' : 'bg-input'}`}
                       onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
                       role="checkbox"
@@ -318,25 +319,26 @@ export default function ServersListPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Sort by:</span>
-                    <select 
-                      className="text-sm border rounded px-2 py-1"
-                      value={sortField}
-                      onChange={(e) => setSortField(e.target.value)}
-                    >
-                      <option value="id">Server ID</option>
-                      <option value="name">Server Name</option>
-                      <option value="created">Creation Date</option>
-                    </select>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Select value={sortField} onValueChange={setSortField}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="id">Server ID</SelectItem>
+                        <SelectItem value="name">Server Name</SelectItem>
+                        <SelectItem value="created">Creation Date</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
                       className="gap-1 text-xs px-2"
                     >
                       {sortDirection === 'asc' ? 'Ascending' : 'Descending'}
                     </Button>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       variant="outline"
                       className="ml-2 gap-1 text-xs px-2 text-primary"
                       onClick={() => {
@@ -352,16 +354,17 @@ export default function ServersListPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Show:</span>
-                    <select 
-                      className="text-sm border rounded px-2 py-1"
-                      value={perPage}
-                      onChange={(e) => setPerPage(Number(e.target.value))}
-                    >
-                      <option value="10">10</option>
-                      <option value="20">20</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                    </select>
+                    <Select value={perPage.toString()} onValueChange={(value) => setPerPage(Number(value))}>
+                      <SelectTrigger className="w-[80px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <span className="text-sm text-muted-foreground">per page</span>
                   </div>
                 </div>
@@ -370,7 +373,7 @@ export default function ServersListPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead 
+                        <TableHead
                           className="w-[120px] cursor-pointer"
                           onClick={() => toggleSort('id')}
                         >
@@ -383,7 +386,7 @@ export default function ServersListPage() {
                             )}
                           </div>
                         </TableHead>
-                        <TableHead 
+                        <TableHead
                           className="cursor-pointer"
                           onClick={() => toggleSort('name')}
                         >
@@ -406,7 +409,7 @@ export default function ServersListPage() {
                         // In VirtFusion API responses:
                         // - The ID in server.owner is the VirtFusion user ID
                         // - We need to find the matching local user with this ID in the virtfusion_id field
-                        
+
                         // First, extract the VirtFusion user ID from server.owner
                         let virtFusionUserId = null;
                         if (typeof server.owner === 'object' && server.owner) {
@@ -414,34 +417,34 @@ export default function ServersListPage() {
                         } else if (server.owner) {
                           virtFusionUserId = server.owner;
                         }
-                        
+
                         // Look up the local user ID from our mapping
                         let localUserId = 'Unknown';
                         if (virtFusionUserId && userMappings[virtFusionUserId.toString()]) {
                           localUserId = userMappings[virtFusionUserId.toString()].toString();
                           console.log(`Mapped VirtFusion ID ${virtFusionUserId} to local user ID ${localUserId}`);
                         }
-                        
+
                         // Format the owner display - show username when available
                         let ownerDisplay = 'Unknown Owner';
                         if (typeof server.owner === 'object' && server.owner?.username) {
                           ownerDisplay = server.owner.username;
                         } else if (virtFusionUserId) {
                           // Try to find the user in our users array
-                          const matchedUser = users?.find((user: any) => 
+                          const matchedUser = users?.find((user: any) =>
                             user.virtFusionId === virtFusionUserId
                           );
-                          
+
                           if (matchedUser) {
                             ownerDisplay = matchedUser.username || matchedUser.fullName || `User ID: ${matchedUser.id}`;
                           } else {
                             ownerDisplay = `VirtFusion ID: ${virtFusionUserId}`;
                           }
                         }
-                          
+
                         // Determine status using power status if available, otherwise use commissioned state
                         let status;
-                        
+
                         // First check if we have power status from our tracking database
                         if (server.powerStatus && server.powerStatus.powerState) {
                           if (server.powerStatus.powerState === "RUNNING") {
@@ -451,7 +454,7 @@ export default function ServersListPage() {
                           } else {
                             status = server.powerStatus.powerState;
                           }
-                        } 
+                        }
                         // Fall back to server.state if available
                         else if (server.state) {
                           if (server.state === "running" || server.state === "RUNNING") {
@@ -469,7 +472,7 @@ export default function ServersListPage() {
                         else {
                           status = server.commissioned === 3 ? 'Online' : 'Offline';
                         }
-                        
+
                         return (
                           <TableRow key={server.id}>
                             <TableCell className="font-mono text-xs">
@@ -552,8 +555,8 @@ export default function ServersListPage() {
                   <Pagination>
                     <PaginationContent>
                       <PaginationItem>
-                        <PaginationPrevious 
-                          href="#" 
+                        <PaginationPrevious
+                          href="#"
                           onClick={(e) => {
                             e.preventDefault();
                             setPage(p => Math.max(1, p - 1));
@@ -563,13 +566,13 @@ export default function ServersListPage() {
                           className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
                         />
                       </PaginationItem>
-                      
+
                       {/* Show limited number of pagination links */}
                       {(() => {
                         // Determine which page numbers to show
                         let pageNumbers = [];
                         const maxVisible = 5; // Maximum number of visible page numbers
-                        
+
                         if (totalPages <= maxVisible) {
                           // Show all pages if 5 or fewer
                           pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -583,7 +586,7 @@ export default function ServersListPage() {
                           // In middle: show current page and 2 on each side
                           pageNumbers = [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
                         }
-                        
+
                         return pageNumbers.map(pageNum => (
                           <PaginationItem key={pageNum}>
                             <PaginationLink
@@ -599,10 +602,10 @@ export default function ServersListPage() {
                           </PaginationItem>
                         ));
                       })()}
-                      
+
                       <PaginationItem>
-                        <PaginationNext 
-                          href="#" 
+                        <PaginationNext
+                          href="#"
                           onClick={(e) => {
                             e.preventDefault();
                             setPage(p => Math.min(totalPages, p + 1));

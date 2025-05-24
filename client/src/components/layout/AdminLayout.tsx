@@ -194,11 +194,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       const cacheKey = Date.now();
 
       import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
-        // Clear any existing CSS variable cache
+        // Clear only brand-related CSS variables, NOT theme variables
         const root = document.documentElement;
         const cssVarProps = Array.from(root.style);
         cssVarProps.forEach(prop => {
-          if (prop.startsWith('--')) {
+          // Only remove brand-specific variables, preserve theme variables
+          if (prop.startsWith('--brand-') || prop.startsWith('--btn-')) {
             root.style.removeProperty(prop);
           }
         });
@@ -589,15 +590,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </span>
                 <span className="font-bold">{companyName} Admin</span>
               </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="ml-auto"
-                onClick={() => setOpen(false)}
-              >
-                <X className="h-5 w-5" />
-                <span className="sr-only">Close Menu</span>
-              </Button>
             </div>
             <ScrollArea className="flex-1 py-2">
               <nav className="grid items-start px-2 text-sm font-medium space-y-1">

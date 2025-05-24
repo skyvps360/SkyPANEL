@@ -1,8 +1,8 @@
-import { 
-  Client, 
-  Events, 
-  GatewayIntentBits, 
-  TextChannel, 
+import {
+  Client,
+  Events,
+  GatewayIntentBits,
+  TextChannel,
   ThreadChannel,
   SlashCommandBuilder,
   REST,
@@ -10,6 +10,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ActionRowBuilder,
+  EmbedBuilder,
   ChatInputCommandInteraction,
   ButtonInteraction,
   ApplicationCommandType,
@@ -17,6 +18,8 @@ import {
 } from 'discord.js';
 import { storage } from './storage';
 import { InsertTicketMessage, InsertDiscordTicketThread } from '../shared/schema';
+import { betterStackService } from './betterstack-service';
+import { getMaintenanceStatus } from './middleware';
 
 /**
  * Service for managing Discord bot operations
@@ -97,10 +100,16 @@ export class DiscordBotService {
       // Handle slash commands and button interactions
       this.client.on(Events.InteractionCreate, async (interaction) => {
         if (interaction.isChatInputCommand()) {
+          // Handle status command (can be used anywhere)
+          if (interaction.commandName === 'status') {
+            await this.handleStatusCommand(interaction);
+          }
           // Check if it's an AI command
-          if (interaction.commandName === 'ask') {
+          else if (interaction.commandName === 'ask') {
             await this.handleAICommand(interaction);
-          } else {
+          }
+          // Handle ticket commands (require thread context)
+          else {
             await this.handleCommand(interaction);
           }
         } else if (interaction.isButton()) {
@@ -115,7 +124,7 @@ export class DiscordBotService {
           await this.handleDirectMessage(message);
           return;
         }
-        
+
         // Only process messages from threads in the configured channel
         if (!message.channel.isThread() || message.author.bot) {
           return;
@@ -186,8 +195,8 @@ export class DiscordBotService {
    * @param message The original Discord message object for reactions
    */
   private async processDiscordMessageToTicket(
-    ticketId: number, 
-    username: string, 
+    ticketId: number,
+    username: string,
     content: string,
     message?: any
   ): Promise<void> {
@@ -668,7 +677,7 @@ export class DiscordBotService {
       const commands = [
         // Get AI chat commands
         ...this.getAIChatCommands(),
-        
+
         new SlashCommandBuilder()
           .setName('ticket')
           .setDescription('Manage the current ticket')
@@ -682,6 +691,10 @@ export class DiscordBotService {
               .setName('reopen')
               .setDescription('Reopen the ticket')
           ),
+
+        new SlashCommandBuilder()
+          .setName('status')
+          .setDescription('Check the current platform status and service health'),
       ];
 
       // Register commands for the specific guild (faster than global registration)
@@ -749,57 +762,55 @@ export class DiscordBotService {
    */
   private async handleCommand(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
-      // Only handle commands in threads
-      if (!interaction.channel?.isThread()) {
-        await interaction.reply({
-          content: 'This command can only be used in ticket threads.',
-          ephemeral: true
-        });
-        return;
-      }
+      // Handle ticket commands (these require being in a thread)
+      if (interaction.commandName === 'ticket') {
+        if (!interaction.channel?.isThread()) {
+          await interaction.reply({
+            content: 'Ticket commands can only be used in ticket threads.',
+            ephemeral: true
+          });
+          return;
+        }
 
-      // Ensure thread is ready for interaction
-      if (!await this.ensureThreadIsReady(interaction)) {
-        return; // Exit if thread isn't ready
-      }
+        // Ensure thread is ready for interaction
+        if (!await this.ensureThreadIsReady(interaction)) {
+          return; // Exit if thread isn't ready
+        }
 
-      const thread = interaction.channel as ThreadChannel;
-      const ticketId = this.getTicketIdFromThread(thread);
+        const thread = interaction.channel as ThreadChannel;
+        const ticketId = this.getTicketIdFromThread(thread);
 
-      if (!ticketId) {
-        await interaction.reply({
-          content: 'This thread is not linked to a ticket.',
-          ephemeral: true
-        });
-        return;
-      }
+        if (!ticketId) {
+          await interaction.reply({
+            content: 'This thread is not linked to a ticket.',
+            ephemeral: true
+          });
+          return;
+        }
 
-      // Get admin users
-      const commandAdminUsers = await storage.getAdminUsers();
-      if (commandAdminUsers.length === 0) {
-        await interaction.reply({
-          content: 'Cannot process command: No admin users found',
-          ephemeral: true
-        });
-        return;
-      }
+        // Get admin users
+        const commandAdminUsers = await storage.getAdminUsers();
+        if (commandAdminUsers.length === 0) {
+          await interaction.reply({
+            content: 'Cannot process command: No admin users found',
+            ephemeral: true
+          });
+          return;
+        }
 
-      const commandAdminUser = commandAdminUsers[0]; // Use first admin for attributing actions
+        const commandAdminUser = commandAdminUsers[0]; // Use first admin for attributing actions
 
-      // Verify ticket exists
-      const ticket = await storage.getTicket(ticketId);
-      if (!ticket) {
-        await interaction.reply({
-          content: `Ticket #${ticketId} not found or has been deleted.`,
-          ephemeral: true
-        });
-        return;
-      }
+        // Verify ticket exists
+        const ticket = await storage.getTicket(ticketId);
+        if (!ticket) {
+          await interaction.reply({
+            content: `Ticket #${ticketId} not found or has been deleted.`,
+            ephemeral: true
+          });
+          return;
+        }
 
-      const commandName = interaction.commandName;
-      const subcommand = interaction.options.getSubcommand(false);
-
-      if (commandName === 'ticket') {
+        const subcommand = interaction.options.getSubcommand(false);
         // Handle ticket subcommands
         if (subcommand === 'close') {
           // Only allow closing tickets that are not already closed
@@ -830,7 +841,7 @@ export class DiscordBotService {
             content: `Successfully closed ticket #${ticketId}.`,
             ephemeral: true
           });
-        } 
+        }
         else if (subcommand === 'reopen') {
           // Only allow reopening tickets that are closed
           if (ticket.status.toLowerCase() !== 'closed') {
@@ -928,7 +939,13 @@ export class DiscordBotService {
    */
   private async handleButton(interaction: ButtonInteraction): Promise<void> {
     try {
-      // Ensure thread is ready for interaction
+      // Handle status command buttons (these don't need thread context)
+      if (interaction.customId.startsWith('status_')) {
+        await this.handleStatusButton(interaction);
+        return;
+      }
+
+      // Ensure thread is ready for interaction (for ticket-related buttons)
       if (!await this.ensureThreadIsReady(interaction)) {
         return; // Exit if thread isn't ready
       }
@@ -1064,7 +1081,7 @@ export class DiscordBotService {
    */
   private async sendLongMessage(message: any, content: string, isInteraction: boolean = false): Promise<void> {
     const MAX_LENGTH = 1990; // Slightly less than 2000 to be safe
-    
+
     // If content is shorter than the limit, send it as a single message
     if (content.length <= MAX_LENGTH) {
       if (isInteraction) {
@@ -1074,27 +1091,27 @@ export class DiscordBotService {
       }
       return;
     }
-    
+
     // Split the content into chunks
     const chunks: string[] = [];
     let currentChunk = '';
-    
+
     // Try to split on paragraphs, sentences, or words to make natural breaks
     const paragraphs = content.split('\n\n');
-    
+
     for (const paragraph of paragraphs) {
       // If this paragraph alone is too long, we need to split it further
       if (paragraph.length > MAX_LENGTH) {
         // Split on sentences
         const sentences = paragraph.split(/(?<=[.!?])\s+/);
-        
+
         for (const sentence of sentences) {
           // If this sentence alone is too long, we need to split it
           if (sentence.length > MAX_LENGTH) {
             // Split on words
             let words = sentence.split(' ');
             let tempChunk = '';
-            
+
             for (const word of words) {
               if ((tempChunk + ' ' + word).length > MAX_LENGTH) {
                 chunks.push(tempChunk);
@@ -1103,7 +1120,7 @@ export class DiscordBotService {
                 tempChunk += (tempChunk ? ' ' : '') + word;
               }
             }
-            
+
             if (tempChunk) {
               // Add any remaining part
               if ((currentChunk + '\n\n' + tempChunk).length <= MAX_LENGTH) {
@@ -1133,28 +1150,28 @@ export class DiscordBotService {
         }
       }
     }
-    
+
     // Add the last chunk if there's anything left
     if (currentChunk) {
       chunks.push(currentChunk);
     }
-    
+
     // Send the first chunk as a reply
     if (chunks.length > 0) {
       const firstChunk = chunks[0] + (chunks.length > 1 ? "\n\n*(continued in next message...)*" : "");
-      
+
       if (isInteraction) {
         await message.editReply(firstChunk);
       } else {
         await message.reply(firstChunk);
       }
     }
-    
+
     // Send the rest as follow-ups
     for (let i = 1; i < chunks.length; i++) {
       const isLastChunk = i === chunks.length - 1;
       const chunk = chunks[i] + (!isLastChunk ? "\n\n*(continued in next message...)*" : "");
-      
+
       if (isInteraction) {
         await message.followUp({
           content: chunk,
@@ -1164,7 +1181,7 @@ export class DiscordBotService {
         // For regular messages, we send a follow-up to the channel
         await message.channel.send(chunk);
       }
-      
+
       // Add a small delay between messages to avoid rate limits
       if (!isLastChunk) {
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -1206,61 +1223,61 @@ export class DiscordBotService {
   private async handleDirectMessage(message: any): Promise<void> {
     // Skip messages from the bot itself
     if (message.author.bot) return;
-    
+
     try {
       // Show typing indicator
       await message.channel.sendTyping();
-      
+
       const userId = message.author.id;
       const username = message.author.username;
       const question = message.content;
-      
+
       // Get properly formatted conversation history
       const conversation = this.getFormattedConversation(userId);
-      
+
       // Add the user's question to the conversation with proper formatting for Gemini API
       conversation.push({role: "user", parts: [{text: question}]});
-      
+
       // Get the gemini service and rate limiter
       const geminiService = await import('./gemini-service').then(m => m.geminiService);
       const rateLimiter = await import('./gemini-rate-limiter').then(m => m.geminiRateLimiter);
-      
+
       if (!geminiService.isReady()) {
         await message.reply("Sorry, the AI assistant is not available right now. Please try again later or create a support ticket.");
         return;
       }
-      
+
       // Check rate limiting for Discord user
       const rateCheck = rateLimiter.checkDiscordUserAllowed(userId);
       if (!rateCheck.allowed) {
         await message.reply(rateCheck.message || "You've reached the rate limit. Please try again later.");
         return;
       }
-      
+
       // Track this request for rate limiting
       rateLimiter.trackUsageForDiscordUser(userId);
-      
+
       // Generate a response from the AI
       const aiResponse = await geminiService.generateChatResponse(
         question,
         username,
         conversation
       );
-      
+
       if (!aiResponse.success) {
         await message.reply(`Sorry, I couldn't process your question: ${aiResponse.response}`);
         return;
       }
-      
+
       // Add the AI's response to the conversation history with proper Gemini API formatting
       conversation.push({role: "model", parts: [{text: aiResponse.response}]});
-      
+
       // Update the conversation history
       this.userConversations.set(userId, conversation);
-      
+
       // Send the response, handling long messages
       await this.sendLongMessage(message, aiResponse.response);
-      
+
     } catch (error: any) {
       console.error('Error handling direct message:', error);
       try {
@@ -1279,10 +1296,10 @@ export class DiscordBotService {
   private getFormattedConversation(userId: string): Array<{role: string, parts: Array<{text: string}>}> {
     // Get existing conversation or create a new one
     const conversation = this.userConversations.get(userId) || [];
-    
+
     // Limit conversation history to last 10 messages for context
-    return conversation.length > 10 ? 
-      conversation.slice(conversation.length - 10) : 
+    return conversation.length > 10 ?
+      conversation.slice(conversation.length - 10) :
       [...conversation];
   }
 
@@ -1295,7 +1312,7 @@ export class DiscordBotService {
       new SlashCommandBuilder()
         .setName('ask')
         .setDescription('Ask the AI assistant a question about our services')
-        .addStringOption(option => 
+        .addStringOption(option =>
           option
             .setName('question')
             .setDescription('What would you like to know?')
@@ -1313,68 +1330,363 @@ export class DiscordBotService {
     try {
       // Defer the reply to give us time to generate a response
       await interaction.deferReply({ ephemeral: false });
-      
+
       const userId = interaction.user.id;
       const username = interaction.user.username;
       const question = interaction.options.getString('question')!;
-      
+
       if (!question || question.trim() === '') {
         await interaction.editReply("Please provide a question to ask the AI assistant.");
         return;
       }
-      
+
       // Get properly formatted conversation history
       const conversation = this.getFormattedConversation(userId);
-      
+
       // Add the user's question to the conversation with proper formatting for Gemini API
       conversation.push({role: "user", parts: [{text: question}]});
-      
+
       // Get the gemini service and rate limiter
       const geminiService = await import('./gemini-service').then(m => m.geminiService);
       const rateLimiter = await import('./gemini-rate-limiter').then(m => m.geminiRateLimiter);
-      
+
       if (!geminiService.isReady()) {
         await interaction.editReply("Sorry, the AI assistant is not available right now. Please try again later or create a support ticket.");
         return;
       }
-      
+
       // Check rate limiting for Discord user
       const rateCheck = rateLimiter.checkDiscordUserAllowed(userId);
       if (!rateCheck.allowed) {
         await interaction.editReply(rateCheck.message || "You've reached the rate limit. Please try again later.");
         return;
       }
-      
+
       // Track this request for rate limiting
       rateLimiter.trackUsageForDiscordUser(userId);
-      
+
       // Generate a response from the AI
       const aiResponse = await geminiService.generateChatResponse(
         question,
         username,
         conversation
       );
-      
+
       if (!aiResponse.success) {
         await interaction.editReply(`Sorry, I couldn't process your question: ${aiResponse.response}`);
         return;
       }
-      
+
       // Add the AI's response to the conversation history with proper Gemini API formatting
       conversation.push({role: "model", parts: [{text: aiResponse.response}]});
-      
+
       // Update the conversation history
       this.userConversations.set(userId, conversation);
-      
+
       // Send the response, handling long messages
       await this.sendLongMessage(interaction, aiResponse.response, true);
-      
+
     } catch (error: any) {
       console.error('Error handling AI command:', error);
       try {
         await interaction.editReply(`Sorry, I encountered an error: ${error.message}. Please try again later or create a support ticket for assistance.`);
       } catch (replyError) {
         console.error('Error replying to interaction:', replyError);
+      }
+    }
+  }
+
+  /**
+   * Handle status command button interactions
+   * @param interaction The Discord button interaction
+   */
+  private async handleStatusButton(interaction: ButtonInteraction): Promise<void> {
+    try {
+      await interaction.deferUpdate();
+
+      const buttonAction = interaction.customId.replace('status_', '');
+
+      if (buttonAction === 'refresh') {
+        // Refresh the status data
+        const [maintenanceStatus, serviceStatus] = await Promise.all([
+          getMaintenanceStatus(),
+          betterStackService.getServiceStatusForApi()
+        ]);
+
+        // Determine overall status
+        let overallStatus: 'operational' | 'degraded' | 'outage' | 'maintenance' = 'operational';
+        let statusMessage = 'All Systems Operational';
+        let statusColor = 0x00ff00; // Green
+
+        if (maintenanceStatus.enabled) {
+          overallStatus = 'maintenance';
+          statusMessage = `System Maintenance: ${maintenanceStatus.message}`;
+          statusColor = 0xffa500; // Orange
+        } else if (serviceStatus.overall === 'outage') {
+          overallStatus = 'outage';
+          statusMessage = 'Service Disruption Detected';
+          statusColor = 0xff0000; // Red
+        } else if (serviceStatus.overall === 'degraded') {
+          overallStatus = 'degraded';
+          statusMessage = 'Some Systems Experiencing Issues';
+          statusColor = 0xffff00; // Yellow
+        }
+
+        // Get status emoji
+        const getStatusEmoji = (status: string): string => {
+          switch (status) {
+            case 'operational': return '🟢';
+            case 'degraded': return '🟡';
+            case 'outage': return '🔴';
+            case 'maintenance': return '🟠';
+            default: return '⚪';
+          }
+        };
+
+        // Create updated embeds
+        const statusEmbed = new EmbedBuilder()
+          .setTitle('🖥️ SkyPANEL Platform Status')
+          .setDescription(statusMessage)
+          .setColor(statusColor)
+          .setTimestamp()
+          .setFooter({ text: 'Status updated' });
+
+        statusEmbed.addFields({
+          name: '📊 Overall Status',
+          value: `${getStatusEmoji(overallStatus)} **${overallStatus.charAt(0).toUpperCase() + overallStatus.slice(1)}**`,
+          inline: true
+        });
+
+        if (maintenanceStatus.enabled) {
+          statusEmbed.addFields({
+            name: '🔧 Maintenance Mode',
+            value: maintenanceStatus.message,
+            inline: false
+          });
+
+          if (maintenanceStatus.estimatedCompletion) {
+            statusEmbed.addFields({
+              name: '⏰ Estimated Completion',
+              value: maintenanceStatus.estimatedCompletion,
+              inline: true
+            });
+          }
+        }
+
+        // Create services embed (first page)
+        const servicesEmbed = new EmbedBuilder()
+          .setTitle('🔧 Service Status Details')
+          .setColor(statusColor)
+          .setTimestamp();
+
+        const servicesPerPage = 6;
+        const pageServices = serviceStatus.services.slice(0, servicesPerPage);
+
+        pageServices.forEach(service => {
+          const uptimeText = `${service.uptimePercentage.toFixed(2)}% uptime`;
+          servicesEmbed.addFields({
+            name: `${getStatusEmoji(service.status)} ${service.name}`,
+            value: `**${service.status.charAt(0).toUpperCase() + service.status.slice(1)}**\n${uptimeText}`,
+            inline: true
+          });
+        });
+
+        // Update the message
+        await interaction.editReply({
+          embeds: [statusEmbed, servicesEmbed]
+        });
+      }
+      // Note: Pagination buttons (prev/next) would need more complex state management
+      // For now, we'll just handle refresh
+
+    } catch (error: any) {
+      console.error('Error handling status button:', error);
+      try {
+        await interaction.followUp({
+          content: '❌ Sorry, I encountered an error while updating the status. Please try again.',
+          ephemeral: true
+        });
+      } catch (replyError) {
+        console.error('Error replying to status button:', replyError);
+      }
+    }
+  }
+
+  /**
+   * Handle the /status command
+   * @param interaction The Discord slash command interaction
+   */
+  private async handleStatusCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    try {
+      // Check if interaction has already been acknowledged
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply();
+      }
+
+      // Fetch status data from APIs
+      const [maintenanceStatus, serviceStatus] = await Promise.all([
+        getMaintenanceStatus(),
+        betterStackService.getServiceStatusForApi()
+      ]);
+
+      // Determine overall status
+      let overallStatus: 'operational' | 'degraded' | 'outage' | 'maintenance' = 'operational';
+      let statusMessage = 'All Systems Operational';
+      let statusColor = 0x00ff00; // Green
+
+      if (maintenanceStatus.enabled) {
+        overallStatus = 'maintenance';
+        statusMessage = `System Maintenance: ${maintenanceStatus.message}`;
+        statusColor = 0xffa500; // Orange
+      } else if (serviceStatus.overall === 'outage') {
+        overallStatus = 'outage';
+        statusMessage = 'Service Disruption Detected';
+        statusColor = 0xff0000; // Red
+      } else if (serviceStatus.overall === 'degraded') {
+        overallStatus = 'degraded';
+        statusMessage = 'Some Systems Experiencing Issues';
+        statusColor = 0xffff00; // Yellow
+      }
+
+      // Get status emoji
+      const getStatusEmoji = (status: string): string => {
+        switch (status) {
+          case 'operational': return '🟢';
+          case 'degraded': return '🟡';
+          case 'outage': return '🔴';
+          case 'maintenance': return '🟠';
+          default: return '⚪';
+        }
+      };
+
+      // Create main status embed
+      const statusEmbed = new EmbedBuilder()
+        .setTitle('🖥️ SkyPANEL Platform Status')
+        .setDescription(statusMessage)
+        .setColor(statusColor)
+        .setTimestamp()
+        .setFooter({ text: 'Status updated' });
+
+      // Add overall status field
+      statusEmbed.addFields({
+        name: '📊 Overall Status',
+        value: `${getStatusEmoji(overallStatus)} **${overallStatus.charAt(0).toUpperCase() + overallStatus.slice(1)}**`,
+        inline: true
+      });
+
+      // Add maintenance info if enabled
+      if (maintenanceStatus.enabled) {
+        statusEmbed.addFields({
+          name: '🔧 Maintenance Mode',
+          value: maintenanceStatus.message,
+          inline: false
+        });
+
+        if (maintenanceStatus.estimatedCompletion) {
+          statusEmbed.addFields({
+            name: '⏰ Estimated Completion',
+            value: maintenanceStatus.estimatedCompletion,
+            inline: true
+          });
+        }
+      }
+
+      // Create services embed with pagination support
+      const servicesPerPage = 6;
+      const totalPages = Math.ceil(serviceStatus.services.length / servicesPerPage);
+      let currentPage = 0;
+
+      const createServicesEmbed = (page: number): EmbedBuilder => {
+        const startIndex = page * servicesPerPage;
+        const endIndex = Math.min(startIndex + servicesPerPage, serviceStatus.services.length);
+        const pageServices = serviceStatus.services.slice(startIndex, endIndex);
+
+        const servicesEmbed = new EmbedBuilder()
+          .setTitle('🔧 Service Status Details')
+          .setColor(statusColor)
+          .setTimestamp();
+
+        if (totalPages > 1) {
+          servicesEmbed.setFooter({ text: `Page ${page + 1} of ${totalPages}` });
+        }
+
+        // Add service status fields
+        pageServices.forEach(service => {
+          const uptimeText = `${service.uptimePercentage.toFixed(2)}% uptime`;
+          servicesEmbed.addFields({
+            name: `${getStatusEmoji(service.status)} ${service.name}`,
+            value: `**${service.status.charAt(0).toUpperCase() + service.status.slice(1)}**\n${uptimeText}`,
+            inline: true
+          });
+        });
+
+        return servicesEmbed;
+      };
+
+      const servicesEmbed = createServicesEmbed(currentPage);
+
+      // Create pagination buttons if needed
+      const components: ActionRowBuilder<ButtonBuilder>[] = [];
+      if (totalPages > 1) {
+        const paginationRow = new ActionRowBuilder<ButtonBuilder>()
+          .addComponents(
+            new ButtonBuilder()
+              .setCustomId('status_prev')
+              .setLabel('◀️ Previous')
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(currentPage === 0),
+            new ButtonBuilder()
+              .setCustomId('status_next')
+              .setLabel('Next ▶️')
+              .setStyle(ButtonStyle.Secondary)
+              .setDisabled(currentPage === totalPages - 1)
+          );
+        components.push(paginationRow);
+      }
+
+      // Add refresh button
+      const actionRow = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('status_refresh')
+            .setLabel('🔄 Refresh')
+            .setStyle(ButtonStyle.Primary)
+        );
+      components.push(actionRow);
+
+      // Send the response
+      if (interaction.deferred) {
+        await interaction.editReply({
+          embeds: [statusEmbed, servicesEmbed],
+          components
+        });
+      } else {
+        await interaction.reply({
+          embeds: [statusEmbed, servicesEmbed],
+          components
+        });
+      }
+
+      // Store pagination state for this interaction
+      if (totalPages > 1) {
+        // We'll handle pagination in the button handler
+        setTimeout(() => {
+          // Clean up pagination state after 5 minutes
+        }, 5 * 60 * 1000);
+      }
+
+    } catch (error: any) {
+      console.error('Error handling status command:', error);
+      try {
+        const errorMessage = '❌ Sorry, I encountered an error while fetching the platform status. Please try again later.';
+
+        if (interaction.deferred) {
+          await interaction.editReply({ content: errorMessage });
+        } else if (!interaction.replied) {
+          await interaction.reply({ content: errorMessage, ephemeral: true });
+        }
+      } catch (replyError) {
+        console.error('Error replying to status command:', replyError);
       }
     }
   }
