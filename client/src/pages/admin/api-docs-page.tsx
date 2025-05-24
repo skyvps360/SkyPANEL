@@ -9,16 +9,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
-import { 
-  AlertCircle, 
-  Copy, 
-  Code, 
-  Search, 
-  Server, 
-  CreditCard, 
-  User, 
-  RefreshCw, 
-  X, 
+import {
+  AlertCircle,
+  Copy,
+  Code,
+  Search,
+  Server,
+  CreditCard,
+  User,
+  RefreshCw,
+  X,
   ChevronDown
 } from 'lucide-react';
 import { DocumentTitle } from '@/components/DocumentTitle';
@@ -52,10 +52,10 @@ interface ApiEndpoint {
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   path: string;
   description: string;
-  parameters?: { 
-    name: string; 
-    type: string; 
-    required: boolean; 
+  parameters?: {
+    name: string;
+    type: string;
+    required: boolean;
     description: string;
     example?: string;
   }[];
@@ -76,24 +76,24 @@ interface ApiCategoryProps {
 // API Endpoint Component
 const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagSelect: (tag: string) => void }) => {
   const [copied, setCopied] = useState(false);
-  
+
   // Copy endpoint URL to clipboard
   const copyEndpointUrl = () => {
     navigator.clipboard.writeText(endpoint.path);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  
+
   // Format the curl command for the API endpoint
   const getCurlCommand = (): string => {
     let cmd = `curl -X ${endpoint.method} \\
   "${window.location.origin}${endpoint.path}"`;
-    
+
     if (endpoint.requiresAuth) {
       cmd += ` \\
   -H "Authorization: Bearer YOUR_API_KEY_HERE"`;
     }
-    
+
     if (endpoint.parameters && ['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
       const exampleBody: Record<string, any> = {};
       endpoint.parameters.forEach(param => {
@@ -110,17 +110,17 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
           }
         }
       });
-      
+
       if (Object.keys(exampleBody).length > 0) {
         cmd += ` \\
   -H "Content-Type: application/json" \\
   -d '${JSON.stringify(exampleBody, null, 2)}'`;
       }
     }
-    
+
     return cmd;
   };
-  
+
   // Get method color class
   const getMethodColor = (method: string): string => {
     const colors: Record<string, string> = {
@@ -132,7 +132,7 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
     };
     return colors[method] || 'bg-gray-100 text-gray-800';
   };
-  
+
   return (
     <Card className="mb-4 overflow-hidden">
       <CardHeader className="border-b bg-muted/50 px-5 py-4">
@@ -154,9 +154,9 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
           <p className="text-sm">{endpoint.description}</p>
           <div className="mt-2 flex flex-wrap gap-1">
             {endpoint.tags && endpoint.tags.map((tag) => (
-              <Badge 
-                key={tag} 
-                variant="outline" 
+              <Badge
+                key={tag}
+                variant="outline"
                 className="cursor-pointer hover:bg-muted"
                 onClick={() => onTagSelect(tag)}
               >
@@ -165,7 +165,7 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
             ))}
           </div>
         </div>
-        
+
         {endpoint.parameters && endpoint.parameters.length > 0 && (
           <div className="mb-4">
             <h4 className="text-sm font-medium mb-2">Parameters</h4>
@@ -193,7 +193,7 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
             </div>
           </div>
         )}
-        
+
         <Accordion type="single" collapsible className="w-full">
           <AccordionItem value="curl-example">
             <AccordionTrigger>
@@ -208,7 +208,7 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
               </div>
             </AccordionContent>
           </AccordionItem>
-          
+
           <AccordionItem value="response-example">
             <AccordionTrigger>
               <div className="flex items-center">
@@ -231,18 +231,18 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
 // API Category Component
 const ApiCategory = ({ title, description, endpoints, onTagSelect, selectedTags }: ApiCategoryProps) => {
   // Filter endpoints by selected tags
-  const filteredEndpoints = endpoints.filter(endpoint => 
-    selectedTags.length === 0 || 
+  const filteredEndpoints = endpoints.filter(endpoint =>
+    selectedTags.length === 0 ||
     (endpoint.tags && endpoint.tags.some(tag => selectedTags.includes(tag)))
   );
-  
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">{title}</h3>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      
+
       {filteredEndpoints.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-6 text-center bg-muted/40 rounded-lg">
           <AlertCircle className="h-10 w-10 text-muted-foreground mb-2" />
@@ -265,7 +265,7 @@ const ApiCategory = ({ title, description, endpoints, onTagSelect, selectedTags 
 // API Endpoint Overview
 const EndpointOverview = () => {
   const { setActiveTab, apiScopes } = useApiDocsContext();
-  
+
   return (
     <div className="space-y-6">
       <Card>
@@ -277,7 +277,7 @@ const EndpointOverview = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p>
-            Most API endpoints require authentication using API keys. To authenticate, include your API key 
+            Most API endpoints require authentication using API keys. To authenticate, include your API key
             in the Authorization header of your request:
           </p>
           <div className="bg-muted p-3 rounded-md font-mono text-sm">
@@ -286,17 +286,17 @@ const EndpointOverview = () => {
           <div className="flex flex-col gap-2 mt-4">
             <h4 className="font-medium">Rate Limiting</h4>
             <p className="text-sm">
-              API requests are limited to 100 requests per minute per API key. If you exceed this limit, 
+              API requests are limited to 100 requests per minute per API key. If you exceed this limit,
               you'll receive a 429 Too Many Requests response.
             </p>
-            
+
             <h4 className="font-medium mt-2">Response Format</h4>
             <p className="text-sm">
-              All API responses are returned in JSON format. Successful responses typically include 
-              a data field containing the requested information. Error responses include an error 
+              All API responses are returned in JSON format. Successful responses typically include
+              a data field containing the requested information. Error responses include an error
               field with a message describing the error.
             </p>
-            
+
             <h4 className="font-medium mt-2">Admin Endpoints</h4>
             <p className="text-sm">
               Admin endpoints require admin privileges and cannot be accessed with regular user credentials.
@@ -305,7 +305,7 @@ const EndpointOverview = () => {
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>API Scopes</CardTitle>
@@ -315,10 +315,10 @@ const EndpointOverview = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm">
-            API keys are created with specific scopes that determine what actions they can perform. When creating an API key, 
+            API keys are created with specific scopes that determine what actions they can perform. When creating an API key,
             you'll need to select which scopes to include. Below is a list of available scopes and what they allow:
           </p>
-          
+
           <div className="mt-4">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
@@ -337,20 +337,20 @@ const EndpointOverview = () => {
               </tbody>
             </table>
           </div>
-          
+
           <div className="mt-4 p-4 bg-amber-50 text-amber-800 rounded-md flex gap-2">
             <AlertCircle className="h-5 w-5 mt-0.5" />
             <div>
               <h4 className="font-medium">Important</h4>
               <p className="text-sm">
-                Always follow the principle of least privilege when creating API keys. Only grant the minimum 
+                Always follow the principle of least privilege when creating API keys. Only grant the minimum
                 scopes necessary for your integration to function.
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Error Handling</CardTitle>
@@ -363,7 +363,7 @@ const EndpointOverview = () => {
             When an API request fails, the response will include an HTTP status code and a JSON body with error details.
             Common error status codes include:
           </p>
-          
+
           <div className="mt-2">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
@@ -400,7 +400,7 @@ const EndpointOverview = () => {
               </tbody>
             </table>
           </div>
-          
+
           <div className="mt-4">
             <h4 className="font-medium">Example Error Response</h4>
             <div className="bg-muted p-3 rounded-md font-mono text-xs mt-2 overflow-x-auto">
@@ -726,6 +726,74 @@ const serverEndpoints: ApiEndpoint[] = [
     }, null, 2),
     requiresAuth: false,
     tags: ["servers", "packages", "pricing"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/servers/:id/vnc",
+    description: "Get VNC status for a server (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      data: {
+        vnc: {
+          ip: "192.168.4.2",
+          hostname: null,
+          port: 5903,
+          password: "ZNYonJeU",
+          enabled: true
+        },
+        queueId: null
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["servers", "vnc", "admin"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/servers/:id/vnc/enable",
+    description: "Enable VNC for a server (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "VNC enabled successfully",
+      data: {
+        vnc: {
+          ip: "192.168.4.2",
+          hostname: null,
+          port: 5903,
+          password: "ZNYonJeU",
+          enabled: true
+        }
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["servers", "vnc", "admin"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/servers/:id/vnc/disable",
+    description: "Disable VNC for a server (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "VNC disabled successfully",
+      data: {
+        vnc: {
+          enabled: false
+        }
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["servers", "vnc", "admin"]
   }
 ];
 
@@ -900,9 +968,9 @@ const apiKeyEndpoints: ApiEndpoint[] = [
     path: "/api/user/api-keys",
     description: "Retrieve API keys for the authenticated user",
     responseExample: JSON.stringify([
-      { 
-        id: 1, 
-        name: "My API Key", 
+      {
+        id: 1,
+        name: "My API Key",
         scopes: ["read:user", "read:servers"],
         lastUsed: "2025-04-20T14:15:00Z",
         createdAt: "2025-04-15T10:30:00Z",
@@ -922,9 +990,9 @@ const apiKeyEndpoints: ApiEndpoint[] = [
       { name: "scopes", type: "string", required: true, description: "Array of permission scopes for the API key", example: '["read:user", "read:servers"]' },
       { name: "expiresIn", type: "string", required: false, description: "Days until expiration (null for never)", example: "90" }
     ],
-    responseExample: JSON.stringify({ 
-      success: true, 
-      key: "sk_live_abcd1234...", 
+    responseExample: JSON.stringify({
+      success: true,
+      key: "sk_live_abcd1234...",
       id: 2,
       name: "My API Key",
       scopes: ["read:user", "read:servers"],
@@ -1272,8 +1340,8 @@ const publicEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/public/service-status",
     description: "Retrieve real-time status information for all platform services",
-    responseExample: JSON.stringify({ 
-      overall: "operational", 
+    responseExample: JSON.stringify({
+      overall: "operational",
       services: [
         {
           name: "API Services",
@@ -1304,11 +1372,11 @@ const publicEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/public/platform-stats",
     description: "Retrieve platform statistics including server and hypervisor counts",
-    responseExample: JSON.stringify({ 
-      serverCount: 48989, 
-      hypervisorCount: 501, 
-      activeServerCount: 45631, 
-      uptime: "99.99%" 
+    responseExample: JSON.stringify({
+      serverCount: 48989,
+      hypervisorCount: 501,
+      activeServerCount: 45631,
+      uptime: "99.99%"
     }, null, 2),
     requiresAuth: false,
     tags: ["statistics", "public"]
@@ -1416,14 +1484,14 @@ export default function ApiDocsAdminPage() {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  
+
   const searchInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Query for settings
   const { data: settings = {} } = useQuery<Record<string, string>>({
     queryKey: ["/api/settings/public"],
   });
-  
+
   // Check if we're on mobile view
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -1446,19 +1514,19 @@ export default function ApiDocsAdminPage() {
     setActiveTab,
     apiScopes
   };
-  
+
   // Function to get company name from settings
   const getCompanyName = (): string => {
     return settings.company_name || 'SkyVPS360';
   };
-  
+
   // Search function
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const term = searchInputRef.current?.value || "";
     setSearchTerm(term);
   };
-  
+
   // Tag filter handler
   const handleTagSelect = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -1467,7 +1535,7 @@ export default function ApiDocsAdminPage() {
       setSelectedTags([...selectedTags, tag]);
     }
   };
-  
+
   // Clear search
   const clearSearch = () => {
     if (searchInputRef.current) {
@@ -1475,35 +1543,35 @@ export default function ApiDocsAdminPage() {
     }
     setSearchTerm("");
   };
-  
+
   // Reset filters
   const resetFilters = () => {
     clearSearch();
     setSelectedTags([]);
   };
-  
+
   // Filter endpoints based on search term
   const getFilteredEndpoints = (endpoints: ApiEndpoint[]) => {
     if (!searchTerm) return endpoints;
-    
+
     return endpoints.filter(endpoint =>
       endpoint.path.toLowerCase().includes(searchTerm.toLowerCase()) ||
       endpoint.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       endpoint.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   };
-  
+
   // Get all unique tags from all endpoints
   const getAllTags = (): string[] => {
     const allTags = new Set<string>();
-    
+
     [...userEndpoints, ...serverEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...adminEndpoints, ...publicEndpoints].forEach(endpoint => {
       endpoint.tags?.forEach(tag => allTags.add(tag));
     });
-    
+
     return Array.from(allTags).sort();
   };
-  
+
   return (
     <AdminLayout>
       <DocumentTitle>API Documentation | Admin</DocumentTitle>
@@ -1514,7 +1582,7 @@ export default function ApiDocsAdminPage() {
             Comprehensive documentation for integrating with the {getCompanyName()} API.
           </p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-4">
           <form onSubmit={handleSearch} className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -1529,14 +1597,14 @@ export default function ApiDocsAdminPage() {
             Reset Filters
           </Button>
         </div>
-        
+
         {selectedTags.length > 0 && (
           <div className="flex flex-wrap gap-1 items-center">
             <span className="text-sm text-muted-foreground">Filtered by:</span>
             {selectedTags.map(tag => (
-              <Badge 
-                key={tag} 
-                variant="secondary" 
+              <Badge
+                key={tag}
+                variant="secondary"
                 className="flex items-center gap-1 cursor-pointer"
                 onClick={() => handleTagSelect(tag)}
               >
@@ -1546,7 +1614,7 @@ export default function ApiDocsAdminPage() {
             ))}
           </div>
         )}
-        
+
         <ApiDocsContext.Provider value={apiDocsContextValue}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
             {isMobile ? (
@@ -1577,16 +1645,16 @@ export default function ApiDocsAdminPage() {
                 <TabsTrigger value="public" className="py-2">Public</TabsTrigger>
               </TabsList>
             )}
-            
+
             <div className="my-4">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex flex-wrap gap-1">
                     <span className="text-sm font-medium mr-2">Filter by tag:</span>
                     {getAllTags().map(tag => (
-                      <Badge 
-                        key={tag} 
-                        variant={selectedTags.includes(tag) ? "default" : "outline"} 
+                      <Badge
+                        key={tag}
+                        variant={selectedTags.includes(tag) ? "default" : "outline"}
                         className="cursor-pointer"
                         onClick={() => handleTagSelect(tag)}
                       >
@@ -1597,11 +1665,11 @@ export default function ApiDocsAdminPage() {
                 </CardContent>
               </Card>
             </div>
-            
+
             <TabsContent value="overview" className="space-y-6">
               <EndpointOverview />
             </TabsContent>
-            
+
             <TabsContent value="users" className="space-y-6">
               <ApiCategory
                 title="User Endpoints"
@@ -1611,7 +1679,7 @@ export default function ApiDocsAdminPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="servers" className="space-y-6">
               <ApiCategory
                 title="Server Endpoints"
@@ -1621,7 +1689,7 @@ export default function ApiDocsAdminPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="billing" className="space-y-6">
               <ApiCategory
                 title="Billing Endpoints"
@@ -1631,7 +1699,7 @@ export default function ApiDocsAdminPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="api-keys" className="space-y-6">
               <ApiCategory
                 title="API Key Endpoints"
@@ -1641,7 +1709,7 @@ export default function ApiDocsAdminPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="admin" className="space-y-6">
               <ApiCategory
                 title="Admin Endpoints"
@@ -1651,7 +1719,7 @@ export default function ApiDocsAdminPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="public" className="space-y-6">
               <ApiCategory
                 title="Public Endpoints"

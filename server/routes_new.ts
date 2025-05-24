@@ -4737,18 +4737,11 @@ Generated on ${new Date().toLocaleString()}
       const offset = (page - 1) * limit;
       const status = req.query.status as string; // 'open', 'closed', or undefined for all
 
-      console.log(`Fetching tickets for user ${req.user!.id}, page ${page}, limit ${limit}, status: ${status || 'all'}`);
-
       // Get total count for pagination (with status filter)
       const totalTickets = await storage.getUserTicketsCount(req.user!.id, status);
 
       // Get paginated tickets (with status filter)
       const tickets = await storage.getUserTicketsPaginated(req.user!.id, limit, offset, status);
-
-      console.log(`Found ${totalTickets} total tickets, returning ${tickets.length} tickets`);
-      if (tickets.length > 0) {
-        console.log(`First ticket status: "${tickets[0].status}"`);
-      }
 
       res.json({
         data: tickets,
@@ -7764,7 +7757,90 @@ Generated on ${new Date().toLocaleString()}
     }
   });
 
-  // VNC enable/disable endpoints removed
+  // VNC Management Endpoints
+
+  // Get VNC status for a server
+  app.get("/api/admin/servers/:id/vnc", isAdmin, async (req, res) => {
+    try {
+      const serverId = parseInt(req.params.id);
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`Admin getting VNC status for server ID: ${serverId}`);
+
+      // VirtFusion API only supports POST /servers/{id}/vnc (no GET)
+      // This endpoint toggles VNC state and returns current status
+      // WARNING: This will toggle the VNC state!
+      console.log(`Making VNC API call - this will toggle VNC state for server ${serverId}`);
+
+      // Create a new VirtFusion API instance to use the request method
+      const vfApi = new VirtFusionApi();
+      const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
+
+      if (result) {
+        res.json({ success: true, data: result });
+      } else {
+        res.status(500).json({ error: "Failed to get VNC status" });
+      }
+    } catch (error: any) {
+      console.error("Error getting VNC status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Enable VNC for a server
+  app.post("/api/admin/servers/:id/vnc/enable", isAdmin, async (req, res) => {
+    try {
+      const serverId = parseInt(req.params.id);
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`Admin enabling VNC for server ID: ${serverId}`);
+
+      // VirtFusion API: POST /servers/{serverId}/vnc toggles VNC and returns status
+      const vfApi = new VirtFusionApi();
+      const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
+
+      if (result) {
+        res.json({ success: true, message: "VNC enabled successfully", data: result });
+      } else {
+        res.status(500).json({ error: "Failed to enable VNC" });
+      }
+    } catch (error: any) {
+      console.error("Error enabling VNC:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Disable VNC for a server
+  app.post("/api/admin/servers/:id/vnc/disable", isAdmin, async (req, res) => {
+    try {
+      const serverId = parseInt(req.params.id);
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`Admin disabling VNC for server ID: ${serverId}`);
+
+      // VirtFusion API: POST /servers/{serverId}/vnc toggles VNC and returns status
+      const vfApi = new VirtFusionApi();
+      const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
+
+      if (result) {
+        res.json({ success: true, message: "VNC disabled successfully", data: result });
+      } else {
+        res.status(500).json({ error: "Failed to disable VNC" });
+      }
+    } catch (error: any) {
+      console.error("Error disabling VNC:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Throttle CPU for a server
   app.post("/api/admin/servers/:id/throttle-cpu", isAdmin, async (req, res) => {
@@ -7835,10 +7911,135 @@ Generated on ${new Date().toLocaleString()}
     }
   });
 
-  // WebSocket handler - VNC functionality removed
+  // WebSocket handler for VNC proxy
   const handleWebSocketUpgrade = (request: any, socket: any, head: any) => {
-    // Close any connection attempts since WebSocket functionality has been removed
-    socket.destroy();
+    console.log('WebSocket upgrade request received:', {
+      url: request.url,
+      headers: request.headers,
+      method: request.method
+    });
+
+    const url = new URL(request.url, `http://${request.headers.host}`);
+
+    // Check if this is a VNC WebSocket request
+    if (url.pathname === '/vnc-proxy') {
+      const host = url.searchParams.get('host');
+      const port = url.searchParams.get('port');
+
+      console.log('VNC WebSocket proxy request:', { host, port });
+
+      if (!host || !port) {
+        console.error('Missing host or port parameters for VNC proxy');
+        socket.destroy();
+        return;
+      }
+
+      // Validate port number
+      const portNum = parseInt(port);
+      if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+        console.error('Invalid port number for VNC proxy:', port);
+        socket.destroy();
+        return;
+      }
+
+      // Import required modules for WebSocket proxy
+      const WebSocket = require('ws');
+      const net = require('net');
+
+      try {
+        console.log('Creating WebSocket server for VNC proxy...');
+
+        // Create WebSocket server for this connection
+        const wss = new WebSocket.Server({ noServer: true });
+
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          console.log(`VNC WebSocket proxy: Attempting to connect to ${host}:${portNum}`);
+
+          // Create TCP connection to VNC server with timeout
+          const vncSocket = net.createConnection({
+            host: host,
+            port: portNum,
+            timeout: 10000 // 10 second timeout
+          });
+
+          // Track connection state
+          let isConnected = false;
+
+          vncSocket.on('connect', () => {
+            console.log(`VNC TCP connection established to ${host}:${portNum}`);
+            isConnected = true;
+          });
+
+          vncSocket.on('timeout', () => {
+            console.error(`VNC TCP connection timeout to ${host}:${portNum}`);
+            vncSocket.destroy();
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.close(1011, 'VNC server connection timeout');
+            }
+          });
+
+          // Forward data between WebSocket and VNC TCP socket
+          ws.on('message', (data) => {
+            if (isConnected && vncSocket.writable) {
+              try {
+                vncSocket.write(data);
+              } catch (error) {
+                console.error('Error writing to VNC socket:', error);
+              }
+            } else {
+              console.warn('Attempted to write to disconnected VNC socket');
+            }
+          });
+
+          vncSocket.on('data', (data) => {
+            if (ws.readyState === WebSocket.OPEN) {
+              try {
+                ws.send(data);
+              } catch (error) {
+                console.error('Error sending data to WebSocket:', error);
+              }
+            }
+          });
+
+          // Handle connection close
+          ws.on('close', (code, reason) => {
+            console.log(`VNC WebSocket closed: ${code} - ${reason}`);
+            if (vncSocket && !vncSocket.destroyed) {
+              vncSocket.destroy();
+            }
+          });
+
+          vncSocket.on('close', (hadError) => {
+            console.log(`VNC TCP socket closed, hadError: ${hadError}`);
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.close(1000, 'VNC connection closed');
+            }
+          });
+
+          // Handle errors
+          ws.on('error', (err) => {
+            console.error('VNC WebSocket error:', err);
+            if (vncSocket && !vncSocket.destroyed) {
+              vncSocket.destroy();
+            }
+          });
+
+          vncSocket.on('error', (err) => {
+            console.error(`VNC TCP socket error connecting to ${host}:${portNum}:`, err);
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.close(1011, `VNC server error: ${err.message}`);
+            }
+          });
+        });
+      } catch (error) {
+        console.error('Error setting up VNC WebSocket proxy:', error);
+        socket.destroy();
+      }
+    } else {
+      console.log('Non-VNC WebSocket request, closing connection:', url.pathname);
+      // Close any other WebSocket connection attempts
+      socket.destroy();
+    }
   };
 
   // Sync hypervisors from VirtFusion (admin only)

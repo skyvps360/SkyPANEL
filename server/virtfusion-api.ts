@@ -13,21 +13,21 @@ export class VirtFusionApi {
     // Make sure the URL doesn't have a trailing slash and doesn't include /api/v1 twice
     const apiUrl = process.env.VIRTFUSION_API_URL || "https://skyvps360.xyz";
     this.apiUrl = apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
-    
+
     // Ensure API URL ends with /api/v1
     if (!this.apiUrl.endsWith("/api/v1")) {
       this.apiUrl = `${this.apiUrl}/api/v1`;
     }
-    
+
     this.apiToken = process.env.VIRTFUSION_API_TOKEN || "";
     this.sslVerify = true;
   }
-  
+
   // Check if VirtFusion API is properly configured
   isConfigured(): boolean {
     return !!this.apiUrl && !!this.apiToken;
   }
-  
+
   // Get the API URL (for diagnostics)
   getApiUrl(): string {
     return this.apiUrl;
@@ -295,13 +295,13 @@ export class VirtFusionApi {
     try {
       // Fetch user's usage data which includes server information
       const usageData = await this.getUserUsageByExtRelationId(extRelationId);
-      
+
       // Check if there are any servers in the periods array
-      if (usageData && 
-          usageData.data && 
-          usageData.data.periods && 
+      if (usageData &&
+          usageData.data &&
+          usageData.data.periods &&
           usageData.data.periods.length > 0) {
-        
+
         // Check if any periods have servers
         for (const period of usageData.data.periods) {
           if (period.servers && period.servers.length > 0) {
@@ -310,7 +310,7 @@ export class VirtFusionApi {
           }
         }
       }
-      
+
       // No servers found
       console.log(`User with extRelationId ${extRelationId} has no servers`);
       return false;
@@ -331,7 +331,7 @@ export class VirtFusionApi {
       }
 
       // The correct URL format per the VirtFusion API docs
-      // DELETE /users/{extRelationId}/byExtRelation 
+      // DELETE /users/{extRelationId}/byExtRelation
       const fullUrl = `${apiBase}/users/${extRelationId}/byExtRelation`;
 
       console.log(`Making DELETE request to ${fullUrl} to delete user by extRelationId`);
@@ -359,7 +359,7 @@ export class VirtFusionApi {
       });
 
       console.log(`VirtFusion API Response status for user deletion: ${response.status}`);
-      
+
       // For 204 No Content, return a successful response (this is expected per API docs)
       if (response.status === 204) {
         console.log(`Successfully deleted user with extRelationId ${extRelationId} (204 No Content response)`);
@@ -370,7 +370,7 @@ export class VirtFusionApi {
       return response.data || { success: true };
     } catch (error: any) {
       console.error(`Error deleting user with extRelationId ${extRelationId}:`, error.message);
-      
+
       // Check for specific error conditions and rethrow with more information
       if (error.response) {
         if (error.response.status === 409) {
@@ -380,15 +380,15 @@ export class VirtFusionApi {
         } else if (error.response.status === 401) {
           throw new Error("401: Unauthorized - API token may be invalid");
         }
-        
+
         // Include the response error message if available
         if (error.response.data) {
-          const errorMsg = error.response.data.message || 
+          const errorMsg = error.response.data.message ||
                           (error.response.data.msg ? error.response.data.msg : JSON.stringify(error.response.data));
           throw new Error(`${error.response.status}: ${errorMsg}`);
         }
       }
-      
+
       // Rethrow the original error
       throw error;
     }
@@ -408,17 +408,17 @@ export class VirtFusionApi {
     // according to VirtFusion API docs
     // VirtFusion API will generate a password and return it in the response
     console.log(`Calling VirtFusion resetPassword API with extRelationId: ${extRelationId}`);
-    
+
     try {
       // Ensure API settings are up to date
       await this.updateSettings();
-      
+
       // Make the API request - no body required according to documentation
       const response = await this.request(
         "POST",
         `/users/${extRelationId}/byExtRelation/resetPassword`
       );
-      
+
       // Return the full response which includes the generated password
       return response;
     } catch (error) {
@@ -459,12 +459,12 @@ export class VirtFusionApi {
   }) {
     console.log(`Adding ${tokenData.tokens} tokens to user with extRelationId ${extRelationId}`);
     return this.request(
-      "POST", 
-      `/selfService/credit/byUserExtRelationId/${extRelationId}`, 
+      "POST",
+      `/selfService/credit/byUserExtRelationId/${extRelationId}`,
       tokenData
     );
   }
-  
+
   /**
    * Cancel/remove credit from a user
    * @param creditId The ID of the credit to cancel
@@ -507,7 +507,7 @@ export class VirtFusionApi {
       }
     }
   }
-  
+
   // Get OS templates available for a specific package
   async getOsTemplatesForPackage(packageId: number) {
     try {
@@ -515,7 +515,7 @@ export class VirtFusionApi {
       return await this.request("GET", `/media/templates/fromServerPackageSpec/${packageId}`);
     } catch (error) {
       console.error(`Error fetching OS templates for package ${packageId}:`, error);
-      
+
       try {
         // Fallback to generic OS templates
         console.log(`Falling back to generic OS templates for package ${packageId}`);
@@ -531,19 +531,19 @@ export class VirtFusionApi {
   // Get all servers from VirtFusion API with pagination support
   async getServers(page: number = 1, perPage: number = 10, params: any = {}) {
     const queryParams = new URLSearchParams();
-    
+
     // Add pagination parameters
     queryParams.append('page', page.toString());
     queryParams.append('perPage', perPage.toString());
-    
+
     // Add any additional parameters
     if (params.results) queryParams.append('results', params.results.toString());
     if (params.type) queryParams.append('type', params.type);
-    
+
     const endpoint = `/servers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request("GET", endpoint);
   }
-  
+
   // Get a server by ID
   async getServerById(serverId: number) {
     try {
@@ -553,7 +553,7 @@ export class VirtFusionApi {
       throw error;
     }
   }
-  
+
   // Get server traffic statistics
   async getServerTraffic(serverId: number) {
     try {
@@ -565,16 +565,16 @@ export class VirtFusionApi {
       throw error;
     }
   }
-  
+
   // No longer using this method - removed
 
   // Get all hypervisors from VirtFusion API
   async getHypervisors() {
     return this.request("GET", "/compute/hypervisors");
   }
-  
+
   // Server power management functions
-  
+
   /**
    * Boot a server
    * @param serverId The server ID
@@ -584,7 +584,7 @@ export class VirtFusionApi {
     console.log(`Booting server ID: ${serverId}`);
     return this.request("POST", `/servers/${serverId}/boot`);
   }
-  
+
   /**
    * Shutdown a server (graceful)
    * @param serverId The server ID
@@ -594,7 +594,7 @@ export class VirtFusionApi {
     console.log(`Shutting down server ID: ${serverId}`);
     return this.request("POST", `/servers/${serverId}/shutdown`);
   }
-  
+
   /**
    * Restart a server (graceful)
    * @param serverId The server ID
@@ -604,7 +604,7 @@ export class VirtFusionApi {
     console.log(`Restarting server ID: ${serverId}`);
     return this.request("POST", `/servers/${serverId}/restart`);
   }
-  
+
   /**
    * Force power off a server (hard shutdown)
    * @param serverId The server ID
@@ -614,7 +614,7 @@ export class VirtFusionApi {
     console.log(`Powering off server ID: ${serverId}`);
     return this.request("POST", `/servers/${serverId}/power-off`);
   }
-  
+
   /**
    * Get queue item status
    * @param queueId The queue ID
@@ -624,7 +624,7 @@ export class VirtFusionApi {
     console.log(`Fetching queue item ID: ${queueId}`);
     return this.request("GET", `/queue/${queueId}`);
   }
-  
+
   /**
    * Suspend a server
    * @param serverId The server ID
@@ -634,7 +634,7 @@ export class VirtFusionApi {
     console.log(`Suspending server ID: ${serverId}`);
     return this.request("POST", `/servers/${serverId}/suspend`);
   }
-  
+
   /**
    * Unsuspend a server
    * @param serverId The server ID
@@ -650,44 +650,44 @@ export class VirtFusionApi {
   async resetServerPassword(serverId: number, user: string, sendMail: boolean = true) {
     // Normalize user value - VirtFusion API expects 'root' or 'administrator' (lowercase 'a')
     const normalizedUser = user === 'Administrator' ? 'administrator' : user;
-    
+
     // Validate user value - the VirtFusion API only accepts "root" or "administrator"
     if (normalizedUser !== 'root' && normalizedUser !== 'administrator') {
       throw new Error('User must be either "root" or "administrator"');
     }
-    
+
     // IMPORTANT: According to the API documentation, the body must be a proper JSON object
     // with user and sendMail properties exactly as shown in the docs
     const requestBody = {
       user: normalizedUser,
       sendMail: sendMail
     };
-    
+
     console.log(`Resetting password for server ${serverId}, user ${normalizedUser}, sendMail: ${sendMail}`);
     console.log(`Request body:`, JSON.stringify(requestBody, null, 2));
-    
+
     try {
       // Make the request through our standard request method which handles auth and API URLs
       const response = await this.request('POST', `/servers/${serverId}/resetPassword`, requestBody);
-      
+
       console.log(`Password reset response:`, JSON.stringify(response, null, 2));
-      
+
       // Make sure we handle the expected format
       if (response && response.data && response.data.expectedPassword) {
         console.log(`Generated password: ${response.data.expectedPassword}`);
       } else {
         console.log('No expected password in response');
       }
-      
+
       return response;
     } catch (error: any) {
       console.error(`Error resetting password for server ${serverId}:`, error.message);
-      
+
       if (error.response) {
         console.error('Response status:', error.response.status);
         console.error('Response data:', JSON.stringify(error.response.data, null, 2));
       }
-      
+
       throw error;
     }
   }
@@ -696,7 +696,7 @@ export class VirtFusionApi {
     console.log(`Unsuspending server ID: ${serverId}`);
     return this.request("POST", `/servers/${serverId}/unsuspend`);
   }
-  
+
   /**
    * Delete a server
    * @param serverId The server ID
@@ -709,7 +709,7 @@ export class VirtFusionApi {
     const data = scheduleAt ? { scheduleAt } : undefined;
     return this.request("DELETE", endpoint, data);
   }
-  
+
   /**
    * Enable VNC for a server
    * @param serverId The server ID
@@ -719,7 +719,7 @@ export class VirtFusionApi {
     console.log(`Enabling VNC for server ID: ${serverId}`);
     return this.request("POST", `/servers/${serverId}/vnc/enable`);
   }
-  
+
   /**
    * Disable VNC for a server
    * @param serverId The server ID
@@ -728,6 +728,26 @@ export class VirtFusionApi {
   async disableVncForServer(serverId: number) {
     console.log(`Disabling VNC for server ID: ${serverId}`);
     return this.request("POST", `/servers/${serverId}/vnc/disable`);
+  }
+
+  /**
+   * Get VNC status for a server
+   * @param serverId The server ID
+   * @returns API response with VNC status
+   */
+  async getVncStatus(serverId: number) {
+    console.log(`Getting VNC status for server ID: ${serverId}`);
+    return this.request("GET", `/servers/${serverId}/vnc`);
+  }
+
+  /**
+   * Toggle VNC for a server (VirtFusion API uses POST to toggle VNC state)
+   * @param serverId The server ID
+   * @returns API response with VNC status
+   */
+  async toggleVnc(serverId: number) {
+    console.log(`Toggling VNC for server ID: ${serverId}`);
+    return this.request("POST", `/servers/${serverId}/vnc`);
   }
 
   /**
@@ -746,7 +766,7 @@ export class VirtFusionApi {
       const day = String(today.getDate()).padStart(2, '0');
       period = `${year}-${month}-${day}`;
     }
-    
+
     const endpoint = `/selfService/usage/byUserExtRelationId/${extRelationId}?period[]=${period}&range=${range}`;
     return this.request("GET", endpoint);
   }

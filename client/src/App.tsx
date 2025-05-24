@@ -54,6 +54,7 @@ import ServerDetailPage from "@/pages/admin/server-detail-page";
 import ServerCreatePage from "@/pages/admin/server-create-page";
 import ServersListPage from "@/pages/admin/servers-page";
 import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
+import VNCConsole from "@/pages/vnc-console";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { VirtFusionSsoHandler } from "@/components/VirtFusionSsoHandler";
@@ -280,6 +281,9 @@ function Router() {
         <Route path="/tos" component={TermsOfServicePage} />
         <Route path="/privacy" component={PrivacyPolicyPage} />
 
+        {/* VNC Console - Admin only */}
+        <AdminProtectedRoute path="/vnc-console" component={VNCConsole} />
+
         {/* Admin Routes */}
         <AdminProtectedRoute path="/admin" component={AdminDashboard} />
         <AdminProtectedRoute path="/admin/users/:id" component={UserEditPage} />
@@ -301,7 +305,9 @@ function Router() {
         <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage} />
         <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage} />
         <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage} />
-        <Route component={NotFound} />
+
+        {/* Catch-all route for 404 pages */}
+        <Route path="*" component={NotFound} />
       </Switch>
     </MaintenanceGuard>
   );

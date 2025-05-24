@@ -3,14 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Tabs, 
+import {
+  Tabs,
   TabsContent,
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs";
-import { 
-  Slider 
+import {
+  Slider
 } from "@/components/ui/slider";
 import {
   BarChart,
@@ -21,21 +21,21 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  AreaChart, 
+  AreaChart,
   Area,
 } from "recharts";
-import { 
+import {
   Server,
-  HardDrive, 
-  Cpu, 
-  MemoryStick as Memory, 
+  HardDrive,
+  Cpu,
+  MemoryStick as Memory,
   Network,
-  Power, 
-  Settings, 
-  Shield, 
+  Power,
+  Settings,
+  Shield,
   ShieldOff,
-  Clock, 
-  ArrowLeft, 
+  Clock,
+  ArrowLeft,
   Database,
   MonitorPlay,
   Activity,
@@ -50,19 +50,20 @@ import {
   Calendar,
   DownloadCloud,
   UploadCloud,
-  LineChart
+  LineChart,
+  Monitor
 } from "lucide-react";
 
 // Helper function to format data size to human readable format
 const formatBytes = (bytes: number, decimals: number = 2): string => {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
-  
+
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
@@ -80,26 +81,26 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
     },
     staleTime: 60000, // Cache for 1 minute before considering stale
   });
-  
+
   // Process data for charts if available
   const getChartData = () => {
     // Get the correct traffic data path based on the structure returned from the API
-    const monthlyTraffic = trafficData?.data?.monthly || 
-                          (trafficData?.data?.traffic?.public && trafficData.data.traffic.public.periods) || 
+    const monthlyTraffic = trafficData?.data?.monthly ||
+                          (trafficData?.data?.traffic?.public && trafficData.data.traffic.public.periods) ||
                           [];
-    
+
     if (!monthlyTraffic || Object.keys(monthlyTraffic).length === 0) {
       console.log("No monthly traffic data found", trafficData);
       return [];
     }
-    
+
     // Handle different API structures
     if (Array.isArray(monthlyTraffic)) {
       // If it's an array (periods format)
       return monthlyTraffic.map((period: any) => {
         // The limit value in the API is in GB, need to convert to bytes for consistent display
         const limitInBytes = (period.limit || 500) * 1024 * 1024 * 1024; // Convert GB to bytes
-        
+
         return {
           month: new Date(period.start).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
           rx: period.rx || 0,
@@ -113,7 +114,7 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
       return Object.entries(monthlyTraffic).map(([month, stats]: [string, any]) => {
         // The limit value in the API is in GB, need to convert to bytes for consistent display
         const limitInBytes = (stats.limit || 500) * 1024 * 1024 * 1024; // Convert GB to bytes
-        
+
         return {
           month,
           rx: stats.rx || 0,
@@ -124,20 +125,20 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
       });
     }
   };
-  
+
   const chartData = getChartData();
-  
+
   // Debug info
   console.log("Traffic data structure:", trafficData);
   console.log("Chart data:", chartData);
-  
+
   // Current month data for the progress bar - get the first element regardless of format
   const currentMonthData = chartData.length > 0 ? chartData[0] : null;
-  
+
   const usagePercent = currentMonthData && currentMonthData.limit > 0
-    ? Math.min(100, (currentMonthData.total / currentMonthData.limit) * 100) 
+    ? Math.min(100, (currentMonthData.total / currentMonthData.limit) * 100)
     : 0;
-  
+
   return (
     <div className="space-y-4">
       <Card>
@@ -157,7 +158,7 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
               <p className="mt-4 text-muted-foreground">Loading traffic data...</p>
             </div>
           )}
-          
+
           {trafficError && (
             <div className="bg-destructive/10 text-destructive p-4 rounded-md">
               <p className="font-semibold">Error Loading Traffic Data</p>
@@ -166,7 +167,7 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
               </p>
             </div>
           )}
-          
+
           {!trafficLoading && !trafficError && chartData.length === 0 && (
             <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
               <Activity className="h-16 w-16 mb-4 opacity-50" />
@@ -174,7 +175,7 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
               <p className="text-sm mt-1">Traffic statistics will appear here once generated.</p>
             </div>
           )}
-          
+
           {!trafficLoading && !trafficError && chartData.length > 0 && (
             <div className="space-y-6">
               {/* Traffic Overview Cards */}
@@ -186,7 +187,7 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
                     {currentMonthData ? formatBytes(currentMonthData.rx) : 'N/A'}
                   </p>
                 </div>
-                
+
                 <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                   <UploadCloud className="h-12 w-12 text-primary mb-2" />
                   <h3 className="font-semibold text-lg">Upload</h3>
@@ -194,7 +195,7 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
                     {currentMonthData ? formatBytes(currentMonthData.tx) : 'N/A'}
                   </p>
                 </div>
-                
+
                 <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                   <Activity className="h-12 w-12 text-primary mb-2" />
                   <h3 className="font-semibold text-lg">Total Usage</h3>
@@ -205,12 +206,12 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
                     {currentMonthData && (
                       <>
                         <div className="w-full bg-muted rounded-full h-2.5 mb-1">
-                          <div 
+                          <div
                             className={`h-2.5 rounded-full ${
-                              usagePercent > 90 ? 'bg-destructive' : 
-                              usagePercent > 70 ? 'bg-warning' : 
+                              usagePercent > 90 ? 'bg-destructive' :
+                              usagePercent > 70 ? 'bg-warning' :
                               'bg-primary'
-                            }`} 
+                            }`}
                             style={{ width: `${usagePercent}%` }}
                           ></div>
                         </div>
@@ -222,7 +223,7 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Traffic Chart */}
               <div className="mt-6">
                 <h3 className="font-semibold text-md mb-4">Monthly Traffic Breakdown</h3>
@@ -234,11 +235,11 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" angle={-45} textAnchor="end" height={60} />
-                      <YAxis 
-                        tickFormatter={(value) => formatBytes(value, 1)} 
+                      <YAxis
+                        tickFormatter={(value) => formatBytes(value, 1)}
                         width={100}
                       />
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value: any) => [formatBytes(value), '']}
                         labelFormatter={(label) => `Month: ${label}`}
                       />
@@ -249,7 +250,7 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
                   </ResponsiveContainer>
                 </div>
               </div>
-              
+
               {/* Total Usage Chart */}
               <div className="mt-6">
                 <h3 className="font-semibold text-md mb-4">Total Usage vs Limit</h3>
@@ -261,11 +262,11 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" angle={-45} textAnchor="end" height={60} />
-                      <YAxis 
-                        tickFormatter={(value) => formatBytes(value, 1)} 
+                      <YAxis
+                        tickFormatter={(value) => formatBytes(value, 1)}
                         width={100}
                       />
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value: any) => [formatBytes(value), '']}
                         labelFormatter={(label) => `Month: ${label}`}
                       />
@@ -287,12 +288,12 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
 // Helper function to format dates
 const formatDate = (dateStr: string | Date | undefined): string => {
   if (!dateStr) return 'Unknown';
-  
+
   const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-  
+
   // Check if date is valid
   if (isNaN(date.getTime())) return 'Invalid date';
-  
+
   // Format as: May 8, 2025 11:30 AM
   return date.toLocaleString('en-US', {
     year: 'numeric',
@@ -323,33 +324,262 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+// VNC Tab Component
+const VNCTab = ({ serverId }: { serverId: number }) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch VNC status
+  const { data: vncData, isLoading: vncLoading, error: vncError, refetch: refetchVNC } = useQuery({
+    queryKey: ['/api/admin/servers', serverId, 'vnc'],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/servers/${serverId}/vnc`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch VNC status');
+      }
+      return response.json();
+    },
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
+
+
+  const vncStatus = vncData?.data?.data?.vnc;
+  const isVNCEnabled = vncStatus?.enabled === true;
+
+  // Function to open NoVNC console
+  const openVNCConsole = () => {
+    if (!vncStatus || !isVNCEnabled) {
+      toast({
+        title: "VNC Not Available",
+        description: "VNC must be enabled before connecting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create VNC console popup
+    const vncUrl = `/vnc-console?host=${encodeURIComponent(vncStatus.ip)}&port=${vncStatus.port}&password=${encodeURIComponent(vncStatus.password)}&serverId=${serverId}`;
+
+    // Open VNC console in a new popup window
+    const popup = window.open(
+      vncUrl,
+      'vnc-console',
+      'width=1024,height=768,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
+    );
+
+    if (!popup) {
+      toast({
+        title: "Popup Blocked",
+        description: "Please allow popups for this site to open the VNC console.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "VNC Console Opening",
+        description: "VNC console is opening in a new window...",
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Monitor className="h-5 w-5" />
+            VNC Remote Access
+          </CardTitle>
+          <CardDescription>
+            Manage VNC remote desktop access for this server
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {vncLoading && (
+            <div className="flex flex-col items-center justify-center py-10">
+              <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-4 text-muted-foreground">Loading VNC status...</p>
+            </div>
+          )}
+
+          {vncError && (
+            <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+              <p className="font-semibold">Error Loading VNC Status</p>
+              <p className="text-sm mt-1">
+                {vncError instanceof Error ? vncError.message : 'An unknown error occurred'}
+              </p>
+            </div>
+          )}
+
+          {!vncLoading && !vncError && (
+            <div className="space-y-6">
+              {/* VNC Status Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col space-y-4">
+                  {/* Current VNC Status Display */}
+                  <div className="bg-muted/40 p-4 rounded-lg border flex flex-col items-center justify-center text-center">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2">VNC STATUS</h3>
+                    <div className="flex items-center gap-2 justify-center mb-2">
+                      <div className={`w-3 h-3 rounded-full ${
+                        isVNCEnabled ? "bg-green-500 animate-pulse" : "bg-red-500"
+                      }`}></div>
+                      <span className="text-xl font-bold">
+                        {isVNCEnabled ? "ENABLED" : "DISABLED"}
+                      </span>
+                    </div>
+                    <UIBadge
+                      variant={isVNCEnabled ? "default" : "outline"}
+                      className={`px-3 py-1 ${
+                        isVNCEnabled ? "bg-green-500 hover:bg-green-600" : ""
+                      }`}
+                    >
+                      {isVNCEnabled ? "VNC ACTIVE" : "VNC INACTIVE"}
+                    </UIBadge>
+                  </div>
+
+                  {/* VNC Actions Description */}
+                  <div className="text-sm text-muted-foreground">
+                    <h4 className="font-medium mb-1">VNC Remote Access:</h4>
+                    <ul className="list-disc list-inside space-y-1 pl-2">
+                      <li><strong>Remote Desktop</strong> - Access server desktop remotely</li>
+                      <li><strong>Browser Console</strong> - Connect via web-based VNC client</li>
+                      <li><strong>Secure Connection</strong> - Encrypted VNC session</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex flex-col space-y-4">
+                  {/* VNC Control Buttons */}
+                  <div className="bg-muted/40 p-4 rounded-lg border">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3 text-center">VNC CONTROLS</h3>
+                    <div className="flex justify-center">
+                      {isVNCEnabled ? (
+                        <Button
+                          variant="outline"
+                          className="bg-blue-50 border-blue-200 hover:bg-blue-200 text-blue-700 hover:text-blue-900 font-medium"
+                          onClick={openVNCConsole}
+                          size="lg"
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          Connect to VNC Console
+                        </Button>
+                      ) : (
+                        <div className="text-center text-muted-foreground">
+                          <Monitor className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">VNC is currently disabled</p>
+                          <p className="text-xs">Contact administrator to enable VNC access</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* VNC Connection Information */}
+              {isVNCEnabled && vncStatus && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Monitor className="h-5 w-5" />
+                      VNC Connection Details
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-sm text-muted-foreground">Connection Information</h3>
+                        <table className="w-full text-sm">
+                          <tbody>
+                            <tr>
+                              <td className="py-1 pr-2 text-muted-foreground w-1/3">Server IP:</td>
+                              <td className="py-1 font-medium">{vncStatus.ip || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                              <td className="py-1 pr-2 text-muted-foreground">VNC Port:</td>
+                              <td className="py-1 font-medium">{vncStatus.port || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                              <td className="py-1 pr-2 text-muted-foreground">Hostname:</td>
+                              <td className="py-1 font-medium">{vncStatus.hostname || 'N/A'}</td>
+                            </tr>
+                            {vncStatus.password && (
+                              <tr>
+                                <td className="py-1 pr-2 text-muted-foreground">Password:</td>
+                                <td className="py-1 font-medium">
+                                  <code className="bg-muted px-2 py-0.5 rounded text-sm font-mono">
+                                    {vncStatus.password}
+                                  </code>
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-sm text-muted-foreground">Connection Instructions</h3>
+                        <div className="text-sm text-muted-foreground space-y-2">
+                          <p>To connect to this server via VNC:</p>
+                          <ol className="list-decimal list-inside space-y-1 pl-2">
+                            <li>Use a VNC client (like TightVNC, RealVNC, or UltraVNC)</li>
+                            <li>Connect to: <code className="bg-muted px-1 rounded">{vncStatus.ip}:{vncStatus.port}</code></li>
+                            {vncStatus.password && (
+                              <li>Enter password: <code className="bg-muted px-1 rounded">{vncStatus.password}</code></li>
+                            )}
+                            <li>Click "Connect" to access the remote desktop</li>
+                          </ol>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* VNC Not Enabled Message */}
+              {!isVNCEnabled && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Monitor className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">VNC is currently disabled</p>
+                  <p className="text-sm mt-1">
+                    Enable VNC to allow remote desktop access to this server.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 // Power Status Badge Component
 const PowerStatusBadge = ({ server }: { server: any }) => {
   // Check if remoteState exists and use its state, otherwise fall back to server.state
   const powerState = server?.remoteState?.state || server.state;
   const isRunning = server?.remoteState?.running || powerState === "running";
-  
+
   // For debugging
   console.log("Power Status Debug:", server.remoteState);
-  
+
   return (
-    <UIBadge 
+    <UIBadge
       className={`${
-        isRunning ? "bg-primary text-primary-foreground hover:bg-primary/90" : 
-        powerState === "stopped" ? "bg-muted text-muted-foreground" : 
+        isRunning ? "bg-primary text-primary-foreground hover:bg-primary/90" :
+        powerState === "stopped" ? "bg-muted text-muted-foreground" :
         powerState === "shutdown" ? "bg-orange-300 text-orange-800" :
-        powerState === "paused" ? "bg-yellow-300 text-yellow-800" : 
+        powerState === "paused" ? "bg-yellow-300 text-yellow-800" :
         ""
       }`}
       variant={
-        isRunning ? "default" : 
+        isRunning ? "default" :
         powerState === "stopped" ? "outline" :
         powerState === "shutdown" ? "secondary" :
         powerState === "paused" ? "secondary" :
         "outline"
       }
     >
-      {isRunning ? "RUNNING" : 
+      {isRunning ? "RUNNING" :
        powerState === "stopped" ? "STOPPED" :
        powerState === "shutdown" ? "SHUTTING DOWN" :
        powerState === "paused" ? "PAUSED" :
@@ -364,10 +594,10 @@ export default function ServerDetailPage() {
   const serverId = parseInt(id || "0");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // State for storing generated password
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
-  
+
   // Load saved password from localStorage on initial render
   useEffect(() => {
     try {
@@ -384,7 +614,7 @@ export default function ServerDetailPage() {
       console.error('Failed to load password from localStorage:', e);
     }
   }, [id]);
-  
+
   // Function to copy text to clipboard with context-aware messaging
   const copyToClipboard = (text: string, type: 'password' | 'mac' | 'ip' | 'subnet' = 'password') => {
     navigator.clipboard.writeText(text)
@@ -407,7 +637,7 @@ export default function ServerDetailPage() {
           default:
             description = "Text copied to clipboard successfully.";
         }
-        
+
         toast({
           title: "Copied to Clipboard",
           description,
@@ -416,7 +646,7 @@ export default function ServerDetailPage() {
       })
       .catch((err) => {
         console.error('Failed to copy text: ', err);
-        
+
         // Error message based on context
         let errorDescription = "";
         switch(type) {
@@ -435,7 +665,7 @@ export default function ServerDetailPage() {
           default:
             errorDescription = "Failed to copy text to clipboard.";
         }
-        
+
         toast({
           title: "Copy Failed",
           description: errorDescription,
@@ -451,13 +681,13 @@ export default function ServerDetailPage() {
       if (!id || isNaN(serverId)) {
         throw new Error('Invalid server ID');
       }
-      
+
       const response = await fetch(`/api/admin/servers/${id}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch server details');
       }
-      
+
       return response.json();
     },
     enabled: !!id && !isNaN(serverId),
@@ -466,10 +696,10 @@ export default function ServerDetailPage() {
 
   // Extract the server data from the response
   const server = serverResponse?.data;
-  
+
   // Debug the structure - remove this in production
   console.log("Server data structure:", JSON.stringify(server, null, 2));
-  
+
   // Log specific properties for power status debugging
   if (server) {
     console.log("Power Status Debug:", {
@@ -482,34 +712,34 @@ export default function ServerDetailPage() {
   }
 
   // We're now using the formatDate function defined at the top of the file
-  
+
   // Server power actions mutations
   const bootMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/admin/servers/${id}/boot`, {
         method: 'POST',
       });
-      
+
       // First get a clone of the response for error cases since we can only read the body once
       const responseClone = response.clone();
-      
+
       if (!response.ok) {
         // Check for 423 status code directly without reading body first
         if (response.status === 423) {
-          return { 
-            success: true, 
-            pending: true, 
+          return {
+            success: true,
+            pending: true,
             message: "Operation queued - server has pending tasks",
             queueInfo: { status: 423 }
           };
         }
-        
+
         try {
           const errorData = await responseClone.json();
           if (errorData.msg?.includes("pending tasks in queue")) {
-            return { 
-              success: true, 
-              pending: true, 
+            return {
+              success: true,
+              pending: true,
               message: "Operation queued - server has pending tasks",
               queueInfo: errorData
             };
@@ -526,7 +756,7 @@ export default function ServerDetailPage() {
           }
         }
       }
-      
+
       // For successful responses
       try {
         return await response.json();
@@ -561,33 +791,33 @@ export default function ServerDetailPage() {
       }
     },
   });
-  
+
   const shutdownMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/admin/servers/${id}/shutdown`, {
         method: 'POST',
       });
-      
+
       // First get a clone of the response for error cases since we can only read the body once
       const responseClone = response.clone();
-      
+
       if (!response.ok) {
         // Check for 423 status code directly without reading body first
         if (response.status === 423) {
-          return { 
-            success: true, 
-            pending: true, 
+          return {
+            success: true,
+            pending: true,
             message: "Operation queued - server has pending tasks",
             queueInfo: { status: 423 }
           };
         }
-        
+
         try {
           const errorData = await responseClone.json();
           if (errorData.msg?.includes("pending tasks in queue")) {
-            return { 
-              success: true, 
-              pending: true, 
+            return {
+              success: true,
+              pending: true,
               message: "Operation queued - server has pending tasks",
               queueInfo: errorData
             };
@@ -604,7 +834,7 @@ export default function ServerDetailPage() {
           }
         }
       }
-      
+
       // For successful responses
       try {
         return await response.json();
@@ -639,33 +869,33 @@ export default function ServerDetailPage() {
       }
     },
   });
-  
+
   const restartMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/admin/servers/${id}/restart`, {
         method: 'POST',
       });
-      
+
       // First get a clone of the response for error cases since we can only read the body once
       const responseClone = response.clone();
-      
+
       if (!response.ok) {
         // Check for 423 status code directly without reading body first
         if (response.status === 423) {
-          return { 
-            success: true, 
-            pending: true, 
+          return {
+            success: true,
+            pending: true,
             message: "Operation queued - server has pending tasks",
             queueInfo: { status: 423 }
           };
         }
-        
+
         try {
           const errorData = await responseClone.json();
           if (errorData.msg?.includes("pending tasks in queue")) {
-            return { 
-              success: true, 
-              pending: true, 
+            return {
+              success: true,
+              pending: true,
               message: "Operation queued - server has pending tasks",
               queueInfo: errorData
             };
@@ -682,7 +912,7 @@ export default function ServerDetailPage() {
           }
         }
       }
-      
+
       // For successful responses
       try {
         return await response.json();
@@ -717,33 +947,33 @@ export default function ServerDetailPage() {
       }
     },
   });
-  
+
   const powerOffMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/admin/servers/${id}/power-off`, {
         method: 'POST',
       });
-      
+
       // First get a clone of the response for error cases since we can only read the body once
       const responseClone = response.clone();
-      
+
       if (!response.ok) {
         // Check for 423 status code directly without reading body first
         if (response.status === 423) {
-          return { 
-            success: true, 
-            pending: true, 
+          return {
+            success: true,
+            pending: true,
             message: "Operation queued - server has pending tasks",
             queueInfo: { status: 423 }
           };
         }
-        
+
         try {
           const errorData = await responseClone.json();
           if (errorData.msg?.includes("pending tasks in queue")) {
-            return { 
-              success: true, 
-              pending: true, 
+            return {
+              success: true,
+              pending: true,
               message: "Operation queued - server has pending tasks",
               queueInfo: errorData
             };
@@ -760,7 +990,7 @@ export default function ServerDetailPage() {
           }
         }
       }
-      
+
       // For successful responses
       try {
         return await response.json();
@@ -795,34 +1025,34 @@ export default function ServerDetailPage() {
       }
     },
   });
-  
+
   // Server status actions mutations
   const suspendMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/admin/servers/${id}/suspend`, {
         method: 'POST',
       });
-      
+
       // First get a clone of the response for error cases since we can only read the body once
       const responseClone = response.clone();
-      
+
       if (!response.ok) {
         // Check for 423 status code directly without reading body first
         if (response.status === 423) {
-          return { 
-            success: true, 
-            pending: true, 
+          return {
+            success: true,
+            pending: true,
             message: "Operation queued - server has pending tasks",
             queueInfo: { status: 423 }
           };
         }
-        
+
         try {
           const errorData = await responseClone.json();
           if (errorData.msg?.includes("pending tasks in queue")) {
-            return { 
-              success: true, 
-              pending: true, 
+            return {
+              success: true,
+              pending: true,
               message: "Operation queued - server has pending tasks",
               queueInfo: errorData
             };
@@ -839,7 +1069,7 @@ export default function ServerDetailPage() {
           }
         }
       }
-      
+
       // For successful responses
       try {
         return await response.json();
@@ -874,34 +1104,34 @@ export default function ServerDetailPage() {
       }
     },
   });
-  
+
   const unsuspendMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/admin/servers/${id}/unsuspend`, {
         method: 'POST',
       });
-      
+
       // First get a clone of the response for error cases since we can only read the body once
       const responseClone = response.clone();
-      
+
       if (!response.ok) {
         // Check for 423 or 409 status code directly without reading body first
         if (response.status === 423 || response.status === 409) {
-          return { 
-            success: true, 
-            pending: true, 
+          return {
+            success: true,
+            pending: true,
             message: "Operation queued - server has pending tasks",
             queueInfo: { status: response.status }
           };
         }
-        
+
         try {
           const errorData = await responseClone.json();
-          if (errorData.msg?.includes("pending tasks in queue") || 
+          if (errorData.msg?.includes("pending tasks in queue") ||
               errorData.msg?.includes("action is currently scheduled")) {
-            return { 
-              success: true, 
-              pending: true, 
+            return {
+              success: true,
+              pending: true,
               message: "Operation queued - server has pending tasks",
               queueInfo: errorData
             };
@@ -918,7 +1148,7 @@ export default function ServerDetailPage() {
           }
         }
       }
-      
+
       // For successful responses
       try {
         return await response.json();
@@ -939,8 +1169,8 @@ export default function ServerDetailPage() {
     },
     onError: (error) => {
       // Check if error message indicates a queue issue
-      if (error.message && 
-          (error.message.includes("pending tasks in queue") || 
+      if (error.message &&
+          (error.message.includes("pending tasks in queue") ||
            error.message.includes("action is currently scheduled"))) {
         toast({
           title: "Operation Queued",
@@ -955,7 +1185,7 @@ export default function ServerDetailPage() {
       }
     },
   });
-  
+
   // Reset password mutation
   const resetPasswordMutation = useMutation({
     mutationFn: async () => {
@@ -969,9 +1199,9 @@ export default function ServerDetailPage() {
           sendMail: false // We'll display the password in the UI
         }),
       });
-      
+
       const responseClone = response.clone();
-      
+
       if (!response.ok) {
         // Error handling
         try {
@@ -986,7 +1216,7 @@ export default function ServerDetailPage() {
           }
         }
       }
-      
+
       // For successful responses
       try {
         const data = await response.json();
@@ -999,15 +1229,15 @@ export default function ServerDetailPage() {
     },
     onSuccess: (data) => {
       console.log('Password reset success data:', data);
-      
+
       // Extract the generated password from the response
       // The password could be in different places based on the API response structure
       let password = null;
-      
+
       // Try to extract from our server's generatedPassword field
       if (data.generatedPassword) {
         password = data.generatedPassword;
-      } 
+      }
       // Try to extract from data.data.expectedPassword (VirtFusion API format)
       else if (data.data && data.data.expectedPassword) {
         password = data.data.expectedPassword;
@@ -1016,11 +1246,11 @@ export default function ServerDetailPage() {
       else if (data.data && data.data.data && data.data.data.expectedPassword) {
         password = data.data.data.expectedPassword;
       }
-      
+
       if (password) {
         console.log('Found generated password, setting state');
         setGeneratedPassword(password);
-        
+
         // Save the password to localStorage with an expiry (encrypted in production)
         try {
           const passwordData = {
@@ -1032,7 +1262,7 @@ export default function ServerDetailPage() {
         } catch (e) {
           console.error('Failed to save password to localStorage:', e);
         }
-        
+
         toast({
           title: "Password Reset Successful",
           description: "The server password has been reset. You can view it in the overview tab.",
@@ -1044,7 +1274,7 @@ export default function ServerDetailPage() {
           description: "The server password has been reset, but no password was returned by the API.",
         });
       }
-      
+
       refetch();
       queryClient.invalidateQueries({ queryKey: ['/api/admin/servers', id] });
     },
@@ -1063,12 +1293,12 @@ export default function ServerDetailPage() {
       const response = await fetch(`/api/admin/servers/${id}/vnc/${vncStatus}`, {
         method: 'POST',
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || `Failed to ${vncStatus} VNC`);
       }
-      
+
       return response.json();
     },
     onSuccess: (_, variables) => {
@@ -1090,20 +1320,20 @@ export default function ServerDetailPage() {
       });
     },
   });
-  
 
-  
+
+
   const deleteServerMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/admin/servers/${id}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to delete server');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -1122,11 +1352,11 @@ export default function ServerDetailPage() {
       });
     },
   });
-  
+
   // CPU Throttle state and mutation
   const [cpuThrottleValue, setCpuThrottleValue] = useState(0);
   const [isApplyingThrottle, setIsApplyingThrottle] = useState(false);
-  
+
   // Load the current throttle value when server data is available
   useEffect(() => {
     // CPU throttle is stored in server.cpu.throttle according to the API data
@@ -1137,11 +1367,11 @@ export default function ServerDetailPage() {
       console.log("CPU throttle not found in server data:", server?.cpu);
     }
   }, [server]);
-  
+
   const cpuThrottleMutation = useMutation({
     mutationFn: async (percent: number) => {
       setIsApplyingThrottle(true);
-      
+
       const response = await fetch(`/api/admin/servers/${id}/throttle-cpu`, {
         method: 'POST',
         headers: {
@@ -1149,26 +1379,26 @@ export default function ServerDetailPage() {
         },
         body: JSON.stringify({ percent }),
       });
-      
+
       // First get a clone of the response for error cases
       const responseClone = response.clone();
-      
+
       if (!response.ok) {
         // Check for 423 status code (locked) without reading body first
         if (response.status === 423) {
-          return { 
-            success: true, 
-            pending: true, 
+          return {
+            success: true,
+            pending: true,
             message: "Operation queued - server has pending tasks",
           };
         }
-        
+
         try {
           const errorData = await responseClone.json();
           if (errorData.msg?.includes("pending tasks in queue")) {
-            return { 
-              success: true, 
-              pending: true, 
+            return {
+              success: true,
+              pending: true,
               message: "Operation queued - server has pending tasks",
               queueInfo: errorData
             };
@@ -1185,7 +1415,7 @@ export default function ServerDetailPage() {
           }
         }
       }
-      
+
       // For successful responses
       try {
         return await response.json();
@@ -1258,42 +1488,42 @@ export default function ServerDetailPage() {
           {!isLoading && !error && server && (
             <div className="flex gap-2">
               {/* Suspension status */}
-              <UIBadge 
+              <UIBadge
                 variant={server.suspended ? "destructive" : "default"}
                 className={`px-3 py-1 ${!server.suspended ? "bg-green-500 hover:bg-green-600" : ""}`}
               >
                 {server.suspended ? "Suspended" : "Active"}
               </UIBadge>
-              
+
               {/* Power status - comes from server.state */}
               {server.state !== "complete" && (
-                <UIBadge 
+                <UIBadge
                   variant={
-                    server.state === "running" ? "default" : 
+                    server.state === "running" ? "default" :
                     server.state === "stopped" ? "outline" :
                     server.state === "shutdown" ? "secondary" :
                     server.state === "paused" ? "secondary" :
                     "outline"
                   }
                   className={`px-3 py-1 ${
-                    server.state === "running" ? "bg-blue-500 hover:bg-blue-600" : 
-                    server.state === "stopped" ? "bg-gray-200 text-gray-700" : 
+                    server.state === "running" ? "bg-blue-500 hover:bg-blue-600" :
+                    server.state === "stopped" ? "bg-gray-200 text-gray-700" :
                     server.state === "shutdown" ? "bg-orange-300 text-orange-800" :
-                    server.state === "paused" ? "bg-yellow-300 text-yellow-800" : 
+                    server.state === "paused" ? "bg-yellow-300 text-yellow-800" :
                     ""
                   }`}
                 >
-                  {server.state === "running" ? "Running" : 
+                  {server.state === "running" ? "Running" :
                    server.state === "stopped" ? "Stopped" :
                    server.state === "shutdown" ? "Shutting Down" :
                    server.state === "paused" ? "Paused" :
                    server.state || "Unknown"}
                 </UIBadge>
               )}
-              
+
               {/* Protected status */}
               {server.protected && (
-                <UIBadge 
+                <UIBadge
                   variant="secondary"
                   className="px-3 py-1"
                 >
@@ -1337,12 +1567,13 @@ export default function ServerDetailPage() {
         {/* Server details */}
         {!isLoading && !error && server && (
           <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid grid-cols-2 md:grid-cols-6 lg:w-[800px] bg-muted/60 border-border">
+            <TabsList className="grid grid-cols-2 md:grid-cols-7 lg:w-[900px] bg-muted/60 border-border">
               <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
               <TabsTrigger value="specs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Specifications</TabsTrigger>
               <TabsTrigger value="network" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Network</TabsTrigger>
               <TabsTrigger value="traffic" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Traffic</TabsTrigger>
               <TabsTrigger value="storage" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Storage</TabsTrigger>
+              <TabsTrigger value="vnc" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">VNC</TabsTrigger>
               <TabsTrigger value="console" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Controls</TabsTrigger>
             </TabsList>
 
@@ -1364,32 +1595,32 @@ export default function ServerDetailPage() {
                           <td className="py-1 pr-2 text-muted-foreground w-1/3">Name:</td>
                           <td className="py-1 font-medium">{server.name}</td>
                         </tr>
-                        
+
                         <tr>
                           <td className="py-1 pr-2 text-muted-foreground">ID:</td>
                           <td className="py-1 font-medium">{server.id}</td>
                         </tr>
-                        
+
                         <tr>
                           <td className="py-1 pr-2 text-muted-foreground">UUID:</td>
                           <td className="py-1 font-medium">{server.uuid}</td>
                         </tr>
-                        
+
                         <tr>
                           <td className="py-1 pr-2 text-muted-foreground">Hypervisor ID:</td>
                           <td className="py-1 font-medium">{server.hypervisorId}</td>
                         </tr>
-                        
+
                         <tr>
                           <td className="py-1 pr-2 text-muted-foreground">Owner ID:</td>
                           <td className="py-1 font-medium">
                             {/* This should always show the extRelationID (never VirtFusion owner ID) */}
-                            {typeof server.owner === 'object' 
-                              ? (server.owner.extRelationID || server.owner.id) 
+                            {typeof server.owner === 'object'
+                              ? (server.owner.extRelationID || server.owner.id)
                               : (server.extRelationID || server.ownerId || server.owner)}
                           </td>
                         </tr>
-                        
+
                         {/* Always include the Root Password row, but conditionally show password or message */}
                         <tr>
                           <td className="py-1 pr-2 text-muted-foreground">Root Password:</td>
@@ -1420,11 +1651,11 @@ export default function ServerDetailPage() {
                             )}
                           </td>
                         </tr>
-                        
+
                         <tr>
                           <td className="py-1 pr-2 text-muted-foreground">Suspended Status:</td>
                           <td className="py-1">
-                            <UIBadge 
+                            <UIBadge
                               variant={server.suspended ? "destructive" : "default"}
                               className={`${!server.suspended ? "bg-green-500 hover:bg-green-600" : ""}`}
                             >
@@ -1432,14 +1663,14 @@ export default function ServerDetailPage() {
                             </UIBadge>
                           </td>
                         </tr>
-                        
+
                         <tr>
                           <td className="py-1 pr-2 text-muted-foreground">Power State:</td>
                           <td className="py-1">
                             <PowerStatusBadge server={server} />
                           </td>
                         </tr>
-                        
+
                         {server.protected !== undefined && (
                           <tr>
                             <td className="py-1 pr-2 text-muted-foreground">Protected:</td>
@@ -1454,7 +1685,7 @@ export default function ServerDetailPage() {
                     </table>
                   </CardContent>
                 </Card>
-                
+
                 {/* Timeline Card */}
                 <Card>
                   <CardHeader className="pb-2">
@@ -1483,7 +1714,7 @@ export default function ServerDetailPage() {
                   </CardContent>
                 </Card>
               </div>
-              
+
               {/* Additional Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Hypervisor Card */}
@@ -1503,7 +1734,7 @@ export default function ServerDetailPage() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 {/* Owner Card */}
                 <Card>
                   <CardHeader className="pb-2">
@@ -1514,17 +1745,17 @@ export default function ServerDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-2">
-                      {/* Note: In VirtFusion integration, we use the local user.id as the extRelationId 
+                      {/* Note: In VirtFusion integration, we use the local user.id as the extRelationId
                           parameter in URLs and requests, not the virtFusionId */}
                       <p className="text-xl font-bold">
-                        ID: {typeof server.owner === 'object' 
-                              ? (server.owner.extRelationID || server.owner.id) 
+                        ID: {typeof server.owner === 'object'
+                              ? (server.owner.extRelationID || server.owner.id)
                               : (server.extRelationID || server.ownerId || server.owner)}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         ExtRelationID is our local system user.id used for VirtFusion API calls
                       </p>
-                      {/* Note: No view button here - we'll properly display the owner in 
+                      {/* Note: No view button here - we'll properly display the owner in
                           ExtRelationID mapping through the server list view only */}
                     </div>
                   </CardContent>
@@ -1542,17 +1773,17 @@ export default function ServerDetailPage() {
                   <h3 className="font-semibold text-lg">CPU</h3>
                   <p className="text-2xl font-bold">{server?.cpu?.cores || "N/A"} Cores</p>
                 </div>
-                
+
                 <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                   <Memory className="h-12 w-12 text-primary mb-2" />
                   <h3 className="font-semibold text-lg">Memory</h3>
                   <p className="text-2xl font-bold">
-                    {server?.settings?.resources?.memory 
-                      ? `${(server.settings.resources.memory / 1024).toFixed(1)} GB` 
+                    {server?.settings?.resources?.memory
+                      ? `${(server.settings.resources.memory / 1024).toFixed(1)} GB`
                       : "N/A"}
                   </p>
                 </div>
-                
+
                 <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                   <HardDrive className="h-12 w-12 text-primary mb-2" />
                   <h3 className="font-semibold text-lg">Storage</h3>
@@ -1565,7 +1796,7 @@ export default function ServerDetailPage() {
                   </p>
                 </div>
               </div>
-              
+
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -1598,7 +1829,7 @@ export default function ServerDetailPage() {
                         </tbody>
                       </table>
                     </div>
-                    
+
                     {server?.cpu?.topology?.enabled && (
                       <div className="space-y-2">
                         <h3 className="font-semibold text-sm text-muted-foreground">CPU Topology</h3>
@@ -1626,7 +1857,7 @@ export default function ServerDetailPage() {
                         </table>
                       </div>
                     )}
-                    
+
                     {/* CPU Throttle Control */}
                     <div className="space-y-2 mt-6 col-span-1 md:col-span-2 border rounded-md p-4 bg-muted/20">
                       <h3 className="font-semibold text-sm text-muted-foreground flex items-center gap-2">
@@ -1637,13 +1868,13 @@ export default function ServerDetailPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">Current Throttle: {cpuThrottleValue}%</span>
                           <span className="text-xs text-muted-foreground">
-                            {cpuThrottleValue === 0 ? 'No Throttling (Full Speed)' : 
+                            {cpuThrottleValue === 0 ? 'No Throttling (Full Speed)' :
                              cpuThrottleValue < 30 ? 'Light Throttling' :
                              cpuThrottleValue < 60 ? 'Moderate Throttling' :
                              'Heavy Throttling'}
                           </span>
                         </div>
-                        
+
                         <div className="pt-2">
                           <Slider
                             defaultValue={[cpuThrottleValue]}
@@ -1659,7 +1890,7 @@ export default function ServerDetailPage() {
                             <span>Max Throttle (99%)</span>
                           </div>
                         </div>
-                        
+
                         <div className="pt-2 flex justify-end">
                           <Button
                             variant="outline"
@@ -1676,7 +1907,7 @@ export default function ServerDetailPage() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -1709,7 +1940,7 @@ export default function ServerDetailPage() {
                         </tbody>
                       </table>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <h3 className="font-semibold text-sm text-muted-foreground">Virtualization Features</h3>
                       <table className="w-full text-sm">
@@ -1718,19 +1949,19 @@ export default function ServerDetailPage() {
                             <td className="py-1 pr-2 text-muted-foreground w-1/3">Cloud-Init:</td>
                             <td className="py-1 font-medium">{server?.settings?.cloudInit ? 'Enabled' : 'Disabled'}</td>
                           </tr>
-                          
+
                           {server?.settings?.hyperv && (
                             <tr>
                               <td className="py-1 pr-2 text-muted-foreground">Hyper-V Extensions:</td>
                               <td className="py-1 font-medium">{server?.settings?.hyperv?.enabled ? 'Enabled' : 'Disabled'}</td>
                             </tr>
                           )}
-                          
+
                           <tr>
                             <td className="py-1 pr-2 text-muted-foreground">TPM:</td>
                             <td className="py-1 font-medium">{server?.settings?.tpmType ? 'Enabled' : 'Disabled'}</td>
                           </tr>
-                          
+
                           <tr>
                             <td className="py-1 pr-2 text-muted-foreground">Machine Type:</td>
                             <td className="py-1 font-medium">{server?.settings?.machineType || 'N/A'}</td>
@@ -1741,7 +1972,7 @@ export default function ServerDetailPage() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -1757,18 +1988,18 @@ export default function ServerDetailPage() {
                         <tbody>
                           <tr>
                             <td className="py-1 pr-2 text-muted-foreground w-1/3">Memory:</td>
-                            <td className="py-1 font-medium">{server?.settings?.resources?.memory 
-                              ? `${server.settings.resources.memory} MB (${(server.settings.resources.memory / 1024).toFixed(1)} GB)` 
+                            <td className="py-1 font-medium">{server?.settings?.resources?.memory
+                              ? `${server.settings.resources.memory} MB (${(server.settings.resources.memory / 1024).toFixed(1)} GB)`
                               : 'N/A'}</td>
                           </tr>
-                          
+
                           {server?.settings?.memBalloon && (
                             <>
                               <tr>
                                 <td className="py-1 pr-2 text-muted-foreground">Memory Balloon:</td>
                                 <td className="py-1 font-medium">{server.settings.memBalloon.model === 1 ? 'Enabled' : 'Disabled'}</td>
                               </tr>
-                              
+
                               <tr>
                                 <td className="py-1 pr-2 text-muted-foreground">Auto-Deflate:</td>
                                 <td className="py-1 font-medium">{server.settings.memBalloon.autoDeflate ? 'Enabled' : 'Disabled'}</td>
@@ -1778,7 +2009,7 @@ export default function ServerDetailPage() {
                         </tbody>
                       </table>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <h3 className="font-semibold text-sm text-muted-foreground">Resource Limits</h3>
                       <table className="w-full text-sm">
@@ -1793,14 +2024,14 @@ export default function ServerDetailPage() {
                                   : 'N/A'}
                             </td>
                           </tr>
-                          
+
                           <tr>
                             <td className="py-1 pr-2 text-muted-foreground">Traffic Allocation:</td>
-                            <td className="py-1 font-medium">{server?.settings?.resources?.traffic 
-                              ? `${server.settings.resources.traffic} GB` 
+                            <td className="py-1 font-medium">{server?.settings?.resources?.traffic
+                              ? `${server.settings.resources.traffic} GB`
                               : 'N/A'}</td>
                           </tr>
-                          
+
                           <tr>
                             <td className="py-1 pr-2 text-muted-foreground">PCI Ports:</td>
                             <td className="py-1 font-medium">{server?.settings?.pciPorts || 'N/A'}</td>
@@ -1853,7 +2084,7 @@ export default function ServerDetailPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                            <span className="font-medium">MAC Address:</span> 
+                            <span className="font-medium">MAC Address:</span>
                             <code className="bg-muted px-2 py-0.5 rounded font-mono">{intf.mac}</code>
                             <Button
                               variant="ghost"
@@ -1868,7 +2099,7 @@ export default function ServerDetailPage() {
                               </svg>
                             </Button>
                           </div>
-                          
+
                           {/* IPv4 Addresses */}
                           {intf.ipv4 && intf.ipv4.length > 0 && (
                             <div className="mt-3">
@@ -1907,7 +2138,7 @@ export default function ServerDetailPage() {
                               </div>
                             </div>
                           )}
-                          
+
                           {/* IPv6 Addresses */}
                           {intf.ipv6 && intf.ipv6.length > 0 && (
                             <div className="mt-3">
@@ -1951,7 +2182,7 @@ export default function ServerDetailPage() {
                               </div>
                             </div>
                           )}
-                          
+
                           {/* Network connectivity info */}
                           {intf.hypervisorConnectivity && (
                             <div className="mt-3 text-xs border-t pt-2">
@@ -1987,7 +2218,7 @@ export default function ServerDetailPage() {
                       <p>No primary network interfaces found</p>
                     </div>
                   )}
-                  
+
                   {/* Secondary Network Interfaces */}
                   {server.network?.secondaryInterfaces && server.network.secondaryInterfaces.length > 0 && (
                     <div className="mt-6 space-y-4">
@@ -2001,7 +2232,7 @@ export default function ServerDetailPage() {
                             </UIBadge>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                            <span className="font-medium">MAC Address:</span> 
+                            <span className="font-medium">MAC Address:</span>
                             <code className="bg-muted px-2 py-0.5 rounded font-mono">{intf.mac}</code>
                             <Button
                               variant="ghost"
@@ -2016,7 +2247,7 @@ export default function ServerDetailPage() {
                               </svg>
                             </Button>
                           </div>
-                          
+
                           {/* Display IP addresses if available */}
                           {intf.ipv4 && intf.ipv4.length > 0 && (
                             <div className="mt-3">
@@ -2060,7 +2291,7 @@ export default function ServerDetailPage() {
                               </div>
                             </div>
                           )}
-                          
+
                           {/* IPv6 addresses if available */}
                           {intf.ipv6 && intf.ipv6.length > 0 && (
                             <div className="mt-3">
@@ -2111,7 +2342,7 @@ export default function ServerDetailPage() {
                               </div>
                             </div>
                           )}
-                          
+
                           {/* Traffic and Firewall Details */}
                           <div className="mt-3 border-t pt-3">
                             <h4 className="text-sm font-semibold mb-2">Interface Details</h4>
@@ -2154,7 +2385,7 @@ export default function ServerDetailPage() {
                                   </tbody>
                                 </table>
                               </div>
-                              
+
                               {/* Network Configuration */}
                               <div>
                                 <h5 className="text-xs font-semibold mb-1 text-muted-foreground">Network Configuration</h5>
@@ -2204,7 +2435,7 @@ export default function ServerDetailPage() {
                                 </table>
                               </div>
                             </div>
-                            
+
                             {/* Traffic Statistics */}
                             {(intf.inTrafficCount || intf.outTrafficCount) && (
                               <div className="mt-2 pt-2 border-t">
@@ -2236,7 +2467,7 @@ export default function ServerDetailPage() {
                       ))}
                     </div>
                   )}
-                  
+
                   {/* Network Settings */}
                   <div className="mt-6">
                     <h3 className="font-semibold text-md mb-2">Network Settings</h3>
@@ -2296,21 +2527,21 @@ export default function ServerDetailPage() {
                           <Database className="h-12 w-12 text-primary mb-2" />
                           <h3 className="font-semibold text-lg">Filesystem Space</h3>
                           <p className="text-2xl font-bold">
-                            {(server.remoteState.agent.fsinfo.reduce((acc: number, fs: any) => 
+                            {(server.remoteState.agent.fsinfo.reduce((acc: number, fs: any) =>
                               acc + (fs["total-bytes"] || 0), 0) / (1024 * 1024 * 1024)).toFixed(1)} GB
                           </p>
                         </div>
-                        
+
                         <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                           <Database className="h-12 w-12 text-primary mb-2" />
                           <h3 className="font-semibold text-lg">Used Space</h3>
                           <div className="flex flex-col items-center">
                             <p className="text-2xl font-bold mb-1">
-                              {(server.remoteState.agent.fsinfo.reduce((acc: number, fs: any) => 
+                              {(server.remoteState.agent.fsinfo.reduce((acc: number, fs: any) =>
                                 acc + (fs["used-bytes"] || 0), 0) / (1024 * 1024 * 1024)).toFixed(1)} GB
                             </p>
                             <div className="w-full bg-muted rounded-full h-2.5 mb-1">
-                              <div 
+                              <div
                                 className={`h-2.5 rounded-full ${
                                   (server.remoteState.agent.fsinfo.reduce((acc: number, fs: any) => acc + (fs["used-bytes"] || 0), 0) /
                                    server.remoteState.agent.fsinfo.reduce((acc: number, fs: any) => acc + (fs["total-bytes"] || 0), 0)) > 0.9
@@ -2319,12 +2550,12 @@ export default function ServerDetailPage() {
                                        server.remoteState.agent.fsinfo.reduce((acc: number, fs: any) => acc + (fs["total-bytes"] || 0), 0)) > 0.7
                                       ? 'bg-warning'
                                       : 'bg-primary'
-                                }`} 
-                                style={{ 
+                                }`}
+                                style={{
                                   width: `${Math.min(100, (
                                     server.remoteState.agent.fsinfo.reduce((acc: number, fs: any) => acc + (fs["used-bytes"] || 0), 0) /
                                     server.remoteState.agent.fsinfo.reduce((acc: number, fs: any) => acc + (fs["total-bytes"] || 0), 0)
-                                  ) * 100)}%` 
+                                  ) * 100)}%`
                                 }}
                               ></div>
                             </div>
@@ -2339,7 +2570,7 @@ export default function ServerDetailPage() {
                       </>
                     )}
                   </div>
-                  
+
                   {/* Storage Drives from VirtFusion API */}
                   {server?.storage && server.storage.length > 0 && (
                     <div className="mt-6">
@@ -2353,24 +2584,24 @@ export default function ServerDetailPage() {
                                 {drive.capacity} GB
                               </UIBadge>
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-2 text-sm">
                               <div className="text-muted-foreground">Drive Type:</div>
                               <div>{drive.type || 'N/A'}</div>
-                              
+
                               {drive.bus && (
                                 <>
                                   <div className="text-muted-foreground">Bus:</div>
                                   <div>{drive.bus}</div>
                                 </>
                               )}
-                              
+
                               <div className="text-muted-foreground">Path:</div>
                               <div>{drive.path || 'N/A'}</div>
-                              
+
                               <div className="text-muted-foreground">Primary:</div>
                               <div>{drive.primary ? 'Yes' : 'No'}</div>
-                              
+
                               <div className="text-muted-foreground">Status:</div>
                               <div>
                                 {drive.enabled ? (
@@ -2379,7 +2610,7 @@ export default function ServerDetailPage() {
                                   <span className="text-red-600">Disabled</span>
                                 )}
                               </div>
-                              
+
                               {drive.created && (
                                 <>
                                   <div className="text-muted-foreground">Created:</div>
@@ -2392,7 +2623,7 @@ export default function ServerDetailPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Media Details */}
                   {server?.media && (
                     <div className="mt-6">
@@ -2429,9 +2660,9 @@ export default function ServerDetailPage() {
                                   <tr>
                                     <td className="py-1 pr-2 text-muted-foreground">ISO URL:</td>
                                     <td className="py-1">
-                                      <a 
-                                        href={server.media.isoUrl} 
-                                        target="_blank" 
+                                      <a
+                                        href={server.media.isoUrl}
+                                        target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-primary hover:underline flex items-center gap-1"
                                       >
@@ -2448,7 +2679,7 @@ export default function ServerDetailPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Filesystem Information */}
                   {(() => {
                     // Debug logging for server storage data
@@ -2468,11 +2699,11 @@ export default function ServerDetailPage() {
                                 {(fs["total-bytes"] / (1024 * 1024 * 1024)).toFixed(1)} GB
                               </UIBadge>
                             </div>
-                            
+
                             <p className="text-sm text-muted-foreground mb-2">
                               Mount Point: <code className="bg-muted px-2 py-0.5 rounded">{fs.mountpoint}</code>
                             </p>
-                            
+
                             {/* Usage bar */}
                             <div className="mt-3">
                               <div className="flex justify-between text-xs mb-1">
@@ -2480,14 +2711,14 @@ export default function ServerDetailPage() {
                                 <span>Free: {((fs["total-bytes"] - fs["used-bytes"]) / (1024 * 1024 * 1024)).toFixed(1)} GB</span>
                               </div>
                               <div className="w-full bg-muted rounded-full h-2">
-                                <div 
+                                <div
                                   className={`h-2 rounded-full ${
                                     (fs["used-bytes"] / fs["total-bytes"]) > 0.9
                                       ? 'bg-destructive'
                                       : (fs["used-bytes"] / fs["total-bytes"]) > 0.7
                                         ? 'bg-warning'
                                         : 'bg-primary'
-                                  }`} 
+                                  }`}
                                   style={{ width: `${Math.min(100, (fs["used-bytes"] / fs["total-bytes"]) * 100)}%` }}
                                 ></div>
                               </div>
@@ -2495,7 +2726,7 @@ export default function ServerDetailPage() {
                                 {`${Math.round((fs["used-bytes"] / fs["total-bytes"]) * 100)}% Used`}
                               </p>
                             </div>
-                            
+
                             {/* Disk information */}
                             {fs.disk && fs.disk.length > 0 && (
                               <div className="mt-3 pt-3 border-t">
@@ -2537,7 +2768,12 @@ export default function ServerDetailPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
+            {/* VNC Tab */}
+            <TabsContent value="vnc" className="space-y-4">
+              <VNCTab serverId={serverId} />
+            </TabsContent>
+
             {/* Controls Tab */}
             <TabsContent value="console" className="space-y-4">
               <div className="space-y-6">
@@ -2561,13 +2797,13 @@ export default function ServerDetailPage() {
                           <div className="flex items-center gap-2 justify-center mb-2">
                             <div className={`w-3 h-3 rounded-full animate-pulse ${
                               // First check the powerStatus from our database tracking
-                              server.powerStatus?.powerState === "RUNNING" ? "bg-green-500" : 
+                              server.powerStatus?.powerState === "RUNNING" ? "bg-green-500" :
                               server.powerStatus?.powerState === "STOPPED" ? "bg-red-500" :
                               // Check remoteState.state and remoteState.running which comes from the ?remoteState=true parameter
                               server.remoteState?.state === "running" || server.remoteState?.running === true ? "bg-green-500" :
                               server.remoteState?.state === "stopped" || server.remoteState?.running === false ? "bg-red-500" :
                               // Fall back to server.state if neither powerStatus nor remoteState is available
-                              server.state === "running" || server.state === "RUNNING" ? "bg-green-500" : 
+                              server.state === "running" || server.state === "RUNNING" ? "bg-green-500" :
                               server.state === "stopped" || server.state === "STOPPED" ? "bg-red-500" :
                               server.state === "shutdown" || server.state === "SHUTTING_DOWN" ? "bg-orange-500" :
                               server.state === "paused" || server.state === "PAUSED" ? "bg-yellow-500" :
@@ -2576,13 +2812,13 @@ export default function ServerDetailPage() {
                             }`}></div>
                             <span className="text-xl font-bold">
                               {/* First check the powerStatus from our database tracking */}
-                              {server.powerStatus?.powerState === "RUNNING" ? "RUNNING" : 
+                              {server.powerStatus?.powerState === "RUNNING" ? "RUNNING" :
                                server.powerStatus?.powerState === "STOPPED" ? "STOPPED" :
                                // Check remoteState.state and remoteState.running which comes from the ?remoteState=true parameter
                                server.remoteState?.state === "running" || server.remoteState?.running === true ? "RUNNING" :
                                server.remoteState?.state === "stopped" || server.remoteState?.running === false ? "STOPPED" :
                                // Fall back to server.state if neither powerStatus nor remoteState is available
-                               server.state === "running" || server.state === "RUNNING" ? "RUNNING" : 
+                               server.state === "running" || server.state === "RUNNING" ? "RUNNING" :
                                server.state === "stopped" || server.state === "STOPPED" ? "STOPPED" :
                                server.state === "shutdown" || server.state === "SHUTTING_DOWN" ? "SHUTTING DOWN" :
                                server.state === "paused" || server.state === "PAUSED" ? "PAUSED" :
@@ -2605,7 +2841,7 @@ export default function ServerDetailPage() {
                             Last updated: {formatDate(server.updated)}
                           </p>
                         </div>
-                        
+
                         {/* Power Actions Description */}
                         <div className="text-sm text-muted-foreground">
                           <h4 className="font-medium mb-1">Power Actions:</h4>
@@ -2617,39 +2853,39 @@ export default function ServerDetailPage() {
                           </ul>
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-col space-y-4">
                         {/* Power Action Buttons */}
                         <div className="bg-muted/40 p-4 rounded-lg border">
                           <h3 className="text-sm font-medium text-muted-foreground mb-3 text-center">POWER ACTIONS</h3>
                           <div className="grid grid-cols-2 gap-3">
-                            <Button 
-                              variant="outline" 
-                              className="flex-1 bg-green-50 border-green-200 hover:bg-green-200 text-green-700 hover:text-green-900 font-medium" 
+                            <Button
+                              variant="outline"
+                              className="flex-1 bg-green-50 border-green-200 hover:bg-green-200 text-green-700 hover:text-green-900 font-medium"
                               onClick={() => bootMutation.mutate()}
                               disabled={bootMutation.isPending}
                             >
                               <Power className="mr-2 h-4 w-4" /> Boot
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              className="flex-1 bg-orange-50 border-orange-200 hover:bg-orange-200 text-orange-700 hover:text-orange-900 font-medium" 
+                            <Button
+                              variant="outline"
+                              className="flex-1 bg-orange-50 border-orange-200 hover:bg-orange-200 text-orange-700 hover:text-orange-900 font-medium"
                               onClick={() => shutdownMutation.mutate()}
                               disabled={shutdownMutation.isPending}
                             >
                               <Power className="mr-2 h-4 w-4" /> Shutdown
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              className="flex-1 bg-blue-50 border-blue-200 hover:bg-blue-200 text-blue-700 hover:text-blue-900 font-medium" 
+                            <Button
+                              variant="outline"
+                              className="flex-1 bg-blue-50 border-blue-200 hover:bg-blue-200 text-blue-700 hover:text-blue-900 font-medium"
                               onClick={() => restartMutation.mutate()}
                               disabled={restartMutation.isPending}
                             >
                               <RefreshCw className="mr-2 h-4 w-4" /> Restart
                             </Button>
-                            <Button 
-                              variant="outline" 
-                              className="flex-1 bg-red-50 border-red-200 hover:bg-red-200 text-red-700 hover:text-red-900 font-medium" 
+                            <Button
+                              variant="outline"
+                              className="flex-1 bg-red-50 border-red-200 hover:bg-red-200 text-red-700 hover:text-red-900 font-medium"
                               onClick={() => powerOffMutation.mutate()}
                               disabled={powerOffMutation.isPending}
                             >
@@ -2657,7 +2893,7 @@ export default function ServerDetailPage() {
                             </Button>
                           </div>
                         </div>
-                        
+
                         {/* State Indicator Legend */}
                         <div className="text-xs text-muted-foreground">
                           <h4 className="font-medium mb-1">Power State Indicators:</h4>
@@ -2684,7 +2920,7 @@ export default function ServerDetailPage() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 {/* Server Management Card */}
                 <Card>
                   <CardHeader className="pb-2">
@@ -2708,14 +2944,14 @@ export default function ServerDetailPage() {
                             <li><strong>Reset Password</strong> - Change the server login credentials</li>
                           </ul>
                         </div>
-                        
+
                         {/* Status Actions */}
                         <div className="bg-muted/40 p-4 rounded-lg border h-full flex flex-col">
                           <h3 className="text-sm font-medium text-muted-foreground mb-3 text-center">STATUS ACTIONS</h3>
                           <div className="grid grid-cols-2 gap-3 mt-auto">
                             {server.suspended ? (
-                              <Button 
-                                variant="outline" 
+                              <Button
+                                variant="outline"
                                 className="flex-1 bg-green-50 border-green-200 hover:bg-green-200 text-green-700 hover:text-green-900 font-medium"
                                 onClick={() => unsuspendMutation.mutate()}
                                 disabled={unsuspendMutation.isPending}
@@ -2725,8 +2961,8 @@ export default function ServerDetailPage() {
                             ) : (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     className="flex-1 bg-amber-50 border-amber-200 hover:bg-amber-200 text-amber-700 hover:text-amber-900 font-medium"
                                   >
                                     <ShieldOff className="mr-2 h-4 w-4" /> Suspend
@@ -2758,11 +2994,11 @@ export default function ServerDetailPage() {
                                 </AlertDialogContent>
                               </AlertDialog>
                             )}
-                            
+
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   className="flex-1 bg-blue-50 border-blue-200 hover:bg-blue-200 text-blue-700 hover:text-blue-900 font-medium"
                                 >
                                   <Key className="mr-2 h-4 w-4" /> Reset Password
@@ -2796,7 +3032,7 @@ export default function ServerDetailPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex flex-col">
                         {/* Management Actions Description */}
                         <div className="text-sm text-muted-foreground mb-4">
@@ -2805,15 +3041,15 @@ export default function ServerDetailPage() {
                             <li><strong>Delete Server</strong> - Permanently remove this server</li>
                           </ul>
                         </div>
-                        
+
                         {/* Management Actions */}
                         <div className="bg-muted/40 p-4 rounded-lg border h-full flex flex-col">
                           <h3 className="text-sm font-medium text-muted-foreground mb-3 text-center">MANAGEMENT ACTIONS</h3>
                           <div className="grid grid-cols-1 gap-3 mt-auto">
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="outline" 
+                                <Button
+                                  variant="outline"
                                   className="flex-1 bg-red-50 border-red-200 hover:bg-red-200 text-red-700 hover:text-red-900 font-medium"
                                 >
                                   <Trash className="mr-2 h-4 w-4" /> Delete Server
@@ -2852,7 +3088,7 @@ export default function ServerDetailPage() {
                 </Card>
               </div>
             </TabsContent>
-            
+
           </Tabs>
         )}
       </div>

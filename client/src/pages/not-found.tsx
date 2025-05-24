@@ -6,14 +6,19 @@ import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 
 export default function NotFound() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [animateIn, setAnimateIn] = useState(false);
-  
+
   useEffect(() => {
     // Trigger animation after component mounts
     const timer = setTimeout(() => setAnimateIn(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // Debug: Log when NotFound component is rendered
+  useEffect(() => {
+    console.log('NotFound component rendered for path:', location);
+  }, [location]);
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
@@ -27,13 +32,21 @@ export default function NotFound() {
             <h2 className="text-xl font-semibold text-gray-800">Page Not Found</h2>
           </div>
 
-          <p className="text-center text-gray-600 mb-6">
+          <p className="text-center text-gray-600 mb-4">
             The page you're looking for doesn't exist or was moved to another location.
           </p>
-          
+
+          {location && location !== '/' && (
+            <div className="text-center mb-4">
+              <code className="bg-gray-100 px-2 py-1 rounded text-sm text-gray-700">
+                {location}
+              </code>
+            </div>
+          )}
+
           <div className="flex justify-center">
-            <Button 
-              onClick={() => navigate("/")} 
+            <Button
+              onClick={() => navigate("/")}
               className="bg-blue-600 hover:bg-blue-700 transition-colors"
             >
               <Home className="h-4 w-4 mr-2" />
