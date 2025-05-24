@@ -202,18 +202,50 @@
 
       if (this.vncState.stage === 'server_init' && buffer.length >= 24) {
         // Parse ServerInit message
-        const view = new DataView(buffer.buffer, buffer.byteOffset, 24);
+        const view = new DataView(buffer.buffer, buffer.byteOffset);
         this.vncState.width = view.getUint16(0);
         this.vncState.height = view.getUint16(2);
 
+        // Parse pixel format (16 bytes starting at offset 4)
+        this.vncState.pixelFormat = {
+          bitsPerPixel: view.getUint8(4),
+          depth: view.getUint8(5),
+          bigEndian: view.getUint8(6),
+          trueColor: view.getUint8(7),
+          redMax: view.getUint16(8),
+          greenMax: view.getUint16(10),
+          blueMax: view.getUint16(12),
+          redShift: view.getUint8(14),
+          greenShift: view.getUint8(15),
+          blueShift: view.getUint8(16)
+        };
+
         console.log('RealVNC: Server init - Size:', this.vncState.width + 'x' + this.vncState.height);
+        console.log('RealVNC: Pixel format:', this.vncState.pixelFormat);
+
+        // Get desktop name length
+        const nameLength = view.getUint32(20);
+        const totalLength = 24 + nameLength;
+
+        if (buffer.length < totalLength) {
+          console.log('RealVNC: Waiting for complete ServerInit message');
+          return;
+        }
+
+        // Get desktop name
+        const nameBytes = buffer.slice(24, 24 + nameLength);
+        const desktopName = new TextDecoder().decode(nameBytes);
+        console.log('RealVNC: Desktop name:', desktopName);
 
         // Update canvas size
         this.canvas.width = this.vncState.width;
         this.canvas.height = this.vncState.height;
 
+        // Clear canvas
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, this.vncState.width, this.vncState.height);
+
         this.hideStatus();
-        this.showVNCConnected();
 
         if (!this.connected) {
           this.connected = true;
@@ -222,7 +254,13 @@
         }
 
         this.vncState.stage = 'normal';
-        this.vncState.buffer = buffer.slice(24);
+        this.vncState.buffer = buffer.slice(totalLength);
+
+        // Request initial framebuffer update
+        console.log('RealVNC: Requesting initial framebuffer update');
+        this.requestFramebufferUpdate();
+        this.vncState.updateRequested = true;
+
         return;
       }
 
@@ -336,7 +374,7 @@
 
     handleFramebufferUpdate() {
       const buffer = this.vncState.buffer;
-      console.log('RealVNC: Handling FramebufferUpdate');
+      console.log('RealVNC: Handling FramebufferUpdate, buffer length:', buffer.length);
 
       if (buffer.length < 4) {
         console.log('RealVNC: Insufficient data for FramebufferUpdate header');
@@ -350,25 +388,108 @@
       const numRectangles = (buffer[2] << 8) | buffer[3];
       console.log('RealVNC: FramebufferUpdate with', numRectangles, 'rectangles');
 
-      if (numRectangles > 0) {
-        // Show that we're receiving framebuffer data
-        this.ctx.fillStyle = '#000';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.fillStyle = '#0f0';
-        this.ctx.font = '16px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('RECEIVING VNC FRAMEBUFFER', this.canvas.width/2, this.canvas.height/2);
-        this.ctx.fillText('Rectangles: ' + numRectangles, this.canvas.width/2, this.canvas.height/2 + 30);
-        this.ctx.fillText('Buffer: ' + buffer.length + ' bytes', this.canvas.width/2, this.canvas.height/2 + 60);
+      let offset = 4; // Skip header
 
-        // Request another update to keep receiving data
-        setTimeout(() => {
-          this.requestFramebufferUpdate();
-        }, 1000);
+      for (let i = 0; i < numRectangles; i++) {
+        if (buffer.length < offset + 12) {
+          console.log('RealVNC: Insufficient data for rectangle', i);
+          return;
+        }
+
+        // Rectangle header (12 bytes)
+        const x = (buffer[offset] << 8) | buffer[offset + 1];
+        const y = (buffer[offset + 2] << 8) | buffer[offset + 3];
+        const width = (buffer[offset + 4] << 8) | buffer[offset + 5];
+        const height = (buffer[offset + 6] << 8) | buffer[offset + 7];
+        const encoding = (buffer[offset + 8] << 24) | (buffer[offset + 9] << 16) | (buffer[offset + 10] << 8) | buffer[offset + 11];
+
+        console.log(`RealVNC: Rectangle ${i}: ${x},${y} ${width}x${height} encoding=${encoding}`);
+
+        offset += 12;
+
+        // Handle different encodings
+        if (encoding === 0) {
+          // Raw encoding - use actual pixel format from server
+          const pixelFormat = this.vncState.pixelFormat;
+          const bytesPerPixel = Math.ceil(pixelFormat.bitsPerPixel / 8);
+          const expectedBytes = width * height * bytesPerPixel;
+
+          console.log(`RealVNC: Raw encoding - ${bytesPerPixel} bytes per pixel, expecting ${expectedBytes} bytes`);
+
+          if (buffer.length < offset + expectedBytes) {
+            console.log('RealVNC: Insufficient pixel data for rectangle', i, 'need:', expectedBytes, 'have:', buffer.length - offset);
+            return;
+          }
+
+          // Create ImageData and draw to canvas
+          const imageData = this.ctx.createImageData(width, height);
+          const pixelData = buffer.slice(offset, offset + expectedBytes);
+
+          // Convert pixel data based on server pixel format
+          for (let p = 0; p < width * height; p++) {
+            const srcOffset = p * bytesPerPixel;
+            const dstOffset = p * 4;
+
+            let pixel = 0;
+
+            // Read pixel value based on bytes per pixel
+            if (bytesPerPixel === 4) {
+              pixel = (pixelData[srcOffset + 3] << 24) | (pixelData[srcOffset + 2] << 16) |
+                     (pixelData[srcOffset + 1] << 8) | pixelData[srcOffset];
+            } else if (bytesPerPixel === 2) {
+              pixel = (pixelData[srcOffset + 1] << 8) | pixelData[srcOffset];
+            } else if (bytesPerPixel === 1) {
+              pixel = pixelData[srcOffset];
+            }
+
+            // Extract RGB components using pixel format
+            const red = (pixel >> pixelFormat.redShift) & pixelFormat.redMax;
+            const green = (pixel >> pixelFormat.greenShift) & pixelFormat.greenMax;
+            const blue = (pixel >> pixelFormat.blueShift) & pixelFormat.blueMax;
+
+            // Scale to 8-bit values
+            imageData.data[dstOffset] = Math.round((red * 255) / pixelFormat.redMax);     // R
+            imageData.data[dstOffset + 1] = Math.round((green * 255) / pixelFormat.greenMax); // G
+            imageData.data[dstOffset + 2] = Math.round((blue * 255) / pixelFormat.blueMax);   // B
+            imageData.data[dstOffset + 3] = 255;                                              // A
+          }
+
+          // Draw to canvas
+          this.ctx.putImageData(imageData, x, y);
+          console.log(`RealVNC: Drew rectangle ${i} at ${x},${y} with ${width}x${height} pixels`);
+
+          offset += expectedBytes;
+        } else if (encoding === 1) {
+          // CopyRect encoding
+          if (buffer.length < offset + 4) {
+            console.log('RealVNC: Insufficient data for CopyRect');
+            return;
+          }
+
+          const srcX = (buffer[offset] << 8) | buffer[offset + 1];
+          const srcY = (buffer[offset + 2] << 8) | buffer[offset + 3];
+
+          // Copy rectangle from source to destination
+          const imageData = this.ctx.getImageData(srcX, srcY, width, height);
+          this.ctx.putImageData(imageData, x, y);
+
+          console.log(`RealVNC: CopyRect from ${srcX},${srcY} to ${x},${y}`);
+          offset += 4;
+        } else {
+          console.log('RealVNC: Unsupported encoding:', encoding);
+          // Skip this rectangle - we don't know how much data it contains
+          // This is a limitation - we should implement more encodings
+          break;
+        }
       }
 
-      // For now, consume the entire buffer
-      this.vncState.buffer = new Uint8Array(0);
+      // Update buffer with remaining data
+      this.vncState.buffer = buffer.slice(offset);
+
+      // Request next update
+      setTimeout(() => {
+        this.requestFramebufferUpdate();
+      }, 100); // More frequent updates for smoother display
     }
 
     ensureCryptoJSAndEncrypt() {
