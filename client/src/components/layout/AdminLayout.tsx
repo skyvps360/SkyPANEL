@@ -115,7 +115,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [open, setOpen] = useState(false);
   const { logoutMutation, user } = useAuth();
   const { toast } = useToast();
-  
+
   // Search-related state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -136,27 +136,27 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     queryKey: ["/api/settings/branding"],
     retry: false,
   });
-  
+
   // Fetch users for search
   const { data: usersData = [] } = useQuery<UserType[]>({
     queryKey: ["/api/admin/users"],
     staleTime: 60 * 1000, // 1 minute
   });
-  
+
   // Fetch tickets for search
   const { data: ticketsResponse } = useQuery<{ data: TicketType[], pagination: any }>({
     queryKey: ["/api/admin/tickets"],
     staleTime: 60 * 1000, // 1 minute
   });
-  
+
   // Fetch transactions for search
   const { data: transactionsData = [] } = useQuery<TransactionType[]>({
     queryKey: ["/api/admin/transactions"],
     staleTime: 60 * 1000, // 1 minute
   });
-  
+
   // Invoice functionality has been removed
-  
+
   // Fetch servers for search
   const { data: serversResponse = { data: [] } } = useQuery<{
     data: ServerType[];
@@ -167,7 +167,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     queryKey: ["/api/admin/servers"],
     staleTime: 60 * 1000, // 1 minute
   });
-  
+
   // Extract the servers array from the paginated response
   const serversData = serversResponse.data || [];
 
@@ -178,7 +178,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Get company name from brand settings
   const companyName = brandSettings?.company_name || "Admin Portal";
-  
+
   // Get brand colors using the utility with the new color system
   const brandColorOptions = {
     primaryColor: brandSettings?.primary_color || brandSettings?.company_color,  // Fallback to company_color for backward compatibility
@@ -186,13 +186,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     accentColor: brandSettings?.accent_color
   };
   const brandColors = getBrandColors(brandColorOptions);
-  
+
   // Apply brand colors to CSS variables and Shadcn theme when settings are loaded
   useEffect(() => {
     if (brandSettings) {
       // Force immediate cache invalidation with timestamp
       const cacheKey = Date.now();
-      
+
       import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
         // Clear any existing CSS variable cache
         const root = document.documentElement;
@@ -202,16 +202,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             root.style.removeProperty(prop);
           }
         });
-        
+
         // Apply brand colors to both our CSS variables and Shadcn theme variables
         applyBrandColorVars(brandColorOptions);
-        
+
         // Add a cache buster class to force stylesheet recalculation
         document.body.classList.add(`theme-refresh-${cacheKey}`);
         setTimeout(() => {
           document.body.classList.remove(`theme-refresh-${cacheKey}`);
         }, 50);
-        
+
         console.log('Applied brand colors to Shadcn theme in Admin with cache bust');
       });
     }
@@ -221,7 +221,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   useEffect(() => {
     setOpen(false);
   }, [location]);
-  
+
   // Set up navigate for wouter - use a stable reference with real navigation
   const [, nativeNavigate] = useLocation();
   const navigate = useRef((url: string) => {
@@ -234,14 +234,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
     nativeNavigate(url);
   }).current;
-  
+
   // Handle navigation to search result - memoized to avoid recreation
   const navigateToResult = useRef((result: SearchResult) => {
     setSearchQuery(''); // Clear search after selecting a result
     setShowSearchPopup(false);
     navigate(result.url);
   }).current;
-  
+
   // Perform search with the current query
   const performSearch = useCallback((query: string) => {
     if (!query || (query.length < 2 && isNaN(parseInt(query)))) {
@@ -249,20 +249,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       setSearchResults([]);
       return;
     }
-    
+
     setIsSearching(true);
     const lowerQuery = query.toLowerCase();
-    
+
     // Debug logging - will show in console what we're searching with
     console.log('Performing search with query:', query);
     console.log('Server data available for search:', serversData);
-    
+
     const results: SearchResult[] = [];
-    
+
     // Search users
     usersData?.forEach((user) => {
       if (
-        !user.deletedAt && 
+        !user.deletedAt &&
         (user.fullName?.toLowerCase().includes(lowerQuery) ||
         user.username?.toLowerCase().includes(lowerQuery) ||
         user.email?.toLowerCase().includes(lowerQuery))
@@ -277,21 +277,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         });
       }
     });
-    
+
     // Search tickets
     ticketsResponse?.data?.forEach((ticket) => {
       if (
-        !ticket.deletedAt && 
+        !ticket.deletedAt &&
         (
           ticket.id.toString() === lowerQuery || // Exact match for ticket ID
           ticket.subject?.toLowerCase().includes(lowerQuery)
         )
       ) {
         // Route to /tickets/{id} if admin is the ticket creator, otherwise to /admin/tickets/{id}
-        const ticketUrl = ticket.userId === user?.id 
-          ? `/tickets/${ticket.id}` 
+        const ticketUrl = ticket.userId === user?.id
+          ? `/tickets/${ticket.id}`
           : `/admin/tickets/${ticket.id}`;
-          
+
         results.push({
           id: ticket.id,
           type: "ticket",
@@ -302,7 +302,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         });
       }
     });
-    
+
     // Search transactions
     transactionsData?.forEach((transaction) => {
       if (
@@ -320,50 +320,50 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         });
       }
     });
-    
+
     // Search invoices functionality removed as invoices are no longer supported
-    
+
     // Search servers
     serversData?.forEach((server) => {
       // For debugging - check each server being examined
       console.log(`Checking server:`, server, `against query: ${lowerQuery}`);
-      
+
       // Check if this server matches the search query
       const nameMatch = server.name?.toLowerCase().includes(lowerQuery);
       const uuidMatch = server.uuid?.toLowerCase().includes(lowerQuery);
       const idMatch = server.id.toString() === lowerQuery;
-      
+
       // Log match results
       if (nameMatch || uuidMatch || idMatch) {
-        console.log(`MATCH FOUND! Server matches search:`, 
-          nameMatch ? 'by name' : uuidMatch ? 'by UUID' : 'by ID', 
+        console.log(`MATCH FOUND! Server matches search:`,
+          nameMatch ? 'by name' : uuidMatch ? 'by UUID' : 'by ID',
           server
         );
       }
-      
+
       if (nameMatch || uuidMatch || idMatch) {
         // Determine server status for display
         let statusText = "Unknown";
-        
+
         // First check power status if available
         if (server.powerStatus && server.powerStatus.powerState) {
-          statusText = server.powerStatus.powerState === "RUNNING" ? "Running" : 
-                       server.powerStatus.powerState === "STOPPED" ? "Stopped" : 
+          statusText = server.powerStatus.powerState === "RUNNING" ? "Running" :
+                       server.powerStatus.powerState === "STOPPED" ? "Stopped" :
                        server.powerStatus.powerState;
-        } 
+        }
         // Fall back to server.state or status
         else if (server.state) {
           statusText = server.state;
         } else if (server.status) {
           statusText = server.status;
         }
-        
+
         // Format owner information if available
         let ownerDisplay = "";
         if (typeof server.owner === 'object' && server.owner) {
           ownerDisplay = server.owner.username ? ` • Owner: ${server.owner.username}` : "";
         }
-        
+
         // Create search result object and add to results
         const serverResult: SearchResult = {
           id: server.id,
@@ -373,14 +373,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           url: `/admin/servers/${server.id}`,
           icon: <Server className="h-4 w-4" />,
         };
-        
+
         // Log the result object being added
         console.log('Adding server search result:', serverResult);
-        
+
         results.push(serverResult);
       }
     });
-    
+
     // Log all results found
     console.log('ALL SEARCH RESULTS:', results);
     console.log('Search results by type:', {
@@ -390,14 +390,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       servers: results.filter(r => r.type === "server").length,
       settings: results.filter(r => r.type === "setting").length,
     });
-    
+
     setSearchResults(results);
     setIsSearching(false);
     if (results.length > 0) {
       setActiveResultIndex(0);
     }
   }, [usersData, ticketsResponse, transactionsData, serversData, user]);
-  
+
   // Handle search query debounce
   useEffect(() => {
     if (searchQuery.length > 1 || (searchQuery.length === 1 && !isNaN(parseInt(searchQuery)))) {
@@ -405,14 +405,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       const delaySearch = setTimeout(() => {
         performSearch(searchQuery);
       }, 300);
-      
+
       return () => clearTimeout(delaySearch);
     } else if (searchQuery === '') {
       // Immediately clear results when query is cleared
       setSearchResults([]);
     }
   }, [searchQuery, performSearch]);
-  
+
   // Enhanced keyboard navigation for search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -427,7 +427,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           }
         }, 10);
       }
-      
+
       // Handle popup navigation with arrow keys
       if (showSearchPopup && searchResults.length > 0) {
         // Arrow down
@@ -438,7 +438,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             return nextIndex;
           });
         }
-        
+
         // Arrow up
         if (e.key === "ArrowUp") {
           e.preventDefault();
@@ -447,7 +447,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             return nextIndex;
           });
         }
-        
+
         // Enter to select
         if (e.key === "Enter" && activeResultIndex >= 0) {
           e.preventDefault();
@@ -456,7 +456,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             navigateToResult(selectedResult);
           }
         }
-        
+
         // Escape to close
         if (e.key === "Escape") {
           e.preventDefault();
@@ -465,7 +465,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         }
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [searchResults, activeResultIndex, showSearchPopup, navigateToResult]);
@@ -480,7 +480,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               className="flex items-center gap-2 font-semibold"
               href="/admin"
             >
-              <span 
+              <span
                 className="w-6 h-6 text-white flex items-center justify-center font-bold rounded"
                 style={{ backgroundColor: brandColors.primary?.full }}
               >
@@ -522,11 +522,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       !isActive && "hover:bg-opacity-80 hover:text-opacity-100"
                     )}
                     style={{
-                      ...(isActive 
+                      ...(isActive
                         ? {
                             backgroundColor: brandColors.primary?.lighter,
                             color: brandColors.primary?.full
-                          } 
+                          }
                         : {}),
                       "--hover-bg": brandColors.primary?.full,
                       "--hover-color": "white"
@@ -537,7 +537,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       <Icon className={cn(
                         "mr-2 h-4 w-4",
                         !isActive && "group-hover:text-[var(--hover-color)]"
-                      )} 
+                      )}
                       style={isActive ? { color: brandColors.primary?.full } : undefined} />
                       <span className={!isActive ? "group-hover:text-[var(--hover-color)]" : ""}>
                         {item.label}
@@ -581,7 +581,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 className="flex items-center gap-2 font-semibold"
                 href="/admin"
               >
-                <span 
+                <span
                   className="w-6 h-6 text-white flex items-center justify-center font-bold rounded"
                   style={{ backgroundColor: brandColors.primary?.full }}
                 >
@@ -632,11 +632,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         !isActive && "hover:bg-opacity-80 hover:text-opacity-100"
                       )}
                       style={{
-                        ...(isActive 
+                        ...(isActive
                           ? {
                               backgroundColor: brandColors.primary?.lighter,
                               color: brandColors.primary?.full
-                            } 
+                            }
                           : {}),
                         "--hover-bg": brandColors.primary?.full,
                         "--hover-color": "white"
@@ -647,7 +647,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         <Icon className={cn(
                           "mr-2 h-4 w-4",
                           !isActive && "group-hover:text-[var(--hover-color)]"
-                        )} 
+                        )}
                         style={isActive ? { color: brandColors.primary?.full } : undefined} />
                         {item.label}
                       </Link>
@@ -688,7 +688,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main content */}
       <div className="flex flex-col">
         {/* Header with Search */}
-        <header className="bg-white border-b border-gray-200 shadow-sm">
+        <header className="bg-background border-b border-border shadow-sm">
           <div className="flex items-center justify-between px-4 py-3">
             {/* Mobile logo - already shown in sidebar toggle */}
             <div className="flex-1 hidden lg:block" />
@@ -697,7 +697,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="flex-1 flex max-w-2xl mx-4 relative z-10">
               <div className="relative w-full">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <Search className="h-4 w-4 text-muted-foreground" />
                 </div>
                 <input
                   ref={searchInputRef}
@@ -712,17 +712,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     }
                   }}
                   onFocus={() => setShowSearchPopup(true)}
-                  className="h-10 w-full pl-10 pr-20 py-2 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-brand focus:border-brand"
+                  className="h-10 w-full pl-10 pr-20 py-2 border border-input bg-background text-foreground rounded-md text-sm focus:ring-2 focus:ring-ring focus:border-ring"
                   style={{ "--ring-color": brandColors.primary?.medium } as React.CSSProperties}
                 />
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs">
-                  <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-400">
+                  <kbd className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
                     ⌘K
                   </kbd>
                 </div>
               </div>
             </div>
-            
+
             {/* User Actions */}
             <div className="flex items-center space-x-2">
               <ThemeToggle />
@@ -738,16 +738,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </div>
         </header>
-        
+
         {/* Search Popup Dialog */}
         {showSearchPopup && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-16 px-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
+          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-start justify-center pt-16 px-4">
+            <div className="bg-background border border-border rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
               {/* Search Input in Dialog */}
-              <div className="p-4 border-b">
+              <div className="p-4 border-b border-border">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-4 w-4 text-gray-400" />
+                    <Search className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <input
                     ref={searchInputRef}
@@ -764,31 +764,31 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         performSearch(e.target.value);
                       }
                     }}
-                    className="h-10 w-full pl-10 pr-4 py-2 border border-gray-200 rounded-md text-sm focus:ring-2 focus:outline-none"
+                    className="h-10 w-full pl-10 pr-4 py-2 border border-input bg-background text-foreground rounded-md text-sm focus:ring-2 focus:outline-none focus:ring-ring"
                     style={{ "--ring-color": brandColors.primary?.medium } as React.CSSProperties}
                     autoFocus
                   />
                   <button
                     onClick={() => setShowSearchPopup(false)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-              
+
               {/* Search Results */}
               <div className="p-2">
                 {isSearching ? (
                   <div className="flex justify-center items-center p-4">
-                    <div className="animate-spin h-5 w-5 border-2 border-gray-300 rounded-full border-t-brand-600"
+                    <div className="animate-spin h-5 w-5 border-2 border-muted rounded-full border-t-primary"
                       style={{ borderTopColor: brandColors.primary?.full }} />
-                    <span className="ml-2 text-sm text-gray-500">Searching...</span>
+                    <span className="ml-2 text-sm text-muted-foreground">Searching...</span>
                   </div>
                 ) : (
                   <>
                     {searchQuery.length > 0 && searchResults.length === 0 ? (
-                      <div className="text-center p-4 text-gray-500">
+                      <div className="text-center p-4 text-muted-foreground">
                         No results found for "{searchQuery}"
                       </div>
                     ) : (
@@ -798,7 +798,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             {/* User Results */}
                             {searchResults.filter(result => result.type === "user").length > 0 && (
                               <div className="mb-4">
-                                <h3 className="text-xs font-semibold text-gray-500 uppercase px-3 mb-2">
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">
                                   Users
                                 </h3>
                                 <div className="space-y-1">
@@ -809,7 +809,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                       return (
                                         <button
                                           key={`${result.type}-${result.id}`}
-                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-gray-100 focus:outline-none"
+                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
                                           onClick={() => navigateToResult(result)}
                                           onMouseEnter={() => setActiveResultIndex(overallIndex)}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
@@ -820,7 +820,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                           <div className="flex-1 overflow-hidden">
                                             <div className="font-medium truncate">{result.name}</div>
                                             {result.description && (
-                                              <div className="text-xs text-gray-500 truncate">{result.description}</div>
+                                              <div className="text-xs text-muted-foreground truncate">{result.description}</div>
                                             )}
                                           </div>
                                         </button>
@@ -829,11 +829,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 </div>
                               </div>
                             )}
-                            
+
                             {/* Ticket Results */}
                             {searchResults.filter(result => result.type === "ticket").length > 0 && (
                               <div className="mb-4">
-                                <h3 className="text-xs font-semibold text-gray-500 uppercase px-3 mb-2">
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">
                                   Tickets
                                 </h3>
                                 <div className="space-y-1">
@@ -844,7 +844,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                       return (
                                         <button
                                           key={`${result.type}-${result.id}`}
-                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-gray-100 focus:outline-none"
+                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
                                           onClick={() => navigateToResult(result)}
                                           onMouseEnter={() => setActiveResultIndex(overallIndex)}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
@@ -855,7 +855,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                           <div className="flex-1 overflow-hidden">
                                             <div className="font-medium truncate">{result.name}</div>
                                             {result.description && (
-                                              <div className="text-xs text-gray-500 truncate">{result.description}</div>
+                                              <div className="text-xs text-muted-foreground truncate">{result.description}</div>
                                             )}
                                           </div>
                                         </button>
@@ -864,11 +864,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 </div>
                               </div>
                             )}
-                            
+
                             {/* Billing Results */}
                             {searchResults.filter(result => result.type === "billing").length > 0 && (
                               <div className="mb-4">
-                                <h3 className="text-xs font-semibold text-gray-500 uppercase px-3 mb-2">
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">
                                   Billing
                                 </h3>
                                 <div className="space-y-1">
@@ -879,7 +879,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                       return (
                                         <button
                                           key={`${result.type}-${result.id}`}
-                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-gray-100 focus:outline-none"
+                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
                                           onClick={() => navigateToResult(result)}
                                           onMouseEnter={() => setActiveResultIndex(overallIndex)}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
@@ -890,7 +890,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                           <div className="flex-1 overflow-hidden">
                                             <div className="font-medium truncate">{result.name}</div>
                                             {result.description && (
-                                              <div className="text-xs text-gray-500 truncate">{result.description}</div>
+                                              <div className="text-xs text-muted-foreground truncate">{result.description}</div>
                                             )}
                                           </div>
                                         </button>
@@ -899,11 +899,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 </div>
                               </div>
                             )}
-                            
+
                             {/* Server Results */}
                             {searchResults.filter(result => result.type === "server").length > 0 && (
                               <div className="mb-4">
-                                <h3 className="text-xs font-semibold text-gray-500 uppercase px-3 mb-2">
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">
                                   Servers
                                 </h3>
                                 <div className="space-y-1">
@@ -915,7 +915,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                       return (
                                         <button
                                           key={`${result.type}-${result.id}`}
-                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-gray-100 focus:outline-none"
+                                          className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
                                           onClick={() => navigateToResult(result)}
                                           onMouseEnter={() => setActiveResultIndex(overallIndex)}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
@@ -926,7 +926,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                           <div className="flex-1 overflow-hidden">
                                             <div className="font-medium truncate">{result.name}</div>
                                             {result.description && (
-                                              <div className="text-xs text-gray-500 truncate">{result.description}</div>
+                                              <div className="text-xs text-muted-foreground truncate">{result.description}</div>
                                             )}
                                           </div>
                                         </button>
@@ -937,20 +937,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             )}
 
                             {/* Keyboard Navigation Instructions */}
-                            <div className="px-3 pt-2 pb-3 text-xs text-gray-500 flex items-center justify-between border-t mt-2">
+                            <div className="px-3 pt-2 pb-3 text-xs text-muted-foreground flex items-center justify-between border-t border-border mt-2">
                               <div className="flex items-center space-x-3">
                                 <div className="flex items-center">
-                                  <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 font-mono text-xs text-gray-400">↑</kbd>
-                                  <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 font-mono text-xs text-gray-400 ml-1">↓</kbd>
+                                  <kbd className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 font-mono text-xs text-muted-foreground">↑</kbd>
+                                  <kbd className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 font-mono text-xs text-muted-foreground ml-1">↓</kbd>
                                   <span className="ml-1">to navigate</span>
                                 </div>
                                 <div className="flex items-center">
-                                  <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 font-mono text-xs text-gray-400">Enter</kbd>
+                                  <kbd className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 font-mono text-xs text-muted-foreground">Enter</kbd>
                                   <span className="ml-1">to select</span>
                                 </div>
                               </div>
                               <div className="flex items-center">
-                                <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 font-mono text-xs text-gray-400">Esc</kbd>
+                                <kbd className="inline-flex items-center justify-center rounded border border-border bg-muted px-1.5 font-mono text-xs text-muted-foreground">Esc</kbd>
                                 <span className="ml-1">to close</span>
                               </div>
                             </div>
@@ -964,7 +964,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </div>
         )}
-        
+
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-background">
           <div className="container mx-auto py-6 px-3 sm:px-4 md:px-6">
