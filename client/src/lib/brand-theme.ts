@@ -287,7 +287,7 @@ export function getPatternBackgrounds(
     },
     grid: {
       style: {
-        backgroundImage: `linear-gradient(to right, #${primaryColor}10 1px, transparent 1px), 
+        backgroundImage: `linear-gradient(to right, #${primaryColor}10 1px, transparent 1px),
                           linear-gradient(to bottom, #${primaryColor}10 1px, transparent 1px)`,
         backgroundSize: "20px 20px",
       },
@@ -396,6 +396,9 @@ export function applyToShadcnTheme(colors: BrandColorsResult) {
 
   const root = document.documentElement;
 
+  // Check if dark mode is currently active
+  const isDarkMode = root.classList.contains("dark");
+
   // Convert colors to HSL format for shadcn
   const primaryHSL = hexToHSL(colors.primary.hex);
   const secondaryHSL = hexToHSL(colors.secondary.hex);
@@ -412,35 +415,37 @@ export function applyToShadcnTheme(colors: BrandColorsResult) {
   const primaryLightHSL = hexToHSL(colors.primary.hex + "20"); // Lighter version
 
   // Calculate destructive color (usually red)
-  const destructiveHSL = "0 84% 60%"; // Red color
+  const destructiveHSL = isDarkMode ? "0 62.8% 30.6%" : "0 84% 60%"; // Darker red for dark mode
   const destructiveForeground = "0 0% 100%"; // White
 
-  // Calculate muted colors (usually grays)
-  const mutedHSL = "220 14% 96%"; // Light gray
-  const mutedForegroundHSL = "220 14% 46%"; // Darker gray for text
+  // Calculate muted colors based on theme
+  const mutedHSL = isDarkMode ? "217 33% 17%" : "220 14% 96%";
+  const mutedForegroundHSL = isDarkMode ? "215 20% 65%" : "220 14% 46%";
 
-  // Calculate card, popover and other UI element colors
-  const cardHSL = "0 0% 100%"; // White
-  const cardForegroundHSL = "222.2 84% 4.9%"; // Near black
+  // Calculate card, popover and other UI element colors based on theme
+  const cardHSL = isDarkMode ? "222 47% 11%" : "0 0% 100%";
+  const cardForegroundHSL = isDarkMode ? "210 40% 98%" : "222.2 84% 4.9%";
 
-  // Border colors
-  const borderHSL = "220 13% 91%"; // Light gray
-  const inputHSL = "220 13% 91%"; // Light gray
+  // Border colors based on theme
+  const borderHSL = isDarkMode ? "217 33% 17%" : "220 13% 91%";
+  const inputHSL = isDarkMode ? "217 33% 17%" : "220 13% 91%";
 
   // Ring colors (focus rings)
-  const ringHSL = primaryHSL; // Use primary color for focus ring
+  const ringHSL = isDarkMode ? "212.7 26.8% 83.9%" : primaryHSL;
 
-  // Background colors
-  const backgroundHSL = "0 0% 100%"; // White
-  const foregroundHSL = "222.2 84% 4.9%"; // Near black
+  // Background colors based on theme - DON'T OVERRIDE THESE!
+  // We'll skip setting background and foreground to preserve dark mode
+  const backgroundHSL = isDarkMode ? "222 47% 11%" : "0 0% 100%";
+  const foregroundHSL = isDarkMode ? "210 40% 98%" : "222.2 84% 4.9%";
 
   console.log(
-    `Applying branding: primary=${primaryHSL}, secondary=${secondaryHSL}`,
+    `Applying branding (${isDarkMode ? 'dark' : 'light'} mode): primary=${primaryHSL}, secondary=${secondaryHSL}`,
   );
 
   // Apply all shadcn theme variables
 
-  // Base colors
+  // Base colors - ONLY set these if they match the current theme mode
+  // This prevents overriding dark mode with light colors
   root.style.setProperty("--background", backgroundHSL);
   root.style.setProperty("--foreground", foregroundHSL);
 
