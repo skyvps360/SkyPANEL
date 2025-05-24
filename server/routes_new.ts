@@ -2,10 +2,9 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import https from "https";
 import axios from "axios";
-import fs from "fs";
-import path from "path";
 import * as net from "net";
 import { WebSocketServer } from "ws";
+import WebSocket from "ws";
 import { storage } from "./storage";
 import { db, pool } from "./db";
 import { setupAuth, hashPassword } from "./auth";
@@ -7790,6 +7789,64 @@ Generated on ${new Date().toLocaleString()}
     }
   });
 
+  // Test VNC connectivity (admin only)
+  app.get("/api/admin/servers/:id/vnc/test", isAdmin, async (req, res) => {
+    try {
+      const serverId = parseInt(req.params.id);
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      const host = req.query.host as string;
+      const port = parseInt(req.query.port as string);
+
+      if (!host || !port) {
+        return res.status(400).json({ error: "Missing host or port parameters" });
+      }
+
+      console.log(`Testing VNC connectivity to ${host}:${port}`);
+
+      const net = require('net');
+
+      const testConnection = () => {
+        return new Promise((resolve, reject) => {
+          const socket = net.createConnection({
+            host: host,
+            port: port,
+            timeout: 5000
+          });
+
+          socket.on('connect', () => {
+            console.log(`Successfully connected to VNC server ${host}:${port}`);
+            socket.destroy();
+            resolve({ success: true, message: 'VNC server is reachable' });
+          });
+
+          socket.on('timeout', () => {
+            console.log(`Connection timeout to VNC server ${host}:${port}`);
+            socket.destroy();
+            reject(new Error('Connection timeout'));
+          });
+
+          socket.on('error', (error) => {
+            console.log(`Connection error to VNC server ${host}:${port}:`, error.message);
+            reject(error);
+          });
+        });
+      };
+
+      const result = await testConnection();
+      res.json(result);
+    } catch (error: any) {
+      console.error(`Error testing VNC connectivity:`, error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        message: 'Failed to connect to VNC server'
+      });
+    }
+  });
+
   // Enable VNC for a server
   app.post("/api/admin/servers/:id/vnc/enable", isAdmin, async (req, res) => {
     try {
@@ -7942,15 +7999,13 @@ Generated on ${new Date().toLocaleString()}
         return;
       }
 
-      // Import required modules for WebSocket proxy
-      const WebSocket = require('ws');
-      const net = require('net');
+      // Use static imports (already imported at top of file)
 
       try {
         console.log('Creating WebSocket server for VNC proxy...');
 
         // Create WebSocket server for this connection
-        const wss = new WebSocket.Server({ noServer: true });
+        const wss = new WebSocketServer({ noServer: true });
 
         wss.handleUpgrade(request, socket, head, (ws) => {
           console.log(`VNC WebSocket proxy: Attempting to connect to ${host}:${portNum}`);
@@ -7982,7 +8037,9 @@ Generated on ${new Date().toLocaleString()}
           ws.on('message', (data) => {
             if (isConnected && vncSocket.writable) {
               try {
-                vncSocket.write(data);
+                // Convert WebSocket data to Buffer for TCP socket
+                const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
+                vncSocket.write(buffer);
               } catch (error) {
                 console.error('Error writing to VNC socket:', error);
               }

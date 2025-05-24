@@ -86,45 +86,64 @@ const VNCConsole: React.FC = () => {
         return;
       }
 
-      console.log('Loading NoVNC library...');
+      console.log('Loading NoVNC library from local files...');
 
-      // Load NoVNC from the installed package
-      const script = document.createElement('script');
-      script.src = '/node_modules/@novnc/novnc/lib/rfb.js';
-      script.type = 'text/javascript';
-
-      script.onload = () => {
-        console.log('NoVNC library loaded successfully');
-        if ((window as any).RFB) {
-          console.log('RFB class is available');
-          waitForCanvasAndInitialize();
-        } else {
-          console.error('RFB class not available after loading');
-          setConnectionError('NoVNC library failed to load properly');
-        }
+      // Set up event listeners first
+      const handleNoVNCReady = () => {
+        console.log('NoVNC RFB module loaded successfully:', typeof (window as any).RFB);
+        window.removeEventListener('novnc-ready', handleNoVNCReady);
+        window.removeEventListener('novnc-error', handleNoVNCError);
+        waitForCanvasAndInitialize();
       };
 
+      const handleNoVNCError = (event: any) => {
+        console.error('Failed to load NoVNC:', event.detail?.error);
+        window.removeEventListener('novnc-ready', handleNoVNCReady);
+        window.removeEventListener('novnc-error', handleNoVNCError);
+        setConnectionError('Failed to load NoVNC library from local files');
+      };
+
+      window.addEventListener('novnc-ready', handleNoVNCReady);
+      window.addEventListener('novnc-error', handleNoVNCError);
+
+      // Load the self-hosted RFB script (no external dependencies)
+      const script = document.createElement('script');
+      script.src = '/novnc/self-hosted-rfb.js';
+      script.type = 'text/javascript';
+
       script.onerror = () => {
-        console.error('Failed to load NoVNC library');
-        setConnectionError('Failed to load NoVNC library');
+        console.error('Failed to load self-hosted RFB script');
+        window.removeEventListener('novnc-ready', handleNoVNCReady);
+        window.removeEventListener('novnc-error', handleNoVNCError);
+        setConnectionError('Failed to load self-hosted NoVNC script');
       };
 
       document.head.appendChild(script);
+
     } catch (error) {
       console.error('Error loading NoVNC:', error);
-      setConnectionError('Failed to load VNC client');
+      setConnectionError('Failed to load NoVNC library: ' + (error as Error).message);
     }
   };
 
   const waitForCanvasAndInitialize = () => {
     // Wait for canvas to be rendered in DOM
+    let attempts = 0;
+    const maxAttempts = 50; // 5 seconds max wait
+
     const checkCanvas = () => {
+      attempts++;
+      console.log(`Checking for canvas element (attempt ${attempts}/${maxAttempts}):`, canvasRef.current);
+
       if (canvasRef.current) {
         console.log('Canvas is ready, initializing VNC...');
         initializeVNC();
-      } else {
+      } else if (attempts < maxAttempts) {
         console.log('Canvas not ready yet, retrying...');
         setTimeout(checkCanvas, 100);
+      } else {
+        console.error('Canvas element not found after maximum attempts');
+        setConnectionError('VNC display container not ready');
       }
     };
 
@@ -158,6 +177,13 @@ const VNCConsole: React.FC = () => {
       // Construct WebSocket URL for VNC proxy
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/vnc-proxy?host=${encodeURIComponent(host!)}&port=${port}`;
+
+      console.log('WebSocket URL construction:', {
+        windowProtocol: window.location.protocol,
+        windowHost: window.location.host,
+        protocol,
+        finalUrl: wsUrl
+      });
 
       console.log('VNC Connection Details:', {
         protocol,
@@ -267,12 +293,45 @@ const VNCConsole: React.FC = () => {
   };
 
   const reconnect = () => {
+    console.log('Reconnect button clicked - forcing NoVNC library reload');
+    setConnectionError(null);
+    setIsConnecting(true);
+    setIsConnected(false);
+
+    // Clean up existing connection
     if (rfbRef.current) {
-      rfbRef.current.disconnect();
+      try {
+        rfbRef.current.disconnect();
+      } catch (error) {
+        console.log('Error disconnecting:', error);
+      }
+      rfbRef.current = null;
     }
+
+    // Force reload NoVNC library by removing any existing scripts
+    const existingScripts = document.querySelectorAll('script[src*="novnc-loader"], script[type="module"]');
+    console.log('Removing existing NoVNC scripts:', existingScripts.length);
+    existingScripts.forEach(script => {
+      if (script.getAttribute('src')?.includes('novnc-loader') ||
+          script.innerHTML.includes('novnc') ||
+          script.innerHTML.includes('RFB')) {
+        script.remove();
+      }
+    });
+
+    // Clear the RFB from window object to force reload
+    try {
+      (window as any).RFB = undefined;
+      (window as any).rfb = undefined;
+      (window as any).NoVNC = undefined;
+    } catch (error) {
+      console.log('Error clearing window objects:', error);
+    }
+
+    // Restart the connection process after a short delay
     setTimeout(() => {
-      initializeVNC();
-    }, 1000);
+      loadNoVNCAndInitialize();
+    }, 500);
   };
 
   const toggleFullscreen = () => {
@@ -338,7 +397,7 @@ const VNCConsole: React.FC = () => {
               className="flex items-center space-x-1"
               style={isConnected ? {
                 backgroundColor: brandColors.primary.full,
-                color: brandColors.primary.foreground
+                color: 'white'
               } : {}}
             >
               {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
@@ -405,7 +464,7 @@ const VNCConsole: React.FC = () => {
                 className="w-full"
                 style={{
                   backgroundColor: brandColors.primary.full,
-                  color: brandColors.primary.foreground
+                  color: 'white'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = brandColors.primary.dark;
