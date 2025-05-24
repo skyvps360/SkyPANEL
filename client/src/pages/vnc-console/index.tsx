@@ -106,16 +106,16 @@ const VNCConsole: React.FC = () => {
       window.addEventListener('novnc-ready', handleNoVNCReady);
       window.addEventListener('novnc-error', handleNoVNCError);
 
-      // Load the self-hosted RFB script (no external dependencies)
+      // Load the RealVNC client script
       const script = document.createElement('script');
-      script.src = '/novnc/self-hosted-rfb.js';
+      script.src = '/novnc/realvnc-client.js';
       script.type = 'text/javascript';
 
       script.onerror = () => {
-        console.error('Failed to load self-hosted RFB script');
+        console.error('Failed to load RealVNC client script');
         window.removeEventListener('novnc-ready', handleNoVNCReady);
         window.removeEventListener('novnc-error', handleNoVNCError);
-        setConnectionError('Failed to load self-hosted NoVNC script');
+        setConnectionError('Failed to load RealVNC client script');
       };
 
       document.head.appendChild(script);
@@ -195,51 +195,28 @@ const VNCConsole: React.FC = () => {
         canvasElement: canvasRef.current
       });
 
-      // Test WebSocket connection first
-      console.log('Testing WebSocket connection to:', wsUrl);
-      const testWs = new WebSocket(wsUrl);
+      // Create the RFB connection directly (no test connection)
+      try {
+        console.log('Creating RFB connection...');
+        rfbRef.current = new (window as any).RFB(canvasRef.current, wsUrl, {
+          credentials: { password: password },
+          repeaterID: '',
+          shared: true,
+          wsProtocols: ['binary'],
+        });
 
-      testWs.onopen = () => {
-        console.log('WebSocket test connection successful');
-        testWs.close();
+        // Set up event handlers
+        rfbRef.current.addEventListener('connect', handleConnect);
+        rfbRef.current.addEventListener('disconnect', handleDisconnect);
+        rfbRef.current.addEventListener('credentialsrequired', handleCredentialsRequired);
+        rfbRef.current.addEventListener('securityfailure', handleSecurityFailure);
 
-        // Now create the RFB connection
-        try {
-          console.log('Creating RFB connection...');
-          rfbRef.current = new (window as any).RFB(canvasRef.current, wsUrl, {
-            credentials: { password: password },
-            repeaterID: '',
-            shared: true,
-            wsProtocols: ['binary'],
-          });
-
-          // Set up event handlers
-          rfbRef.current.addEventListener('connect', handleConnect);
-          rfbRef.current.addEventListener('disconnect', handleDisconnect);
-          rfbRef.current.addEventListener('credentialsrequired', handleCredentialsRequired);
-          rfbRef.current.addEventListener('securityfailure', handleSecurityFailure);
-
-          console.log('RFB connection created successfully');
-        } catch (rfbError) {
-          console.error('Error creating RFB connection:', rfbError);
-          setConnectionError('Failed to create VNC connection: ' + (rfbError as Error).message);
-          setIsConnecting(false);
-        }
-      };
-
-      testWs.onerror = (error) => {
-        console.error('WebSocket test connection failed:', error);
-        setConnectionError('Failed to connect to VNC proxy server');
+        console.log('RFB connection created successfully');
+      } catch (rfbError) {
+        console.error('Error creating RFB connection:', rfbError);
+        setConnectionError('Failed to create VNC connection: ' + (rfbError as Error).message);
         setIsConnecting(false);
-      };
-
-      testWs.onclose = (event) => {
-        if (event.code !== 1000) { // 1000 is normal closure
-          console.error('WebSocket test connection closed unexpectedly:', event.code, event.reason);
-          setConnectionError(`WebSocket connection failed (Code: ${event.code})`);
-          setIsConnecting(false);
-        }
-      };
+      }
 
     } catch (error) {
       console.error('Error initializing VNC:', error);
