@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -50,7 +50,7 @@ const generateCSV = (users: User[]): string => {
     user.credits.toString(),
     new Date(user.createdAt).toLocaleDateString()
   ]);
-  
+
   return [
     headers.join(","),
     ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(","))
@@ -62,11 +62,11 @@ const downloadCSV = (csv: string, filename: string): void => {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
-  
+
   link.setAttribute('href', url);
   link.setAttribute('download', filename);
   link.style.visibility = 'hidden';
-  
+
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -124,7 +124,7 @@ export default function UsersPage() {
       });
     }
   });
-  
+
   // Update user status mutation (enable/suspend)
   const updateStatusMutation = useMutation({
     mutationFn: async ({ userId, enabled }: { userId: number; enabled: boolean }) => {
@@ -149,7 +149,7 @@ export default function UsersPage() {
       });
     }
   });
-  
+
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
@@ -166,17 +166,42 @@ export default function UsersPage() {
       refetch();
     },
     onError: (error: any) => {
-      // Check if this is a server-with-users error (409 Conflict)
-      if (error.status === 409 || (error.details && error.details.includes("servers"))) {
+      console.error("User deletion error:", error);
+
+      // Handle specific error cases with detailed user-friendly messages
+      if (error.status === 409) {
+        // User has active servers
+        toast({
+          title: "Cannot Delete User",
+          description: "This user has active servers in VirtFusion. Please delete or transfer all servers before deleting the user account to maintain data synchronization.",
+          variant: "destructive",
+        });
+      } else if (error.status === 500 && error.details?.includes("verify server status")) {
+        // Cannot verify server status
+        toast({
+          title: "Server Status Check Failed",
+          description: "Unable to verify if the user has active servers in VirtFusion. Deletion was prevented to avoid data synchronization issues. Please try again later.",
+          variant: "destructive",
+        });
+      } else if (error.status === 500 && error.details?.includes("Failed to delete user from VirtFusion")) {
+        // VirtFusion deletion failed
+        toast({
+          title: "VirtFusion Deletion Failed",
+          description: "The user could not be deleted from VirtFusion. The user remains in both systems to maintain synchronization. Please check VirtFusion connectivity and try again.",
+          variant: "destructive",
+        });
+      } else if (error.details?.includes("servers")) {
+        // Generic server-related error
         toast({
           title: "Cannot Delete User",
           description: "This user has active servers. Please delete or transfer all servers before deleting the user account.",
           variant: "destructive",
         });
       } else {
+        // Generic error
         toast({
-          title: "Error deleting user",
-          description: error.details || error.message || "Failed to delete user",
+          title: "Error Deleting User",
+          description: error.details || error.message || "Failed to delete user. Please try again.",
           variant: "destructive",
         });
       }
@@ -186,7 +211,7 @@ export default function UsersPage() {
   // Handle role change
   const handleRoleChange = () => {
     if (!selectedUser || !selectedRole) return;
-    
+
     updateRoleMutation.mutate({
       userId: selectedUser.id,
       role: selectedRole
@@ -199,8 +224,8 @@ export default function UsersPage() {
     setSelectedRole(user.role);
     setRoleDialogOpen(true);
   };
-  
-  // Open status dialog 
+
+  // Open status dialog
   const openStatusDialog = (user: User) => {
     setSelectedUser(user);
     // If user is currently active (isActive is true or undefined), we're going to suspend them (set to false)
@@ -209,27 +234,27 @@ export default function UsersPage() {
     setUserStatus(user.isActive === false); // If user is inactive, we want to enable them (userStatus=true)
     setStatusDialogOpen(true);
   };
-  
+
   // Open delete dialog
   const openDeleteDialog = (user: User) => {
     setSelectedUser(user);
     setDeleteDialogOpen(true);
   };
-  
+
   // Handle status change
   const handleStatusChange = () => {
     if (!selectedUser) return;
-    
+
     updateStatusMutation.mutate({
       userId: selectedUser.id,
       enabled: userStatus
     });
   };
-  
+
   // Handle user deletion
   const handleDeleteUser = () => {
     if (!selectedUser) return;
-    
+
     deleteUserMutation.mutate(selectedUser.id);
   };
 
@@ -319,8 +344,8 @@ export default function UsersPage() {
             <UserCog className="h-4 w-4 mr-2" />
             Change Role
           </DropdownMenuItem>
-          
-          <DropdownMenuItem 
+
+          <DropdownMenuItem
             onClick={() => openStatusDialog(user)}
             className={user.isActive === false ? "text-amber-600" : "text-gray-700"}
           >
@@ -336,8 +361,8 @@ export default function UsersPage() {
               </>
             )}
           </DropdownMenuItem>
-          
-          <DropdownMenuItem 
+
+          <DropdownMenuItem
             onClick={() => openDeleteDialog(user)}
             className="text-red-600 hover:bg-red-50"
           >
@@ -346,7 +371,7 @@ export default function UsersPage() {
           </DropdownMenuItem>
         </>
       )}
-      
+
       <DropdownMenuItem onClick={() => navigate(`/admin/users/${user.id}`)}>
         <UserIcon className="h-4 w-4 mr-2" />
         View User
@@ -363,8 +388,8 @@ export default function UsersPage() {
           <p className="text-gray-500 mt-1">Manage your users and their permissions</p>
         </div>
         <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex items-center"
             onClick={() => {
               const csv = generateCSV(users);
@@ -433,8 +458,8 @@ export default function UsersPage() {
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground mt-1">
-                {selectedRole === "admin" 
-                  ? "Administrators have full access to all features and settings." 
+                {selectedRole === "admin"
+                  ? "Administrators have full access to all features and settings."
                   : "Clients can manage their own servers and billing."}
               </p>
             </div>
@@ -457,7 +482,7 @@ export default function UsersPage() {
             <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleRoleChange}
               disabled={updateRoleMutation.isPending || selectedRole === selectedUser?.role}
             >
@@ -483,7 +508,7 @@ export default function UsersPage() {
               )}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {userStatus ? (
               <div className="flex items-start p-4 rounded-md bg-green-50 text-green-800 border border-green-200">
@@ -513,7 +538,7 @@ export default function UsersPage() {
             <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
+            <Button
               onClick={handleStatusChange}
               disabled={updateStatusMutation.isPending}
               variant={userStatus ? "default" : "destructive"}
@@ -523,7 +548,7 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Delete User Confirmation */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -538,8 +563,8 @@ export default function UsersPage() {
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
-          <div className="mt-4 mb-5">
+
+          <div className="mt-4 mb-5 space-y-3">
             <div className="flex items-start p-4 rounded-md bg-red-50 text-red-800 border border-red-200">
               <Trash2 className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
@@ -550,8 +575,19 @@ export default function UsersPage() {
                 </p>
               </div>
             </div>
+
+            <div className="flex items-start p-4 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+              <ShieldAlert className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium">Server Check Required</p>
+                <p className="mt-1">
+                  The system will first verify that this user has no active servers in VirtFusion.
+                  If servers are found, deletion will be prevented to maintain data synchronization.
+                </p>
+              </div>
+            </div>
           </div>
-          
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction

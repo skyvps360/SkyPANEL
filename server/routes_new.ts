@@ -82,30 +82,30 @@ async function generateInvoice(transaction: Transaction | Invoice, status: strin
       console.log(`Using existing invoice ${transaction.invoiceNumber}`);
       return generatePdfForInvoice(transaction as Invoice);
     }
-    
+
     // Cast transaction to its proper type to access properties - this is critical for the function to work
     const transactionData = transaction as Transaction;
 
     console.log(`Generating invoice for transaction ${transactionData.id}`);
-    
+
     // Get tax rate setting
     const taxRateSetting = await storage.getSetting('tax_rate');
     console.log(`Tax rate setting:`, taxRateSetting);
     const taxRate = taxRateSetting ? parseFloat(taxRateSetting.value) / 100 : 0;
-    
+
     // Get currency setting
     const currencySetting = await storage.getSetting('currency');
     console.log(`Currency setting:`, currencySetting);
     const currency = currencySetting ? currencySetting.value : 'USD';
-    
+
     // Calculate tax and total amounts
     const taxAmount = transactionData.amount * taxRate;
     const totalAmount = transactionData.amount + taxAmount;
-    
+
     // Generate invoice number
     const invoiceNumber = await storage.generateInvoiceNumber();
     console.log(`Generated invoice number: ${invoiceNumber}`);
-    
+
     // Create invoice items - ensure it's properly formatted as JSON
     const items = JSON.stringify([{
       description: transactionData.description,
@@ -113,12 +113,12 @@ async function generateInvoice(transaction: Transaction | Invoice, status: strin
       unitPrice: transactionData.amount,
       totalPrice: transactionData.amount
     }]);
-    
+
     // Prepare invoice data
     // Due in 7 days
-    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); 
+    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const paidDate = status === 'paid' ? new Date() : undefined;
-    
+
     // IMPORTANT FIX: Don't use ISO strings for dates, store actual Date objects
     // This was causing the critical bug with invoice generation
     const invoiceData: InsertInvoice = {
@@ -135,26 +135,26 @@ async function generateInvoice(transaction: Transaction | Invoice, status: strin
       paidDate: paidDate, // Use the actual Date object
       notes: `Generated for transaction #${transactionData.id}`
     };
-    
+
     console.log(`Invoice data prepared:`, {
       invoiceNumber,
       transactionId: transactionData.id,
       amount: transactionData.amount,
       status
     });
-    
+
     try {
       // Create invoice in database
       const invoice = await storage.createInvoice(invoiceData);
       console.log(`Invoice created in database:`, invoice);
-      
+
       // Update transaction with invoice number
       await storage.updateTransaction(transactionData.id, {
         invoiceNumber: invoiceNumber
       });
-      
+
       console.log(`Invoice ${invoiceNumber} generated successfully for transaction ${transactionData.id}`);
-      
+
       // Generate PDF for the invoice
       return generatePdfForInvoice(invoice);
     } catch (dbError: any) {
@@ -175,24 +175,24 @@ async function generatePdfForInvoice(invoice: Invoice): Promise<string> {
       // Create a new PDF document
       const doc = new PDFDocument({ margin: 50 });
       const chunks: Buffer[] = [];
-      
+
       // Collect the PDF data chunks
       doc.on('data', (chunk) => {
         chunks.push(chunk);
       });
-      
+
       // When finished, resolve with the complete PDF data
       doc.on('end', () => {
         const pdfData = Buffer.concat(chunks).toString('base64');
         resolve(pdfData);
       });
-      
+
       // Get user from storage
       storage.getUser(invoice.userId)
         .then(user => {
           // Format the invoice
           formatInvoicePdf(doc, invoice, user);
-          
+
           // Finalize the PDF
           doc.end();
         })
@@ -214,17 +214,17 @@ function formatInvoicePdf(doc: PDFKit.PDFDocument, invoice: Invoice, user?: User
   doc.moveDown(0.5);
   doc.fontSize(12).font('Helvetica').text('skyvps360.xyz', { align: 'center' });
   doc.text('Email: support@skyvps360.xyz', { align: 'center' });
-  
+
   // Add separation line
   doc.moveDown(1);
   doc.strokeColor('#cccccc').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
   doc.moveDown(1);
-  
+
   // Invoice header
   doc.fontSize(16).font('Helvetica-Bold').text('INVOICE', { align: 'right' });
   doc.fontSize(12).font('Helvetica').text(`Invoice Number: ${invoice.invoiceNumber}`, { align: 'right' });
   doc.text(`Date: ${formatDate(invoice.createdAt)}`, { align: 'right' });
-  
+
   // Only show due date for non-credit purchase invoices
   // Check if the description doesn't include credit purchase or credit addition
   // First, try to parse the items if they're a JSON string
@@ -237,23 +237,23 @@ function formatInvoicePdf(doc: PDFKit.PDFDocument, invoice: Invoice, user?: User
       parsedItems = [];
     }
   }
-  
+
   // Check if we should show due date - only for non-credit purchases
   let showDueDate = false;
   if (parsedItems && Array.isArray(parsedItems) && parsedItems.length > 0) {
-    showDueDate = !parsedItems.some(item => 
-      item.description && 
-      (item.description.toLowerCase().includes('credit purchase') || 
+    showDueDate = !parsedItems.some(item =>
+      item.description &&
+      (item.description.toLowerCase().includes('credit purchase') ||
        item.description.toLowerCase().includes('credit addition'))
     );
   }
-  
+
   if (showDueDate) {
     doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, { align: 'right' });
   }
-  
+
   doc.text(`Status: ${invoice.status.toUpperCase()}`, { align: 'right' });
-  
+
   // Client information
   doc.moveDown(1);
   doc.fontSize(14).font('Helvetica-Bold').text('Bill To:');
@@ -265,30 +265,30 @@ function formatInvoicePdf(doc: PDFKit.PDFDocument, invoice: Invoice, user?: User
   } else {
     doc.text(`Client ID: ${invoice.userId}`);
   }
-  
+
   // Invoice details - Table Header
   doc.moveDown(2);
   const tableTop = doc.y;
   doc.fontSize(12).font('Helvetica-Bold');
-  
+
   // Draw table headers
   let currY = tableTop;
   doc.text('Description', 50, currY);
   doc.text('Quantity', 300, currY, { width: 90, align: 'right' });
   doc.text('Unit Price', 390, currY, { width: 70, align: 'right' });
   doc.text('Amount', 460, currY, { width: 90, align: 'right' });
-  
+
   currY += 20;
   doc.strokeColor('#cccccc').lineWidth(1).moveTo(50, currY).lineTo(550, currY).stroke();
   currY += 10;
-  
+
   // Invoice items
   doc.fontSize(12).font('Helvetica');
-  
+
   try {
     // Parse the items if it's a JSON string
     let parsedItems = invoice.items;
-    
+
     if (typeof invoice.items === 'string') {
       try {
         parsedItems = JSON.parse(invoice.items);
@@ -298,7 +298,7 @@ function formatInvoicePdf(doc: PDFKit.PDFDocument, invoice: Invoice, user?: User
         parsedItems = null;
       }
     }
-    
+
     if (parsedItems && Array.isArray(parsedItems)) {
       parsedItems.forEach(item => {
         doc.text(item.description, 50, currY);
@@ -324,31 +324,31 @@ function formatInvoicePdf(doc: PDFKit.PDFDocument, invoice: Invoice, user?: User
     doc.text(formatCurrency(invoice.amount, invoice.currency), 460, currY, { width: 90, align: 'right' });
     currY += 20;
   }
-  
+
   // Draw line after items
   doc.strokeColor('#cccccc').lineWidth(1).moveTo(50, currY).lineTo(550, currY).stroke();
   currY += 10;
-  
+
   // Summary table
   doc.fontSize(12).font('Helvetica-Bold');
   doc.text('Subtotal:', 350, currY);
   doc.font('Helvetica');
   doc.text(formatCurrency(invoice.amount, invoice.currency), 460, currY, { width: 90, align: 'right' });
   currY += 20;
-  
+
   doc.fontSize(12).font('Helvetica-Bold');
   doc.text('Tax:', 350, currY);
   doc.font('Helvetica');
   doc.text(formatCurrency(invoice.taxAmount, invoice.currency), 460, currY, { width: 90, align: 'right' });
   currY += 20;
-  
+
   doc.strokeColor('#cccccc').lineWidth(1).moveTo(350, currY).lineTo(550, currY).stroke();
   currY += 10;
-  
+
   doc.fontSize(14).font('Helvetica-Bold');
   doc.text('TOTAL:', 350, currY);
   doc.text(formatCurrency(invoice.totalAmount, invoice.currency), 460, currY, { width: 90, align: 'right' });
-  
+
   // Payment Details
   doc.moveDown(2);
   doc.fontSize(12).font('Helvetica-Bold').text('Payment Information:');
@@ -357,22 +357,22 @@ function formatInvoicePdf(doc: PDFKit.PDFDocument, invoice: Invoice, user?: User
   if (invoice.paidDate) {
     doc.text(`Payment Date: ${formatDate(invoice.paidDate)}`);
   }
-  
+
   // Notes section
   doc.moveDown(1);
   doc.fontSize(12).font('Helvetica-Bold').text('Notes:');
   doc.fontSize(12).font('Helvetica');
-  
+
   // Add transaction ID reference
   if (invoice.transactionId) {
     doc.text(`Generated for transaction #${invoice.transactionId}`);
   }
-  
+
   // Show invoice notes if available
   if (invoice.notes) {
     doc.text(invoice.notes);
   }
-  
+
   // Footer
   const footerY = doc.page.height - 100;
   doc.fontSize(10).font('Helvetica');
@@ -410,21 +410,21 @@ export class VirtFusionApi {
     // Make sure the URL doesn't have a trailing slash and doesn't include /api/v1 twice
     const apiUrl = process.env.VIRTFUSION_API_URL || "https://skyvps360.xyz";
     this.apiUrl = apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
-    
+
     // Ensure API URL ends with /api/v1
     if (!this.apiUrl.endsWith("/api/v1")) {
       this.apiUrl = `${this.apiUrl}/api/v1`;
     }
-    
+
     this.apiToken = process.env.VIRTFUSION_API_TOKEN || "";
     this.sslVerify = true;
   }
-  
+
   // Check if VirtFusion API is properly configured
   isConfigured(): boolean {
     return !!this.apiUrl && !!this.apiToken;
   }
-  
+
   // Get the API URL (for diagnostics)
   getApiUrl(): string {
     return this.apiUrl;
@@ -442,27 +442,27 @@ export class VirtFusionApi {
       // Always prioritize environment variables over database settings
       if (process.env.VIRTFUSION_API_URL) {
         let apiUrl = process.env.VIRTFUSION_API_URL.trim();
-        
+
         // Remove trailing slash if present
         if (apiUrl.endsWith('/')) {
           apiUrl = apiUrl.slice(0, -1);
         }
-        
+
         // Ensure API URL ends with /api/v1
         if (!apiUrl.endsWith('/api/v1')) {
           apiUrl = `${apiUrl}/api/v1`;
         }
-        
+
         this.apiUrl = apiUrl;
         console.log(`Using VirtFusion API URL from environment: ${this.apiUrl}`);
       }
-      
+
       if (process.env.VIRTFUSION_API_TOKEN) {
         this.apiToken = process.env.VIRTFUSION_API_TOKEN.trim();
         console.log("Using VirtFusion API token from environment");
       }
 
-      // SSL verification from environment variable 
+      // SSL verification from environment variable
       if (process.env.VIRTFUSION_SSL_VERIFY !== undefined) {
         // Convert string to boolean properly
         const sslValue = String(process.env.VIRTFUSION_SSL_VERIFY).trim().toLowerCase();
@@ -473,7 +473,7 @@ export class VirtFusionApi {
       // If environment variables are not set, fall back to database settings (for backward compatibility)
       if (!process.env.VIRTFUSION_API_URL || !process.env.VIRTFUSION_API_TOKEN) {
         console.log("Environment variables not fully set, checking database settings as fallback");
-        
+
         const apiUrlSetting = await storage.getSetting("virtfusion_api_url");
         const apiTokenSetting = await storage.getSetting("virtfusion_api_token");
         const sslVerifySetting = await storage.getSetting("virtfusion_ssl_verify");
@@ -487,21 +487,21 @@ export class VirtFusionApi {
         // Only use DB settings if environment variables aren't set
         if (!process.env.VIRTFUSION_API_URL && apiUrlSetting?.value) {
           let apiUrl = apiUrlSetting.value.trim();
-          
+
           // Remove trailing slash if present
           if (apiUrl.endsWith('/')) {
             apiUrl = apiUrl.slice(0, -1);
           }
-          
+
           // Ensure API URL ends with /api/v1
           if (!apiUrl.endsWith('/api/v1')) {
             apiUrl = `${apiUrl}/api/v1`;
           }
-          
+
           this.apiUrl = apiUrl;
           console.log("Using VirtFusion API URL from database");
         }
-        
+
         if (!process.env.VIRTFUSION_API_TOKEN && apiTokenSetting?.value) {
           this.apiToken = apiTokenSetting.value.trim();
           console.log("Using VirtFusion API token from database");
@@ -1025,7 +1025,7 @@ export class VirtFusionApi {
       `/users/${extRelationId}/byExtRelation/resetPassword`,
       passwordData,
     );
-    
+
     // Return the full response which includes the generated password
     return response;
   }
@@ -1384,15 +1384,15 @@ export class VirtFusionApi {
   ) {
     console.log(`Attempting to add credit (${data.tokens} tokens) to user with extRelationId: ${extRelationId}`);
     console.log("Using exact format from VirtFusion API documentation");
-    
+
     // This is the exact format as specified in the VirtFusion documentation
     // https://docs.virtfusion.com/api/stoplight.html#/paths/selfService-credit-byUserExtRelationId-extRelationId/post
-    
+
     // Log the full request details for debugging
     const endpoint = `/selfService/credit/byUserExtRelationId/${extRelationId}`;
     console.log(`Using endpoint: ${endpoint}`);
     console.log(`Request data:`, JSON.stringify(data, null, 2));
-    
+
     try {
       return await this.request(
         "POST",
@@ -1401,20 +1401,20 @@ export class VirtFusionApi {
       );
     } catch (error: any) {
       console.error("VirtFusion credit API error:", error);
-      
+
       // Additional debugging information
       if (error.response) {
         console.error("Response status:", error.response.status);
         console.error("Response data:", error.response.data);
       }
-      
+
       // For 404 errors, log more details about the API URL and paths
       if (error.message && error.message.includes("404")) {
         console.error("Received 404 - API endpoint may be incorrect");
         console.error("Check if the API URL is correctly configured and includes /api/v1");
         console.error(`Current API URL base: ${this.apiUrl}`);
         console.error(`Attempted endpoint: ${endpoint}`);
-        
+
         // Try one alternative as a last resort - direct users endpoint
         try {
           console.log("Making one final attempt with users endpoint");
@@ -1428,7 +1428,7 @@ export class VirtFusionApi {
           throw error; // Throw the original error
         }
       }
-      
+
       throw error;
     }
   }
@@ -1467,7 +1467,7 @@ export class VirtFusionApi {
       },
     );
   }
-  
+
   /**
    * Add default resource pack (ID=1) to a new user
    * This is used when creating new users to automatically assign them the default resource pack
@@ -1608,7 +1608,7 @@ export class VirtFusionApi {
         );
 
         // If API endpoints fail, provide default templates for testing
-        return { 
+        return {
           data: [
             {
               id: 1,
@@ -1650,7 +1650,7 @@ export class VirtFusionApi {
       }
     }
   }
-  
+
   // Get OS templates available for a specific package
   async getOsTemplatesForPackage(packageId: number) {
     try {
@@ -1658,13 +1658,13 @@ export class VirtFusionApi {
       return await this.request("GET", `/media/templates/fromServerPackageSpec/${packageId}`);
     } catch (error) {
       console.error(`Error fetching OS templates for package ${packageId} using media/templates endpoint:`, error);
-      
+
       try {
         console.log(`Attempting to fetch OS templates for package ID: ${packageId} using server-package endpoint`);
         return await this.request("GET", `/server-packages/${packageId}/templates`);
       } catch (secondError) {
         console.error(`Error fetching OS templates for package ${packageId} using server-package endpoint:`, secondError);
-        
+
         try {
           // Fallback to generic OS templates
           console.log(`Falling back to generic OS templates for package ${packageId}`);
@@ -1672,7 +1672,7 @@ export class VirtFusionApi {
         } catch (thirdError) {
           console.error("Error fetching generic OS templates as fallback:", thirdError);
           // Return default templates for testing if all attempts fail
-          return { 
+          return {
             data: [
               {
                 id: 1,
@@ -1786,7 +1786,7 @@ async function testVirtFusionUserCreation(
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  
+
   // Maintenance mode status endpoint
   app.get("/api/maintenance/status", async (req, res) => {
     try {
@@ -1797,28 +1797,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Failed to fetch maintenance status' });
     }
   });
-  
+
   // Maintenance mode admin endpoints
   app.post("/api/maintenance/toggle", isAdmin, async (req, res) => {
     try {
       const { enabled, message, estimatedCompletion } = req.body;
-      
+
       if (typeof enabled !== 'boolean') {
         return res.status(400).json({ error: "Enabled status must be a boolean" });
       }
-      
+
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
       }
-      
+
       // Get admin user information for email notifications
       const adminUser = req.user ? {
         fullName: req.user.fullName,
         username: req.user.username
       } : undefined;
-      
+
       const status = await toggleMaintenanceMode(enabled, message, estimatedCompletion, adminUser);
-      
+
       return res.json({
         success: true,
         ...status,
@@ -1829,7 +1829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Failed to toggle maintenance mode' });
     }
   });
-  
+
   // Get maintenance token for admin
   app.get("/api/maintenance/token", isAdmin, (req, res) => {
     try {
@@ -1840,7 +1840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Failed to fetch maintenance token' });
     }
   });
-  
+
   // Regenerate maintenance token
   app.post("/api/maintenance/token/regenerate", isAdmin, async (req, res) => {
     try {
@@ -1855,33 +1855,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: 'Failed to regenerate maintenance token' });
     }
   });
-  
+
   // Validate maintenance token and set a cookie to bypass maintenance mode
   // (This endpoint is used by the maintenance page to enable individual access)
   app.post("/api/maintenance/token/validate", (req, res) => {
     try {
       console.log('Maintenance token validation request received');
       console.log('Request body:', req.body);
-      
+
       const { token } = req.body;
-      
+
       if (!token) {
         console.log('No token provided in request');
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Token is required' 
+        return res.status(400).json({
+          success: false,
+          message: 'Token is required'
         });
       }
-      
+
       console.log('Validating token:', token);
       const isValid = validateMaintenanceToken(token);
       console.log('Token is valid:', isValid);
-      
+
       if (isValid) {
         // Set both the session and cookie bypass
         req.session.maintenanceBypass = true;
         console.log('Setting maintenance bypass in session');
-        
+
         // Set cookie for browser-based bypass (lasts 24 hours)
         // Make sure to use a string value for the cookie
         console.log('Setting maintenance_bypass cookie');
@@ -1892,7 +1892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           path: '/',
           sameSite: 'lax'
         });
-        
+
         // Save the session explicitly to ensure it persists
         req.session.save((err) => {
           if (err) {
@@ -1902,7 +1902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: 'Failed to save session state'
             });
           }
-          
+
           console.log('Session and cookie saved successfully');
           return res.json({
             success: true,
@@ -1918,9 +1918,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error) {
       console.error('Error validating maintenance token:', error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         success: false,
-        message: 'Failed to validate maintenance token' 
+        message: 'Failed to validate maintenance token'
       });
     }
   });
@@ -1929,13 +1929,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Getting all packages for public display");
       const virtFusionApi = new VirtFusionApi();
-      
+
       // Check if environment variables are set
       if (!process.env.VIRTFUSION_API_URL || !process.env.VIRTFUSION_API_TOKEN) {
         console.warn("IMPORTANT: VIRTFUSION_API_URL and/or VIRTFUSION_API_TOKEN environment variables are not set!");
         console.warn("For better security, please set these environment variables instead of using database settings.");
       }
-      
+
       await virtFusionApi.updateSettings();
 
       try {
@@ -1948,7 +1948,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const packagesData = await virtFusionApi.getPackages();
-      
+
       // Handle different response formats
       let packages;
       if (Array.isArray(packagesData)) {
@@ -1958,15 +1958,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         packages = [];
       }
-      
+
       // Include ALL packages (both enabled and disabled) and sort by memory size
       const allPackages = packages
         .sort((a: any, b: any) => a.memory - b.memory);
-      
+
       res.json(allPackages);
     } catch (error: any) {
       console.error("Error fetching public packages:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to load available packages. Please try again later."
       });
     }
@@ -1985,25 +1985,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/user/profile", isAuthenticated, async (req, res) => {
     try {
       console.log("Profile update request received:", req.body);
-      
+
       const userId = req.user!.id;
       console.log("User ID:", userId);
-      
+
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         console.log("User not found for ID:", userId);
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       console.log("Found user:", user);
-      
+
       // Validate the request body
       const updateSchema = z.object({
         fullName: z.string().min(1).optional(),
         email: z.string().email().optional(),
       });
-      
+
       let validatedData;
       try {
         validatedData = updateSchema.parse(req.body);
@@ -2015,7 +2015,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         throw error;
       }
-      
+
       // If email is changing, check if the new email is already in use
       if (validatedData.email && validatedData.email !== user.email) {
         const existingUser = await storage.getUserByEmail(validatedData.email);
@@ -2024,23 +2024,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "Email is already in use" });
         }
       }
-      
+
       // Update user in database
       console.log("Updating user in database:", validatedData);
       await storage.updateUser(userId, validatedData);
-      
+
       // If user is linked to VirtFusion, sync the changes
       if (user.virtFusionId) {
         try {
           console.log(`Syncing user ${userId} with VirtFusion ID ${user.virtFusionId}`);
-          
+
           // Use the VirtFusion service to update profile (username and email only)
           const result = await virtFusionService.updateUserProfile(
             user.virtFusionId,
             validatedData.fullName || user.fullName,
             validatedData.email || user.email
           );
-          
+
           if (result.success) {
             console.log(`Successfully synced user ${userId} with VirtFusion`);
           } else {
@@ -2051,7 +2051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // We don't fail the request if VirtFusion sync fails, just log the error
         }
       }
-      
+
       // Get the updated user to return
       const updatedUser = await storage.getUser(userId);
       console.log("Updated user:", updatedUser);
@@ -2069,123 +2069,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/verification-status", isAuthenticated, async (req, res) => {
     try {
       const isVerified = await EmailVerificationService.isEmailVerified(req.user!.id);
-      res.json({ 
-        isVerified, 
-        email: req.user!.email 
+      res.json({
+        isVerified,
+        email: req.user!.email
       });
     } catch (error: any) {
       console.error("Error checking verification status:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "An error occurred while checking verification status."
       });
     }
   });
 
   // Password reset and forgot username routes
-  
+
   // Request password reset (forgotten password)
   app.post("/api/auth/request-password-reset", async (req, res) => {
     try {
       const { email } = req.body;
-      
+
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }
-      
+
       const result = await AuthService.requestPasswordReset(email);
       res.json(result);
     } catch (error: any) {
       console.error("Error requesting password reset:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "An error occurred while processing your request."
       });
     }
   });
-  
+
   // Verify password reset code
   app.post("/api/auth/verify-reset-code", async (req, res) => {
     try {
       const { email, resetCode } = req.body;
-      
+
       if (!email || !resetCode) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Email and reset code are required" 
+        return res.status(400).json({
+          success: false,
+          message: "Email and reset code are required"
         });
       }
-      
+
       const result = await AuthService.verifyPasswordResetCode(email, resetCode);
       res.json(result);
     } catch (error: any) {
       console.error("Error verifying reset code:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "An error occurred while verifying the reset code."
       });
     }
   });
-  
+
   // Deprecated: Password reset moved to a more comprehensive implementation below
-  
+
   // Request username reminder (forgotten username)
   app.post("/api/auth/request-username", async (req, res) => {
     try {
       const { email } = req.body;
-      
+
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }
-      
+
       const result = await AuthService.requestUsernameReminder(email);
       res.json(result);
     } catch (error: any) {
       console.error("Error requesting username reminder:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "An error occurred while processing your request."
       });
     }
   });
-  
+
   // Change password (for logged-in users)
   app.post("/api/auth/change-password", isAuthenticated, async (req, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
-      
+
       // Current password is still required, but we'll make newPassword optional
       // to support "reset" functionality that gets a new password from VirtFusion
       if (!currentPassword) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Current password is required" 
+        return res.status(400).json({
+          success: false,
+          message: "Current password is required"
         });
       }
 
       // Determine if this is a password change or reset
       const isReset = req.body.reset === true || !newPassword;
-      
+
       // If it's a regular change, we need the new password
       if (!isReset && !newPassword) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "New password is required" 
+        return res.status(400).json({
+          success: false,
+          message: "New password is required"
         });
       }
-      
+
       // Call the AuthService with or without the new password
       const result = await AuthService.changePassword(
-        req.user!.id, 
+        req.user!.id,
         currentPassword,
         isReset ? '' : newPassword // If reset mode, don't pass a new password
       );
-      
+
       res.json(result);
     } catch (error: any) {
       console.error("Error changing password:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: "An error occurred while changing your password."
       });
     }
@@ -2195,7 +2195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const virtFusionApi = new VirtFusionApi();
 
   // Test endpoints removed - VirtFusion integration is now working properly
-  
+
   // Test API route - this will help us diagnose issues directly
   // Admin routes for package pricing
   app.get('/api/admin/packages', isAdmin, async (req, res) => {
@@ -2210,46 +2210,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await virtFusionApi.testConnection();
       } catch (connError: any) {
         console.error("VirtFusion API connection test failed:", connError);
-        return res.status(401).json({ 
-          error: 'VirtFusion API authentication failed', 
+        return res.status(401).json({
+          error: 'VirtFusion API authentication failed',
           errorType: 'auth_error',
           errorDetail: 'The VirtFusion API token is invalid or expired'
         });
       }
-      
+
       const packagesData = await virtFusionApi.getPackages();
-      
+
       // Handle different response formats
       if (!packagesData) {
-        return res.status(500).json({ 
-          error: 'Failed to get VirtFusion packages', 
+        return res.status(500).json({
+          error: 'Failed to get VirtFusion packages',
           errorType: 'api_error',
           errorDetail: 'The VirtFusion API returned no data'
         });
       }
-      
+
       let packagesArray;
       if (Array.isArray(packagesData)) {
         packagesArray = packagesData;
       } else if (packagesData.data && Array.isArray(packagesData.data)) {
         packagesArray = packagesData.data;
       } else {
-        return res.status(500).json({ 
-          error: 'Failed to get VirtFusion packages', 
+        return res.status(500).json({
+          error: 'Failed to get VirtFusion packages',
           errorType: 'api_error',
           errorDetail: 'The VirtFusion API returned an invalid response format'
         });
       }
-      
-      // Get all our package pricing records 
+
+      // Get all our package pricing records
       const pricingRecords = await db.select().from(schema.packagePricing);
-      
+
       // Create a map of VirtFusion package ID to our pricing records
       const pricingMap = pricingRecords.reduce((acc, record) => {
         acc[record.virtFusionPackageId] = record;
         return acc;
       }, {} as Record<number, typeof schema.packagePricing.$inferSelect>);
-      
+
       // For each VirtFusion package, add our pricing data if it exists
       const packages = packagesArray.map(pkg => {
         const pricingRecord = pricingMap[pkg.id];
@@ -2258,11 +2258,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           pricing: pricingRecord || null
         };
       });
-      
+
       return res.json(packages);
     } catch (error: any) {
       console.error('Error getting admin packages:', error);
-      
+
       // Check for specific error types
       if (error.response && error.response.status === 401) {
         return res.status(401).json({
@@ -2271,14 +2271,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errorDetail: 'The VirtFusion API token is invalid or expired'
         });
       }
-      
-      return res.status(500).json({ 
+
+      return res.status(500).json({
         error: 'Failed to get packages',
         errorDetail: error.message || 'Unknown error'
       });
     }
   });
-  
+
   // Get all hypervisor groups from VirtFusion
   app.get('/api/admin/hypervisors', isAdmin, async (req, res) => {
     try {
@@ -2292,20 +2292,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await virtFusionApi.testConnection();
       } catch (connError: any) {
         console.error("VirtFusion API connection test failed:", connError);
-        return res.status(401).json({ 
-          error: 'VirtFusion API authentication failed', 
+        return res.status(401).json({
+          error: 'VirtFusion API authentication failed',
           errorType: 'auth_error',
           errorDetail: 'The VirtFusion API token is invalid or expired'
         });
       }
-      
+
       const hypervisorsData = await virtFusionApi.getHypervisorGroups();
-      
+
       // Handle different response formats
       if (!hypervisorsData) {
         return res.json({ data: [] });
       }
-      
+
       if (hypervisorsData.data) {
         console.log(`Found ${hypervisorsData.data.length} hypervisor groups`);
         return res.json(hypervisorsData);
@@ -2324,63 +2324,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Create or update package pricing
   app.post('/api/admin/packages/:id/pricing', isAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const virtFusionPackageId = parseInt(id, 10);
-      
+
       if (isNaN(virtFusionPackageId)) {
         return res.status(400).json({ error: 'Invalid package ID' });
       }
-      
+
       // Validate the incoming data
       const { name, description, price, displayOrder, enabled } = req.body;
-      
+
       if (typeof price !== 'number' || price < 0) {
         return res.status(400).json({ error: 'Price must be a positive number' });
       }
-      
+
       // Check if the pricing record exists
       const existingRecord = await db
         .select()
         .from(schema.packagePricing)
         .where(eq(schema.packagePricing.virtFusionPackageId, virtFusionPackageId))
         .limit(1);
-      
+
       if (existingRecord.length > 0) {
         // Update existing record
         const updated = await db
           .update(schema.packagePricing)
-          .set({ 
-            name, 
-            description, 
-            price, 
+          .set({
+            name,
+            description,
+            price,
             displayOrder: displayOrder || existingRecord[0].displayOrder,
             enabled: enabled !== undefined ? enabled : existingRecord[0].enabled,
             updatedAt: new Date()
           })
           .where(eq(schema.packagePricing.virtFusionPackageId, virtFusionPackageId))
           .returning();
-        
+
         return res.json(updated[0]);
       } else {
         // Create new record
         const inserted = await db
           .insert(schema.packagePricing)
-          .values({ 
-            virtFusionPackageId, 
-            name, 
-            description, 
-            price, 
+          .values({
+            virtFusionPackageId,
+            name,
+            description,
+            price,
             displayOrder: displayOrder || 0,
             enabled: enabled !== undefined ? enabled : true,
             createdAt: new Date(),
             updatedAt: new Date()
           })
           .returning();
-        
+
         return res.json(inserted[0]);
       }
     } catch (error: any) {
@@ -2388,33 +2388,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to save package pricing', details: error.message });
     }
   });
-  
+
   // Delete package pricing
   app.delete('/api/admin/packages/:id/pricing', isAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const virtFusionPackageId = parseInt(id, 10);
-      
+
       if (isNaN(virtFusionPackageId)) {
         return res.status(400).json({ error: 'Invalid package ID' });
       }
-      
+
       // Check if the pricing record exists
       const existingRecord = await db
         .select()
         .from(schema.packagePricing)
         .where(eq(schema.packagePricing.virtFusionPackageId, virtFusionPackageId))
         .limit(1);
-      
+
       if (existingRecord.length === 0) {
         return res.status(404).json({ error: 'Package pricing not found' });
       }
-      
+
       // Delete the record
       await db
         .delete(schema.packagePricing)
         .where(eq(schema.packagePricing.virtFusionPackageId, virtFusionPackageId));
-      
+
       return res.json({ success: true });
     } catch (error: any) {
       console.error('Error deleting package pricing:', error);
@@ -2636,7 +2636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "completed",
         relatedTransactionId: creditId,
       });
-      
+
       // Generate invoice for the reversal transaction
       try {
         const invoiceNumber = await generateInvoice(reversalTransaction, 'paid');
@@ -2726,7 +2726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // IMPORTANT: Static routes must come before dynamic routes with parameters
   // Export transactions as PDF
   app.get("/api/transactions/export", isAuthenticated, async (req, res) => {
@@ -2734,7 +2734,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const isAdmin = req.user!.role === 'admin';
       const user = req.user!;
-      
+
       // Get transactions for the user or all transactions for admin
       let transactions;
       if (isAdmin && req.query.all === 'true') {
@@ -2751,26 +2751,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get only user's transactions
         transactions = await storage.getUserTransactions(userId);
       }
-      
+
       // Get company settings for branding
       const companyName = await storage.getSetting('company_name');
       const companyNameValue = companyName?.value || 'Your Company';
       const companyLogo = await storage.getSetting('company_logo');
       const companyLogoValue = companyLogo?.value || '';
-      
+
       // Generate PDF
       const doc = new PDFDocument({ margin: 50 });
-      
+
       // Buffer to store PDF data
       let buffers: Buffer[] = [];
       doc.on('data', buffers.push.bind(buffers));
-      
+
       // Format the document with transaction data
       formatTransactionsPdf(doc, transactions, user, companyNameValue, companyLogoValue);
-      
+
       // Finalize the PDF and convert to base64
       doc.end();
-      
+
       // Generate a promise from the events
       const pdfPromise = new Promise<Buffer>((resolve) => {
         doc.on('end', () => {
@@ -2778,14 +2778,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           resolve(pdfData);
         });
       });
-      
+
       // Get the completed PDF data
       const pdfBuffer = await pdfPromise;
-      
+
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="transactions-${new Date().toISOString().split('T')[0]}.pdf"`);
-      
+
       // Send the PDF content
       res.send(pdfBuffer);
     } catch (error: any) {
@@ -2793,7 +2793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Get a specific transaction by ID - must come after specific static routes
   app.get("/api/transactions/:id", isAuthenticated, async (req, res) => {
     try {
@@ -2802,21 +2802,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!transactionIdStr || isNaN(parseInt(transactionIdStr))) {
         return res.status(400).json({ error: "Invalid transaction ID" });
       }
-      
+
       const transactionId = parseInt(transactionIdStr);
       const userId = req.user!.id;
       const isAdmin = req.user!.role === 'admin';
-      
+
       console.log(`Getting transaction ID: ${transactionId} for user ID: ${userId}`);
-      
+
       // Get the specific transaction
       const transaction = await storage.getTransaction(transactionId);
-      
+
       // Check if transaction exists and belongs to the user (or user is admin)
       if (!transaction || (!isAdmin && transaction.userId !== userId)) {
         return res.status(404).json({ error: "Transaction not found" });
       }
-      
+
       // If admin is requesting, include user data
       if (isAdmin) {
         const transactionUser = await storage.getUser(transaction.userId);
@@ -2828,15 +2828,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: transactionUser.email || 'No email available'
           } : undefined
         };
-        
+
         // Log the transaction being returned
         console.log(`Returning transaction with user data:`, JSON.stringify(transactionWithUser));
-        
+
         res.json(transactionWithUser);
       } else {
         // Log the transaction being returned
         console.log(`Returning transaction:`, JSON.stringify(transaction));
-        
+
         res.json(transaction);
       }
     } catch (error: any) {
@@ -2844,7 +2844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // REMOVED: This route is a duplicate of the one above and was causing routing conflicts
   /* // Export transactions as PDF
   app.get("/api/transactions/export", isAuthenticated, async (req, res) => {
@@ -2852,7 +2852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const isAdmin = req.user!.role === 'admin';
       const user = req.user!;
-      
+
       // Get transactions for the user or all transactions for admin
       let transactions;
       if (isAdmin && req.query.all === 'true') {
@@ -2869,26 +2869,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get only user's transactions
         transactions = await storage.getUserTransactions(userId);
       }
-      
+
       // Get company settings for branding
       const companyName = await storage.getSetting('company_name');
       const companyNameValue = companyName?.value || 'Your Company';
       const companyLogo = await storage.getSetting('company_logo');
       const companyLogoValue = companyLogo?.value || '';
-      
+
       // Generate PDF
       const doc = new PDFDocument({ margin: 50 });
-      
+
       // Buffer to store PDF data
       let buffers: Buffer[] = [];
       doc.on('data', buffers.push.bind(buffers));
-      
+
       // Format the document with transaction data
       formatTransactionsPdf(doc, transactions, user, companyNameValue, companyLogoValue);
-      
+
       // Finalize the PDF and convert to base64
       doc.end();
-      
+
       // Generate a promise from the events
       const pdfPromise = new Promise<Buffer>((resolve) => {
         doc.on('end', () => {
@@ -2896,14 +2896,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           resolve(pdfData);
         });
       });
-      
+
       // Get the completed PDF data
       const pdfBuffer = await pdfPromise;
-      
+
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="transactions-${new Date().toISOString().split('T')[0]}.pdf"`);
-      
+
       // Send the PDF content
       res.send(pdfBuffer);
     } catch (error: any) {
@@ -2911,7 +2911,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // TRANSACTION DOWNLOAD ENDPOINT
   app.get("/api/transactions/:id/download", isAuthenticated, async (req, res) => {
     try {
@@ -2920,31 +2920,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!transactionIdStr || isNaN(parseInt(transactionIdStr))) {
         return res.status(400).json({ error: "Invalid transaction ID" });
       }
-      
+
       const transactionId = parseInt(transactionIdStr);
       console.log(`Downloading transaction ID: ${transactionId} for user: ${req.user!.id}`);
-      
-      // Get transaction from storage 
+
+      // Get transaction from storage
       const transaction = await storage.getTransaction(transactionId);
-      
+
       if (!transaction) {
         console.error(`Transaction ID ${transactionId} not found in database`);
         return res.status(404).json({ error: "Transaction not found" });
       }
-      
+
       // Double check the permission
       if (transaction.userId !== req.user!.id && req.user!.role !== 'admin') {
         return res.status(403).json({ error: "You don't have permission to access this transaction" });
       }
-      
+
       // Get user data for the report
       const user = await storage.getUser(transaction.userId);
-      
+
       // Format date string
-      const dateStr = transaction.createdAt 
-        ? new Date(transaction.createdAt).toLocaleDateString() 
+      const dateStr = transaction.createdAt
+        ? new Date(transaction.createdAt).toLocaleDateString()
         : 'N/A';
-      
+
       // Create simple text content for the transaction
       let txtContent = `
 ==============================================
@@ -2967,22 +2967,22 @@ Type: ${transaction.type || 'N/A'}
       if (transaction.paymentMethod) {
         txtContent += `Payment Method: ${transaction.paymentMethod}\n`;
       }
-      
+
       if (transaction.paymentId) {
         txtContent += `Payment ID: ${transaction.paymentId}\n`;
       }
-      
+
       // Handle amount with formatting
       const isCredit = transaction.type === 'credit' || transaction.type === 'virtfusion_credit';
       let amount = 0;
       try {
-        amount = typeof transaction.amount === 'number' 
-          ? transaction.amount 
+        amount = typeof transaction.amount === 'number'
+          ? transaction.amount
           : parseFloat(transaction.amount);
       } catch (e) {
         console.error('Error parsing transaction amount:', e);
       }
-      
+
       txtContent += `\nAmount: ${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(2)}\n`;
       txtContent += `
 ----------------------------------------------
@@ -2990,47 +2990,47 @@ Thank you for your business.
 Generated on ${new Date().toLocaleString()}
 ==============================================
 `;
-      
+
       // Get company information for PDF
       const companyName = await storage.getSetting('company_name') || { value: 'SkyVPS360' };
       const companyLogo = await storage.getSetting('company_logo') || { value: '' };
-      
+
       // Create a PDF document directly piped to response
       const doc = new PDFDocument({ margin: 50 });
-      
+
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="transaction-${transaction.id}.pdf"`);
-      
+
       // Pipe the PDF directly to the response
       doc.pipe(res);
-      
+
       // Format the PDF
       formatSingleTransactionPdf(doc, transaction, user, companyName.value, companyLogo.value);
-      
+
       // Finalize the PDF
       doc.end();
     } catch (error: any) {
       console.error("Error generating transaction text:", error);
       if (!res.headersSent) {
-        res.status(500).json({ 
-          error: "Failed to generate transaction download", 
-          details: error.message 
+        res.status(500).json({
+          error: "Failed to generate transaction download",
+          details: error.message
         });
       } else {
         res.end();
       }
     }
   });
-  
+
   // Close the commented out duplicate route
   */
-  
+
   // Helper function to format a single transaction PDF
   function formatSingleTransactionPdf(doc: PDFKit.PDFDocument, transaction: any, user: any, companyName: string, companyLogo: string) {
     // Debug transaction data
     console.log('Generating PDF for transaction:', JSON.stringify(transaction, null, 2));
-    
+
     // Add logo if available
     if (companyLogo) {
       try {
@@ -3050,26 +3050,26 @@ Generated on ${new Date().toLocaleString()}
         // Continue without logo if there's an error
       }
     }
-    
+
     // Document title
     doc.fontSize(20).text(companyName, 50, companyLogo ? 130 : 50);
     doc.fontSize(15).text('Transaction Receipt', 50, doc.y + 10);
-    
+
     // Customer details
     doc.moveDown();
     doc.fontSize(10).text(`Customer: ${user.fullName || user.username || 'Customer'}`);
     doc.text(`Account ID: ${user.id}`);
     doc.text(`Receipt Date: ${new Date().toLocaleDateString()}`);
-    
+
     // Add horizontal line
     doc.moveDown();
     doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
     doc.moveDown();
-    
+
     // Transaction details header
     doc.fontSize(12).font('Helvetica-Bold').text('Transaction Details', 50, doc.y + 10);
     doc.font('Helvetica').moveDown();
-    
+
     // Ensure transaction.createdAt exists and can be parsed
     let dateStr = 'N/A';
     if (transaction.createdAt) {
@@ -3079,7 +3079,7 @@ Generated on ${new Date().toLocaleString()}
         console.error('Error formatting date:', e);
       }
     }
-    
+
     // Transaction information in a more structured layout with appropriate spacing
     const labelWidth = 120;  // Increased width for labels
     const valueWidth = 170;  // Fixed width for values to prevent overlap
@@ -3087,60 +3087,60 @@ Generated on ${new Date().toLocaleString()}
     const rightColX = 300;
     const lineHeight = 25;   // Increased line height to avoid overlap
     let currentY = doc.y;
-    
+
     // Create helper function to add a field with proper wrapping
     const addField = (label: string, value: string, x: number, y: number) => {
       doc.fontSize(10).font('Helvetica-Bold').text(label, x, y);
       doc.font('Helvetica').text(
-        value || 'N/A', 
-        x + labelWidth, 
-        y, 
+        value || 'N/A',
+        x + labelWidth,
+        y,
         { width: valueWidth, ellipsis: true }
       );
     };
-    
+
     // Row 1
     addField('Transaction ID:', `#${transaction.id || 'Unknown'}`, leftColX, currentY);
     addField('Date:', dateStr, rightColX, currentY);
     currentY += lineHeight;
-    
+
     // Row 2
     addField('Type:', transaction.type || 'N/A', leftColX, currentY);
     addField('Status:', transaction.status || 'N/A', rightColX, currentY);
     currentY += lineHeight;
-    
+
     // Row 3 - For description, use the full width
     doc.fontSize(10).font('Helvetica-Bold').text('Description:', leftColX, currentY);
     doc.font('Helvetica').text(
-      transaction.description || 'N/A', 
-      leftColX + labelWidth, 
-      currentY, 
+      transaction.description || 'N/A',
+      leftColX + labelWidth,
+      currentY,
       { width: 380, ellipsis: true }
     );
     currentY += lineHeight;
-    
+
     // Row 4 - Payment details if available
     if (transaction.paymentMethod) {
       addField('Payment Method:', transaction.paymentMethod, leftColX, currentY);
       currentY += lineHeight;
     }
-    
+
     if (transaction.paymentId) {
       addField('Payment ID:', transaction.paymentId, leftColX, currentY);
       currentY += lineHeight;
     }
-    
+
     // Add amount with appropriate color - carefully handle type and ensure amount is a number
     const isCredit = transaction.type === 'credit' || transaction.type === 'virtfusion_credit';
     let amount = 0;
     try {
-      amount = typeof transaction.amount === 'number' 
-        ? transaction.amount 
+      amount = typeof transaction.amount === 'number'
+        ? transaction.amount
         : parseFloat(transaction.amount);
     } catch (e) {
       console.error('Error parsing transaction amount:', e);
     }
-    
+
     doc.moveDown(2);
     doc.fontSize(14).font('Helvetica-Bold').text('Amount:', 50, doc.y);
     doc.fillColor(isCredit ? '#4CAF50' : '#FF5252')
@@ -3149,15 +3149,15 @@ Generated on ${new Date().toLocaleString()}
          `${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(2)}`,
          150, doc.y - 14
        );
-    
+
     // Reset fill color
     doc.fillColor('#000000');
-    
+
     // Add line and footer
     doc.moveDown(2);
     doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
     doc.moveDown();
-    
+
     // Footer with thank you note
     doc.fontSize(10).text('Thank you for your business.', 50, doc.y);
     doc.fontSize(8).text(`Generated on ${new Date().toLocaleString()}`, 50, doc.y + 5);
@@ -3184,28 +3184,28 @@ Generated on ${new Date().toLocaleString()}
         // Continue without logo if there's an error
       }
     }
-    
+
     // Document title
     doc.fontSize(20).text(companyName, 50, companyLogo ? 130 : 50);
     doc.fontSize(15).text('Transaction Statement', 50, doc.y + 10);
-    
+
     // Customer details
     doc.moveDown();
     doc.fontSize(10).text(`Customer: ${user.fullName || user.username || 'Customer'}`);
     doc.text(`Account ID: ${user.id}`);
     doc.text(`Statement Date: ${new Date().toLocaleDateString()}`);
-    
+
     // Add horizontal line
     doc.moveDown();
     doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
     doc.moveDown();
-    
+
     // If no transactions
     if (transactions.length === 0) {
       doc.fontSize(12).text('No transactions found for this account.', 50, doc.y + 10);
       return;
     }
-    
+
     // Table headers
     const tableTop = doc.y + 10;
     doc.fontSize(10).font('Helvetica-Bold');
@@ -3215,24 +3215,24 @@ Generated on ${new Date().toLocaleString()}
     doc.text('Type', 350, tableTop);
     doc.text('Status', 420, tableTop);
     doc.text('Amount', 490, tableTop, { width: 60, align: 'right' });
-    
+
     // Reset font
     doc.font('Helvetica');
-    
+
     // Draw line under headers
     doc.strokeColor('#aaaaaa').lineWidth(0.5).moveTo(50, doc.y + 5).lineTo(550, doc.y + 5).stroke();
-    
+
     // Table rows
     let y = doc.y + 10;
     let totalCredit = 0;
     let totalDebit = 0;
-    
+
     transactions.forEach((transaction, i) => {
       // Check if we need a new page
       if (y > 700) {
         doc.addPage();
         y = 50;
-        
+
         // Add headers on new page
         doc.fontSize(10).font('Helvetica-Bold');
         doc.text('Transaction ID', 50, y);
@@ -3241,37 +3241,37 @@ Generated on ${new Date().toLocaleString()}
         doc.text('Type', 350, y);
         doc.text('Status', 420, y);
         doc.text('Amount', 490, y, { width: 60, align: 'right' });
-        
+
         // Reset font
         doc.font('Helvetica');
-        
+
         // Draw line under headers
         doc.strokeColor('#aaaaaa').lineWidth(0.5).moveTo(50, y + 15).lineTo(550, y + 15).stroke();
-        
+
         y += 25;
       }
-      
+
       // Format date
-      const date = transaction.createdAt 
-        ? new Date(transaction.createdAt).toLocaleDateString() 
+      const date = transaction.createdAt
+        ? new Date(transaction.createdAt).toLocaleDateString()
         : 'N/A';
-      
+
       // Format amount
       const amount = parseFloat(transaction.amount);
       const isCredit = transaction.type === 'credit' || transaction.type === 'virtfusion_credit';
-      
+
       // Track totals
       if (isCredit) {
         totalCredit += amount;
       } else {
         totalDebit += Math.abs(amount);
       }
-      
+
       // Alternating row background for readability
       if (i % 2 === 1) {
         doc.rect(50, y - 3, 500, 20).fill('#f6f6f6');
       }
-      
+
       // Draw row content
       doc.fillColor('#000000');
       doc.fontSize(8).text(transaction.id ? `#${transaction.id}` : 'N/A', 50, y);
@@ -3279,7 +3279,7 @@ Generated on ${new Date().toLocaleString()}
       doc.text(transaction.description || '', 190, y, { width: 150, ellipsis: true });
       doc.text(transaction.type || '', 350, y);
       doc.text(transaction.status || '', 420, y);
-      
+
       // Amount with color based on type
       doc.fillColor(isCredit ? '#4CAF50' : '#FF5252')
          .text(
@@ -3287,38 +3287,38 @@ Generated on ${new Date().toLocaleString()}
            490, y,
            { width: 60, align: 'right' }
          );
-      
+
       doc.fillColor('#000000'); // Reset color
-      
+
       y += 20;
     });
-    
+
     // Summary section
     doc.moveDown();
     doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
     doc.moveDown();
-    
+
     doc.fontSize(10);
     doc.font('Helvetica-Bold').text('Summary', 50, doc.y);
     doc.font('Helvetica');
     doc.moveDown(0.5);
-    
+
     doc.text(`Total Credits: $${totalCredit.toFixed(2)}`, 50, doc.y);
     doc.text(`Total Debits: $${totalDebit.toFixed(2)}`, 50, doc.y + 15);
     doc.font('Helvetica-Bold').text(`Net Balance: $${(totalCredit - totalDebit).toFixed(2)}`, 50, doc.y + 30);
-    
+
     // Footer
     const pageCount = doc.bufferedPageRange().count;
     for (let i = 0; i < pageCount; i++) {
       doc.switchToPage(i);
-      
+
       // Add page number
       doc.fontSize(8).text(
         `Page ${i + 1} of ${pageCount}`,
         50, 780,
         { align: 'center', width: 500 }
       );
-      
+
       // Add footer text
       doc.fontSize(8).text(
         `This statement was generated on ${new Date().toLocaleString()}. For questions, please contact support.`,
@@ -3327,14 +3327,14 @@ Generated on ${new Date().toLocaleString()}
       );
     }
   }
-  
+
   // Get user's invoices
   app.get("/api/invoices", isAuthenticated, async (req, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
-      
+
       // Filter invoices by logged-in user's ID
       const userInvoices = await storage.getUserInvoices(req.user.id);
       console.log(`Found ${userInvoices.length} invoices for user ${req.user.id}`);
@@ -3351,57 +3351,57 @@ Generated on ${new Date().toLocaleString()}
       if (!req.user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
-      
+
       const invoiceId = parseInt(req.params.id);
       if (isNaN(invoiceId)) {
         return res.status(400).json({ error: "Invalid invoice ID" });
       }
-      
+
       console.log(`Getting invoice ID: ${invoiceId} for user ID: ${req.user.id}`);
-      
+
       // Fetch the invoice
       const invoice = await storage.getInvoice(invoiceId);
-      
+
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
-      
+
       // Ensure user has access to the invoice (must be their own invoice or admin)
       if (invoice.userId !== req.user.id && req.user.role !== 'admin') {
         return res.status(403).json({ error: "Access denied" });
       }
-      
+
       res.json(invoice);
     } catch (error: any) {
       console.error("Error fetching invoice:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Generate missing invoices for existing transactions (for recovery)
   app.post("/api/invoices/generate-missing", isAuthenticated, async (req, res) => {
     try {
       if (!req.user) {
         return res.status(401).json({ error: "Unauthorized" });
       }
-      
+
       console.log(`Finding transactions without invoices for user ${req.user.id}`);
       console.log(`User details: ${JSON.stringify(req.user)}`);
-      
+
       // FIXING CRITICAL ISSUE: Ensure we capture all transactions without invoices
       // For debugging - check all transactions without invoices in the system regardless of user
       // This helps us understand if there are any transactions that need invoices
       const allTransactionsWithoutInvoices = await db.select()
         .from(transactions)
         .where(isNull(transactions.invoiceNumber));
-      
+
       console.log(`DEBUG: All transactions without invoices in system: ${allTransactionsWithoutInvoices.length}`);
       console.log(`DEBUG: All transaction IDs without invoices: ${allTransactionsWithoutInvoices.map(t => t.id).join(', ')}`);
-      
+
       // CRITICAL FIX: By default, only generate invoices for the current user's transactions
       // But if the user is an admin, process all transactions without invoices
       let transactionsWithoutInvoices: Transaction[] = [];
-      
+
       if (req.user.role === 'admin') {
         // Admin can generate invoices for all transactions
         console.log('Admin user detected - processing ALL transactions without invoices');
@@ -3418,50 +3418,50 @@ Generated on ${new Date().toLocaleString()}
             )
           );
       }
-      
+
       console.log(`Found ${transactionsWithoutInvoices.length} transactions to process for invoices`);
       console.log(`Transaction IDs to process: ${transactionsWithoutInvoices.map(t => t.id).join(', ')}`);
-      
+
       if (transactionsWithoutInvoices.length === 0) {
-        return res.json({ 
-          success: true, 
+        return res.json({
+          success: true,
           message: "No missing invoices found",
-          generatedCount: 0 
+          generatedCount: 0
         });
       }
-      
+
       // Generate invoices for each transaction
       const results = [];
       let successCount = 0;
       let errorCount = 0;
-      
+
       console.log("======= STARTING INVOICE GENERATION PROCESS =======");
       console.log(`User ID: ${req.user.id}, Username: ${req.user.username}`);
       console.log(`Number of transactions to process: ${transactionsWithoutInvoices.length}`);
       console.log(`Transaction IDs: ${transactionsWithoutInvoices.map(t => t.id).join(', ')}`);
-      
+
       for (const transaction of transactionsWithoutInvoices) {
         try {
           console.log(`\n[Transaction ${transaction.id}] Starting invoice generation`);
           console.log(`[Transaction ${transaction.id}] Details: Amount=${transaction.amount}, Type=${transaction.type}, Status=${transaction.status}`);
-          
+
           // Determine invoice status based on transaction status
-          const invoiceStatus = transaction.status === 'completed' ? 'paid' : 
+          const invoiceStatus = transaction.status === 'completed' ? 'paid' :
                                transaction.status === 'failed' ? 'cancelled' : 'pending';
-          
+
           console.log(`[Transaction ${transaction.id}] Using invoice status: ${invoiceStatus}`);
-          
+
           // Generate the invoice
           const pdfData = await generateInvoice(transaction, invoiceStatus);
-          
+
           console.log(`[Transaction ${transaction.id}] Successfully generated invoice with PDF data length: ${pdfData.length > 1000 ? 'OK' : 'WARNING - SHORT PDF'}`);
-          
+
           successCount++;
           results.push({
             transactionId: transaction.id,
             success: true
           });
-          
+
           console.log(`[Transaction ${transaction.id}] Invoice generation SUCCEEDED`);
         } catch (invoiceError: any) {
           console.error(`[Transaction ${transaction.id}] ERROR generating invoice:`, invoiceError);
@@ -3475,12 +3475,12 @@ Generated on ${new Date().toLocaleString()}
           console.error(`[Transaction ${transaction.id}] Invoice generation FAILED`);
         }
       }
-      
+
       console.log("\n======= INVOICE GENERATION SUMMARY =======");
       console.log(`Total transactions processed: ${transactionsWithoutInvoices.length}`);
       console.log(`Successful: ${successCount}, Failed: ${errorCount}`);
       console.log("===========================================")
-      
+
       res.json({
         success: true,
         message: `Generated ${successCount} invoices with ${errorCount} errors`,
@@ -3493,40 +3493,40 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Download a specific invoice
   app.get("/api/invoices/:id/download", isAuthenticated, async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
-      
+
       if (isNaN(invoiceId)) {
         return res.status(400).json({ error: "Invalid invoice ID" });
       }
-      
+
       // Get the invoice
       const invoice = await storage.getInvoice(invoiceId);
-      
+
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
-      
+
       // Check if the invoice belongs to the user
       if (invoice.userId !== req.user!.id && req.user!.role !== 'admin') {
         return res.status(403).json({ error: "You do not have permission to access this invoice" });
       }
-      
+
       console.log(`Generating PDF for invoice ${invoice.invoiceNumber}`);
-      
+
       // Generate PDF content (now returns base64 string)
       const pdfBase64 = await generateInvoice(invoice, invoice.status);
-      
+
       // Convert base64 to Buffer
       const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-      
+
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
-      
+
       // Send the PDF content
       res.send(pdfBuffer);
     } catch (error: any) {
@@ -3539,38 +3539,38 @@ Generated on ${new Date().toLocaleString()}
   app.post("/api/billing/capture-paypal-payment", isAuthenticated, async (req, res) => {
     try {
       const { orderID } = req.body;
-      
+
       console.log(`Capturing PayPal payment: orderID=${orderID}`);
-      
+
       if (!orderID) {
         console.log("Missing PayPal order ID");
         return res.status(400).json({ error: "PayPal order ID is required" });
       }
-      
+
       // Check if we're in sandbox mode
       const isSandbox = process.env.VITE_PAYPAL_SANDBOX === "true";
-      const paypalBaseUrl = isSandbox 
-        ? "https://api-m.sandbox.paypal.com" 
+      const paypalBaseUrl = isSandbox
+        ? "https://api-m.sandbox.paypal.com"
         : "https://api-m.paypal.com";
 
       // Get credentials
-      const clientId = isSandbox 
-        ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID 
+      const clientId = isSandbox
+        ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
         : process.env.VITE_PAYPAL_CLIENT_ID;
-      const clientSecret = isSandbox 
-        ? process.env.VITE_PAYPAL_SANDBOX_SECRET 
+      const clientSecret = isSandbox
+        ? process.env.VITE_PAYPAL_SANDBOX_SECRET
         : process.env.VITE_PAYPAL_SECRET;
-        
+
       if (!clientId || !clientSecret) {
         console.error("PayPal credentials are not configured");
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "PayPal integration is not properly configured. Please contact support.",
           details: "Missing API credentials"
         });
       }
-      
+
       console.log(`Using PayPal in ${isSandbox ? 'SANDBOX' : 'PRODUCTION'} mode`);
-      
+
       // First, get an access token
       let accessToken;
       try {
@@ -3583,28 +3583,28 @@ Generated on ${new Date().toLocaleString()}
           },
           body: 'grant_type=client_credentials'
         });
-        
+
         if (!tokenResponse.ok) {
           const errorData = await tokenResponse.json();
           console.error("PayPal token error:", errorData);
           throw new Error(`Failed to get PayPal access token: ${errorData.error_description || 'Unknown error'}`);
         }
-        
+
         const tokenData = await tokenResponse.json();
         accessToken = tokenData.access_token;
         console.log("Successfully obtained PayPal access token");
       } catch (tokenError) {
         console.error("Error getting PayPal access token:", tokenError);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "Failed to authenticate with PayPal API. Please try again later.",
           details: tokenError.message
         });
       }
-      
+
       // Now capture the order
       try {
         console.log(`Capturing PayPal order: ${orderID}`);
-        
+
         const captureResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderID}/capture`, {
           method: 'POST',
           headers: {
@@ -3612,36 +3612,36 @@ Generated on ${new Date().toLocaleString()}
             'Content-Type': 'application/json'
           }
         });
-        
+
         if (!captureResponse.ok) {
           const errorData = await captureResponse.json();
           console.error("PayPal capture error:", errorData);
           throw new Error(`Failed to capture PayPal payment: ${errorData.message || 'Unknown error'}`);
         }
-        
+
         const captureData = await captureResponse.json();
         console.log("PayPal capture successful:", {
           id: captureData.id,
           status: captureData.status
         });
-        
+
         // Verify captured payment status
         if (captureData.status !== 'COMPLETED') {
           console.error(`Invalid PayPal capture status: ${captureData.status}`);
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: `PayPal payment was not completed (status: ${captureData.status})`
           });
         }
-        
+
         // Extract payment details
         if (!captureData.purchase_units || captureData.purchase_units.length === 0) {
           throw new Error("Invalid capture data: missing purchase units");
         }
-        
+
         const purchaseUnit = captureData.purchase_units[0];
         let amount = 0;
         let currency = 'USD';
-        
+
         if (purchaseUnit.payments && purchaseUnit.payments.captures && purchaseUnit.payments.captures.length > 0) {
           const capture = purchaseUnit.payments.captures[0];
           amount = parseFloat(capture.amount.value);
@@ -3650,9 +3650,9 @@ Generated on ${new Date().toLocaleString()}
           amount = parseFloat(purchaseUnit.amount.value);
           currency = purchaseUnit.amount.currency_code;
         }
-        
+
         console.log(`Captured payment: ${amount} ${currency}, Order ID: ${orderID}`);
-        
+
         // Return successful capture result
         return res.json({
           captured: true,
@@ -3664,7 +3664,7 @@ Generated on ${new Date().toLocaleString()}
         });
       } catch (captureError) {
         console.error("Error capturing PayPal payment:", captureError);
-        
+
         // Create a transaction record for the failed capture
         try {
           // Create transaction record for the failed payment
@@ -3677,10 +3677,10 @@ Generated on ${new Date().toLocaleString()}
             paymentMethod: "paypal",
             paymentId: orderID,
           };
-          
+
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for failed capture:", createdTransaction.id);
-          
+
           // Generate invoice for the failed payment
           try {
             const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
@@ -3691,15 +3691,15 @@ Generated on ${new Date().toLocaleString()}
         } catch (transactionError) {
           console.error("Failed to create transaction record for failed capture:", transactionError);
         }
-        
-        return res.status(500).json({ 
+
+        return res.status(500).json({
           error: "Failed to capture payment with PayPal. Please try again or contact support.",
           details: captureError.message
         });
       }
     } catch (error) {
       console.error("Server error during PayPal capture:", error);
-      
+
       // Create a transaction record for the failed capture due to server error
       try {
         // Create transaction record for the failed payment
@@ -3712,10 +3712,10 @@ Generated on ${new Date().toLocaleString()}
           paymentMethod: "paypal",
           paymentId: req.body.orderID || "unknown",
         };
-        
+
         const createdTransaction = await storage.createTransaction(transaction);
         console.log("Created transaction record for server error during capture:", createdTransaction.id);
-        
+
         // Generate invoice for the failed payment
         try {
           const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
@@ -3726,50 +3726,50 @@ Generated on ${new Date().toLocaleString()}
       } catch (transactionError) {
         console.error("Failed to create transaction record for server error during capture:", transactionError);
       }
-      
-      return res.status(500).json({ 
+
+      return res.status(500).json({
         error: "An unexpected error occurred during payment capture",
         details: error.message
       });
     }
   });
-  
+
   // Verify PayPal payment with server-side validation (legacy method)
   app.post("/api/billing/verify-paypal-payment", isAuthenticated, async (req, res) => {
     try {
       const { orderId } = req.body;
-      
+
       console.log(`Verifying PayPal payment: orderId=${orderId}`);
-      
+
       if (!orderId) {
         console.log("Missing PayPal order ID");
         return res.status(400).json({ error: "PayPal order ID is required" });
       }
-      
+
       // Check if we're in sandbox mode
       const isSandbox = process.env.VITE_PAYPAL_SANDBOX === "true";
-      const paypalBaseUrl = isSandbox 
-        ? "https://api-m.sandbox.paypal.com" 
+      const paypalBaseUrl = isSandbox
+        ? "https://api-m.sandbox.paypal.com"
         : "https://api-m.paypal.com";
 
       // Get credentials
-      const clientId = isSandbox 
-        ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID 
+      const clientId = isSandbox
+        ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
         : process.env.VITE_PAYPAL_CLIENT_ID;
-      const clientSecret = isSandbox 
-        ? process.env.VITE_PAYPAL_SANDBOX_SECRET 
+      const clientSecret = isSandbox
+        ? process.env.VITE_PAYPAL_SANDBOX_SECRET
         : process.env.VITE_PAYPAL_SECRET;
-        
+
       if (!clientId || !clientSecret) {
         console.error("PayPal credentials are not configured");
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "PayPal integration is not properly configured. Please contact support.",
           details: "Missing API credentials"
         });
       }
-      
+
       console.log(`Using PayPal in ${isSandbox ? 'SANDBOX' : 'PRODUCTION'} mode`);
-      
+
       // First, get an access token
       let accessToken;
       try {
@@ -3782,24 +3782,24 @@ Generated on ${new Date().toLocaleString()}
           },
           body: 'grant_type=client_credentials'
         });
-        
+
         if (!tokenResponse.ok) {
           const errorData = await tokenResponse.json();
           console.error("PayPal token error:", errorData);
           throw new Error(`Failed to get PayPal access token: ${errorData.error_description || 'Unknown error'}`);
         }
-        
+
         const tokenData = await tokenResponse.json();
         accessToken = tokenData.access_token;
         console.log("Successfully obtained PayPal access token");
       } catch (tokenError) {
         console.error("Error getting PayPal access token:", tokenError);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "Failed to authenticate with PayPal API. Please try again later.",
           details: tokenError.message
         });
       }
-      
+
       // Now verify the order
       try {
         const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}`, {
@@ -3809,39 +3809,39 @@ Generated on ${new Date().toLocaleString()}
             'Content-Type': 'application/json'
           }
         });
-        
+
         if (!orderResponse.ok) {
           const errorData = await orderResponse.json();
           console.error("PayPal order verification error:", errorData);
           throw new Error(`Failed to verify PayPal order: ${errorData.message || 'Unknown error'}`);
         }
-        
+
         const orderData = await orderResponse.json();
         console.log("PayPal order verification successful:", {
           id: orderData.id,
           status: orderData.status,
           intent: orderData.intent
         });
-        
+
         // Verify order status is APPROVED or COMPLETED
         if (orderData.status !== 'APPROVED' && orderData.status !== 'COMPLETED') {
           console.error(`Invalid PayPal order status: ${orderData.status}`);
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: `PayPal payment is not approved (status: ${orderData.status})`
           });
         }
-        
+
         // Extract payment amount
         if (!orderData.purchase_units || orderData.purchase_units.length === 0) {
           throw new Error("Invalid order data: missing purchase units");
         }
-        
+
         const purchaseUnit = orderData.purchase_units[0];
         const amount = parseFloat(purchaseUnit.amount.value);
         const currency = purchaseUnit.amount.currency_code;
-        
+
         console.log(`Verified payment: ${amount} ${currency}, Order ID: ${orderId}`);
-        
+
         // Return payment verification result
         return res.json({
           verified: true,
@@ -3852,7 +3852,7 @@ Generated on ${new Date().toLocaleString()}
         });
       } catch (verifyError) {
         console.error("Error verifying PayPal order:", verifyError);
-        
+
         // Create a transaction record for the failed verification
         try {
           // Create transaction record for the failed verification
@@ -3865,10 +3865,10 @@ Generated on ${new Date().toLocaleString()}
             paymentMethod: "paypal",
             paymentId: orderId,
           };
-          
+
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for failed verification:", createdTransaction.id);
-          
+
           // Generate invoice for the failed verification
           try {
             const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
@@ -3879,15 +3879,15 @@ Generated on ${new Date().toLocaleString()}
         } catch (transactionError) {
           console.error("Failed to create transaction record for failed verification:", transactionError);
         }
-        
-        return res.status(500).json({ 
+
+        return res.status(500).json({
           error: "Failed to verify payment with PayPal. Please try again or contact support.",
           details: verifyError.message
         });
       }
     } catch (error) {
       console.error("Server error during PayPal verification:", error);
-      
+
       // Create a transaction record for the failed verification due to server error
       try {
         // Create transaction record for the failed verification
@@ -3900,10 +3900,10 @@ Generated on ${new Date().toLocaleString()}
           paymentMethod: "paypal",
           paymentId: req.body.orderId || "unknown",
         };
-        
+
         const createdTransaction = await storage.createTransaction(transaction);
         console.log("Created transaction record for server error during verification:", createdTransaction.id);
-        
+
         // Generate invoice for the failed verification
         try {
           const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
@@ -3914,8 +3914,8 @@ Generated on ${new Date().toLocaleString()}
       } catch (transactionError) {
         console.error("Failed to create transaction record for server error during verification:", transactionError);
       }
-      
-      return res.status(500).json({ 
+
+      return res.status(500).json({
         error: "An unexpected error occurred during payment verification",
         details: error.message
       });
@@ -3933,11 +3933,11 @@ Generated on ${new Date().toLocaleString()}
         console.log("Invalid add credits request - missing amount or paymentId");
         return res.status(400).json({ error: "Invalid amount or payment ID" });
       }
-      
+
       // Verify we have verification data
       if (!verificationData || !verificationData.verified) {
         console.error("Payment not verified through server-side validation");
-        
+
         // Create transaction record for the unverified payment
         try {
           const transaction: InsertTransaction = {
@@ -3949,10 +3949,10 @@ Generated on ${new Date().toLocaleString()}
             paymentMethod: "paypal",
             paymentId: paymentId,
           };
-          
+
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for unverified payment:", createdTransaction.id);
-          
+
           // Generate invoice for the unverified payment
           try {
             const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
@@ -3963,17 +3963,17 @@ Generated on ${new Date().toLocaleString()}
         } catch (transactionError) {
           console.error("Failed to create transaction record for unverified payment:", transactionError);
         }
-        
-        return res.status(400).json({ 
+
+        return res.status(400).json({
           error: "Payment verification failed. Please try again.",
           needsVerification: true
         });
       }
-      
+
       // Compare amounts for extra security
       if (verificationData.amount !== amount) {
         console.error(`Amount mismatch: verified=${verificationData.amount}, requested=${amount}`);
-        
+
         // Create transaction record for the payment with mismatched amount
         try {
           const transaction: InsertTransaction = {
@@ -3985,10 +3985,10 @@ Generated on ${new Date().toLocaleString()}
             paymentMethod: "paypal",
             paymentId: paymentId,
           };
-          
+
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for payment with amount mismatch:", createdTransaction.id);
-          
+
           // Generate invoice for the payment with mismatched amount
           try {
             const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
@@ -3999,8 +3999,8 @@ Generated on ${new Date().toLocaleString()}
         } catch (transactionError) {
           console.error("Failed to create transaction record for payment with amount mismatch:", transactionError);
         }
-        
-        return res.status(400).json({ 
+
+        return res.status(400).json({
           error: "Payment amount doesn't match the verification data",
           needsVerification: true
         });
@@ -4009,7 +4009,7 @@ Generated on ${new Date().toLocaleString()}
       // Check if the user has a VirtFusion ID (extRelationId)
       if (!req.user!.virtFusionId) {
         console.log(`User ${req.user!.id} does not have a linked VirtFusion account`);
-        
+
         // Create transaction record for the payment with no VirtFusion ID
         try {
           const transaction: InsertTransaction = {
@@ -4021,10 +4021,10 @@ Generated on ${new Date().toLocaleString()}
             paymentMethod: "paypal",
             paymentId: paymentId,
           };
-          
+
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for payment with no VirtFusion ID:", createdTransaction.id);
-          
+
           // Generate invoice for the payment with no VirtFusion ID
           try {
             const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
@@ -4035,24 +4035,24 @@ Generated on ${new Date().toLocaleString()}
         } catch (transactionError) {
           console.error("Failed to create transaction record for payment with no VirtFusion ID:", transactionError);
         }
-        
-        return res.status(400).json({ 
+
+        return res.status(400).json({
           error: "Your account is not linked to VirtFusion yet. Please contact support.",
           needsSync: true
         });
       }
-      
+
       console.log(`User has VirtFusion extRelationId: ${req.user!.virtFusionId}`);
-      
+
 
       // Check VirtFusion API configuration
       const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
-      
+
       // Validate VirtFusion API settings before proceeding
       if (!virtFusionApi.isConfigured()) {
         console.error("VirtFusion API is not properly configured");
-        
+
         // Create transaction record for payment with unconfigured VirtFusion API
         try {
           const transaction: InsertTransaction = {
@@ -4064,10 +4064,10 @@ Generated on ${new Date().toLocaleString()}
             paymentMethod: "paypal",
             paymentId: paymentId,
           };
-          
+
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for payment with unconfigured VirtFusion API:", createdTransaction.id);
-          
+
           // Generate invoice for the payment with unconfigured VirtFusion API
           try {
             const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
@@ -4078,8 +4078,8 @@ Generated on ${new Date().toLocaleString()}
         } catch (transactionError) {
           console.error("Failed to create transaction record for payment with unconfigured VirtFusion API:", transactionError);
         }
-        
-        return res.status(500).json({ 
+
+        return res.status(500).json({
           error: "VirtFusion API configuration is incomplete. Please contact support.",
           details: "Missing API URL or token"
         });
@@ -4089,7 +4089,7 @@ Generated on ${new Date().toLocaleString()}
       // According to the documentation: 0.01 tokens = 1 cent USD
       const tokens = amount * 100; // $1 = 100 tokens
       console.log(`Converting $${amount} to ${tokens} VirtFusion tokens`);
-      
+
       // Create a new transaction locally
       const transaction: InsertTransaction = {
         userId: req.user!.id,
@@ -4104,7 +4104,7 @@ Generated on ${new Date().toLocaleString()}
       console.log("Creating transaction record:", transaction);
       const createdTransaction = await storage.createTransaction(transaction);
       console.log("Transaction created with ID:", createdTransaction.id);
-      
+
       try {
         // Test connection to VirtFusion API before proceeding with adding credits
         try {
@@ -4115,7 +4115,7 @@ Generated on ${new Date().toLocaleString()}
           console.error("VirtFusion API connection test failed:", connectionError);
           throw new Error(`VirtFusion API connection failed: ${connectionError.message}`);
         }
-        
+
         // Update the VirtFusion account with the tokens
         // For VirtFusion's API, we should use the user's ID as the extRelationId
         // because that's how users were created in VirtFusion based on the logs
@@ -4123,7 +4123,7 @@ Generated on ${new Date().toLocaleString()}
         const storedVirtFusionId = req.user!.virtFusionId;
         console.log(`Using user ID ${extRelationId} as extRelationId for VirtFusion (stored virtFusionId was ${storedVirtFusionId})`);
         console.log(`Adding ${tokens} tokens to VirtFusion user with extRelationId: ${extRelationId}`);
-        
+
         // First check if the user exists in VirtFusion
         console.log(`Verifying user exists in VirtFusion with extRelationId: ${extRelationId}`);
         try {
@@ -4133,7 +4133,7 @@ Generated on ${new Date().toLocaleString()}
           console.error("User verification failed:", verifyError);
           throw new Error(`Failed to verify user in VirtFusion: ${verifyError.message}`);
         }
-        
+
         // If we get here, the user exists, so proceed with adding credits
         // Format the data EXACTLY as specified in the VirtFusion API documentation
         // According to https://docs.virtfusion.com/api/stoplight.html#/paths/selfService-credit-byUserExtRelationId-extRelationId/post
@@ -4142,33 +4142,33 @@ Generated on ${new Date().toLocaleString()}
           reference_1: createdTransaction.id, // Use our transaction ID as reference
           reference_2: `Payment via PayPal ID: ${paymentId}`
         };
-        
+
         console.log(`Sending to VirtFusion API with extRelationId=${extRelationId}:`, tokenData);
-        
+
         // Call the VirtFusion API with the extRelationId and the token data
         // The ID passed here should be the external relation ID as configured in VirtFusion
         const virtFusionResult = await virtFusionApi.addCreditToUser(
-          extRelationId, 
+          extRelationId,
           tokenData
         );
-      
+
         console.log("VirtFusion credit add response:", virtFusionResult);
-        
+
         // Calculate new credit balance
         const newCreditBalance = (req.user!.credits || 0) + amount;
         console.log(`Updating user credits: ${req.user!.credits || 0} + ${amount} = ${newCreditBalance}`);
-        
+
         // Mark the transaction as completed and update user credits
         await storage.updateUser(req.user!.id, {
           credits: newCreditBalance
         });
-        
+
         // Update transaction status using the storage interface instead of direct db access
         console.log(`Updating transaction ${createdTransaction.id} status to completed`);
         await storage.updateTransaction(createdTransaction.id, {
           status: "completed"
         });
-        
+
         // Generate invoice for the completed transaction
         try {
           const invoiceNumber = await generateInvoice(createdTransaction, 'paid');
@@ -4177,25 +4177,25 @@ Generated on ${new Date().toLocaleString()}
           console.error('Failed to generate invoice for completed transaction:', invoiceError);
           // Continue despite invoice generation failure
         }
-          
-        res.json({ 
-          success: true, 
+
+        res.json({
+          success: true,
           creditsAdded: amount,
           newBalance: newCreditBalance,
           virtFusionTokens: tokens,
           virtFusionResponse: virtFusionResult
         });
-        
+
       } catch (virtFusionError: any) {
         console.error("VirtFusion API error:", virtFusionError);
-        
+
         // Update transaction status to failed using storage interface
         console.log(`Updating transaction ${createdTransaction.id} status to failed`);
-        await storage.updateTransaction(createdTransaction.id, { 
-          status: "failed", 
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "failed",
           description: `${transaction.description} (VirtFusion sync failed: ${virtFusionError.message})`
         });
-        
+
         // Generate invoice for the failed transaction
         try {
           const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
@@ -4204,8 +4204,8 @@ Generated on ${new Date().toLocaleString()}
           console.error('Failed to generate invoice for failed transaction:', invoiceError);
           // Continue despite invoice generation failure
         }
-          
-        return res.status(500).json({ 
+
+        return res.status(500).json({
           error: "Failed to add credits to VirtFusion account",
           details: virtFusionError.message
         });
@@ -4223,14 +4223,14 @@ Generated on ${new Date().toLocaleString()}
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       // Initialize response with local credits
-      const response = { 
+      const response = {
         credits: user.credits,
-        virtFusionCredits: 0, 
+        virtFusionCredits: 0,
         virtFusionTokens: 0
       };
-      
+
       // If user has VirtFusion account linked, fetch their tokens
       if (user.virtFusionId) {
         try {
@@ -4238,11 +4238,11 @@ Generated on ${new Date().toLocaleString()}
           if (virtFusionApi.isConfigured()) {
             // Use the VirtFusion API to get user hourly stats (which contains credit info)
             const virtFusionData = await virtFusionApi.getUserHourlyStats(user.id);
-            
+
             if (virtFusionData?.data?.credit?.tokens) {
               const tokenAmount = parseFloat(virtFusionData.data.credit.tokens);
               const dollarAmount = tokenAmount / 100; // 100 tokens = $1.00 USD
-              
+
               response.virtFusionTokens = tokenAmount || 0;
               response.virtFusionCredits = dollarAmount || 0;
             }
@@ -4252,44 +4252,44 @@ Generated on ${new Date().toLocaleString()}
           // We'll still return the local credits if VirtFusion API call fails
         }
       }
-      
+
       res.json(response);
     } catch (error: any) {
       console.error(`Error fetching credit balance:`, error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Get user's VPS servers from VirtFusion
   app.get("/api/user/servers", isAuthenticated, async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: "User not authenticated" });
     }
-    
+
     try {
       // Check if user has a VirtFusion ID
       if (!req.user.virtFusionId) {
         return res.json([]);
       }
-      
+
       const virtFusionApi = new VirtFusionApi();
-      
+
       // Get user's servers from VirtFusion API
       console.log(`Fetching servers for user ${req.user.virtFusionId} from VirtFusion API`);
-      
+
       // Verify API is configured
       if (!virtFusionApi.isConfigured()) {
         console.error("VirtFusion API is not properly configured");
         return res.status(500).json({ error: "VirtFusion API configuration error" });
       }
-      
+
       const response = await virtFusionApi.getUserServers(req.user.virtFusionId);
-      
+
       if (!response || !response.data) {
         console.error("Invalid response from VirtFusion API");
         return res.json([]);
       }
-      
+
       // Format the response to include only necessary data
       const servers = response.data.map((server: any) => {
         // Extract all IP addresses and network information from the server
@@ -4298,11 +4298,11 @@ Generated on ${new Date().toLocaleString()}
         let allIpv6Addresses: any[] = [];
         let networkInfo: any = {};
         let isNat = false;
-        
+
         // Debugging - log the server network structure to console (only in development)
-        console.log(`Processing server ${server.id} (${server.name}), network structure:`, 
+        console.log(`Processing server ${server.id} (${server.name}), network structure:`,
           JSON.stringify(server.network || {}, null, 2).substring(0, 500) + '...');
-        
+
         // Get IP from network.interfaces array based on the API documentation
         if (server.network && server.network.interfaces && Array.isArray(server.network.interfaces)) {
           for (const iface of server.network.interfaces) {
@@ -4310,11 +4310,11 @@ Generated on ${new Date().toLocaleString()}
             if (typeof iface.isNat === 'boolean') {
               isNat = iface.isNat;
             }
-            
+
             // Process IPv4 addresses
             if (iface.ipv4 && Array.isArray(iface.ipv4) && iface.ipv4.length > 0) {
               console.log(`Found ${iface.ipv4.length} IPv4 addresses for interface ${iface.name || 'unknown'}`);
-              
+
               // Store all IPv4 addresses for this interface
               const ipv4Addresses = iface.ipv4.map((ip: any) => ({
                 address: ip.address || 'Unknown',
@@ -4326,9 +4326,9 @@ Generated on ${new Date().toLocaleString()}
                 order: ip.order || 0,
                 type: 'ipv4'
               }));
-              
+
               allIpAddresses = [...allIpAddresses, ...ipv4Addresses];
-              
+
               // Set the primary IP address as the first enabled one
               const enabledIp = iface.ipv4.find((ip: any) => ip.enabled === true);
               if (!primaryIpAddress || primaryIpAddress === "No IP") {
@@ -4340,11 +4340,11 @@ Generated on ${new Date().toLocaleString()}
                 }
               }
             }
-            
+
             // Process IPv6 addresses
             if (iface.ipv6 && Array.isArray(iface.ipv6) && iface.ipv6.length > 0) {
               console.log(`Found ${iface.ipv6.length} IPv6 addresses for interface ${iface.name || 'unknown'}`);
-              
+
               // Store all IPv6 addresses for this interface
               const ipv6Addresses = iface.ipv6.map((ip: any) => ({
                 // Use subnet/cidr to create a proper IPv6 address display if no direct address
@@ -4358,10 +4358,10 @@ Generated on ${new Date().toLocaleString()}
                 order: ip.order || 0,
                 type: 'ipv6'
               }));
-              
+
               allIpv6Addresses = [...allIpv6Addresses, ...ipv6Addresses];
               allIpAddresses = [...allIpAddresses, ...ipv6Addresses];
-              
+
               // Use IPv6 as primary only if no IPv4 is available
               if ((primaryIpAddress === "No IP") && ipv6Addresses.length > 0) {
                 const enabledIpv6 = iface.ipv6.find((ip: any) => ip.enabled === true);
@@ -4382,7 +4382,7 @@ Generated on ${new Date().toLocaleString()}
                 }
               }
             }
-            
+
             // Collect interface details
             networkInfo = {
               name: iface.name || 'eth0',
@@ -4392,12 +4392,12 @@ Generated on ${new Date().toLocaleString()}
             };
           }
         }
-        
+
         // If we still don't have an IP, try other possible fields
         if (primaryIpAddress === "No IP") {
           primaryIpAddress = server.ipAddresses?.[0]?.address || server.ip || "No IP";
         }
-        
+
         // Log the extracted IP information
         console.log(`Server ${server.id} (${server.name}) IP summary:`, {
           primaryIp: primaryIpAddress,
@@ -4405,7 +4405,7 @@ Generated on ${new Date().toLocaleString()}
           ipv6Count: allIpv6Addresses.length,
           isNat
         });
-        
+
         return {
           id: server.id,
           name: server.name || `Server #${server.id}`,
@@ -4422,19 +4422,19 @@ Generated on ${new Date().toLocaleString()}
           package: server.package?.name || "Unknown"
         };
       });
-      
+
       res.json(servers);
     } catch (error: any) {
       console.error("Error fetching VirtFusion servers:", error);
       res.status(500).json({ error: "Failed to fetch servers" });
     }
   });
-  
+
   // Get VirtFusion usage for the last 30 days
   app.get("/api/billing/usage/last30days", isAuthenticated, async (req, res) => {
     try {
       console.log("Fetching VirtFusion usage data for user:", req.user!.id);
-      
+
       const user = await storage.getUser(req.user!.id);
       if (!user) {
         console.log("User not found in database:", req.user!.id);
@@ -4443,52 +4443,52 @@ Generated on ${new Date().toLocaleString()}
 
       if (!user.virtFusionId) {
         console.log("User has no VirtFusion ID linked:", user.id);
-        return res.status(404).json({ 
-          error: "VirtFusion account not linked", 
-          usage: 0 
+        return res.status(404).json({
+          error: "VirtFusion account not linked",
+          usage: 0
         });
       }
-      
+
       console.log("User found:", user.id, "VirtFusion ID:", user.virtFusionId);
-      
+
       // Make sure VirtFusion API is configured
       const virtFusionApi = new VirtFusionApi();
       console.log("VirtFusion API configuration:", {
         isConfigured: virtFusionApi.isConfigured(),
         apiUrl: virtFusionApi.getApiUrl()
       });
-      
+
       if (!virtFusionApi.isConfigured()) {
         console.log("VirtFusion API not configured");
-        return res.status(500).json({ 
-          error: "VirtFusion API not configured", 
-          usage: 0 
+        return res.status(500).json({
+          error: "VirtFusion API not configured",
+          usage: 0
         });
       }
 
       // Use the getUserHourlyStats method with the user.id as extRelationId (NOT virtFusionId)
       // VirtFusion expects the user's ID from our system as extRelationId
       console.log("Calling VirtFusion API hourly stats with extRelationId (user.id):", user.id);
-      
+
       // Use the VirtFusion API class's built-in method to make the API call with user.id
       const response = await virtFusionApi.getUserHourlyStats(user.id);
       console.log("VirtFusion API raw response:", response);
 
       if (!response || !response.data) {
         console.log("No data returned from VirtFusion API");
-        return res.status(500).json({ 
-          error: "Failed to fetch VirtFusion usage data", 
-          usage: 0 
+        return res.status(500).json({
+          error: "Failed to fetch VirtFusion usage data",
+          usage: 0
         });
       }
 
       // Extract the monthly total value from the response
       let totalUsage = 0;  // Default to 0 if not found
       console.log("VirtFusion hourly stats response:", response);
-      
+
       // Parse the monthlyTotal.value from the response data based on API documentation
-      if (response.data && 
-          response.data.monthlyTotal && 
+      if (response.data &&
+          response.data.monthlyTotal &&
           response.data.monthlyTotal.value) {
         // The value might be returned as a string, so we parse it as a float
         const monthlyValue = parseFloat(response.data.monthlyTotal.value);
@@ -4501,49 +4501,49 @@ Generated on ${new Date().toLocaleString()}
       } else {
         console.log("Monthly total value not found in API response, using default value of 0");
       }
-      
+
       console.log("Returning usage data:", { usage: totalUsage });
-      res.json({ 
+      res.json({
         usage: totalUsage,
         rawData: response.data
       });
     } catch (error: any) {
       console.error("Error fetching VirtFusion usage:", error);
-      res.status(500).json({ 
-        error: error.message || "Failed to fetch usage data", 
-        usage: 0 
+      res.status(500).json({
+        error: error.message || "Failed to fetch usage data",
+        usage: 0
       });
     }
   });
-  
+
   // Test VirtFusion credit addition - for admin testing only
   app.post("/api/test-virtfusion-credit", isAdmin, async (req, res) => {
     try {
-      // For testing, we'll accept the externally provided extRelationId 
+      // For testing, we'll accept the externally provided extRelationId
       // but add a warning about using userId as extRelationId in your app
       const { extRelationId, tokens } = req.body;
-      
+
       if (!extRelationId || !tokens) {
         return res.status(400).json({ error: "External relation ID and tokens are required" });
       }
-      
+
       // Add a hint for the administrator
       console.log(`IMPORTANT: For normal users, the extRelationId should be their user ID, not the virtFusionId field.`);
-      
+
       console.log(`Admin test: Adding ${tokens} tokens to VirtFusion user with extRelationId: ${extRelationId}`);
-      
+
       // Check VirtFusion API configuration
       const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
-      
+
       // Validate VirtFusion API settings
       if (!virtFusionApi.isConfigured()) {
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "VirtFusion API configuration is incomplete",
           details: "Missing API URL or token"
         });
       }
-      
+
       // Test connection to VirtFusion API
       try {
         console.log("Testing VirtFusion API connection before test credit addition");
@@ -4551,12 +4551,12 @@ Generated on ${new Date().toLocaleString()}
         console.log("VirtFusion API connection successful");
       } catch (connectionError: any) {
         console.error("VirtFusion API connection test failed:", connectionError);
-        return res.status(500).json({ 
-          error: "VirtFusion API connection failed", 
+        return res.status(500).json({
+          error: "VirtFusion API connection failed",
           details: connectionError.message
         });
       }
-      
+
       // Create transaction record for reference
       const transaction: InsertTransaction = {
         userId: req.user!.id,
@@ -4567,11 +4567,11 @@ Generated on ${new Date().toLocaleString()}
         paymentMethod: "test",
         paymentId: `test-${Date.now()}`,
       };
-      
+
       console.log("Creating test transaction record:", transaction);
       const createdTransaction = await storage.createTransaction(transaction);
       console.log("Test transaction created with ID:", createdTransaction.id);
-      
+
       // Check if user exists in VirtFusion
       console.log(`Verifying user exists in VirtFusion with extRelationId: ${extRelationId}`);
       try {
@@ -4579,16 +4579,16 @@ Generated on ${new Date().toLocaleString()}
         console.log("User verification successful:", userCheckResult);
       } catch (userCheckError: any) {
         console.error("User verification failed:", userCheckError);
-        await storage.updateTransaction(createdTransaction.id, { 
-          status: "failed", 
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "failed",
           description: `${transaction.description} (User verification failed: ${userCheckError.message})`
         });
-        return res.status(400).json({ 
-          error: "Failed to verify user in VirtFusion", 
+        return res.status(400).json({
+          error: "Failed to verify user in VirtFusion",
           details: userCheckError.message
         });
       }
-      
+
       // Add credits via VirtFusion API
       // Format the data EXACTLY as specified in the VirtFusion API documentation
       const tokenData = {
@@ -4596,22 +4596,22 @@ Generated on ${new Date().toLocaleString()}
         reference_1: createdTransaction.id,
         reference_2: `Admin test credit - Transaction ID: ${createdTransaction.id}`
       };
-      
+
       console.log(`Sending to VirtFusion API with extRelationId=${extRelationId}:`, tokenData);
       try {
         // The ID passed here should be the external relation ID as configured in VirtFusion
         const virtFusionResult = await virtFusionApi.addCreditToUser(
-          extRelationId, 
+          extRelationId,
           tokenData
         );
-        
+
         console.log("VirtFusion credit add response:", virtFusionResult);
-        
+
         // Update transaction status
         await storage.updateTransaction(createdTransaction.id, {
           status: "completed"
         });
-        
+
         // Generate invoice for the test transaction
         try {
           const invoiceNumber = await generateInvoice(createdTransaction, 'paid');
@@ -4620,19 +4620,19 @@ Generated on ${new Date().toLocaleString()}
           console.error('Failed to generate invoice for test transaction:', invoiceError);
           // Continue despite invoice generation failure
         }
-        
-        res.json({ 
-          success: true, 
+
+        res.json({
+          success: true,
           message: `Successfully added ${tokens} tokens to VirtFusion user ${extRelationId}`,
           transactionId: createdTransaction.id,
           virtFusionResponse: virtFusionResult
         });
       } catch (creditError: any) {
         console.error("VirtFusion credit API error:", creditError);
-        
+
         // Update transaction status to failed
-        await storage.updateTransaction(createdTransaction.id, { 
-          status: "failed", 
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "failed",
           description: `${transaction.description} (Credit addition failed: ${creditError.message})`
         });
 
@@ -4644,8 +4644,8 @@ Generated on ${new Date().toLocaleString()}
           console.error('Failed to generate invoice for failed test credit transaction:', invoiceError);
           // Continue despite invoice generation failure
         }
-        
-        return res.status(500).json({ 
+
+        return res.status(500).json({
           error: "Failed to add credits to VirtFusion account",
           details: creditError.message
         });
@@ -4669,7 +4669,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/admin/ticket-departments", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const departments = await storage.getAllTicketDepartments();
@@ -4679,7 +4679,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/admin/ticket-departments", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const departmentData = insertTicketDepartmentSchema.parse(req.body);
@@ -4690,7 +4690,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.patch("/api/admin/ticket-departments/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -4703,7 +4703,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // PUT route for ticket departments to match client requests
   app.put("/api/admin/ticket-departments/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
@@ -4717,7 +4717,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.delete("/api/admin/ticket-departments/:id", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -4728,20 +4728,20 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Ticket Routes
   app.get("/api/tickets", isAuthenticated, async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
-      
+
       // Get total count for pagination
       const totalTickets = await storage.getUserTicketsCount(req.user!.id);
-      
+
       // Get paginated tickets
       const tickets = await storage.getUserTicketsPaginated(req.user!.id, limit, offset);
-      
+
       res.json({
         data: tickets,
         pagination: {
@@ -4921,29 +4921,29 @@ Generated on ${new Date().toLocaleString()}
 
       // Get ticket messages
       const messages = await storage.getTicketMessages(ticketId);
-      
+
       // Get department info
       const department = ticket.departmentId ? await storage.getTicketDepartment(ticket.departmentId) : null;
-      
+
       // If this is a VPS-related ticket, fetch the VPS information
       let server = null;
       if (ticket.vpsId) {
         try {
           // Fetch VPS data from VirtFusion API if the ticket has a VPS ID
           const virtFusionApi = new VirtFusionApi();
-          
+
           // Get VPS info
           if (req.user.virtFusionId) {
             console.log(`Fetching VPS info for ticket ${ticketId} (VPS ID: ${ticket.vpsId})`);
             // Fetch server details from VirtFusion
             const serverData = await virtFusionApi.getServer(ticket.vpsId);
-            
+
             if (serverData && serverData.data) {
               // Extract network info (if available)
               const networkInterface = serverData.data.network?.interfaces?.[0] || {};
               const ipv4s = networkInterface.ipv4 || [];
               const ipv6s = networkInterface.ipv6 || [];
-              
+
               // Properly format IPv6 addresses by combining subnet/cidr
               const formattedIpv6s = ipv6s.map(ip => ({
                 ...ip,
@@ -4953,9 +4953,9 @@ Generated on ${new Date().toLocaleString()}
                 netmask: ip.prefix || ip.netmask || (ip.cidr ? `/${ip.cidr}` : 'Unknown'),
                 type: 'ipv6'
               }));
-              
+
               const allIps = [...ipv4s.map(ip => ({...ip, type: 'ipv4'})), ...formattedIpv6s];
-              
+
               // Format server data
               server = {
                 id: serverData.data.id,
@@ -4984,7 +4984,7 @@ Generated on ${new Date().toLocaleString()}
           // Don't fail the whole request if VPS data retrieval fails
         }
       }
-      
+
       res.json({ ticket, messages, server, department });
     } catch (error: any) {
       console.error(`Error fetching ticket:`, error);
@@ -5009,46 +5009,46 @@ Generated on ${new Date().toLocaleString()}
         );
         return res.status(401).json({ error: "User authentication required" });
       }
-      
+
       // Department is required for ticket creation
       if (!req.body.departmentId) {
         return res.status(400).json({ error: "Department selection is required" });
       }
-      
+
       // Check if department exists and is active
       const department = await storage.getTicketDepartment(req.body.departmentId);
       if (!department) {
         return res.status(404).json({ error: "Selected department not found" });
       }
-      
+
       if (!department.isActive) {
         return res.status(400).json({ error: "Selected department is not available" });
       }
-      
+
       // If department requires VPS, fetch VPS data from VirtFusion
       let vpsData = null;
       let vpsId = req.body.vpsId || null;
-      
+
       if (department.requiresVps) {
         if (!vpsId) {
           return res.status(400).json({ error: "VPS selection is required for this department" });
         }
-        
+
         try {
           // Fetch VPS data from VirtFusion API
           const virtFusionApiService = new VirtFusionApi();
-          
+
           // Get user's VPS info from VirtFusion
           if (req.user.virtFusionId) {
             console.log(`Fetching VPS info for user ${req.user.virtFusionId} from VirtFusion API`);
             const userServers = await virtFusionApiService.getUserServers(req.user.virtFusionId);
-            
+
             // Check if requested VPS belongs to user
             const server = userServers.data.find((s: any) => s.id === vpsId);
             if (!server) {
               return res.status(404).json({ error: "VPS not found or not accessible" });
             }
-            
+
             // Store relevant VPS data
             vpsData = {
               id: server.id,
@@ -5059,7 +5059,7 @@ Generated on ${new Date().toLocaleString()}
               os: server.os?.name || "Unknown",
               package: server.package?.name || "Unknown"
             };
-            
+
             console.log(`VPS data retrieved for ID ${vpsId}:`, {
               name: vpsData.name,
               hostname: vpsData.hostname,
@@ -5111,10 +5111,10 @@ Generated on ${new Date().toLocaleString()}
       try {
         const user = await storage.getUser(req.user.id);
         const userName = user ? `${user.fullName} (${user.email})` : `User #${req.user.id}`;
-        
+
         // Get department info for the notification
         const deptName = department ? department.name : "Unknown Department";
-        
+
         // Add VPS info to the notification if available
         let additionalInfo = `Department: ${deptName}`;
         if (vpsData) {
@@ -5123,7 +5123,7 @@ Generated on ${new Date().toLocaleString()}
           additionalInfo += `\nPackage: ${vpsData.package}`;
           additionalInfo += `\nStatus: ${vpsData.status}`;
         }
-        
+
         // Send webhook notification (for backward compatibility)
         await discordService.sendNewTicketNotification(
           ticket.id,
@@ -5131,7 +5131,7 @@ Generated on ${new Date().toLocaleString()}
           `${req.body.message || "(No message provided)"}\n\n${additionalInfo}`,
           userName
         );
-        
+
         // Create Discord thread for the ticket (if bot is enabled)
         await discordBotService.createThreadForTicket(
           ticket.id,
@@ -5235,7 +5235,7 @@ Generated on ${new Date().toLocaleString()}
         const user = await storage.getUser(req.user!.id);
         const userName = user ? `${user.fullName} (${user.email})` : `User #${req.user!.id}`;
         const isAdmin = req.user!.role === "admin";
-        
+
         // Send webhook notification (for backward compatibility)
         await discordService.sendTicketReplyNotification(
           ticketId,
@@ -5244,7 +5244,7 @@ Generated on ${new Date().toLocaleString()}
           userName,
           isAdmin
         );
-        
+
         // Send reply to Discord thread (if bot is enabled)
         await discordBotService.sendReplyToThread(
           ticketId,
@@ -5285,11 +5285,11 @@ Generated on ${new Date().toLocaleString()}
       }
 
       await storage.updateTicket(ticketId, { status: "closed" });
-      
+
       // Send Discord notifications
       const isAdmin = req.user!.role === "admin";
       const userName = req.user!.fullName || req.user!.username;
-      
+
       // Webhook notification (for backward compatibility)
       discordService.sendTicketStatusNotification(
         ticketId,
@@ -5298,7 +5298,7 @@ Generated on ${new Date().toLocaleString()}
         "closed",
         isAdmin
       );
-      
+
       // Update Discord thread (if bot is enabled)
       try {
         if (typeof discordBotService.updateThreadStatus === 'function') {
@@ -5313,14 +5313,14 @@ Generated on ${new Date().toLocaleString()}
       } catch (error) {
         console.error("Error updating Discord thread status:", error);
       }
-      
+
       res.json({ success: true });
     } catch (error: any) {
       console.error(`Error closing ticket:`, error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Reopen a ticket
   app.post("/api/tickets/:id/reopen", isAuthenticated, async (req, res) => {
     try {
@@ -5344,11 +5344,11 @@ Generated on ${new Date().toLocaleString()}
       }
 
       await storage.updateTicket(ticketId, { status: "open" });
-      
+
       // Send Discord notifications
       const isAdmin = req.user!.role === "admin";
       const userName = req.user!.fullName || req.user!.username;
-      
+
       // Webhook notification (for backward compatibility)
       discordService.sendTicketStatusNotification(
         ticketId,
@@ -5357,7 +5357,7 @@ Generated on ${new Date().toLocaleString()}
         "reopened",
         isAdmin
       );
-      
+
       // Update Discord thread (if bot is enabled)
       try {
         if (typeof discordBotService.updateThreadStatus === 'function') {
@@ -5372,14 +5372,14 @@ Generated on ${new Date().toLocaleString()}
       } catch (error) {
         console.error("Error updating Discord thread status:", error);
       }
-      
+
       res.json({ success: true });
     } catch (error: any) {
       console.error(`Error reopening ticket:`, error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Download a ticket as PDF
   app.get("/api/tickets/:id/download", isAuthenticated, async (req, res) => {
     try {
@@ -5388,29 +5388,29 @@ Generated on ${new Date().toLocaleString()}
       if (!ticketIdStr || isNaN(parseInt(ticketIdStr))) {
         return res.status(400).json({ error: "Invalid ticket ID" });
       }
-      
+
       const ticketId = parseInt(ticketIdStr);
       console.log(`Downloading ticket ID: ${ticketId} for user: ${req.user!.id}`);
-      
+
       // Get ticket from storage
       const ticket = await storage.getTicket(ticketId);
-      
+
       if (!ticket) {
         console.error(`Ticket ID ${ticketId} not found in database`);
         return res.status(404).json({ error: "Ticket not found" });
       }
-      
+
       // Check permission - only ticket owner or admin can download
       if (ticket.userId !== req.user!.id && req.user!.role !== 'admin') {
         return res.status(403).json({ error: "You don't have permission to access this ticket" });
       }
-      
+
       // Get user data for the report
       const user = await storage.getUser(ticket.userId);
-      
+
       // Get ticket messages
       const messages = await storage.getTicketMessages(ticketId);
-      
+
       // If the ticket is VPS-related, fetch the server details
       let server = null;
       if (ticket.vpsId) {
@@ -5418,38 +5418,38 @@ Generated on ${new Date().toLocaleString()}
           console.log(`Fetching VPS info for ticket ${ticketId} (VPS ID: ${ticket.vpsId})`);
           const virtFusionApi = new VirtFusionApi();
           const serverResponse = await virtFusionApi.getServer(ticket.vpsId, false);
-          
+
           if (serverResponse && serverResponse.data) {
             server = serverResponse.data;
             console.log(`Successfully fetched VPS server data for PDF, VPS ID: ${ticket.vpsId}, Name: ${server.name}`);
-            
+
             // Debug the server data structure
-            console.log('Server network info available:', 
-              server.network && 
-              server.network.interfaces && 
+            console.log('Server network info available:',
+              server.network &&
+              server.network.interfaces &&
               server.network.interfaces.length > 0 ? 'Yes' : 'No'
             );
-            
+
             if (server.network && server.network.interfaces) {
               console.log(`Found ${server.network.interfaces.length} network interfaces`);
-              
+
               // Process the network interfaces to ensure IPv6 addresses are properly formatted
               server.network.interfaces.forEach((iface: any) => {
                 if (iface && iface.ipv6 && Array.isArray(iface.ipv6)) {
                   // Process each IPv6 address
                   iface.ipv6 = iface.ipv6.map((ip: any) => {
                     if (!ip) return ip;
-                    
+
                     // Create a formatted address if missing
                     if (!ip.address && ip.subnet) {
                       ip.address = `${ip.subnet}/${ip.cidr}`;
                     }
-                    
+
                     // Ensure netmask is properly set
                     if (!ip.netmask && !ip.prefix && ip.cidr) {
                       ip.netmask = `/${ip.cidr}`;
                     }
-                    
+
                     return ip;
                   });
                 }
@@ -5465,38 +5465,38 @@ Generated on ${new Date().toLocaleString()}
       } else {
         console.log(`Note: Ticket ${ticketId} does not have a VPS ID associated with it.`);
       }
-      
+
       // For VPS-related tickets, we don't need to include user credits
       // as they're not relevant to the support issue
       let creditsInfo = null;
-      
+
       // Get company information for PDF
       const companyNameSetting = await storage.getSetting('company_name');
       const companyName = companyNameSetting ? companyNameSetting.value : 'SkyVPS360';
       const companyLogoSetting = await storage.getSetting('company_logo');
       const companyLogo = companyLogoSetting ? companyLogoSetting.value : '';
-      
+
       // Create a new PDF document
       const doc = new PDFDocument({ margin: 50 });
-      
+
       // Set response headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="ticket-${ticket.id}.pdf"`);
-      
+
       // Pipe the PDF document to the response
       doc.pipe(res);
-      
+
       // Format the PDF with ticket data
       formatTicketPdf(doc, ticket, messages, user, companyName, companyLogo, server, creditsInfo);
-      
+
       // Finalize the PDF
       doc.end();
     } catch (error: any) {
       console.error("Error generating ticket PDF:", error);
       if (!res.headersSent) {
-        res.status(500).json({ 
-          error: "Failed to generate ticket download", 
-          details: error.message 
+        res.status(500).json({
+          error: "Failed to generate ticket download",
+          details: error.message
         });
       } else {
         res.end();
@@ -5536,12 +5536,12 @@ Generated on ${new Date().toLocaleString()}
 
       // Get the updated ticket
       const updatedTicket = await storage.getTicket(ticketId);
-      
+
       // Send Discord notifications for status changes
       if (status && status !== ticket.status) {
         const isAdmin = req.user!.role === "admin";
         const userName = req.user!.fullName || req.user!.username;
-        
+
         // Webhook notification (for backward compatibility)
         discordService.sendTicketStatusNotification(
           ticketId,
@@ -5550,7 +5550,7 @@ Generated on ${new Date().toLocaleString()}
           status,
           isAdmin
         );
-        
+
         // Update Discord thread (if bot is enabled)
         try {
           if (typeof discordBotService.updateThreadStatus === 'function') {
@@ -5586,24 +5586,24 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Get all transactions (admin only)
   app.get("/api/admin/transactions", isAdmin, async (req, res) => {
     try {
       const transactions = await storage.getAllTransactions();
-      
+
       // Fetch all unique user IDs from transactions
       const userIds = [...new Set(transactions.map(t => t.userId))];
-      
+
       // Get user data for these IDs in one go
       const users = await storage.getUsersByIds(userIds);
-      
+
       // Map users by their ID for easier lookup
       const userMap = users.reduce((acc, user) => {
         acc[user.id] = user;
         return acc;
       }, {} as Record<number, any>);
-      
+
       // Attach user data to each transaction
       const transactionsWithUserData = transactions.map(transaction => {
         const user = userMap[transaction.userId];
@@ -5616,29 +5616,29 @@ Generated on ${new Date().toLocaleString()}
           } : undefined
         };
       });
-      
+
       res.json(transactionsWithUserData);
     } catch (error: any) {
       console.error("Error fetching all transactions:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Admin billing page data
   app.get("/api/admin/billing", isAdmin, async (req, res) => {
     try {
       // Get summary data
       const transactions = await storage.getAllTransactions();
       const invoices = await storage.getAllInvoices();
-      
+
       // Calculate summary statistics
       const totalCredits = transactions
         .filter(t => t.type === 'credit' && t.status === 'completed')
         .reduce((sum, t) => sum + Number(t.amount), 0);
-        
+
       const pendingInvoices = invoices.filter(i => i.status !== 'paid').length;
       const pendingTransactions = transactions.filter(t => t.status === 'pending').length;
-      
+
       res.json({
         totalCredits,
         pendingInvoices,
@@ -5654,19 +5654,19 @@ Generated on ${new Date().toLocaleString()}
   app.get("/api/admin/invoices", isAdmin, async (req, res) => {
     try {
       const invoices = await storage.getAllInvoices();
-      
+
       // Fetch all unique user IDs from invoices
       const userIds = [...new Set(invoices.map(inv => inv.userId))];
-      
+
       // Get user data for these IDs in one go
       const users = await storage.getUsersByIds(userIds);
-      
+
       // Map users by their ID for easier lookup
       const userMap = users.reduce((acc, user) => {
         acc[user.id] = user;
         return acc;
       }, {} as Record<number, any>);
-      
+
       // Attach user data to each invoice
       const invoicesWithUserData = invoices.map(invoice => {
         const user = userMap[invoice.userId];
@@ -5679,7 +5679,7 @@ Generated on ${new Date().toLocaleString()}
           } : undefined
         };
       });
-      
+
       res.json(invoicesWithUserData);
     } catch (error: any) {
       console.error("Error fetching all invoices:", error);
@@ -5709,36 +5709,36 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Update invoice status (admin only)
   app.patch("/api/admin/invoices/:id/status", isAdmin, async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
-      
+
       if (isNaN(invoiceId)) {
         return res.status(400).json({ error: "Invalid invoice ID" });
       }
-      
+
       // Validate the status
       const { status } = req.body;
       if (!status || !['pending', 'paid', 'cancelled', 'refunded'].includes(status)) {
         return res.status(400).json({ error: "Invalid status value. Must be one of: pending, paid, cancelled, refunded" });
       }
-      
+
       const invoice = await storage.getInvoice(invoiceId);
-      
+
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
-      
+
       // Update the invoice status
       const updatedInvoice = await storage.updateInvoice(invoiceId, { status });
-      
+
       // If status is changed to 'paid', set the paidDate if it's not already set
       if (status === 'paid' && !invoice.paidDate) {
         await storage.updateInvoice(invoiceId, { paidDate: new Date().toISOString() });
       }
-      
+
       res.json(updatedInvoice);
     } catch (error: any) {
       console.error(`Error updating invoice status for ID ${req.params.id}:`, error);
@@ -5750,27 +5750,27 @@ Generated on ${new Date().toLocaleString()}
   app.get("/api/admin/invoices/:id/download", isAdmin, async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
-      
+
       if (isNaN(invoiceId)) {
         return res.status(400).json({ error: "Invalid invoice ID" });
       }
 
       const invoice = await storage.getInvoice(invoiceId);
-      
+
       if (!invoice) {
         return res.status(404).json({ error: "Invoice not found" });
       }
-      
+
       // Generate PDF document for the invoice - this returns base64 data, not a file path
       const pdfBase64 = await generateInvoice(invoice);
-      
+
       // Convert base64 string back to Buffer
       const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-      
+
       // Set appropriate headers for PDF file download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
-      
+
       // Send PDF data directly instead of using sendFile
       res.send(pdfBuffer);
     } catch (error: any) {
@@ -5891,10 +5891,10 @@ Generated on ${new Date().toLocaleString()}
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const offset = (page - 1) * limit;
-      
+
       // Get total count for pagination
       const totalTickets = await storage.getAllTicketsCount();
-      
+
       // Get paginated tickets
       const allTickets = await storage.getAllTicketsPaginated(limit, offset);
 
@@ -5934,27 +5934,27 @@ Generated on ${new Date().toLocaleString()}
   app.delete("/api/admin/tickets/:id", isAdmin, async (req, res) => {
     try {
       const ticketId = parseInt(req.params.id);
-      
+
       if (isNaN(ticketId)) {
         return res.status(400).json({ error: "Invalid ticket ID" });
       }
-      
+
       const ticket = await storage.getTicket(ticketId);
-      
+
       if (!ticket) {
         return res.status(404).json({ error: "Ticket not found" });
       }
-      
+
       // Send Discord notifications before deleting the ticket
       const adminName = req.user!.fullName || req.user!.username;
-      
+
       // Webhook notification (for backward compatibility)
       discordService.sendTicketDeletedNotification(
         ticketId,
         ticket.subject,
         adminName
       );
-      
+
       // Notify Discord thread (if bot is enabled)
       try {
         if (typeof discordBotService.handleTicketDeletion === 'function') {
@@ -5968,10 +5968,10 @@ Generated on ${new Date().toLocaleString()}
       } catch (error) {
         console.error("Error notifying Discord thread about ticket deletion:", error);
       }
-      
+
       // Delete the ticket and all associated messages
       await storage.deleteTicket(ticketId);
-      
+
       console.log(`Admin deleted ticket ${ticketId}`);
       res.json({ success: true, message: "Ticket deleted successfully" });
     } catch (error: any) {
@@ -6027,10 +6027,10 @@ Generated on ${new Date().toLocaleString()}
           // IMPORTANT: Use user.id as extRelationId (NOT virtFusionId)
           // According to API docs: /users/{extRelationId}/byExtRelation/resetPassword
           console.log(`Attempting to reset password via VirtFusion API for user with extRelationId: ${user.id}`);
-          
+
           const response = await virtFusionApi.resetUserPassword(user.id);
           console.log("VirtFusion password reset API response:", response);
-          
+
           // Extract the password from the VirtFusion response according to API docs
           // Example: {"data":{"email":"jon@doe.com","password":"zD2VqFKO554tdfWKOmGhw"}}
           if (response && response.data && response.data.password) {
@@ -6044,7 +6044,7 @@ Generated on ${new Date().toLocaleString()}
         } catch (error: any) {
           virtFusionError = error;
           console.warn("VirtFusion password reset failed, falling back to local password generation", error.message);
-          
+
           // If VirtFusion API call failed, generate a local password
           temporaryPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
         }
@@ -6055,16 +6055,16 @@ Generated on ${new Date().toLocaleString()}
 
       // Hash the password (whether from VirtFusion or locally generated)
       const hashedPassword = await hashPassword(temporaryPassword);
-      
+
       // Update user's password in our database
       await storage.updateUser(userId, { password: hashedPassword });
-      
+
       // Send email notification to the user
       try {
         // Get admin name for the email
         const adminUser = req.user as any;
         const adminName = adminUser?.fullName || 'System Administrator';
-        
+
         await emailService.sendAdminPasswordResetEmail(
           user.email,
           temporaryPassword,
@@ -6075,23 +6075,23 @@ Generated on ${new Date().toLocaleString()}
         console.error("Error sending password reset email:", emailError);
         // Continue with the response even if email sending fails
       }
-      
+
       // Return the result with warning if VirtFusion API failed
       const response: any = { success: true, temporaryPassword };
-      
+
       if (user.virtFusionId && virtFusionError) {
         response.virtFusionWarning = "Password was reset locally but VirtFusion API call failed";
         response.virtFusionError = virtFusionError.message;
         console.warn("Warning: Password reset locally but VirtFusion API call failed. Passwords may be out of sync.");
       }
-      
+
       return res.json(response);
     } catch (error: any) {
       console.error("Error resetting user password:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Suspend/Enable user (admin only)
   app.patch("/api/admin/users/:id/status", isAdmin, async (req, res) => {
     try {
@@ -6112,21 +6112,21 @@ Generated on ${new Date().toLocaleString()}
       if (req.user && (req.user as any).id === userId) {
         return res.status(403).json({ error: "You cannot modify your own account status" });
       }
-      
+
       // If user has VirtFusion ID, update their status in VirtFusion
       if (user.virtFusionId) {
         try {
           console.log(`Updating user status in VirtFusion. User ID: ${userId}, Enabled: ${enabled}`);
-          
+
           // Create a new instance of VirtFusionApi
           const api = new VirtFusionApi();
           await api.updateSettings();
-          
+
           // For VirtFusion, we need to set selfService parameter:
           // 0 = disabled (suspended)
           // 1 = hourly billing (enabled)
           const selfServiceValue = enabled ? 1 : 0;
-          
+
           // Prepare the update data
           const updateData = {
             name: user.fullName, // Required by the VirtFusion API
@@ -6136,14 +6136,14 @@ Generated on ${new Date().toLocaleString()}
             selfServiceHourlyResourcePack: 1, // Default resource pack ID
             enabled: enabled // Controls whether VirtFusion emails the user
           };
-          
+
           console.log(`Sending VirtFusion update data:`, JSON.stringify(updateData, null, 2));
-          
+
           // Use the modifyUserByExtRelationId method to update the user's status in VirtFusion
           await api.modifyUserByExtRelationId(user.id, updateData);
-          
+
           console.log(`Successfully updated user status in VirtFusion. User ID: ${userId}`);
-          
+
           // Send notification email via email service about status change
           try {
             if (enabled) {
@@ -6173,9 +6173,9 @@ Generated on ${new Date().toLocaleString()}
           }
         } catch (error: any) {
           console.error(`Error updating user status in VirtFusion:`, error);
-          return res.status(500).json({ 
-            error: "Failed to update user status in VirtFusion", 
-            details: error.message 
+          return res.status(500).json({
+            error: "Failed to update user status in VirtFusion",
+            details: error.message
           });
         }
       } else {
@@ -6185,7 +6185,7 @@ Generated on ${new Date().toLocaleString()}
       // Update user in our database to keep track of their status
       await storage.updateUser(userId, { isActive: enabled });
 
-      res.json({ 
+      res.json({
         success: true,
         message: enabled ? "User has been enabled" : "User has been suspended"
       });
@@ -6194,58 +6194,58 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Get VirtFusion user usage data (admin only)
   app.get("/api/admin/users/:id/usage", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      
+
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       // Only allow for users that have a VirtFusion ID
       if (!user.virtFusionId) {
         return res.status(400).json({ error: "User is not linked to VirtFusion" });
       }
-      
+
       try {
         // IMPORTANT: VirtFusion uses our user.id as the "extRelationId", not the virtFusionId
         const extRelationId = userId; // Use userId, not virtFusionId!
         console.log(`Fetching usage data for user. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
-        
-        // Use direct axios call to VirtFusion API 
+
+        // Use direct axios call to VirtFusion API
         const virtFusionApiUrl = process.env.VIRTFUSION_API_URL || 'https://vdc.skyvps360.xyz/api/v1';
         const virtFusionApiToken = process.env.VIRTFUSION_API_TOKEN;
-        
+
         if (!virtFusionApiUrl || !virtFusionApiToken) {
           throw new Error("VirtFusion API URL or token not configured");
         }
-        
+
         // Get current date in YYYY-MM-DD format for the period parameter
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
         const currentDate = `${year}-${month}-${day}`;
-        
+
         // Format the URL correctly
         let apiBase = virtFusionApiUrl;
         if (apiBase.endsWith("/")) {
           apiBase = apiBase.slice(0, -1);
         }
-        
+
         // We must use virtFusionId as the external relation ID for the usage API
         // This is different from their documentation, as we need to use the actual VirtFusion user ID
         // It's not the extRelationId stored on the VirtFusion side
         const fullUrl = `${apiBase}/selfService/hourlyStats/byUserExtRelationId/${extRelationId}`;
         console.log(`Making direct GET request to ${fullUrl}`);
-        
+
         // Make the request
         const response = await axios({
           method: 'GET',
@@ -6257,20 +6257,20 @@ Generated on ${new Date().toLocaleString()}
           },
           httpsAgent: new https.Agent({ rejectUnauthorized: true })
         });
-        
+
         console.log(`Response status: ${response.status}`);
-        
+
         console.log(`Successfully fetched usage data from VirtFusion. User ID: ${userId}`);
-        
+
         // Extract credit info and transform to match the format used in billing endpoint
         let tokens = 0;
         let value = 0;
-        
+
         if (response.data && response.data.credit && response.data.credit.tokens) {
           tokens = parseFloat(response.data.credit.tokens);
           value = tokens / 100; // Convert to USD value (100 tokens = $1)
         }
-        
+
         // Return in the same format as the billing endpoint
         res.json({
           success: true,
@@ -6282,9 +6282,9 @@ Generated on ${new Date().toLocaleString()}
         });
       } catch (error: any) {
         console.error(`Error fetching user usage data from VirtFusion:`, error);
-        return res.status(500).json({ 
-          error: "Failed to fetch user usage data from VirtFusion", 
-          details: error.message 
+        return res.status(500).json({
+          error: "Failed to fetch user usage data from VirtFusion",
+          details: error.message
         });
       }
     } catch (error: any) {
@@ -6292,54 +6292,54 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Add VirtFusion credits to a user (admin only)
   app.post("/api/admin/users/:id/virtfusion-credit", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      
+
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       if (!user.virtFusionId) {
         return res.status(400).json({ error: "User is not linked to VirtFusion" });
       }
-      
+
       // Validate request data
       const { amount, reference } = req.body;
-      
+
       if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         return res.status(400).json({ error: "Invalid credit amount" });
       }
-      
+
       // Important: VirtFusion needs user ID as the extRelationId for adding credits
       const extRelationId = userId; // Use userId instead of virtFusionId!
       console.log(`Adding ${amount} tokens to VirtFusion for user ${userId} (extRelationId: ${extRelationId})`);
-      
+
       // Prepare data for VirtFusion API
       const creditData = {
         tokens: Number(amount),
         reference_2: reference || `Added via Admin Portal on ${new Date().toISOString()}`
       };
-      
+
       // Call VirtFusion API
       const api = new VirtFusionApi();
       await api.updateSettings();
-      
+
       const result = await api.addCreditToUser(extRelationId, creditData);
-      
+
       if (!result || !result.data || !result.data.id) {
         return res.status(500).json({ error: "Failed to add credits to VirtFusion" });
       }
-      
+
       console.log(`Successfully added credits to VirtFusion. Credit ID: ${result.data.id}`);
-      
+
       // Add a record to our local transactions table for reference
       // The frontend shows transactions as positive or negative based on the transaction.type
       // So we use a positive amount value and "credit" type for proper frontend display
@@ -6351,113 +6351,113 @@ Generated on ${new Date().toLocaleString()}
         status: "completed",
         reference: reference || null
       });
-      
+
       // Also update the user's local credits
       const dollarAmount = Number(amount) / 100; // Convert tokens to dollars (100 tokens = $1)
       await storage.updateUser(user.id, {
         credits: user.credits + dollarAmount
       });
-      
+
       console.log(`Updated local credits balance for user ${user.id} by adding $${dollarAmount}`);
-      
-      return res.json({ 
-        success: true, 
+
+      return res.json({
+        success: true,
         message: "Credits added successfully to VirtFusion and local platform",
         creditId: result.data.id
       });
-      
+
     } catch (error) {
       console.error("Error adding VirtFusion credits:", error);
-      return res.status(500).json({ 
-        error: "Failed to add credits to VirtFusion", 
-        details: error.message 
+      return res.status(500).json({
+        error: "Failed to add credits to VirtFusion",
+        details: error.message
       });
     }
   });
-  
+
   // Remove VirtFusion credits from a user (admin only)
   app.delete("/api/admin/users/:id/virtfusion-credit", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
-      
+
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
-      
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       if (!user.virtFusionId) {
         return res.status(400).json({ error: "User is not linked to VirtFusion" });
       }
-      
+
       // Validate request data
       const { creditId } = req.body;
-      
+
       if (!creditId || isNaN(Number(creditId)) || Number(creditId) <= 0) {
         return res.status(400).json({ error: "Invalid credit ID" });
       }
-      
+
       // Find the transaction that recorded this credit being added
       const userTransactions = await storage.getUserTransactions(userId);
-      
+
       // Look for a transaction with this credit ID in the description
-      const creditTransaction = userTransactions.find(tx => 
+      const creditTransaction = userTransactions.find(tx =>
         tx.type === "virtfusion_credit" && tx.description.includes(`Credit ID: ${creditId}`)
       );
-      
+
       // If we can't find a matching transaction, try to extract from any transaction
-      const anyMatchingTransaction = !creditTransaction 
+      const anyMatchingTransaction = !creditTransaction
         ? userTransactions.find(tx => tx.description.includes(`Credit ID: ${creditId}`))
         : null;
-      
+
       // If we still can't find a transaction, require the amount
       if (!creditTransaction && !anyMatchingTransaction) {
-        return res.status(400).json({ 
-          error: "Unable to find transaction record for this credit ID. Please contact support." 
+        return res.status(400).json({
+          error: "Unable to find transaction record for this credit ID. Please contact support."
         });
       }
-      
+
       // Use transaction data to determine the amount
       const transaction = creditTransaction || anyMatchingTransaction;
-      
+
       // Try to extract the token amount from the description
       const tokenMatch = transaction.description.match(/Added (\d+) tokens/);
       const tokenAmount = tokenMatch ? tokenMatch[1] : null;
-      
+
       if (!tokenAmount) {
-        return res.status(400).json({ 
-          error: "Could not determine the original token amount. Please contact support." 
+        return res.status(400).json({
+          error: "Could not determine the original token amount. Please contact support."
         });
       }
-      
+
       // Convert from tokens to dollars (100 tokens = $1.00)
       const creditAmount = tokenAmount;
       const dollarAmount = Number(tokenAmount) / 100;
-      
+
       console.log(`Found matching transaction ${transaction.id}: "${transaction.description}"`);
       console.log(`Removing credit ID ${creditId} (${creditAmount} tokens = $${dollarAmount}) from VirtFusion for user ${userId}`);
-      
+
       // Use direct axios call to VirtFusion API
       const virtFusionApiUrl = process.env.VIRTFUSION_API_URL || 'https://vdc.skyvps360.xyz/api/v1';
       const virtFusionApiToken = process.env.VIRTFUSION_API_TOKEN;
-      
+
       if (!virtFusionApiUrl || !virtFusionApiToken) {
         return res.status(500).json({ error: "VirtFusion API URL or token not configured" });
       }
-      
+
       // Format the URL correctly
       let apiBase = virtFusionApiUrl;
       if (apiBase.endsWith("/")) {
         apiBase = apiBase.slice(0, -1);
       }
-      
+
       // Use the correct endpoint format for credit removal
       const fullUrl = `${apiBase}/selfService/credit/${creditId}`;
       console.log(`Making direct DELETE request to ${fullUrl}`);
-      
+
       try {
         // Make the request
         const response = await axios({
@@ -6470,18 +6470,18 @@ Generated on ${new Date().toLocaleString()}
           },
           httpsAgent: new https.Agent({ rejectUnauthorized: true })
         });
-        
+
         console.log(`Response status: ${response.status}`);
         console.log(`Response data: ${JSON.stringify(response.data || {})}`);
-        
+
         // Update the user's local credits to match VirtFusion
         // Deduct the dollar equivalent amount from local credits
         await storage.updateUser(user.id, {
           credits: Math.max(0, user.credits - dollarAmount)  // Prevent negative balance
         });
-        
+
         console.log(`Updated local credits balance for user ${user.id} by removing $${dollarAmount}`);
-      
+
         // Add a record to our local transactions table for reference
         // For consistency with how the frontend displays transactions:
         // 1. Use a positive amount value with type "debit" for things that reduce account balance
@@ -6493,27 +6493,27 @@ Generated on ${new Date().toLocaleString()}
           type: "debit", // Using "debit" type means it will display as negative in the frontend
           status: "completed"
         });
-        
-        return res.json({ 
-          success: true, 
+
+        return res.json({
+          success: true,
           message: `Credit ID ${creditId} removed successfully and local credits updated`
         });
       } catch (apiError: any) {
         console.error("Error calling VirtFusion API:", apiError);
-        return res.status(500).json({ 
-          error: "Failed to remove credit from VirtFusion", 
+        return res.status(500).json({
+          error: "Failed to remove credit from VirtFusion",
           details: apiError.message || "Unknown error"
         });
       }
     } catch (error: any) {
       console.error("Error removing VirtFusion credit:", error);
-      return res.status(500).json({ 
-        error: "Failed to remove credit from VirtFusion", 
-        details: error.message 
+      return res.status(500).json({
+        error: "Failed to remove credit from VirtFusion",
+        details: error.message
       });
     }
   });
-  
+
   // Delete user (admin only)
   app.delete("/api/admin/users/:id", isAdmin, async (req, res) => {
     try {
@@ -6540,11 +6540,14 @@ Generated on ${new Date().toLocaleString()}
           // Create a new instance of VirtFusionApi
           const api = new VirtFusionApi();
           await api.updateSettings();
-          
+
           // First check if the user has any servers
-          const extRelationId = user.virtFusionId || user.id;
+          // IMPORTANT: The extRelationId should be the user.id (not virtFusionId)
+          // According to API docs: /users/{extRelationId}/byExtRelation
+          // where extRelationId is the external relation ID (our user ID)
+          const extRelationId = user.id;
           console.log(`Checking if user has servers. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
-          
+
           // Implement server check directly instead of using checkUserHasServers
           try {
             // Get current date in YYYY-MM-DD format for the period parameter
@@ -6553,13 +6556,13 @@ Generated on ${new Date().toLocaleString()}
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             const currentDate = `${year}-${month}-${day}`;
-            
+
             // Get usage data from VirtFusion with proper period parameter
             const usageData = await api.request(
-              "GET", 
+              "GET",
               `/selfService/usage/byUserExtRelationId/${extRelationId}?period[]=${currentDate}&range=m`
             );
-            
+
             // Check if there are any servers in the periods array
             let hasServers = false;
             if (usageData && usageData.data && usageData.data.periods && usageData.data.periods.length > 0) {
@@ -6572,7 +6575,7 @@ Generated on ${new Date().toLocaleString()}
                 }
               }
             }
-            
+
             if (hasServers) {
               console.log(`User has servers attached, cannot delete. User ID: ${userId}`);
               return res.status(409).json({
@@ -6582,19 +6585,24 @@ Generated on ${new Date().toLocaleString()}
             }
           } catch (usageError) {
             console.error(`Error checking if user has servers:`, usageError);
-            // If we can't determine, proceed with caution
-            console.log("Could not determine if user has servers, proceeding with deletion");
+            // If we can't determine if user has servers, DO NOT proceed with deletion
+            // This prevents unsync issues where we delete from our DB but user has servers in VirtFusion
+            console.log("Could not determine if user has servers, aborting deletion to prevent unsync");
+            return res.status(500).json({
+              error: "Unable to verify server status",
+              details: "Cannot delete user because we couldn't verify if they have active servers in VirtFusion. This prevents data synchronization issues."
+            });
           }
-          
+
           console.log(`Deleting user from VirtFusion. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
-          
+
           try {
             // Use deleteUserByExtRelationId method to delete user in VirtFusion
             await api.deleteUserByExtRelationId(extRelationId);
             console.log(`Successfully deleted user from VirtFusion. User ID: ${userId}`);
           } catch (virtFusionError: any) {
             console.error(`Error deleting user from VirtFusion:`, virtFusionError);
-            
+
             // Check for 409 error specifically (Conflict - User has servers)
             if (virtFusionError.message && virtFusionError.message.includes("409")) {
               return res.status(409).json({
@@ -6602,26 +6610,27 @@ Generated on ${new Date().toLocaleString()}
                 details: "The user has active servers. Please delete or transfer all servers before deleting the user account."
               });
             }
-            
+
             // Check for 404 Not Found error (User doesn't exist in VirtFusion)
             if (virtFusionError.message && virtFusionError.message.includes("404")) {
               // Log the issue but continue with deletion from our database
               console.log(`User not found in VirtFusion (404 error). Will still delete from our database. User ID: ${userId}`);
               // Don't return - continue with user deletion from our database
             } else {
-              // For any other error, return an error response
-              return res.status(500).json({ 
-                error: "Failed to delete user from VirtFusion", 
-                details: virtFusionError.message 
+              // For any other error, DO NOT delete from our database to prevent unsync
+              console.error(`VirtFusion deletion failed, aborting local deletion to prevent unsync. User ID: ${userId}`);
+              return res.status(500).json({
+                error: "Failed to delete user from VirtFusion",
+                details: `${virtFusionError.message}. User was not deleted from SkyPANEL to maintain synchronization.`
               });
             }
           }
         } catch (error: any) {
           console.error(`Error in user deletion process:`, error);
-          
-          return res.status(500).json({ 
-            error: "Failed to process user deletion", 
-            details: error.message 
+
+          return res.status(500).json({
+            error: "Failed to process user deletion",
+            details: error.message
           });
         }
       } else {
@@ -6631,7 +6640,7 @@ Generated on ${new Date().toLocaleString()}
       // Delete user from our database
       await storage.deleteUser(userId);
 
-      res.json({ 
+      res.json({
         success: true,
         message: "User has been deleted successfully"
       });
@@ -6774,7 +6783,7 @@ Generated on ${new Date().toLocaleString()}
       try {
         // Update user in VirtFusion using modifyUserByExtRelationId
         // IMPORTANT: The extRelationId should be the user.id (not virtFusionId)
-        // According to API docs: /users/{extRelationId}/byExtRelation 
+        // According to API docs: /users/{extRelationId}/byExtRelation
         // where extRelationId is the external relation ID (our user ID)
         const response = await virtFusionApi.modifyUserByExtRelationId(
           user.id, // Use user.id as extRelationId, NOT virtFusionId
@@ -6821,7 +6830,7 @@ Generated on ${new Date().toLocaleString()}
         });
       }
 
-      // IMPORTANT: The extRelationId is our internal user.id (NOT virtFusionId) 
+      // IMPORTANT: The extRelationId is our internal user.id (NOT virtFusionId)
       // This matches the Rel ID shown in the VirtFusion panel
       // Per docs: https://docs.virtfusion.com/api/stoplight.html#/paths/users-extRelationId--authenticationTokens/post
       const extRelationId = user.id; // Use the internal user.id for this specific API call per documentation
@@ -6918,12 +6927,12 @@ Generated on ${new Date().toLocaleString()}
       // Get pagination parameters from request
       const page = parseInt(req.query.page as string) || 1;
       const perPage = parseInt(req.query.perPage as string) || 10;
-      
+
       console.log(`Admin fetching servers (page ${page}, perPage ${perPage})`);
-      
+
       // VirtFusion API already supports pagination
       const result = await virtFusionApi.getServers(page, perPage, {});
-      
+
       // Return the paginated response from VirtFusion
       // This includes data array, current_page, last_page, total, etc.
       if (result) {
@@ -6943,35 +6952,35 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: "Failed to fetch servers from VirtFusion" });
     }
   });
-  
+
   // Create a new server (admin only)
   // Get OS templates for a specific package
   app.get("/api/admin/packages/:packageId/templates", isAdmin, async (req, res) => {
     try {
       const packageId = parseInt(req.params.packageId);
-      
+
       if (isNaN(packageId)) {
         return res.status(400).json({ error: "Invalid package ID" });
       }
-      
+
       console.log(`Fetching OS templates for package ID: ${packageId}`);
-      
+
       try {
         console.log(`Starting template fetch for packageId=${packageId}`);
-        
+
         // First try using the specific method
         const templatesResponse = await virtFusionApi.getOsTemplatesForPackage(packageId);
-        
+
         // Add more detailed debugging to show the full response
         console.log(`Templates API response for package ${packageId}:`, JSON.stringify(templatesResponse).substring(0, 500));
-        
+
         // Process the nested template structure
         let allTemplates: any[] = [];
-        
+
         // Check if the response has the expected data structure
         if (templatesResponse && templatesResponse.data && Array.isArray(templatesResponse.data)) {
           console.log(`Got raw templates response with ${templatesResponse.data.length} items`);
-          
+
           // Handle different response formats from the API
           if (templatesResponse.data.length > 0 && templatesResponse.data[0].templates) {
             // API returned OS categories with nested templates array
@@ -6991,7 +7000,7 @@ Generated on ${new Date().toLocaleString()}
           allTemplates = Array.isArray(templatesResponse.data) ? templatesResponse.data : [];
           console.log(`Using templates from response as-is, found ${allTemplates.length} templates`);
         }
-        
+
         return res.json({ data: allTemplates });
       } catch (templateError) {
         console.error('Error fetching templates:', templateError);
@@ -7033,13 +7042,13 @@ Generated on ${new Date().toLocaleString()}
             architecture: "x86_64"
           }
         ];
-        
+
         console.log(`Using ${defaultTemplates.length} default templates as fallback`);
         return res.json({ data: defaultTemplates });
       }
     } catch (error: any) {
       console.error(`Error fetching OS templates:`, error);
-      
+
       return res.status(500).json({
         error: "Failed to fetch OS templates",
         message: error.message
@@ -7050,38 +7059,38 @@ Generated on ${new Date().toLocaleString()}
   app.post("/api/admin/servers", isAdmin, async (req, res) => {
     try {
       console.log(`Admin creating a new server with data:`, req.body);
-      
+
       // Validate required fields based on VirtFusion API
       const requiredFields = ['packageId', 'userId', 'hypervisorId'];
       for (const field of requiredFields) {
         if (!req.body[field]) {
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: `Missing required field: ${field}`,
             message: `The ${field} field is required to create a server.`
           });
         }
       }
-      
+
       // Check if it's a dry run
       const dryRun = req.body.dryRun === true;
-      
+
       // Create a modified copy of the request body for the API call
       const serverData = { ...req.body };
-      
-      // Get the local user ID 
+
+      // Get the local user ID
       const localUserId = parseInt(serverData.userId);
-      
+
       try {
-        // Try to map the local user ID to VirtFusion user ID 
+        // Try to map the local user ID to VirtFusion user ID
         const user = await storage.getUser(localUserId);
-        
+
         if (!user) {
           return res.status(400).json({
             error: "Invalid user",
             message: "The specified user was not found in the database."
           });
         }
-        
+
         // Check if the user has a VirtFusion ID
         if (!user.virtFusionId) {
           return res.status(400).json({
@@ -7089,7 +7098,7 @@ Generated on ${new Date().toLocaleString()}
             message: "The selected user doesn't have a linked VirtFusion account."
           });
         }
-        
+
         // Replace the local user ID with the VirtFusion user ID in the request
         console.log(`Mapping local user ID ${localUserId} to VirtFusion ID ${user.virtFusionId}`);
         serverData.userId = user.virtFusionId;
@@ -7100,16 +7109,16 @@ Generated on ${new Date().toLocaleString()}
           message: "Failed to map the local user to a VirtFusion user."
         });
       }
-      
+
       // If it's a dry run, add the dryRun flag to the request payload
       if (dryRun) {
         serverData.dryRun = true;
         console.log("Performing dry run for server creation with modified data:", serverData);
       }
-      
+
       // Create the server through VirtFusion API
       const response = await virtFusionApi.createServer(serverData);
-      
+
       if (dryRun) {
         console.log(`Server dry run completed successfully:`, response);
         return res.json({
@@ -7119,9 +7128,9 @@ Generated on ${new Date().toLocaleString()}
           data: response
         });
       }
-      
+
       console.log(`Server created successfully:`, response);
-      
+
       res.status(201).json({
         success: true,
         message: "Server created successfully",
@@ -7129,12 +7138,12 @@ Generated on ${new Date().toLocaleString()}
       });
     } catch (error: any) {
       console.error("Error creating server in VirtFusion API:", error.message);
-      
+
       if (error.response) {
         console.error('Response status:', error.response.status);
         console.error('Response data:', error.response.data);
       }
-      
+
       // Provide a more helpful error message for common issues
       let errorMessage = error.message;
       if (error.message.includes("422")) {
@@ -7145,25 +7154,25 @@ Generated on ${new Date().toLocaleString()}
           errorMessage = "The server creation request was invalid. Please check all fields and try again.";
         }
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Failed to create server in VirtFusion API",
         message: errorMessage
       });
     }
   });
-  
+
   // Build a server (install OS) - Admin only
   app.post("/api/admin/servers/:id/build", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin building server ID: ${serverId} with data:`, req.body);
-      
+
       // Validate required fields for build operation
       if (!req.body.operatingSystemId) {
         return res.status(400).json({
@@ -7171,7 +7180,7 @@ Generated on ${new Date().toLocaleString()}
           message: "The operatingSystemId field is required to build a server."
         });
       }
-      
+
       // Build request payload with required fields from request body
       const buildData = {
         operatingSystemId: req.body.operatingSystemId,
@@ -7182,22 +7191,22 @@ Generated on ${new Date().toLocaleString()}
         email: req.body.email !== undefined ? req.body.email : true,
         swap: req.body.swap || 512
       };
-      
+
       if (req.body.sshKeys && Array.isArray(req.body.sshKeys)) {
         buildData.sshKeys = req.body.sshKeys;
       }
-      
+
       // Call the VirtFusion API to build the server with the OS
       const result = await virtFusionApi.buildServer(serverId, buildData);
-      
+
       console.log(`Server build initiated successfully for ID ${serverId}:`, result);
-      
+
       // Extract queue ID for tracking build progress if available
       let queueId = null;
       if (result && result.data && result.data.queueId) {
         queueId = result.data.queueId;
         console.log(`Server build queued with ID: ${queueId}`);
-        
+
         // Store this queue ID in the database for this server
         await storage.updateServerPowerStatus(serverId, {
           lastQueueId: queueId,
@@ -7205,7 +7214,7 @@ Generated on ${new Date().toLocaleString()}
           lastActionTime: new Date()
         });
       }
-      
+
       res.status(200).json({
         success: true,
         message: "Server build initiated",
@@ -7214,12 +7223,12 @@ Generated on ${new Date().toLocaleString()}
       });
     } catch (error: any) {
       console.error(`Error building server ${req.params.id}:`, error.message);
-      
+
       if (error.response) {
         console.error('Response status:', error.response.status);
         console.error('Response data:', error.response.data);
       }
-      
+
       res.status(500).json({
         error: "Failed to build server",
         message: error.message
@@ -7231,56 +7240,56 @@ Generated on ${new Date().toLocaleString()}
   app.get("/api/admin/servers/:id", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin fetching server details for ID: ${serverId}`);
-      
+
       // Create a new instance and use request method directly with remoteState parameter
       // This will query real-time server state from the hypervisor
       const result = await virtFusionApi.request("GET", `/servers/${serverId}?remoteState=true`);
-      
+
       // Log the raw API response to see what remoteState returns
-      console.log(`VirtFusion API response with remoteState=true for server ${serverId}:`, 
+      console.log(`VirtFusion API response with remoteState=true for server ${serverId}:`,
         JSON.stringify(result, null, 2).substring(0, 1000) + '...');
-      
+
       if (result) {
         // Check if we have power status information for this server
         let powerStatus = await storage.getServerPowerStatus(serverId);
-        
+
         // If we have a last queue ID, check its status to determine real power state
         if (powerStatus && powerStatus.lastQueueId) {
           try {
             console.log(`Checking queue item ${powerStatus.lastQueueId} for server power status`);
             const queueResult = await virtFusionApi.getQueueItem(powerStatus.lastQueueId);
-            
+
             if (queueResult && queueResult.data) {
               // Debug log full queue response structure
               console.log(`Full queue response for ID ${powerStatus.lastQueueId}:`, JSON.stringify(queueResult.data, null, 2));
-              
+
               // Extract status from the finished field (true/false/null) and action field
               const queueFinished = queueResult.data.finished !== null && queueResult.data.finished !== undefined;
               const queueStatus = queueFinished ? "completed" : "pending";
               const queueType = queueResult.data.action || "";
               const progress = queueResult.data.progress || 0;
               const failed = queueResult.data.failed || false;
-              
+
               console.log(`Queue item ${powerStatus.lastQueueId} status: ${queueStatus}, type: ${queueType}, finished: ${queueFinished}, progress: ${progress}, failed: ${failed}`);
-              
-              // If the queue operation is completed (has a "finished" timestamp) and didn't fail, 
+
+              // If the queue operation is completed (has a "finished" timestamp) and didn't fail,
               // we can determine the power state
               if (queueFinished && !failed) {
                 if (queueType.includes("boot") || queueType.includes("start") || queueType === "powerOn") {
                   // Server was booted/started successfully
                   await storage.upsertServerPowerStatus(serverId, "RUNNING");
-                } else if (queueType.includes("shutdown") || queueType.includes("stop") || 
+                } else if (queueType.includes("shutdown") || queueType.includes("stop") ||
                           queueType === "powerOff" || queueType === "restart") {
                   // For restart, we initially mark as STOPPED (the next boot command will update to RUNNING)
                   await storage.upsertServerPowerStatus(serverId, "STOPPED");
                 }
-                
+
                 // Refresh our power status after the update
                 powerStatus = await storage.getServerPowerStatus(serverId);
               }
@@ -7289,13 +7298,13 @@ Generated on ${new Date().toLocaleString()}
             console.error(`Error checking queue status: ${queueError}`);
           }
         }
-        
+
         // Add the power status information to the result
         const responseData = {
           ...result,
           powerStatus: powerStatus || { powerState: "UNKNOWN" }
         };
-        
+
         // Return the enhanced result
         res.json(responseData);
       } else {
@@ -7303,65 +7312,65 @@ Generated on ${new Date().toLocaleString()}
       }
     } catch (error: any) {
       console.error(`Error fetching server ${req.params.id} from VirtFusion:`, error.message);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to fetch server details from VirtFusion",
         message: error.message
       });
     }
   });
-  
+
   // Get server traffic statistics (admin only)
   app.get("/api/admin/servers/:id/traffic", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin fetching traffic statistics for server ID: ${serverId}`);
-      
+
       // Call our new method to get server traffic data
       const trafficData = await virtFusionApi.getServerTraffic(serverId);
-      
+
       if (!trafficData || !trafficData.data) {
         return res.status(404).json({ error: "Traffic data not found" });
       }
-      
+
       return res.json(trafficData);
     } catch (error) {
       console.error(`Error fetching traffic data for server ${req.params.id}:`, error.message);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to fetch server traffic data from VirtFusion",
         message: error.message
       });
     }
   });
-  
+
   // Get VNC details for a server (admin only)
   // VNC details endpoint removed
-  
+
   // Server power management routes
-  
+
   // Boot server
   app.post("/api/admin/servers/:id/boot", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin booting server ID: ${serverId}`);
-      
+
       const result = await virtFusionApi.bootServer(serverId);
-      
+
       // Extract the queue ID from the response
       let queueId = null;
       if (result && result.data && result.data.queueId) {
         queueId = result.data.queueId;
         console.log(`Boot operation queued with ID: ${queueId}`);
-        
+
         // Store this queueId in the database for this server
         // This allows us to check the server state via the queue later
         await storage.updateServerPowerStatus(serverId, {
@@ -7370,19 +7379,19 @@ Generated on ${new Date().toLocaleString()}
           lastActionTime: new Date()
         });
       }
-      
-      res.json({ 
-        success: true, 
-        message: "Server boot initiated", 
+
+      res.json({
+        success: true,
+        message: "Server boot initiated",
         data: result,
         queueId
       });
     } catch (error: any) {
       console.error(`Error booting server ${req.params.id}:`, error.message);
-      
+
       // Special handling for 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('423') || 
+          error.message.includes('423') ||
           error.message.toLowerCase().includes('pending tasks in queue')
         )) {
         return res.json({
@@ -7391,33 +7400,33 @@ Generated on ${new Date().toLocaleString()}
           message: "Operation queued - server has pending tasks"
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Failed to boot server",
         message: error.message
       });
     }
   });
-  
+
   // Shutdown server
   app.post("/api/admin/servers/:id/shutdown", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin shutting down server ID: ${serverId}`);
-      
+
       const result = await virtFusionApi.shutdownServer(serverId);
-      
+
       // Extract the queue ID from the response
       let queueId = null;
       if (result && result.data && result.data.queueId) {
         queueId = result.data.queueId;
         console.log(`Shutdown operation queued with ID: ${queueId}`);
-        
+
         // Store this queueId in the database for this server
         await storage.updateServerPowerStatus(serverId, {
           lastQueueId: queueId,
@@ -7425,19 +7434,19 @@ Generated on ${new Date().toLocaleString()}
           lastActionTime: new Date()
         });
       }
-      
-      res.json({ 
-        success: true, 
-        message: "Server shutdown initiated", 
+
+      res.json({
+        success: true,
+        message: "Server shutdown initiated",
         data: result,
         queueId
       });
     } catch (error: any) {
       console.error(`Error shutting down server ${req.params.id}:`, error.message);
-      
+
       // Special handling for 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('423') || 
+          error.message.includes('423') ||
           error.message.toLowerCase().includes('pending tasks in queue')
         )) {
         return res.json({
@@ -7446,33 +7455,33 @@ Generated on ${new Date().toLocaleString()}
           message: "Operation queued - server has pending tasks"
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Failed to shutdown server",
         message: error.message
       });
     }
   });
-  
+
   // Restart server
   app.post("/api/admin/servers/:id/restart", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin restarting server ID: ${serverId}`);
-      
+
       const result = await virtFusionApi.restartServer(serverId);
-      
+
       // Extract the queue ID from the response
       let queueId = null;
       if (result && result.data && result.data.queueId) {
         queueId = result.data.queueId;
         console.log(`Restart operation queued with ID: ${queueId}`);
-        
+
         // Store this queueId in the database for this server
         await storage.updateServerPowerStatus(serverId, {
           lastQueueId: queueId,
@@ -7480,19 +7489,19 @@ Generated on ${new Date().toLocaleString()}
           lastActionTime: new Date()
         });
       }
-      
-      res.json({ 
-        success: true, 
-        message: "Server restart initiated", 
+
+      res.json({
+        success: true,
+        message: "Server restart initiated",
         data: result,
         queueId
       });
     } catch (error: any) {
       console.error(`Error restarting server ${req.params.id}:`, error.message);
-      
+
       // Special handling for 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('423') || 
+          error.message.includes('423') ||
           error.message.toLowerCase().includes('pending tasks in queue')
         )) {
         return res.json({
@@ -7501,33 +7510,33 @@ Generated on ${new Date().toLocaleString()}
           message: "Operation queued - server has pending tasks"
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Failed to restart server",
         message: error.message
       });
     }
   });
-  
+
   // Power off server
   app.post("/api/admin/servers/:id/power-off", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin powering off server ID: ${serverId}`);
-      
+
       const result = await virtFusionApi.powerOffServer(serverId);
-      
+
       // Extract the queue ID from the response
       let queueId = null;
       if (result && result.data && result.data.queueId) {
         queueId = result.data.queueId;
         console.log(`Power off operation queued with ID: ${queueId}`);
-        
+
         // Store this queueId in the database for this server
         await storage.updateServerPowerStatus(serverId, {
           lastQueueId: queueId,
@@ -7535,19 +7544,19 @@ Generated on ${new Date().toLocaleString()}
           lastActionTime: new Date()
         });
       }
-      
-      res.json({ 
-        success: true, 
-        message: "Server power off initiated", 
+
+      res.json({
+        success: true,
+        message: "Server power off initiated",
         data: result,
         queueId
       });
     } catch (error: any) {
       console.error(`Error powering off server ${req.params.id}:`, error.message);
-      
+
       // Special handling for 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('423') || 
+          error.message.includes('423') ||
           error.message.toLowerCase().includes('pending tasks in queue')
         )) {
         return res.json({
@@ -7556,34 +7565,34 @@ Generated on ${new Date().toLocaleString()}
           message: "Operation queued - server has pending tasks"
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Failed to power off server",
         message: error.message
       });
     }
   });
-  
+
   // Suspend server
   app.post("/api/admin/servers/:id/suspend", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin suspending server ID: ${serverId}`);
-      
+
       const result = await virtFusionApi.suspendServer(serverId);
       res.json({ success: true, message: "Server suspended", data: result });
     } catch (error: any) {
       console.error(`Error suspending server ${req.params.id}:`, error.message);
-      
+
       // Special handling for 409 "action is currently scheduled" and 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('409') || 
-          error.message.includes('423') || 
+          error.message.includes('409') ||
+          error.message.includes('423') ||
           error.message.toLowerCase().includes('pending tasks in queue') ||
           error.message.toLowerCase().includes('action is currently scheduled')
         )) {
@@ -7594,39 +7603,39 @@ Generated on ${new Date().toLocaleString()}
           details: error.message
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Failed to suspend server",
         message: error.message
       });
     }
   });
-  
+
   // Reset server password
   app.post("/api/admin/servers/:id/reset-password", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin resetting password for server ID: ${serverId}`);
-      
+
       // Use axios directly to make the API call with the correct format exactly as specified in VirtFusion API docs
       const apiUrl = process.env.VIRTFUSION_API_URL || "https://vdc.skyvps360.xyz";
       const apiToken = process.env.VIRTFUSION_API_TOKEN;
-      
+
       if (!apiToken) {
         return res.status(500).json({ error: "VirtFusion API token not configured" });
       }
-      
+
       // Use the API URL directly since it already includes the /api/v1 path
       let apiBase = apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
-      
+
       const resetUrl = `${apiBase}/servers/${serverId}/resetPassword`;
       console.log(`Making direct POST request to: ${resetUrl}`);
-      
+
       // Match the EXACT format in the VirtFusion API documentation
       const response = await axios({
         method: 'POST',
@@ -7645,9 +7654,9 @@ Generated on ${new Date().toLocaleString()}
         // Add a timeout to prevent hanging requests
         timeout: 30000
       });
-      
+
       console.log('Password reset response:', response.status, response.data);
-      
+
       // Extract the expected password from the API response
       let generatedPassword = null;
       if (response.data && response.data.data && response.data.data.expectedPassword) {
@@ -7656,49 +7665,49 @@ Generated on ${new Date().toLocaleString()}
       } else {
         console.log('No expected password in response', response.data);
       }
-      
-      res.json({ 
-        success: true, 
-        message: "Server password reset", 
+
+      res.json({
+        success: true,
+        message: "Server password reset",
         data: response.data,
         generatedPassword: generatedPassword
       });
     } catch (error: any) {
       console.error(`Error resetting password for server ${req.params.id}:`, error.message);
-      
+
       if (error.response) {
         console.error('Response status:', error.response.status);
         console.error('Response headers:', error.response.headers);
         console.error('Response data:', error.response.data);
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Failed to reset server password",
         message: error.message
       });
     }
   });
-  
+
   // Unsuspend server
   app.post("/api/admin/servers/:id/unsuspend", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin unsuspending server ID: ${serverId}`);
-      
+
       const result = await virtFusionApi.unsuspendServer(serverId);
       res.json({ success: true, message: "Server unsuspended", data: result });
     } catch (error: any) {
       console.error(`Error unsuspending server ${req.params.id}:`, error.message);
-      
+
       // Special handling for 409 "action is currently scheduled" and 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('409') || 
-          error.message.includes('423') || 
+          error.message.includes('409') ||
+          error.message.includes('423') ||
           error.message.toLowerCase().includes('pending tasks in queue') ||
           error.message.toLowerCase().includes('action is currently scheduled') ||
           error.message.toLowerCase().includes('suspend action is currently scheduled')
@@ -7710,67 +7719,67 @@ Generated on ${new Date().toLocaleString()}
           details: error.message
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Failed to unsuspend server",
         message: error.message
       });
     }
   });
-  
+
   // Delete server
   app.delete("/api/admin/servers/:id", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       console.log(`Admin deleting server ID: ${serverId}`);
-      
+
       // Schedule deletion after 24 hours by default (if supported by VirtFusion)
       // Otherwise, it will be immediately deleted
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const scheduleAt = tomorrow.toISOString();
-      
+
       const result = await virtFusionApi.deleteServer(serverId, scheduleAt);
       res.json({ success: true, message: "Server deletion initiated", scheduledTime: scheduleAt, data: result });
     } catch (error: any) {
       console.error(`Error deleting server ${req.params.id}:`, error.message);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to delete server",
         message: error.message
       });
     }
   });
-  
+
   // VNC enable/disable endpoints removed
-  
+
   // Throttle CPU for a server
   app.post("/api/admin/servers/:id/throttle-cpu", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      
+
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
       }
-      
+
       // Validate request body - requires a percent value
       if (req.body.percent === undefined || req.body.percent < 0 || req.body.percent > 99) {
-        return res.status(400).json({ 
-          error: "Invalid throttle value", 
-          message: "Throttle value must be between 0 and 99 percent" 
+        return res.status(400).json({
+          error: "Invalid throttle value",
+          message: "Throttle value must be between 0 and 99 percent"
         });
       }
-      
+
       console.log(`Admin applying CPU throttle for server ID: ${serverId}, percent: ${req.body.percent}`);
-      
+
       // Check for pending tasks first to avoid race conditions
       try {
         const serverResponse = await virtFusionApi.getServer(serverId);
-        
+
         // If server has pending tasks, return 423 status
         if (serverResponse.pendingQueue && serverResponse.pendingQueue.length > 0) {
           console.log(`Server ${serverId} has pending tasks, returning 423 status`);
@@ -7785,22 +7794,22 @@ Generated on ${new Date().toLocaleString()}
         console.log(`Error checking server pending tasks: ${checkError.message}`);
         // Continue even if this fails
       }
-      
+
       // Create a throttle data object with the percent value
       // Per VirtFusion API docs: must use "percent" field (not "throttle")
       const throttleData = {
         percent: req.body.percent
       };
-      
+
       const result = await virtFusionApi.modifyServerCpuThrottle(serverId, throttleData);
-      res.json({ 
-        success: true, 
-        message: `CPU throttled to ${req.body.percent}%`, 
-        data: result 
+      res.json({
+        success: true,
+        message: `CPU throttled to ${req.body.percent}%`,
+        data: result
       });
     } catch (error: any) {
       console.error(`Error throttling CPU for server ${req.params.id}:`, error.message);
-      
+
       // Special handling for pending tasks errors
       if (error.message && (error.message.includes("pending tasks") || error.status === 423)) {
         return res.status(423).json({
@@ -7809,14 +7818,14 @@ Generated on ${new Date().toLocaleString()}
           msg: error.message || "Server has pending tasks in queue"
         });
       }
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         error: "Failed to throttle CPU",
         message: error.message
       });
     }
   });
-  
+
   // WebSocket handler - VNC functionality removed
   const handleWebSocketUpgrade = (request: any, socket: any, head: any) => {
     // Close any connection attempts since WebSocket functionality has been removed
@@ -8274,24 +8283,24 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Update a specific setting - admin only
   app.post("/api/admin/settings/:key", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const { key } = req.params;
       const { value } = req.body;
-      
+
       if (!key || value === undefined) {
         return res.status(400).json({ error: 'Key and value are required' });
       }
-      
+
       await storage.upsertSetting(key, String(value));
       const success = true;
-      
+
       if (!success) {
         return res.status(500).json({ error: 'Failed to update setting' });
       }
-      
+
       return res.json({ success: true, key, value });
     } catch (error: any) {
       console.error('Error updating setting:', error);
@@ -8303,15 +8312,15 @@ Generated on ${new Date().toLocaleString()}
   app.get("/api/settings/public", (req, res) => {
     // This endpoint should be accessible without authentication
     // for public pages that need footer settings
-    
+
     try {
       storage.getAllSettings().then(settings => {
         // Filter settings to only include public ones
-        const publicSettings = settings.filter(setting => 
+        const publicSettings = settings.filter(setting =>
           [
             // Company branding
             'company_name', 'company_logo', 'primary_color',
-            
+
             // Footer settings
             'footer_description',
             'footer_social_icons_enabled',
@@ -8325,13 +8334,13 @@ Generated on ${new Date().toLocaleString()}
             'footer_contact_email',
             'footer_contact_support_text',
             'footer_contact_phone',
-            
+
             // Loading screen settings - these are safe to expose publicly
             'loading_screen_enabled',
             'loading_screen_animation_duration',
             'loading_screen_min_duration',
             'loading_screen_show_on_all_pages',
-            
+
             // Enterprise features settings
             'enterprise_features_heading',
             'enterprise_features_subheading',
@@ -8347,7 +8356,7 @@ Generated on ${new Date().toLocaleString()}
             'enterprise_feature_icon_4',
             'enterprise_feature_title_4',
             'enterprise_feature_description_4',
-            
+
             // Support new format for enterprise feature cards
             'enterpriseFeatureCards.0.icon',
             'enterpriseFeatureCards.0.title',
@@ -8359,17 +8368,17 @@ Generated on ${new Date().toLocaleString()}
             'enterpriseFeatureCards.2.title',
             'enterpriseFeatureCards.2.description',
             'enterpriseFeatureCards.3.icon',
-            'enterpriseFeatureCards.3.title', 
+            'enterpriseFeatureCards.3.title',
             'enterpriseFeatureCards.3.description'
           ].includes(setting.key)
         );
-        
+
         // Convert to object format for easier consumption
         const publicSettingsObject = publicSettings.reduce((obj, setting) => {
           obj[setting.key] = setting.value;
           return obj;
         }, {} as Record<string, string>);
-        
+
         res.json(publicSettingsObject);
       });
     } catch (error: any) {
@@ -8377,14 +8386,14 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Public branding settings endpoint - accessible without authentication
   // This is used for the login page and public pages
   app.get("/api/settings/branding", async (req, res) => {
     try {
       const settings = await storage.getAllSettings();
       // Only return specific branding settings that are safe for public access
-      const brandingSettings = settings.filter(setting => 
+      const brandingSettings = settings.filter(setting =>
         [
           // Basic branding
           'company_name', 'company_logo',
@@ -8397,44 +8406,44 @@ Generated on ${new Date().toLocaleString()}
           'loading_screen_min_duration', 'loading_screen_show_on_all_pages'
         ].includes(setting.key)
       );
-      
+
       // Convert to object format for easier consumption
       const brandingObject = brandingSettings.reduce((obj, setting) => {
         obj[setting.key] = setting.value;
         return obj;
       }, {} as Record<string, string>);
-      
+
       // Add default company name if not set
       if (!brandingObject.company_name) {
         brandingObject.company_name = 'VirtFusion';
       }
-      
+
       // Set default brand colors if not set
       if (!brandingObject.primary_color) {
         brandingObject.primary_color = '2563eb'; // Default blue
       }
-      
+
       if (!brandingObject.secondary_color) {
         brandingObject.secondary_color = '10b981'; // Default green
       }
-      
+
       if (!brandingObject.accent_color) {
         brandingObject.accent_color = 'f59e0b'; // Default amber
       }
-      
+
       // For backward compatibility, ensure company_color is set
       // (will be removed in future versions)
       if (!brandingObject.company_color) {
         brandingObject.company_color = brandingObject.primary_color;
       }
-      
+
       res.json(brandingObject);
     } catch (error: any) {
       console.error("Error fetching branding settings:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Legal Content Routes
   app.get("/api/legal/:type", async (req, res) => {
     try {
@@ -8449,7 +8458,7 @@ Generated on ${new Date().toLocaleString()}
       return res.status(500).json({ error: error.message || "Error fetching legal content" });
     }
   });
-  
+
   app.get("/api/admin/legal", isAdmin, async (req, res) => {
     try {
       const content = await storage.getAllLegalContent();
@@ -8459,18 +8468,18 @@ Generated on ${new Date().toLocaleString()}
       return res.status(500).json({ error: error.message || "Error fetching legal content" });
     }
   });
-  
+
   app.post("/api/admin/legal", isAdmin, async (req, res) => {
     try {
       const { type, title, content, version } = req.body;
-      
+
       if (!type || !title || !content || !version) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-      
+
       // Check if content with this type already exists
       const existingContent = await storage.getLegalContent(type);
-      
+
       if (existingContent) {
         // Update existing content
         await storage.updateLegalContent(existingContent.id, {
@@ -8481,9 +8490,9 @@ Generated on ${new Date().toLocaleString()}
           updatedAt: new Date(),
           updatedBy: req.user?.id
         });
-        
-        return res.json({ 
-          success: true, 
+
+        return res.json({
+          success: true,
           message: "Legal content updated successfully",
           content: await storage.getLegalContent(type)
         });
@@ -8498,9 +8507,9 @@ Generated on ${new Date().toLocaleString()}
           createdBy: req.user?.id,
           updatedBy: req.user?.id
         });
-        
-        return res.json({ 
-          success: true, 
+
+        return res.json({
+          success: true,
           message: "Legal content created successfully",
           content: newContent
         });
@@ -8798,41 +8807,41 @@ Generated on ${new Date().toLocaleString()}
   app.post("/api/test-virtfusion-credit", isAdmin, async (req, res) => {
     try {
       const { extRelationId, tokens } = req.body;
-      
+
       if (!extRelationId || !tokens) {
         return res.status(400).json({ error: "External relation ID and tokens are required" });
       }
-      
+
       console.log(`Testing VirtFusion credit API with extRelationId=${extRelationId}, tokens=${tokens}`);
-      
+
       // Update API settings first
       const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
-      
+
       // Test VirtFusion connection
       console.log("Testing VirtFusion API connection");
       await virtFusionApi.testConnection();
-      
+
       // Verify the user exists in VirtFusion
       console.log(`Verifying user exists in VirtFusion with extRelationId: ${extRelationId}`);
       const userCheckResult = await virtFusionApi.getUserByExtRelationId(extRelationId);
       console.log("User verification successful:", userCheckResult);
-      
+
       // Prepare data for credit API
       const tokenData = {
         tokens: Number(tokens),
         reference_1: Date.now(), // Use timestamp as reference
         reference_2: `API test from admin panel`
       };
-      
+
       console.log("Sending to VirtFusion API:", tokenData);
       const result = await virtFusionApi.addCreditToUser(
         Number(extRelationId),
         tokenData
       );
-      
+
       console.log("VirtFusion credit API test result:", result);
-      
+
       res.json({
         success: true,
         message: `Successfully added ${tokens} tokens to user with extRelationId ${extRelationId}`,
@@ -8840,57 +8849,57 @@ Generated on ${new Date().toLocaleString()}
       });
     } catch (error: any) {
       console.error("VirtFusion credit API test failed:", error);
-      
+
       // Provide detailed error information for debugging
       let errorDetails = {
         message: error.message
       };
-      
+
       if (error.response) {
         errorDetails.status = error.response.status;
         errorDetails.data = error.response.data;
       }
-      
-      res.status(500).json({ 
-        error: "VirtFusion credit API test failed", 
+
+      res.status(500).json({
+        error: "VirtFusion credit API test failed",
         message: error.message,
         details: errorDetails
       });
     }
   });
-  
+
   // Test PayPal sandbox verification (admin only)
   app.post("/api/test-paypal-verification", isAdmin, async (req, res) => {
     try {
       const { orderId } = req.body;
-      
+
       console.log(`Testing PayPal verification for order ID: ${orderId}`);
-      
+
       if (!orderId) {
         return res.status(400).json({ error: "Order ID is required" });
       }
-      
+
       // Check if we're in sandbox mode
       const isSandbox = process.env.VITE_PAYPAL_SANDBOX === "true";
-      
+
       if (!isSandbox) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "This test endpoint only works in sandbox mode",
           details: "Set VITE_PAYPAL_SANDBOX=true to use this endpoint"
         });
       }
-      
+
       const paypalBaseUrl = "https://api-m.sandbox.paypal.com";
       const clientId = process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID;
       const clientSecret = process.env.VITE_PAYPAL_SANDBOX_SECRET;
-      
+
       if (!clientId || !clientSecret) {
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "PayPal sandbox credentials not configured",
           details: "Missing VITE_PAYPAL_SANDBOX_CLIENT_ID or VITE_PAYPAL_SANDBOX_SECRET"
         });
       }
-      
+
       // Get an access token
       console.log("Getting PayPal access token...");
       const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
@@ -8902,19 +8911,19 @@ Generated on ${new Date().toLocaleString()}
         },
         body: 'grant_type=client_credentials'
       });
-      
+
       if (!tokenResponse.ok) {
         const tokenError = await tokenResponse.json();
         console.error("PayPal token error:", tokenError);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "Failed to get PayPal access token",
           details: tokenError
         });
       }
-      
+
       const tokenData = await tokenResponse.json();
       console.log("PayPal token obtained");
-      
+
       // Now verify the order
       console.log(`Getting order details for ${orderId}...`);
       const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}`, {
@@ -8924,23 +8933,23 @@ Generated on ${new Date().toLocaleString()}
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!orderResponse.ok) {
         const orderError = await orderResponse.json();
         console.error("PayPal order error:", orderError);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "Failed to get PayPal order details",
           details: orderError
         });
       }
-      
+
       const orderData = await orderResponse.json();
       console.log("PayPal order details:", {
         id: orderData.id,
         status: orderData.status,
         intent: orderData.intent
       });
-      
+
       // Return the full response for analysis
       res.json({
         success: true,
@@ -8951,7 +8960,7 @@ Generated on ${new Date().toLocaleString()}
       });
     } catch (error) {
       console.error("Error testing PayPal verification:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to test PayPal verification",
         details: error.message
       });
@@ -8959,7 +8968,7 @@ Generated on ${new Date().toLocaleString()}
   });
 
   // Special route for transaction downloads that won't be intercepted by Vite
-  // This route is explicitly added before the HTTP server is created 
+  // This route is explicitly added before the HTTP server is created
   // and will be accessible via a different URL structure
   app.get("/special-download/transactions/:id/pdf", isAuthenticated, async (req, res) => {
     try {
@@ -8968,39 +8977,39 @@ Generated on ${new Date().toLocaleString()}
       if (!transactionIdStr || isNaN(parseInt(transactionIdStr))) {
         return res.status(400).json({ error: "Invalid transaction ID" });
       }
-      
+
       const transactionId = parseInt(transactionIdStr);
       console.log(`Downloading transaction ID: ${transactionId} for user: ${req.user!.id}`);
-      
-      // Get transaction from storage 
+
+      // Get transaction from storage
       const transaction = await storage.getTransaction(transactionId);
-      
+
       if (!transaction) {
         console.error(`Transaction ID ${transactionId} not found in database`);
         return res.status(404).json({ error: "Transaction not found" });
       }
-      
+
       // Double check the permission
       if (transaction.userId !== req.user!.id && req.user!.role !== 'admin') {
         return res.status(403).json({ error: "You don't have permission to access this transaction" });
       }
-      
+
       // Get user data for the report
       const user = await storage.getUser(transaction.userId);
-      
+
       // Get company information for PDF
       const companyName = await storage.getSetting('company_name') || { value: 'SkyVPS360' };
       const companyLogo = await storage.getSetting('company_logo') || { value: '' };
-      
+
       // Create a new buffer array to collect PDF data
       const chunks: Buffer[] = [];
-      
+
       // Create a PDF document
       const doc = new PDFDocument({ margin: 50 });
-      
+
       // Pipe PDF data to the buffer array
       doc.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-      
+
       // Create a promise that resolves when the PDF is finished
       const pdfPromise = new Promise<Buffer>((resolve) => {
         doc.on('end', () => {
@@ -9008,53 +9017,53 @@ Generated on ${new Date().toLocaleString()}
           resolve(pdfBuffer);
         });
       });
-      
+
       // Format the PDF
       formatSingleTransactionPdf(doc, transaction, user, companyName.value, companyLogo.value);
-      
+
       // Finalize the PDF
       doc.end();
-      
+
       // Wait for the PDF to be generated
       const pdfBuffer = await pdfPromise;
-      
+
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="transaction-${transaction.id}.pdf"`);
       res.setHeader('Cache-Control', 'no-cache, no-store');
-      
+
       // Send the PDF buffer
       res.send(pdfBuffer);
     } catch (error: any) {
       console.error("Error generating transaction PDF:", error);
       if (!res.headersSent) {
-        res.status(500).json({ 
-          error: "Failed to generate transaction download", 
-          details: error.message 
+        res.status(500).json({
+          error: "Failed to generate transaction download",
+          details: error.message
         });
       } else {
         res.end();
       }
     }
   });
-  
+
   // Datacenter Locations API Endpoints
   // Public endpoint for active datacenter locations
   app.get("/api/datacenter-locations", async (req, res) => {
     try {
       // Execute raw query to ensure we only select columns that exist
       const selectSQL = `
-        SELECT id, code, name, region_code, region_name, country, city, 
-               latitude, longitude, address, provider, tier, is_active, 
+        SELECT id, code, name, region_code, region_name, country, city,
+               latitude, longitude, address, provider, tier, is_active,
                features, description, created_at, updated_at, status
         FROM datacenter_locations
         WHERE is_active = true OR status = 'coming_soon'
         ORDER BY region_code, name
       `;
-      
+
       console.log('Fetching public datacenter locations');
       const result = await pool.query(selectSQL);
-      
+
       // Map database results to expected format with appropriate defaults
       const locations = result.rows.map((loc: any) => {
         return {
@@ -9082,29 +9091,29 @@ Generated on ${new Date().toLocaleString()}
           updatedAt: loc.updated_at
         };
       });
-      
+
       res.json(locations);
     } catch (error: any) {
       console.error("Error fetching datacenter locations:", error);
       res.status(500).json({ error: "Failed to fetch datacenter locations", details: error.message });
     }
   });
-  
+
   // Admin endpoint for all datacenter locations
   app.get("/api/admin/datacenter-locations", isAdmin, async (req, res) => {
     try {
       // Execute raw query to ensure we only select columns that exist
       const selectSQL = `
-        SELECT id, code, name, region_code, region_name, country, city, 
-               latitude, longitude, address, provider, tier, is_active, 
+        SELECT id, code, name, region_code, region_name, country, city,
+               latitude, longitude, address, provider, tier, is_active,
                features, description, created_at, updated_at, status
         FROM datacenter_locations
         ORDER BY region_code, name
       `;
-      
+
       console.log('Fetching datacenter locations');
       const result = await pool.query(selectSQL);
-      
+
       // Map database results to expected format with appropriate defaults
       const locations = result.rows.map((loc: any) => {
         return {
@@ -9131,43 +9140,43 @@ Generated on ${new Date().toLocaleString()}
           updatedAt: loc.updated_at
         };
       });
-      
+
       res.json(locations);
     } catch (error: any) {
       console.error("Error fetching all datacenter locations:", error);
       res.status(500).json({ error: "Failed to fetch datacenter locations", details: error.message });
     }
   });
-  
+
   // Create new datacenter location
   app.post("/api/admin/datacenter-locations", isAdmin, async (req, res) => {
     try {
       // Get form data from request body
       const formData = req.body;
-      
+
       // Set isActive based on status
       let isActive = true;
-      
+
       // Only set to false if status is explicitly 'inactive'
       // For both 'active' and 'coming_soon', isActive should be true in the database
       if (formData.status === 'inactive') {
         isActive = false;
       }
-      
+
       // Features need special handling - convert array to JSON string
       const featuresJson = JSON.stringify(formData.features || []);
-      
+
       // Execute a raw SQL insert query with all appropriate columns
       const insertSQL = `
-        INSERT INTO datacenter_locations 
+        INSERT INTO datacenter_locations
         (
-          name, 
-          code, 
-          city, 
-          country, 
-          region_name, 
+          name,
+          code,
+          city,
+          country,
+          region_name,
           region_code,
-          latitude, 
+          latitude,
           longitude,
           is_active,
           description,
@@ -9182,7 +9191,7 @@ Generated on ${new Date().toLocaleString()}
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12, $13, $14, $15, NOW(), NOW())
         RETURNING *
       `;
-      
+
       const insertParams = [
         formData.name,
         formData.code,
@@ -9200,15 +9209,15 @@ Generated on ${new Date().toLocaleString()}
         formData.tier || '',
         formData.status || 'active'  // Store status directly in database
       ];
-      
+
       console.log('Creating datacenter location with params:', JSON.stringify(insertParams));
       const result = await pool.query(insertSQL, insertParams);
-      
+
       // Map the result to the expected format - add virtual fields that don't exist in DB yet
       if (result.rows.length === 0) {
         return res.status(500).json({ error: "Failed to create datacenter location" });
       }
-      
+
       const location = result.rows[0];
 
       const mappedLocation = {
@@ -9234,47 +9243,47 @@ Generated on ${new Date().toLocaleString()}
         createdAt: location.created_at,
         updatedAt: location.updated_at
       };
-      
+
       res.status(201).json(mappedLocation);
     } catch (error: any) {
       console.error("Error creating datacenter location:", error);
       res.status(500).json({ error: "Failed to create datacenter location", details: error.message });
     }
   });
-  
+
   // Update datacenter location
   app.put("/api/admin/datacenter-locations/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const formData = req.body;
-      
+
       // Handle the status field correctly to ensure it's preserved
       let isActive = true;
-      
+
       // Set isActive based on status
       // Only set to false if status is explicitly 'inactive'
       // For both 'active' and 'coming_soon', isActive should be true in the database
       if (formData.status === 'inactive') {
         isActive = false;
       }
-      
+
       // Now we can directly update the status in the database
-      console.log(`Updated status for location ${id} to "${formData.status}"`); 
-      
+      console.log(`Updated status for location ${id} to "${formData.status}"`);
+
       // Execute a raw SQL update query with all columns including status
       // Features need special handling - convert array to JSON string
       const featuresJson = JSON.stringify(formData.features || []);
-      
+
       const updateSQL = `
-        UPDATE datacenter_locations 
-        SET 
-          name = $1, 
-          code = $2, 
-          city = $3, 
-          country = $4, 
-          region_name = $5, 
+        UPDATE datacenter_locations
+        SET
+          name = $1,
+          code = $2,
+          city = $3,
+          country = $4,
+          region_name = $5,
           region_code = $6,
-          latitude = $7, 
+          latitude = $7,
           longitude = $8,
           is_active = $9,
           description = $10,
@@ -9287,7 +9296,7 @@ Generated on ${new Date().toLocaleString()}
         WHERE id = $16
         RETURNING *
       `;
-      
+
       const updateParams = [
         formData.name,
         formData.code,
@@ -9306,14 +9315,14 @@ Generated on ${new Date().toLocaleString()}
         formData.status || 'active',
         id
       ];
-      
+
       console.log('Updating datacenter location with params:', JSON.stringify(updateParams));
       const result = await pool.query(updateSQL, updateParams);
-      
+
       if (result.rows.length === 0) {
         return res.status(404).json({ error: "Datacenter location not found" });
       }
-      
+
       // Map the result to the expected format - derive status and other missing fields
       const location = result.rows[0];
       const mappedLocation = {
@@ -9339,31 +9348,31 @@ Generated on ${new Date().toLocaleString()}
         createdAt: location.created_at,
         updatedAt: location.updated_at
       };
-      
+
       res.json(mappedLocation);
     } catch (error: any) {
       console.error(`Error updating datacenter location:`, error);
       res.status(500).json({ error: "Failed to update datacenter location", details: error.message });
     }
   });
-  
+
   // Delete datacenter location
   app.delete("/api/admin/datacenter-locations/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
+
       // Check if the location exists first
       const checkSQL = `SELECT id FROM datacenter_locations WHERE id = $1`;
       const checkResult = await pool.query(checkSQL, [id]);
-      
+
       if (checkResult.rows.length === 0) {
         return res.status(404).json({ error: "Datacenter location not found" });
       }
-      
+
       // Delete using raw SQL
       const deleteSQL = `DELETE FROM datacenter_locations WHERE id = $1`;
       await pool.query(deleteSQL, [id]);
-      
+
       console.log(`Deleted datacenter location ${id}`);
       res.status(204).send();
     } catch (error: any) {
@@ -9373,10 +9382,10 @@ Generated on ${new Date().toLocaleString()}
   });
 
   // This Blog posts endpoint for public access is removed - using the implementation below
-  
+
   // Documentation endpoint for public access
   // This route is replaced by the implementation below
-  
+
   // Plan features endpoint - Public fetch all plan features
   app.get("/api/plan-features", async (req, res) => {
     try {
@@ -9403,17 +9412,17 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/admin/plan-features", isAdmin, async (req, res) => {
     try {
       const { title, description, category, icon, isActive, displayOrder } = req.body;
-      
+
       console.log("Creating plan feature with data:", req.body);
-      
+
       if (!title) {
         return res.status(400).json({ error: "Feature title is required" });
       }
-      
+
       const newFeature = await storage.createPlanFeature({
         title: title,
         description: description || '',
@@ -9422,7 +9431,7 @@ Generated on ${new Date().toLocaleString()}
         isActive: isActive !== undefined ? isActive : true,
         displayOrder: displayOrder !== undefined ? displayOrder : 0
       });
-      
+
       console.log("Created new feature:", newFeature);
       res.status(201).json(newFeature);
     } catch (error: any) {
@@ -9430,48 +9439,48 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.put("/api/admin/plan-features/:id", isAdmin, async (req, res) => {
     try {
       const featureId = parseInt(req.params.id);
       if (isNaN(featureId)) {
         return res.status(400).json({ error: "Invalid feature ID" });
       }
-      
+
       console.log(`Updating plan feature ID ${featureId} with data:`, req.body);
-      
+
       // Extract all the fields from the request body
       const { title, description, category, icon, isActive, displayOrder } = req.body;
-      
+
       // Check if the feature exists before updating
       const existingFeature = await storage.getPlanFeatureById(featureId);
       if (!existingFeature) {
         console.error(`Plan feature with ID ${featureId} not found during update`);
         return res.status(404).json({ error: "Feature not found" });
       }
-      
+
       // Create update object with the correct field names
       const updateData: Partial<schema.PlanFeature> = {};
-      
+
       if (title !== undefined) updateData.title = title;
       if (description !== undefined) updateData.description = description;
       if (category !== undefined) updateData.category = category;
       if (icon !== undefined) updateData.icon = icon;
       if (isActive !== undefined) updateData.isActive = isActive;
       if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
-      
+
       // Actually update the feature in the database
       console.log(`Applying update to plan feature ${featureId}:`, updateData);
       await storage.updatePlanFeature(featureId, updateData);
-      
+
       // Get the updated feature and return it
       const updatedFeature = await storage.getPlanFeatureById(featureId);
-      
+
       if (!updatedFeature) {
         console.error(`Failed to retrieve updated plan feature ${featureId} after update`);
         return res.status(404).json({ error: "Feature not found after update" });
       }
-      
+
       console.log(`Successfully updated plan feature ${featureId}:`, updatedFeature);
       res.json(updatedFeature);
     } catch (error: any) {
@@ -9479,30 +9488,30 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.delete("/api/admin/plan-features/:id", isAdmin, async (req, res) => {
     try {
       const featureId = parseInt(req.params.id);
       if (isNaN(featureId)) {
         return res.status(400).json({ error: "Invalid feature ID" });
       }
-      
+
       // Check if the feature exists
       const feature = await storage.getPlanFeatureById(featureId);
       if (!feature) {
         return res.status(404).json({ error: "Feature not found" });
       }
-      
+
       // Actually delete the feature from the database
       await storage.deletePlanFeature(featureId);
-      
+
       res.json({ success: true, message: "Feature deleted successfully" });
     } catch (error: any) {
       console.error("Error deleting plan feature:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Blog Category API endpoints - Administrator
   app.get("/api/admin/blog-categories", isAdmin, async (req, res) => {
     try {
@@ -9513,7 +9522,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Get all blog categories
   app.get("/api/admin/blog/categories", isAdmin, async (req, res) => {
     try {
@@ -9531,31 +9540,31 @@ Generated on ${new Date().toLocaleString()}
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid category ID" });
       }
-      
+
       const category = await storage.getBlogCategoryById(id);
       if (!category) {
         return res.status(404).json({ error: "Category not found" });
       }
-      
+
       res.json(category);
     } catch (error: any) {
       console.error(`Error fetching blog category ${req.params.id}:`, error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/admin/blog-categories", isAdmin, async (req, res) => {
     try {
       const userId = req.user!.id; // Get user ID from the authenticated user
-      
+
       // Extract the fields we need
       const { name, slug, description, displayOrder } = req.body;
-      
+
       // Validation
       if (!name || !slug) {
         return res.status(400).json({ error: "Name and slug are required" });
       }
-      
+
       // Create the category with current user as creator
       const category = await storage.createBlogCategory({
         name,
@@ -9565,40 +9574,40 @@ Generated on ${new Date().toLocaleString()}
         createdBy: userId,
         updatedBy: userId
       });
-      
+
       res.status(201).json(category);
     } catch (error: any) {
       console.error("Error creating blog category:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.patch("/api/admin/blog-categories/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid category ID" });
       }
-      
+
       const userId = req.user!.id;
-      
+
       const category = await storage.getBlogCategoryById(id);
       if (!category) {
         return res.status(404).json({ error: "Category not found" });
       }
-      
+
       // Extract fields to update
       const { name, slug, description, displayOrder, active } = req.body;
-      
+
       const updates: any = { updatedBy: userId };
       if (name !== undefined) updates.name = name;
       if (slug !== undefined) updates.slug = slug;
       if (description !== undefined) updates.description = description;
       if (displayOrder !== undefined) updates.displayOrder = displayOrder;
       if (active !== undefined) updates.active = active;
-      
+
       await storage.updateBlogCategory(id, updates);
-      
+
       // Get the updated category and return it
       const updatedCategory = await storage.getBlogCategoryById(id);
       res.json(updatedCategory);
@@ -9607,35 +9616,35 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.delete("/api/admin/blog-categories/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid category ID" });
       }
-      
+
       const category = await storage.getBlogCategoryById(id);
       if (!category) {
         return res.status(404).json({ error: "Category not found" });
       }
-      
+
       // First update any blog posts with this category to have no category
       const postsInCategory = await storage.getBlogPostsByCategory(id);
       for (const post of postsInCategory) {
         await storage.updateBlogPost(post.id, { categoryId: null });
       }
-      
+
       // Now delete the category
       await storage.deleteBlogCategory(id);
-      
+
       res.json({ success: true, message: "Category deleted successfully" });
     } catch (error: any) {
       console.error(`Error deleting blog category ${req.params.id}:`, error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Blog API endpoints - Blog Categories
   app.get("/api/admin/blog-categories", isAdmin, async (req, res) => {
     try {
@@ -9646,7 +9655,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/public/blog-categories", async (req, res) => {
     try {
       const categories = await storage.getAllBlogCategories();
@@ -9656,30 +9665,30 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/admin/blog-categories", isAdmin, async (req, res) => {
     try {
       const { name, description, displayOrder } = req.body;
-      
+
       if (!name) {
         return res.status(400).json({ error: "Category name is required" });
       }
-      
+
       // Generate a slug from the name
       let baseSlug = name.toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
-      
+
       // Check if slug exists and add suffix if needed
       let existingCategory = await storage.getBlogCategoryBySlug(baseSlug);
       let slug = baseSlug;
-      
+
       if (existingCategory) {
         // Add a random suffix for uniqueness
         const randomSuffix = Math.floor(Math.random() * 10000);
         slug = `${baseSlug}-${randomSuffix}`;
       }
-      
+
       // Create the category
       const newCategory = await storage.createBlogCategory({
         name,
@@ -9689,39 +9698,39 @@ Generated on ${new Date().toLocaleString()}
         createdBy: req.user!.id,
         updatedBy: req.user!.id
       });
-      
+
       res.status(201).json(newCategory);
     } catch (error: any) {
       console.error("Error creating blog category:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Second PATCH implementation removed to fix duplicate route
-  
+
   app.delete("/api/admin/blog-categories/:id", isAdmin, async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       if (isNaN(categoryId)) {
         return res.status(400).json({ error: "Invalid category ID" });
       }
-      
+
       // Check if the category exists
       const existingCategory = await storage.getBlogCategoryById(categoryId);
       if (!existingCategory) {
         return res.status(404).json({ error: "Category not found" });
       }
-      
+
       // Delete the category
       await storage.deleteBlogCategory(categoryId);
-      
+
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error deleting blog category:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Blog API endpoints - Blog Posts
   app.get("/api/admin/blog", isAdmin, async (req, res) => {
     try {
@@ -9733,50 +9742,50 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/admin/blog/:id", isAdmin, async (req, res) => {
     try {
       const postId = parseInt(req.params.id);
       if (isNaN(postId)) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
-      
+
       const post = await storage.getBlogPostById(postId);
       if (!post) {
         return res.status(404).json({ error: "Blog post not found" });
       }
-      
+
       res.json(post);
     } catch (error: any) {
       console.error("Error fetching blog post:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/admin/blog", isAdmin, async (req, res) => {
     try {
       // Validate required fields
       const { title, content, snippet } = req.body;
-      
+
       if (!title || !content || !snippet) {
         return res.status(400).json({ error: "Title, content, and snippet are required" });
       }
-      
+
       // Generate a slug from the title
       let baseSlug = title.toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
-      
+
       // Check if slug exists and add suffix if needed
       let existingPost = await storage.getBlogPostBySlug(baseSlug);
       let slug = baseSlug;
-      
+
       if (existingPost) {
         // Add a random suffix for uniqueness
         const randomSuffix = Math.floor(Math.random() * 10000);
         slug = `${baseSlug}-${randomSuffix}`;
       }
-      
+
       // Create the blog post
       // Ensure date is a proper Date object
       let postDate: Date;
@@ -9790,18 +9799,18 @@ Generated on ${new Date().toLocaleString()}
         console.error("Invalid date format, using current date:", err);
         postDate = new Date();
       }
-      
+
       // Extract optional fields
       const {
-        author, 
-        featuredImageUrl, 
-        excerpt, 
-        tags, 
+        author,
+        featuredImageUrl,
+        excerpt,
+        tags,
         categoryId,
         displayOrder,
         published
       } = req.body;
-      
+
       const newPost = await storage.createBlogPost({
         title,
         slug,
@@ -9818,30 +9827,30 @@ Generated on ${new Date().toLocaleString()}
         createdBy: req.user!.id,
         updatedBy: req.user!.id
       });
-      
+
       res.status(201).json(newPost);
     } catch (error: any) {
       console.error("Error creating blog post:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.patch("/api/admin/blog/:id", isAdmin, async (req, res) => {
     try {
       const postId = parseInt(req.params.id);
       if (isNaN(postId)) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
-      
+
       // Check if the post exists
       const existingPost = await storage.getBlogPostById(postId);
       if (!existingPost) {
         return res.status(404).json({ error: "Blog post not found" });
       }
-      
+
       // Process the request body
       const updates = { ...req.body };
-      
+
       // Handle date properly if it's included in the update
       if (updates.date) {
         try {
@@ -9856,46 +9865,46 @@ Generated on ${new Date().toLocaleString()}
           updates.date = existingPost.date;
         }
       }
-      
+
       // Update the post
       await storage.updateBlogPost(postId, {
         ...updates,
         updatedBy: req.user!.id
       });
-      
+
       // Fetch the updated post
       const updatedPost = await storage.getBlogPostById(postId);
-      
+
       res.json(updatedPost);
     } catch (error: any) {
       console.error("Error updating blog post:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.delete("/api/admin/blog/:id", isAdmin, async (req, res) => {
     try {
       const postId = parseInt(req.params.id);
       if (isNaN(postId)) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
-      
+
       // Check if the post exists
       const existingPost = await storage.getBlogPostById(postId);
       if (!existingPost) {
         return res.status(404).json({ error: "Blog post not found" });
       }
-      
+
       // Delete the post
       await storage.deleteBlogPost(postId);
-      
+
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error deleting blog post:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Doc Categories API endpoints
   app.get("/api/admin/doc-categories", isAdmin, async (req, res) => {
     try {
@@ -9906,7 +9915,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/public/doc-categories", async (req, res) => {
     try {
       const categories = await storage.getAllDocCategories();
@@ -9916,30 +9925,30 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/admin/doc-categories", isAdmin, async (req, res) => {
     try {
       const { name, description, displayOrder } = req.body;
-      
+
       if (!name) {
         return res.status(400).json({ error: "Category name is required" });
       }
-      
+
       // Generate a slug from the name
       let baseSlug = name.toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
-      
+
       // Check if slug exists and add suffix if needed
       let existingCategory = await storage.getDocCategoryBySlug(baseSlug);
       let slug = baseSlug;
-      
+
       if (existingCategory) {
         // Add a random suffix for uniqueness
         const randomSuffix = Math.floor(Math.random() * 10000);
         slug = `${baseSlug}-${randomSuffix}`;
       }
-      
+
       // Create the category
       const newCategory = await storage.createDocCategory({
         name,
@@ -9949,29 +9958,29 @@ Generated on ${new Date().toLocaleString()}
         createdBy: req.user!.id,
         updatedBy: req.user!.id
       });
-      
+
       res.status(201).json(newCategory);
     } catch (error: any) {
       console.error("Error creating doc category:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.patch("/api/admin/doc-categories/:id", isAdmin, async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       if (isNaN(categoryId)) {
         return res.status(400).json({ error: "Invalid category ID" });
       }
-      
+
       const { name, description, displayOrder } = req.body;
-      
+
       // Check if the category exists
       const existingCategory = await storage.getDocCategoryById(categoryId);
       if (!existingCategory) {
         return res.status(404).json({ error: "Category not found" });
       }
-      
+
       // Update the category
       await storage.updateDocCategory(categoryId, {
         name,
@@ -9979,33 +9988,33 @@ Generated on ${new Date().toLocaleString()}
         displayOrder,
         updatedBy: req.user!.id
       });
-      
+
       // Fetch the updated category
       const updatedCategory = await storage.getDocCategoryById(categoryId);
-      
+
       res.json(updatedCategory);
     } catch (error: any) {
       console.error("Error updating doc category:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.delete("/api/admin/doc-categories/:id", isAdmin, async (req, res) => {
     try {
       const categoryId = parseInt(req.params.id);
       if (isNaN(categoryId)) {
         return res.status(400).json({ error: "Invalid category ID" });
       }
-      
+
       // Check if the category exists
       const existingCategory = await storage.getDocCategoryById(categoryId);
       if (!existingCategory) {
         return res.status(404).json({ error: "Category not found" });
       }
-      
+
       // Delete the category (this also removes category_id from all docs)
       await storage.deleteDocCategory(categoryId);
-      
+
       res.json({ success: true });
     } catch (error: any) {
       console.error("Error deleting doc category:", error);
@@ -10019,7 +10028,7 @@ Generated on ${new Date().toLocaleString()}
       // For admin routes, always include unpublished docs
       // Check if category filter is applied
       const categoryId = req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined;
-      
+
       const docs = await storage.getAllDocs(true, categoryId);
       console.log("Retrieved docs:", docs);
       res.json(docs || []);
@@ -10028,14 +10037,14 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/admin/docs/:id", isAdmin, async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
       if (isNaN(docId)) {
         return res.status(400).json({ error: "Invalid doc ID" });
       }
-      
+
       // Return a placeholder doc
       res.json({
         id: docId,
@@ -10048,26 +10057,26 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/admin/docs", isAdmin, async (req, res) => {
     try {
       const { title, content, published, displayOrder, categoryId } = req.body;
-      
+
       if (!title || !content) {
         return res.status(400).json({ error: "Title and content are required" });
       }
-      
+
       // Generate a base slug from the title
       let baseSlug = title.toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
-      
+
       // Add a random suffix to avoid slug collisions
       const randomSuffix = Math.floor(Math.random() * 10000);
       const slug = `${baseSlug}-${randomSuffix}`;
-      
+
       console.log("Creating doc with categoryId:", categoryId);
-      
+
       // Create the doc in the database
       const newDoc = await storage.createDoc({
         title,
@@ -10081,7 +10090,7 @@ Generated on ${new Date().toLocaleString()}
         createdBy: req.user!.id,
         updatedBy: req.user!.id
       });
-      
+
       console.log("Created doc:", newDoc);
       res.status(201).json(newDoc);
     } catch (error: any) {
@@ -10089,24 +10098,24 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.patch("/api/admin/docs/:id", isAdmin, async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
       if (isNaN(docId)) {
         return res.status(400).json({ error: "Invalid doc ID" });
       }
-      
+
       const { title, content, published, displayOrder, categoryId } = req.body;
-      
+
       console.log("Updating doc with categoryId:", categoryId);
-      
+
       // Check if the doc exists
       const existingDoc = await storage.getDocById(docId);
       if (!existingDoc) {
         return res.status(404).json({ error: "Document not found" });
       }
-      
+
       // Generate a new slug if title changed
       let slug = existingDoc.slug;
       if (title && title !== existingDoc.title) {
@@ -10114,12 +10123,12 @@ Generated on ${new Date().toLocaleString()}
         let baseSlug = title.toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)/g, '');
-        
+
         // Add a random suffix to avoid slug collisions
         const randomSuffix = Math.floor(Math.random() * 10000);
         slug = `${baseSlug}-${randomSuffix}`;
       }
-      
+
       // Update the doc in the database
       await storage.updateDoc(docId, {
         title,
@@ -10131,10 +10140,10 @@ Generated on ${new Date().toLocaleString()}
         updatedAt: new Date(),
         updatedBy: req.user!.id
       });
-      
+
       // Fetch the updated doc to return
       const updatedDoc = await storage.getDocById(docId);
-      
+
       console.log("Updated doc:", updatedDoc);
       res.json(updatedDoc);
     } catch (error: any) {
@@ -10142,23 +10151,23 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.delete("/api/admin/docs/:id", isAdmin, async (req, res) => {
     try {
       const docId = parseInt(req.params.id);
       if (isNaN(docId)) {
         return res.status(400).json({ error: "Invalid doc ID" });
       }
-      
+
       // Check if the doc exists
       const existingDoc = await storage.getDocById(docId);
       if (!existingDoc) {
         return res.status(404).json({ error: "Document not found" });
       }
-      
+
       // Delete the doc
       await storage.deleteDoc(docId);
-      
+
       console.log(`Deleted doc with ID: ${docId}`);
       res.json({ success: true });
     } catch (error: any) {
@@ -10166,7 +10175,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // FAQs API endpoints
   app.get("/api/faqs", async (req, res) => {
     try {
@@ -10181,7 +10190,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/admin/faqs", isAdmin, async (req, res) => {
     try {
       console.log('Fetching all FAQs for admin display');
@@ -10194,15 +10203,15 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/admin/faqs", isAdmin, async (req, res) => {
     try {
       const { question, answer, category, displayOrder } = req.body;
-      
+
       if (!question || !answer) {
         return res.status(400).json({ error: "Question and answer are required" });
       }
-      
+
       // Create the new FAQ
       const newFaq = await storage.createFaqItem({
         question,
@@ -10211,7 +10220,7 @@ Generated on ${new Date().toLocaleString()}
         displayOrder: typeof displayOrder === 'number' ? displayOrder : 0,
         isActive: true
       });
-      
+
       console.log('Created new FAQ:', newFaq);
       res.status(201).json(newFaq);
     } catch (error: any) {
@@ -10219,7 +10228,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.patch("/api/admin/faqs/:id", isAdmin, async (req, res) => {
     try {
       console.log('[FAQ][PATCH] Request body:', req.body);
@@ -10227,31 +10236,31 @@ Generated on ${new Date().toLocaleString()}
       if (isNaN(faqId)) {
         return res.status(400).json({ error: "Invalid FAQ ID" });
       }
-      
+
       const { question, answer, category, displayOrder, isActive } = req.body;
-      
+
       // Get the existing FAQ
       const existingFaq = await storage.getFaqItemById(faqId);
       if (!existingFaq) {
         return res.status(404).json({ error: "FAQ not found" });
       }
-      
+
       // Update the FAQ
       const updateData: any = {
         updatedAt: new Date()
       };
-      
+
       if (question !== undefined) updateData.question = question;
       if (answer !== undefined) updateData.answer = answer;
       if (category !== undefined) updateData.category = category;
       if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
       if (isActive !== undefined) updateData.isActive = isActive;
-      
+
       try {
         // Update the FAQ and get the updated record directly
         const updatedFaq = await storage.updateFaqItem(faqId, updateData);
         console.log('[FAQ][PATCH] Successfully updated FAQ:', updatedFaq);
-        
+
         // Make sure we return a valid JSON response
         return res.status(200).json(updatedFaq || { success: true });
       } catch (dbError: any) {
@@ -10263,31 +10272,31 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.delete("/api/admin/faqs/:id", isAdmin, async (req, res) => {
     try {
       const faqId = parseInt(req.params.id);
       if (isNaN(faqId)) {
         return res.status(400).json({ error: "Invalid FAQ ID" });
       }
-      
+
       // Get the existing FAQ
       const existingFaq = await storage.getFaqItemById(faqId);
       if (!existingFaq) {
         return res.status(404).json({ error: "FAQ not found" });
       }
-      
+
       // Delete the FAQ
       await storage.deleteFaqItem(faqId);
       console.log(`FAQ ${faqId} deleted by admin ${req.user?.id}`);
-      
+
       res.json({ success: true, message: "FAQ deleted successfully" });
     } catch (error: any) {
       console.error("Error deleting FAQ:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Public packages endpoint
   app.get("/api/public/packages", async (req, res) => {
     try {
@@ -10298,16 +10307,16 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Public package pricing endpoint
   app.get("/api/public/package-pricing", async (req, res) => {
     try {
       console.log("Fetching package pricing from database");
-      
+
       // Get all pricing data from our database
       const pricingRecords = await db.select().from(schema.packagePricing);
       console.log("Retrieved pricing records:", pricingRecords);
-      
+
       // Convert to the expected format: { packageId: price, packageName: price }
       const pricing = pricingRecords.reduce((acc, record) => {
         // Include both by ID and by name for flexibility
@@ -10317,9 +10326,9 @@ Generated on ${new Date().toLocaleString()}
         }
         return acc;
       }, {} as Record<string | number, number>);
-      
+
       console.log("Formatted pricing data:", pricing);
-      
+
       // Add fallback pricing for common packages if we don't have custom pricing
       const fallbackPricing = {
         'KVMStorage100': 2.50,  // 250 tokens = $2.50
@@ -10328,14 +10337,14 @@ Generated on ${new Date().toLocaleString()}
         'KVMStorage800': 20.00, // 2000 tokens = $20.00
         'KVMStorage1600': 40.00, // 4000 tokens = $40.00
       };
-      
+
       // Only use fallbacks if we don't have custom pricing
       Object.keys(fallbackPricing).forEach(key => {
         if (!pricing[key]) {
           pricing[key] = fallbackPricing[key as keyof typeof fallbackPricing];
         }
       });
-      
+
       console.log("Final pricing data with fallbacks:", pricing);
       return res.json(pricing);
     } catch (error: any) {
@@ -10344,7 +10353,7 @@ Generated on ${new Date().toLocaleString()}
       res.json({});
     }
   });
-  
+
   // Platform stats endpoint
   // Service status endpoint (BetterStack integration)
   app.get("/api/public/service-status", async (req, res) => {
@@ -10352,10 +10361,10 @@ Generated on ${new Date().toLocaleString()}
       console.log("Getting service status from BetterStack");
       // Import here to avoid circular dependencies
       const { betterStackService } = await import('./betterstack-service');
-      
+
       // Initialize BetterStack service
       const isConfigured = await betterStackService.initialize();
-      
+
       if (!isConfigured) {
         console.log("BetterStack API not configured, returning default status");
         return res.json({
@@ -10363,18 +10372,18 @@ Generated on ${new Date().toLocaleString()}
           services: []
         });
       }
-      
+
       // Get service statuses from BetterStack
       const services = await betterStackService.getServiceStatuses();
       const overall = await betterStackService.getOverallStatus();
-      
+
       res.json({
         overall,
         services
       });
     } catch (error) {
       console.error("Error retrieving service status:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to load service status. Please try again later."
       });
     }
@@ -10384,33 +10393,33 @@ Generated on ${new Date().toLocaleString()}
     try {
       console.log("Getting platform statistics");
       const virtFusionApi = new VirtFusionApi();
-      
+
       // Update VirtFusion API settings
       await virtFusionApi.updateSettings();
-      
+
       // Get manual override values from settings (will be added to real counts)
       const serverCountSetting = await storage.getSetting("platform_server_count");
       const hypervisorCountSetting = await storage.getSetting("platform_hypervisor_count");
       const additionalCpuSetting = await storage.getSetting("platform_cpu_cores");
       const additionalMemorySetting = await storage.getSetting("platform_memory_gb");
-      
+
       // Initialize real counts from API (default to 0)
       let realServerCount = 0;
       let realHypervisorCount = 0;
       let realTotalCpuCores = 0;
       let realTotalMemoryGB = 0;
-      
+
       // Additional counts from manual settings (default to 0)
       let additionalServerCount = 0;
       let additionalHypervisorCount = 0;
       let additionalCpuCores = 0;
       let additionalMemoryGB = 0;
-      
+
       // Try to get real counts from VirtFusion API
       try {
         console.log("Fetching server count from VirtFusion API");
         const serversResponse = await virtFusionApi.getServers();
-        
+
         // Handle different response formats
         if (Array.isArray(serversResponse)) {
           realServerCount = serversResponse.length;
@@ -10422,20 +10431,20 @@ Generated on ${new Date().toLocaleString()}
           // Fallback to length of data array if total not available
           realServerCount = serversResponse.data.length || 0;
         }
-        
+
         console.log(`Got real server count from API: ${realServerCount}`);
       } catch (error) {
         console.error("Error fetching server count from VirtFusion:", error);
       }
-      
+
       // Try to get hypervisor data from API and calculate resource totals
       try {
         console.log("Fetching hypervisor data from VirtFusion API");
         const hypervisorsResponse = await virtFusionApi.getHypervisors();
-        
+
         // Log the raw hypervisors response for debugging
         console.log("Raw hypervisors response:", JSON.stringify(hypervisorsResponse).substring(0, 1000) + "...");
-        
+
         // Extract hypervisors array
         let hypervisors = [];
         if (Array.isArray(hypervisorsResponse)) {
@@ -10447,19 +10456,19 @@ Generated on ${new Date().toLocaleString()}
         } else if (hypervisorsResponse?.total) {
           realHypervisorCount = hypervisorsResponse.total;
         }
-        
+
         console.log(`Got real hypervisor count from API: ${realHypervisorCount}`);
-        
+
         // Calculate total CPU cores and memory from all hypervisors
         if (hypervisors.length > 0) {
           for (const hypervisor of hypervisors) {
             console.log(`Processing hypervisor ${hypervisor.id}: maxCpu=${hypervisor.maxCpu}, maxMemory=${hypervisor.maxMemory}`);
-            
+
             // Add CPU cores
             if (hypervisor.maxCpu && !isNaN(hypervisor.maxCpu)) {
               realTotalCpuCores += parseInt(hypervisor.maxCpu, 10);
             }
-            
+
             // Add memory (convert from MB to GB)
             if (hypervisor.maxMemory && !isNaN(hypervisor.maxMemory)) {
               // Convert memory from MB to GB and round to nearest integer
@@ -10468,13 +10477,13 @@ Generated on ${new Date().toLocaleString()}
             }
           }
         }
-        
+
         console.log(`Total real CPU cores from API: ${realTotalCpuCores}`);
         console.log(`Total real memory (GB) from API: ${realTotalMemoryGB}`);
       } catch (error) {
         console.error("Error fetching hypervisor data from VirtFusion:", error);
       }
-      
+
       // Get additional counts from settings
       if (serverCountSetting && serverCountSetting.value) {
         additionalServerCount = parseInt(serverCountSetting.value, 10);
@@ -10485,7 +10494,7 @@ Generated on ${new Date().toLocaleString()}
           additionalServerCount = 0;
         }
       }
-      
+
       if (hypervisorCountSetting && hypervisorCountSetting.value) {
         additionalHypervisorCount = parseInt(hypervisorCountSetting.value, 10);
         if (!isNaN(additionalHypervisorCount)) {
@@ -10495,7 +10504,7 @@ Generated on ${new Date().toLocaleString()}
           additionalHypervisorCount = 0;
         }
       }
-      
+
       if (additionalCpuSetting && additionalCpuSetting.value) {
         additionalCpuCores = parseInt(additionalCpuSetting.value, 10);
         if (!isNaN(additionalCpuCores)) {
@@ -10505,7 +10514,7 @@ Generated on ${new Date().toLocaleString()}
           additionalCpuCores = 0;
         }
       }
-      
+
       if (additionalMemorySetting && additionalMemorySetting.value) {
         additionalMemoryGB = parseInt(additionalMemorySetting.value, 10);
         if (!isNaN(additionalMemoryGB)) {
@@ -10515,18 +10524,18 @@ Generated on ${new Date().toLocaleString()}
           additionalMemoryGB = 0;
         }
       }
-      
+
       // Calculate the total counts (real + additional)
       const totalServerCount = realServerCount + additionalServerCount;
       const totalHypervisorCount = realHypervisorCount + additionalHypervisorCount;
       const totalCpuCores = realTotalCpuCores + additionalCpuCores;
       const totalMemoryGB = realTotalMemoryGB + additionalMemoryGB;
-      
+
       console.log(`Total server count: ${totalServerCount} (real: ${realServerCount} + additional: ${additionalServerCount})`);
       console.log(`Total hypervisor count: ${totalHypervisorCount} (real: ${realHypervisorCount} + additional: ${additionalHypervisorCount})`);
       console.log(`Total CPU cores: ${totalCpuCores} (real: ${realTotalCpuCores} + additional: ${additionalCpuCores})`);
       console.log(`Total memory (GB): ${totalMemoryGB} (real: ${realTotalMemoryGB} + additional: ${additionalMemoryGB})`);
-      
+
       res.json({
         serverCount: totalServerCount,
         hypervisorCount: totalHypervisorCount,
@@ -10535,37 +10544,37 @@ Generated on ${new Date().toLocaleString()}
       });
     } catch (error) {
       console.error("Error retrieving platform statistics:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to load platform statistics. Please try again later."
       });
     }
   });
-  
+
   // Service status endpoint using BetterStack
   app.get("/api/public/service-status", async (req, res) => {
     try {
       console.log("Getting service status data from BetterStack service");
-      
+
       // Make sure BetterStack service is initialized
       if (!betterStackService.isConfigured()) {
         await betterStackService.initialize();
       }
-      
+
       // Get the service status from BetterStack
       const serviceStatus = await betterStackService.getServiceStatuses();
       const overallStatus = await betterStackService.getOverallStatus();
-      
+
       // Return the status in a nested format that the frontend now handles
       const result = {
         overall: overallStatus,
         services: serviceStatus // This creates the nested structure
       };
-      
+
       console.log(`Returning status data with ${serviceStatus.services.length} services`);
       return res.json(result);
     } catch (error) {
       console.error("Error in service status endpoint:", error);
-      
+
       // Last resort fallback response
       return res.json({
         overall: 'operational',
@@ -10607,27 +10616,27 @@ Generated on ${new Date().toLocaleString()}
       });
     }
   });
-  
+
   // Get recent incidents from BetterStack
   app.get("/api/public/service-incidents", async (req, res) => {
     try {
       console.log("Getting recent incidents from BetterStack service");
-      
+
       // Make sure BetterStack service is initialized
       if (!betterStackService.isConfigured()) {
         await betterStackService.initialize();
       }
-      
+
       // Parse query parameters
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const resolvedOnly = req.query.resolvedOnly === 'true';
-      
+
       // Get incidents from BetterStack
       const incidents = await betterStackService.getIncidents(limit, resolvedOnly);
-      
+
       console.log(`Returning ${incidents.length} incidents`);
       console.log('Incident data sample:', incidents.length > 0 ? incidents[0] : 'No incidents');
-      
+
       // Transform dates to ISO strings for consistent JSON serialization
       const formattedIncidents = incidents.map(incident => ({
         ...incident,
@@ -10635,20 +10644,20 @@ Generated on ${new Date().toLocaleString()}
         acknowledgedAt: incident.acknowledgedAt ? incident.acknowledgedAt.toISOString() : null,
         resolvedAt: incident.resolvedAt ? incident.resolvedAt.toISOString() : null,
       }));
-      
+
       return res.json({
         incidents: formattedIncidents
       });
     } catch (error) {
       console.error("Error in service incidents endpoint:", error);
-      
+
       // Return empty incidents array on error
       return res.json({
         incidents: []
       });
     }
   });
-  
+
   // Helper function to map BetterStack status to our format
   function mapBetterStackStatus(status: string): 'operational' | 'degraded' | 'outage' | 'maintenance' {
     switch (status) {
@@ -10662,7 +10671,7 @@ Generated on ${new Date().toLocaleString()}
         return 'degraded';
     }
   }
-  
+
   // FAQs endpoint - This is a duplicate and has been implemented above
   // Keeping the commented code for reference but removing actual endpoint to avoid conflicts
   /*
@@ -10692,20 +10701,20 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Email logs endpoints
   app.get("/api/admin/email-logs", isAdmin, async (req, res) => {
     try {
       const { type, status, search, startDate, endDate, userId, page, limit } = req.query;
-      
+
       // Parse pagination parameters
       const currentPage = page ? parseInt(page as string) : 1;
       const itemsPerPage = limit ? parseInt(limit as string) : 10;
-      
-      console.log('Fetching email logs with filters:', { 
-        type, status, search, startDate, endDate, userId, page: currentPage, limit: itemsPerPage 
+
+      console.log('Fetching email logs with filters:', {
+        type, status, search, startDate, endDate, userId, page: currentPage, limit: itemsPerPage
       });
-      
+
       // Use the searchEmailLogs method from storage with pagination
       const result = await storage.searchEmailLogs({
         type: type as string | undefined,
@@ -10718,9 +10727,9 @@ Generated on ${new Date().toLocaleString()}
         page: currentPage,
         limit: itemsPerPage
       });
-      
+
       console.log(`Found ${result.logs.length} email logs to return (page ${currentPage} of ${result.totalPages})`);
-      
+
       // Return paginated results
       res.json({
         logs: result.logs,
@@ -10736,26 +10745,26 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/admin/email-logs/:id", isAdmin, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "Invalid email log ID" });
       }
-      
+
       const log = await storage.getEmailLog(id);
       if (!log) {
         return res.status(404).json({ error: "Email log not found" });
       }
-      
+
       res.json(log);
     } catch (error: any) {
       console.error("Error fetching email log:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Maintenance endpoints
   app.get("/api/maintenance/status", async (req, res) => {
     try {
@@ -10767,15 +10776,15 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/maintenance/toggle", isAdmin, async (req, res) => {
     try {
       const { enabled, message, estimatedCompletion } = req.body;
-      
+
       if (typeof enabled !== 'boolean') {
         return res.status(400).json({ error: "Enabled flag must be a boolean" });
       }
-      
+
       // Use the function from middleware.ts directly
       const status = await toggleMaintenanceMode(
         enabled,
@@ -10783,14 +10792,14 @@ Generated on ${new Date().toLocaleString()}
         estimatedCompletion,
         req.user
       );
-      
+
       res.json(status);
     } catch (error: any) {
       console.error("Error toggling maintenance mode:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/maintenance/token", isAdmin, (req, res) => {
     try {
       // Use the function from middleware.ts directly
@@ -10801,7 +10810,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/maintenance/token/regenerate", isAdmin, async (req, res) => {
     try {
       // Use the async function from middleware.ts directly
@@ -10812,9 +10821,9 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Token validation endpoint is defined above at line ~1742
-  
+
   // API endpoints for public blog, docs, and FAQs
   app.get("/api/public/blog-categories", async (req, res) => {
     try {
@@ -10825,7 +10834,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/public/blog", async (req, res) => {
     try {
       // Get only published blog posts with categories
@@ -10836,14 +10845,14 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/public/blog/category/:categoryId", async (req, res) => {
     try {
       const categoryId = parseInt(req.params.categoryId);
       if (isNaN(categoryId)) {
         return res.status(400).json({ error: "Invalid category ID" });
       }
-      
+
       // Get posts for the specified category
       const posts = await storage.getBlogPostsByCategory(categoryId, false);
       res.json(posts);
@@ -10852,21 +10861,21 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/public/blog/:slug", async (req, res) => {
     try {
       const post = await storage.getBlogPostBySlug(req.params.slug);
       if (!post) {
         return res.status(404).json({ error: "Blog post not found" });
       }
-      
+
       res.json(post);
     } catch (error: any) {
       console.error("Error fetching blog post:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/public/doc-categories", async (req, res) => {
     try {
       const categories = await storage.getAllDocCategories();
@@ -10887,21 +10896,21 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.get("/api/public/docs/:slug", async (req, res) => {
     try {
       const doc = await storage.getDocBySlug(req.params.slug);
       if (!doc) {
         return res.status(404).json({ error: "Doc not found" });
       }
-      
+
       res.json(doc);
     } catch (error: any) {
       console.error("Error fetching doc:", error);
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Verification status endpoint
   app.get("/api/verification-status", isAuthenticated, async (req, res) => {
     try {
@@ -10912,7 +10921,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Password reset endpoints
   app.post("/api/auth/request-password-reset", async (req, res) => {
     try {
@@ -10920,7 +10929,7 @@ Generated on ${new Date().toLocaleString()}
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }
-      
+
       const result = await AuthService.requestPasswordReset(email);
       res.json(result);
     } catch (error: any) {
@@ -10928,14 +10937,14 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/auth/verify-reset-code", async (req, res) => {
     try {
       const { email, resetCode } = req.body;
       if (!email || !resetCode) {
         return res.status(400).json({ error: "Email and reset code are required" });
       }
-      
+
       const result = await AuthService.verifyPasswordResetCode(email, resetCode);
       res.json(result);
     } catch (error: any) {
@@ -10943,60 +10952,60 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   app.post("/api/auth/reset-password", async (req, res) => {
     try {
       const { userId, resetCode } = req.body;
       if (!userId || !resetCode) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "User ID and reset code are required" 
+        return res.status(400).json({
+          success: false,
+          message: "User ID and reset code are required"
         });
       }
-      
+
       // Get the user first
       const user = await storage.getUser(userId);
       if (!user) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "User not found" 
+        return res.status(404).json({
+          success: false,
+          message: "User not found"
         });
       }
-      
+
       // Find the reset token
       const token = await storage.getPasswordResetToken(resetCode);
-      
+
       // Validate token
       if (!token || token.userId !== userId || token.usedAt) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Invalid or expired reset code." 
+        return res.status(400).json({
+          success: false,
+          message: "Invalid or expired reset code."
         });
       }
-      
+
       // Check if token is expired
       if (token.expiresAt < new Date()) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Reset code has expired. Please request a new code." 
+        return res.status(400).json({
+          success: false,
+          message: "Reset code has expired. Please request a new code."
         });
       }
-      
+
       let temporaryPassword = "";
       let virtFusionError = null;
-      
+
       // If user has VirtFusion ID, reset the password through VirtFusion API
       if (user.virtFusionId) {
         try {
           // Make sure VirtFusion API settings are up to date
           await virtFusionApi.updateSettings();
-          
+
           // Call VirtFusion API to reset the password
           // IMPORTANT: We use userId as extRelationId (NOT virtFusionId)
           console.log(`Attempting to reset password via VirtFusion API for user with extRelationId: ${userId}`);
           const response = await virtFusionApi.resetUserPassword(userId);
           console.log("VirtFusion password reset API response:", response);
-          
+
           // Extract the password from the VirtFusion response
           if (response && response.data && response.data.password) {
             temporaryPassword = response.data.password;
@@ -11009,7 +11018,7 @@ Generated on ${new Date().toLocaleString()}
           }
         } catch (error: any) {
           console.error("Error resetting password through VirtFusion API:", error);
-          
+
           // If VirtFusion API call failed, generate a fallback password
           temporaryPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
           virtFusionError = error.message || 'VirtFusion API error';
@@ -11018,19 +11027,19 @@ Generated on ${new Date().toLocaleString()}
         // For non-VirtFusion users, generate a random password
         temporaryPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
       }
-      
+
       // Hash the temporary password
       const hashedPassword = await hashPassword(temporaryPassword);
-      
+
       // Update the user's password in our system
       await storage.updateUser(userId, { password: hashedPassword });
-      
+
       // Mark token as used
       await storage.markPasswordResetTokenAsUsed(token.id);
-      
+
       // Invalidate any other tokens for this user
       await storage.invalidatePasswordResetTokens(userId);
-      
+
       // Email the user about the password change
       try {
         await emailService.sendAdminPasswordResetEmail(
@@ -11042,28 +11051,28 @@ Generated on ${new Date().toLocaleString()}
       } catch (emailError) {
         console.error(`Failed to send password reset email to ${user.email}:`, emailError);
       }
-      
+
       // Set message based on VirtFusion integration status
       let message = 'Your password has been reset successfully.';
       if (virtFusionError) {
         message += ' Note: VirtFusion API call failed, but your password has been reset in our system.';
         console.warn(`Warning: Password reset locally but VirtFusion API call failed for user ${userId}. Passwords may be out of sync.`);
       }
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message,
         temporaryPassword
       });
     } catch (error: any) {
       console.error("Error resetting password:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "An error occurred while resetting your password." 
+      res.status(500).json({
+        success: false,
+        message: "An error occurred while resetting your password."
       });
     }
   });
-  
+
   // Username reminder endpoint
   app.post("/api/auth/request-username-reminder", async (req, res) => {
     try {
@@ -11071,7 +11080,7 @@ Generated on ${new Date().toLocaleString()}
       if (!email) {
         return res.status(400).json({ error: "Email is required" });
       }
-      
+
       const result = await AuthService.requestUsernameReminder(email);
       res.json(result);
     } catch (error: any) {
@@ -11079,7 +11088,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Change password endpoint (when logged in)
   app.post("/api/auth/change-password", isAuthenticated, async (req, res) => {
     try {
@@ -11087,7 +11096,7 @@ Generated on ${new Date().toLocaleString()}
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: "Current password and new password are required" });
       }
-      
+
       const result = await AuthService.changePassword(req.user!.id, currentPassword, newPassword);
       res.json(result);
     } catch (error: any) {
@@ -11097,15 +11106,15 @@ Generated on ${new Date().toLocaleString()}
   });
 
   // ----- Gemini AI Routes -----
-  
+
   // Check Gemini AI status
   app.get("/api/ai/status", async (req, res) => {
     try {
       const isReady = geminiService.isReady();
-      res.json({ 
+      res.json({
         enabled: isReady,
-        message: isReady 
-          ? "Gemini AI service is ready" 
+        message: isReady
+          ? "Gemini AI service is ready"
           : "Gemini AI service is not configured. Add GOOGLE_AI_API_KEY to enable AI features."
       });
     } catch (error: any) {
@@ -11113,7 +11122,7 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Get current AI usage limits for the user
   app.get("/api/ai/usage", async (req, res) => {
     try {
@@ -11125,28 +11134,28 @@ Generated on ${new Date().toLocaleString()}
       res.status(500).json({ error: error.message });
     }
   });
-  
+
   // Generate AI ticket response suggestion (admin only)
   app.post("/api/admin/ai/ticket-response", isAdmin, async (req, res) => {
     try {
       const { ticketId, additionalContext } = req.body;
-      
+
       if (!ticketId) {
         return res.status(400).json({ error: "Ticket ID is required" });
       }
-      
+
       // Get ticket details
       const ticket = await storage.getTicket(ticketId);
       if (!ticket) {
         return res.status(404).json({ error: "Ticket not found" });
       }
-      
+
       // Get ticket messages
       const messages = await storage.getTicketMessages(ticketId);
       if (!messages || messages.length === 0) {
         return res.status(404).json({ error: "No messages found for this ticket" });
       }
-      
+
       // Format messages for AI
       const formattedMessages = await Promise.all(messages.map(async (msg) => {
         const user = msg.userId ? await storage.getUser(msg.userId) : null;
@@ -11159,7 +11168,7 @@ Generated on ${new Date().toLocaleString()}
           } : undefined
         };
       }));
-      
+
       // Generate response using Gemini with rate limiting
       const response = await geminiService.generateTicketResponse(
         ticket.subject,
@@ -11168,17 +11177,17 @@ Generated on ${new Date().toLocaleString()}
         req,
         res
       );
-      
+
       res.json(response);
     } catch (error: any) {
       console.error("Error generating AI ticket response:", error);
-      res.status(500).json({ 
-        success: false, 
-        response: `Error generating response: ${error.message}` 
+      res.status(500).json({
+        success: false,
+        response: `Error generating response: ${error.message}`
       });
     }
   });
-  
+
   // Docs AI chat endpoint has been removed
   app.post("/api/ai/docs-chat", async (req, res) => {
     return res.status(404).json({
@@ -11189,24 +11198,24 @@ Generated on ${new Date().toLocaleString()}
 
   // Register API Keys routes
   app.use("/api/user/api-keys", isAuthenticated, apiKeysRoutes);
-  
+
   // Admin settings routes are defined directly in this file instead of using the separate router
-  
+
   // Register API-only routes (authenticated via API keys)
   // Use both /api/v1 endpoints for backward compatibility and new direct API endpoints
   app.use("/api/v1", apiOnlyRoutes);
-  
+
   // Register new API endpoints directly in the main router
   // These mirror the functionality in api-only-routes.ts but with better paths
-  
+
   // User information endpoint - /api/user/me (avoiding conflict with the existing /api/user route)
-  app.get("/api/user/me", 
-    apiKeyAuth, 
-    requireScope('read:user'), 
+  app.get("/api/user/me",
+    apiKeyAuth,
+    requireScope('read:user'),
     async (req, res) => {
       try {
         const { userId } = (req as any).apiKeyUser;
-        
+
         // Get user information but exclude sensitive data like password
         const user = await storage.getUser(userId);
         if (!user) {
@@ -11215,10 +11224,10 @@ Generated on ${new Date().toLocaleString()}
             message: 'User not found'
           });
         }
-        
+
         // Return user information without sensitive fields
         const { password, ...safeUserData } = user;
-        
+
         return res.json(safeUserData);
       } catch (error) {
         console.error('Error retrieving user information via API:', error);
@@ -11228,15 +11237,15 @@ Generated on ${new Date().toLocaleString()}
         });
       }
   });
-  
+
   // Servers endpoint
-  app.get("/api/servers", 
-    apiKeyAuth, 
-    requireScope('read:servers'), 
+  app.get("/api/servers",
+    apiKeyAuth,
+    requireScope('read:servers'),
     async (req, res) => {
       try {
         const { userId } = (req as any).apiKeyUser;
-        
+
         // This endpoint would return server data for the user
         // For now, we'll return a simple response
         // In a real implementation, this would call VirtFusion API to get server data
@@ -11258,15 +11267,15 @@ Generated on ${new Date().toLocaleString()}
         });
       }
   });
-  
+
   // Balance endpoint
-  app.get("/api/balance", 
-    apiKeyAuth, 
-    requireScope('read:billing'), 
+  app.get("/api/balance",
+    apiKeyAuth,
+    requireScope('read:billing'),
     async (req, res) => {
       try {
         const { userId } = (req as any).apiKeyUser;
-        
+
         // Get user for credits
         const user = await storage.getUser(userId);
         if (!user) {
@@ -11275,7 +11284,7 @@ Generated on ${new Date().toLocaleString()}
             message: 'User not found'
           });
         }
-        
+
         // Return user credit balance
         return res.json({
           credits: user.credits,
@@ -11292,7 +11301,7 @@ Generated on ${new Date().toLocaleString()}
 
   // Create HTTP server
   const httpServer = createServer(app);
-  
+
   // Attach WebSocket handlers to HTTP server
   httpServer.on('upgrade', handleWebSocketUpgrade);
 
