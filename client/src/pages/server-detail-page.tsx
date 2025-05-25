@@ -35,7 +35,6 @@ import {
   ArrowLeft,
   Database,
   Activity,
-  Badge,
 
   RefreshCw,
   ExternalLink,
@@ -2365,52 +2364,7 @@ export default function ServerDetailPage() {
                 </Card>
               </div>
 
-              {/* Additional Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Hypervisor Card */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Database className="h-5 w-5" />
-                      Hypervisor
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-2">
-                      <p className="text-xl font-bold">ID: {server.hypervisorId}</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Commissioned: {server.commissioned}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                {/* Owner Card */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Badge className="h-5 w-5" />
-                      Owner
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-2">
-                      {/* Note: In VirtFusion integration, we use the local user.id as the extRelationId
-                          parameter in URLs and requests, not the virtFusionId */}
-                      <p className="text-xl font-bold">
-                        ID: {typeof server.owner === 'object'
-                              ? (server.owner.extRelationID || server.owner.id)
-                              : (server.extRelationID || server.ownerId || server.owner)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        ExtRelationID is our local system user.id used for VirtFusion API calls
-                      </p>
-                      {/* Note: No view button here - we'll properly display the owner in
-                          ExtRelationID mapping through the server list view only */}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
 
 
             </TabsContent>
