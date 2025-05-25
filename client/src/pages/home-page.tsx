@@ -8,12 +8,14 @@ import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import { getBrandColors } from "@/lib/brand-theme";
 import { usePageLoading } from "@/components/loading/PageLoadingProvider";
 import { Button } from "@/components/ui/button";
-import { 
-  DollarSign, 
+import { Link } from "wouter";
+import {
+  DollarSign,
   Ticket,
   Coins,
   CreditCard,
-  Loader
+  Loader,
+  Server
 } from "lucide-react";
 
 // Define branding data type with new color system
@@ -38,19 +40,20 @@ export default function HomePage() {
     creditBalance: user?.credits || 0,
     openTickets: 0,
     virtFusionTokens: 0,
-    virtFusionCredits: 0
+    virtFusionCredits: 0,
+    totalServers: 0
   });
-  
+
   // Fetch brand settings for consistent colors
-  const { data: brandingData = { 
-    company_name: '', 
+  const { data: brandingData = {
+    company_name: '',
     primary_color: '2563eb',
     secondary_color: '10b981',
     accent_color: 'f59e0b'
   } } = useQuery<BrandingData>({
     queryKey: ['/api/settings/branding'],
   });
-  
+
   // Get brand colors using the new color system
   const brandColorOptions = {
     primaryColor: brandingData?.primary_color || brandingData?.company_color || '2563eb',
@@ -63,18 +66,26 @@ export default function HomePage() {
   const { data: ticketsResponse } = useQuery<{ data: any[], pagination: any }>({
     queryKey: ["/api/tickets"],
   });
-  
+
   const tickets = ticketsResponse?.data || [];
 
   // Fetch balance with updated type
   const { data: balanceData } = useQuery<BalanceData>({
     queryKey: ["/api/billing/balance"],
   });
-  
+
   // Fetch VirtFusion usage data
   const { data: usageData } = useQuery<{ usage: number, rawData: any }>({
     queryKey: ["/api/billing/usage/last30days"],
   });
+
+  // Fetch user servers
+  const { data: serversResponse } = useQuery<{ data: any[], pagination: any }>({
+    queryKey: ["/api/user/servers"],
+    staleTime: 30 * 1000, // 30 seconds
+  });
+
+  const servers = serversResponse?.data || [];
 
   // Calculate stats
   useEffect(() => {
@@ -84,7 +95,14 @@ export default function HomePage() {
         openTickets: tickets.filter(ticket => ticket.status !== "closed").length,
       }));
     }
-    
+
+    if (servers) {
+      setStats(prevStats => ({
+        ...prevStats,
+        totalServers: servers.length,
+      }));
+    }
+
     if (balanceData) {
       setStats(prevStats => ({
         ...prevStats,
@@ -94,7 +112,7 @@ export default function HomePage() {
         virtFusionTokens: balanceData.virtFusionTokens || 0
       }));
     }
-    
+
     // If we don't have VirtFusion data from balance endpoint but have it from usage endpoint
     if (!balanceData?.virtFusionTokens && usageData?.rawData?.data?.credit?.tokens) {
       const tokens = parseFloat(usageData.rawData.data.credit.tokens);
@@ -104,7 +122,7 @@ export default function HomePage() {
         virtFusionCredits: tokens / 100 // Convert tokens to dollars (100 tokens = $1.00)
       }));
     }
-  }, [tickets, balanceData, usageData, user]);
+  }, [tickets, servers, balanceData, usageData, user]);
 
   // Always prioritize VirtFusion balance for display
   const hasVirtFusion = stats.virtFusionTokens > 0;
@@ -125,25 +143,25 @@ export default function HomePage() {
 
       {/* Quick Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard 
-          title={hasVirtFusion ? "VirtFusion Balance" : "Credit Balance"} 
+        <StatCard
+          title={hasVirtFusion ? "VirtFusion Balance" : "Credit Balance"}
           value={`$${displayCredits.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
           })}`}
           icon={<DollarSign />}
-          iconColor={`${brandColors.primary.full}`} 
+          iconColor={`${brandColors.primary.full}`}
           iconBgColor={`${brandColors.primary.lighter}`}
           trend={hasVirtFusion ? {
             value: `${stats.virtFusionTokens.toLocaleString()} tokens`,
             positive: true
           } : undefined}
         />
-        
+
         {/* Local credit balance has been removed as requested */}
-        
-        <StatCard 
-          title="Support Tickets" 
+
+        <StatCard
+          title="Support Tickets"
           value={stats.openTickets}
           icon={<Ticket />}
           iconColor={`${brandColors.primary.full}`}
@@ -153,8 +171,23 @@ export default function HomePage() {
             positive: false
           } : undefined}
         />
+
+        <Link href="/servers">
+          <StatCard
+            title="Current Servers"
+            value={stats.totalServers}
+            icon={<Server />}
+            iconColor={`${brandColors.primary.full}`}
+            iconBgColor={`${brandColors.primary.lighter}`}
+            trend={stats.totalServers > 0 ? {
+              value: `${stats.totalServers} active ${stats.totalServers === 1 ? 'server' : 'servers'}`,
+              positive: true
+            } : undefined}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+          />
+        </Link>
       </div>
-      
+
       {/* Billing Activity Section */}
       <div className="mt-8">
         <BillingActivity />

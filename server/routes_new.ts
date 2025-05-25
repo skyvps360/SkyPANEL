@@ -2639,6 +2639,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User server password reset
+  app.post("/api/user/servers/:id/reset-password", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const serverId = parseInt(req.params.id);
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`User ${userId} resetting password for server ID: ${serverId}`);
+
+      // Get user to verify they have VirtFusion access
+      const user = await storage.getUser(userId);
+      if (!user || !user.virtFusionId) {
+        return res.status(404).json({ error: "User not found or no VirtFusion account" });
+      }
+
+      // Verify the server belongs to this user by checking VirtFusion
+      try {
+        const serverDetails = await virtFusionApi.getServer(serverId, true);
+
+        // Check if the server belongs to this user (using extRelationId)
+        if (!serverDetails?.data?.owner?.extRelationID ||
+            parseInt(serverDetails.data.owner.extRelationID) !== userId) {
+          return res.status(403).json({ error: "Access denied: Server does not belong to this user" });
+        }
+      } catch (error: any) {
+        console.error(`Error verifying server ownership for user ${userId}, server ${serverId}:`, error);
+        return res.status(404).json({ error: "Server not found or access denied" });
+      }
+
+      // Use the VirtFusion API to reset the server password
+      try {
+        const response = await virtFusionApi.resetServerPassword(serverId, 'root', false);
+
+        console.log('User server password reset response:', response);
+
+        // Extract the expected password from the API response
+        let generatedPassword = null;
+        if (response && response.data && response.data.expectedPassword) {
+          generatedPassword = response.data.expectedPassword;
+          console.log(`User server password reset successful, generated password: ${generatedPassword}`);
+        } else {
+          console.log('No expected password in user server reset response', response);
+        }
+
+        res.json({
+          success: true,
+          message: "Server password reset successfully",
+          data: response,
+          generatedPassword: generatedPassword
+        });
+      } catch (error: any) {
+        console.error(`Error resetting password for user server ${serverId}:`, error);
+        res.status(500).json({
+          error: "Failed to reset server password",
+          message: error.message || "An error occurred while resetting the server password"
+        });
+      }
+    } catch (error: any) {
+      console.error(`Error in user server password reset for server ${req.params.id}:`, error);
+      res.status(500).json({
+        error: "Failed to reset server password",
+        message: error.message || "An internal error occurred"
+      });
+    }
+  });
+
   // User server power control
   app.post("/api/user/servers/:id/power/:action", isAuthenticated, async (req, res) => {
     try {

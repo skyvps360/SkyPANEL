@@ -1,4 +1,4 @@
-import { useParams } from "wouter";
+import { useParams, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -54,7 +54,8 @@ import {
   Square,
   PowerOff,
   ChevronDown,
-  FileText
+  FileText,
+  Key
 } from "lucide-react";
 
 // OS Icon Components with actual OS logos
@@ -739,10 +740,7 @@ export default function ServerDetailPage() {
     secondaryColor: brandingData?.secondary_color,
   });
 
-  // Navigation function
-  const navigate = (path: string) => {
-    window.location.href = path;
-  };
+
 
   // Load saved password from localStorage on initial render
   useEffect(() => {
@@ -1712,18 +1710,14 @@ export default function ServerDetailPage() {
     },
   });
 
-  // Reset password mutation
+  // Reset password mutation (user endpoint)
   const resetPasswordMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/admin/servers/${id}/reset-password`, {
+      const response = await fetch(`/api/user/servers/${id}/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          user: 'root', // Must use 'root' as the API is returning an error with 'administrator'
-          sendMail: false // We'll display the password in the UI
-        }),
       });
 
       const responseClone = response.clone();
@@ -1802,7 +1796,7 @@ export default function ServerDetailPage() {
       }
 
       refetch();
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/servers', id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/servers', id] });
     },
     onError: (error) => {
       toast({
@@ -1888,15 +1882,16 @@ export default function ServerDetailPage() {
           {/* Navigation & Title */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/servers')}
-                className="flex items-center gap-2 border-primary text-primary hover:bg-primary/10 hover:text-primary hover:border-primary"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Servers
-              </Button>
+              <Link href="/servers">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 border-primary text-primary hover:bg-primary/10 hover:text-primary hover:border-primary"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Servers
+                </Button>
+              </Link>
               <div>
                 <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
                   {isLoading ? (
@@ -2152,6 +2147,10 @@ export default function ServerDetailPage() {
                           Copy UUID
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => resetPasswordMutation.mutate()}>
+                          <Key className="h-4 w-4 mr-2" />
+                          Reset Password
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={openVNCConsole}>
                           <Monitor className="h-4 w-4 mr-2" />
                           Open VNC Console
