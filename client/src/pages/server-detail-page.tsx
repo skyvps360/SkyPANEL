@@ -2699,8 +2699,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-green-50 border-green-200 hover:bg-green-200 text-green-700 hover:text-green-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => bootMutation.mutate()}
-                              disabled={bootMutation.isPending || server?.state !== "stopped"}
-                              title={server?.state !== "stopped" ? "Server must be stopped to boot" : "Start the server"}
+                              disabled={bootMutation.isPending || server?.state?.toLowerCase() !== "stopped"}
+                              title={server?.state?.toLowerCase() !== "stopped" ? "Server must be stopped to boot" : "Start the server"}
                             >
                               <Power className="mr-2 h-4 w-4" /> Boot
                             </Button>
@@ -2708,8 +2708,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-orange-50 border-orange-200 hover:bg-orange-200 text-orange-700 hover:text-orange-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => shutdownMutation.mutate()}
-                              disabled={shutdownMutation.isPending || server?.state === "stopped"}
-                              title={server?.state === "stopped" ? "Server is already stopped" : "Gracefully shutdown the server"}
+                              disabled={shutdownMutation.isPending || server?.state?.toLowerCase() === "stopped"}
+                              title={server?.state?.toLowerCase() === "stopped" ? "Server is already stopped" : "Gracefully shutdown the server"}
                             >
                               <Power className="mr-2 h-4 w-4" /> Shutdown
                             </Button>
@@ -2717,8 +2717,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-blue-50 border-blue-200 hover:bg-blue-200 text-blue-700 hover:text-blue-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => restartMutation.mutate()}
-                              disabled={restartMutation.isPending || server?.state === "stopped"}
-                              title={server?.state === "stopped" ? "Server must be running to restart" : "Restart the server"}
+                              disabled={restartMutation.isPending || server?.state?.toLowerCase() === "stopped"}
+                              title={server?.state?.toLowerCase() === "stopped" ? "Server must be running to restart" : "Restart the server"}
                             >
                               <RefreshCw className="mr-2 h-4 w-4" /> Restart
                             </Button>
@@ -2726,8 +2726,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-red-50 border-red-200 hover:bg-red-200 text-red-700 hover:text-red-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => powerOffMutation.mutate()}
-                              disabled={powerOffMutation.isPending || server?.state === "stopped"}
-                              title={server?.state === "stopped" ? "Server is already stopped" : "Force power off the server"}
+                              disabled={powerOffMutation.isPending || server?.state?.toLowerCase() === "stopped"}
+                              title={server?.state?.toLowerCase() === "stopped" ? "Server is already stopped" : "Force power off the server"}
                             >
                               <Power className="mr-2 h-4 w-4" /> Power Off
                             </Button>
