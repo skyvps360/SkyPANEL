@@ -26,10 +26,120 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { AlertCircle, ArrowRight, Server, RefreshCw, RotateCw } from "lucide-react";
+import { AlertCircle, ArrowRight, Server, RefreshCw, RotateCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+
+// OS Icon Components
+const UbuntuIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.4c5.302 0 9.6 4.298 9.6 9.6s-4.298 9.6-9.6 9.6S2.4 17.302 2.4 12 6.698 2.4 12 2.4z" fill="#E95420"/>
+    <circle cx="4.8" cy="12" r="2.4" fill="#E95420"/>
+    <circle cx="19.2" cy="12" r="2.4" fill="#E95420"/>
+    <circle cx="12" cy="4.8" r="2.4" fill="#E95420"/>
+  </svg>
+);
+
+const DebianIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.4c5.302 0 9.6 4.298 9.6 9.6s-4.298 9.6-9.6 9.6S2.4 17.302 2.4 12 6.698 2.4 12 2.4z" fill="#A81D33"/>
+  </svg>
+);
+
+const CentOSIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0L8 8h8l-4-8zm0 24l4-8H8l4 8zm12-12l-8-4v8l8-4zM0 12l8 4V8l-8 4z" fill="#932279"/>
+  </svg>
+);
+
+const RockyLinuxIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#10B981" strokeWidth="2" fill="none"/>
+  </svg>
+);
+
+const AlmaLinuxIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2l10 20H2L12 2z" fill="#0EA5E9"/>
+  </svg>
+);
+
+const FedoraIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0z" fill="#294172"/>
+    <path d="M8 8h8v8H8z" fill="#3C6EB4"/>
+  </svg>
+);
+
+const WindowsIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.851" fill="#00BCF2"/>
+  </svg>
+);
+
+const ArchLinuxIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0L2.5 24h3.5L12 6l6 18h3.5L12 0z" fill="#1793D1"/>
+  </svg>
+);
+
+const FreeBSDIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="12" cy="12" r="10" fill="#990000"/>
+    <path d="M8 8l8 8M16 8l-8 8" stroke="white" strokeWidth="2"/>
+  </svg>
+);
+
+const AlpineIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2L2 22h20L12 2z" fill="#0D597F"/>
+    <path d="M12 8L8 16h8l-4-8z" fill="white"/>
+  </svg>
+);
+
+const UnknownOSIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="12" cy="12" r="10" fill="#6B7280"/>
+    <path d="M12 8v4M12 16h.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+// OS Template mapping - maps osTemplateInstallId to OS information
+const OS_TEMPLATES = {
+  1: { name: "Ubuntu 20.04 LTS", icon: UbuntuIcon, color: "text-orange-600" },
+  2: { name: "Ubuntu 22.04 LTS", icon: UbuntuIcon, color: "text-orange-600" },
+  3: { name: "Ubuntu 24.04 LTS", icon: UbuntuIcon, color: "text-orange-600" },
+  4: { name: "Debian 11", icon: DebianIcon, color: "text-red-600" },
+  5: { name: "Debian 12", icon: DebianIcon, color: "text-red-600" },
+  6: { name: "CentOS 7", icon: CentOSIcon, color: "text-purple-600" },
+  7: { name: "CentOS 8", icon: CentOSIcon, color: "text-purple-600" },
+  8: { name: "Rocky Linux 8", icon: RockyLinuxIcon, color: "text-green-600" },
+  9: { name: "Rocky Linux 9", icon: RockyLinuxIcon, color: "text-green-600" },
+  10: { name: "AlmaLinux 8", icon: AlmaLinuxIcon, color: "text-blue-600" },
+  11: { name: "AlmaLinux 9", icon: AlmaLinuxIcon, color: "text-blue-600" },
+  12: { name: "Fedora 38", icon: FedoraIcon, color: "text-blue-700" },
+  13: { name: "Fedora 39", icon: FedoraIcon, color: "text-blue-700" },
+  14: { name: "openSUSE Leap", icon: RockyLinuxIcon, color: "text-green-700" },
+  15: { name: "Arch Linux", icon: ArchLinuxIcon, color: "text-blue-500" },
+  16: { name: "Windows Server 2019", icon: WindowsIcon, color: "text-blue-800" },
+  17: { name: "Windows Server 2022", icon: WindowsIcon, color: "text-blue-800" },
+  18: { name: "FreeBSD 13", icon: FreeBSDIcon, color: "text-red-700" },
+  19: { name: "FreeBSD 14", icon: FreeBSDIcon, color: "text-red-700" },
+  20: { name: "Alpine Linux", icon: AlpineIcon, color: "text-blue-400" },
+  49: { name: "Ubuntu 22.04 LTS", icon: UbuntuIcon, color: "text-orange-600" }, // Your server's template
+  // Add more mappings as needed
+} as const;
+
+function getOSInfo(osTemplateInstallId: number | null | undefined) {
+  if (!osTemplateInstallId) {
+    return { name: "Unknown OS", icon: UnknownOSIcon, color: "text-gray-500" };
+  }
+
+  return OS_TEMPLATES[osTemplateInstallId as keyof typeof OS_TEMPLATES] ||
+         { name: `Template ${osTemplateInstallId}`, icon: UnknownOSIcon, color: "text-gray-600" };
+}
 
 function getStatusBadgeVariant(status: string) {
   const normalizedStatus = status.toLowerCase();
@@ -67,12 +177,13 @@ export default function ServersListPage() {
   const [sortField, setSortField] = useState<string>('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [perPage, setPerPage] = useState<number>(10);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Fetch servers from API with pagination
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
     queryKey: ['/api/user/servers', page],
     queryFn: async () => {
-      let url = `/api/user/servers?page=${page}`;
+      let url = `/api/user/servers?page=${page}&remoteState=true`;
 
       try {
         const response = await fetch(url);
@@ -133,7 +244,19 @@ export default function ServersListPage() {
 
   const servers = serversResponse?.data || [];
 
-  const sortedServers = [...servers].sort((a, b) => {
+  // Filter servers based on search query
+  const filteredServers = servers.filter((server: any) => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    return (
+      server.name?.toLowerCase().includes(query) ||
+      server.id?.toString().includes(query) ||
+      server.uuid?.toLowerCase().includes(query)
+    );
+  });
+
+  const sortedServers = [...filteredServers].sort((a, b) => {
     if (sortField === 'id') {
       return sortDirection === 'desc'
         ? Number(b.id) - Number(a.id)
@@ -232,6 +355,24 @@ export default function ServersListPage() {
               </div>
             ) : servers?.length ? (
               <>
+                {/* Search Bar */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search servers by name, ID, or UUID..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  {searchQuery && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Showing {filteredServers.length} of {servers.length} servers
+                    </p>
+                  )}
+                </div>
+
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Sort by:</span>
@@ -316,6 +457,7 @@ export default function ServersListPage() {
                           </div>
                         </TableHead>
                         <TableHead className="hidden md:table-cell">Resources</TableHead>
+                        <TableHead className="hidden lg:table-cell">Operating System</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -363,7 +505,8 @@ export default function ServersListPage() {
                           } else if (server.state === "stopped" || server.state === "STOPPED") {
                             status = "Stopped";
                           } else if (server.state === "complete") {
-                            status = "Stopped";
+                            // "complete" state in VirtFusion means the server is built and running
+                            status = "Running";
                           } else {
                             status = server.state;
                           }
@@ -374,47 +517,70 @@ export default function ServersListPage() {
                           status = server.commissioned === 3 ? 'Online' : 'Offline';
                         }
 
+                        // Debug: Log the actual server data structure
+                        console.log('DEBUG - Server data for resources:', {
+                          id: server.id,
+                          name: server.name,
+                          cpu: server.cpu,
+                          settings: server.settings,
+                          storage: server.storage,
+                          osTemplateInstallId: server.settings?.osTemplateInstallId
+                        });
+
+                        // Get OS information for this server
+                        const osInfo = getOSInfo(server.settings?.osTemplateInstallId);
+
                         return (
                           <TableRow key={server.id}>
                             <TableCell className="font-mono text-xs">
                               {server.id}
                             </TableCell>
                             <TableCell>
-                              <div className="font-medium">{server.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                UUID: {server.uuid || 'N/A'}
+                              <div className="flex items-center gap-2">
+                                <span className="flex items-center" title={osInfo.name}>
+                                  <osInfo.icon />
+                                </span>
+                                <div>
+                                  <div className="font-medium">{server.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    UUID: {server.uuid || 'N/A'}
+                                  </div>
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell className="hidden md:table-cell">
                               <div className="text-sm">
                                 <div>
-                                  {/* Enhanced CPU detection for VirtFusion API */}
-                                  {server?.cpu?.cores ||
-                                   server?.settings?.resources?.cpuCores ||
-                                   server?.settings?.resources?.cpu ||
-                                   server?.package?.cpu ||
-                                   'N/A'} vCPU • {
-                                    /* Enhanced Memory detection for VirtFusion API */
+                                  {/* CPU cores from VirtFusion API */}
+                                  {server?.cpu?.cores || server?.settings?.resources?.cpuCores || 'N/A'} vCPU • {
+                                    /* Memory from VirtFusion API - already in MB */
                                     server?.settings?.resources?.memory
-                                      ? `${(server.settings.resources.memory / 1024).toFixed(1)} GB`
-                                      : server?.package?.memory
-                                        ? `${(server.package.memory / 1024).toFixed(1)} GB`
-                                        : server?.memory
-                                          ? `${(server.memory / 1024).toFixed(1)} GB`
-                                          : 'N/A'
+                                      ? `${server.settings.resources.memory} MB`
+                                      : 'N/A'
                                   } RAM
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  {/* Enhanced Storage detection for VirtFusion API */}
+                                  {/* Storage from VirtFusion API */}
                                   {server?.storage && server.storage.length > 0
                                     ? `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB`
                                     : server?.settings?.resources?.storage
                                       ? `${server.settings.resources.storage} GB`
-                                      : server?.package?.storage
-                                        ? `${server.package.storage} GB`
-                                        : server?.disk
-                                          ? `${server.disk} GB`
-                                          : 'N/A'} Storage
+                                      : 'N/A'} Storage
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <div className="flex items-center gap-2">
+                                <span className="flex items-center">
+                                  <osInfo.icon />
+                                </span>
+                                <div>
+                                  <div className={`text-sm font-medium ${osInfo.color}`}>
+                                    {osInfo.name}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Template ID: {server.settings?.osTemplateInstallId || 'N/A'}
+                                  </div>
                                 </div>
                               </div>
                             </TableCell>
@@ -482,6 +648,21 @@ export default function ServersListPage() {
                   </div>
                 )}
               </>
+            ) : searchQuery ? (
+              <div className="text-center py-8">
+                <Search className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No servers match your search</p>
+                <p className="text-muted-foreground mt-1">
+                  Try adjusting your search terms or clear the search to see all servers.
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => setSearchQuery('')}
+                >
+                  Clear Search
+                </Button>
+              </div>
             ) : (
               <div className="text-center py-8">
                 <Server className="h-16 w-16 mx-auto mb-4 opacity-50" />
