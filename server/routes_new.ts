@@ -2509,22 +2509,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get user's servers from VirtFusion
+      // Get user's servers from VirtFusion (basic list first)
       const result = await virtFusionApi.getUserServers(user.virtFusionId);
 
       if (result && result.data) {
-        // Apply pagination to the results
-        const servers = Array.isArray(result.data) ? result.data : [];
-        const total = servers.length;
+        const basicServers = Array.isArray(result.data) ? result.data : [];
+        const total = basicServers.length;
         const lastPage = Math.ceil(total / perPage);
         const startIndex = (page - 1) * perPage;
         const endIndex = startIndex + perPage;
-        const paginatedServers = servers.slice(startIndex, endIndex);
+        const paginatedBasicServers = basicServers.slice(startIndex, endIndex);
 
-        console.log(`User ${userId} has ${total} servers, returning ${paginatedServers.length} for page ${page}`);
+        console.log(`User ${userId} has ${total} servers, fetching detailed data for ${paginatedBasicServers.length} servers on page ${page}`);
+
+        // Fetch detailed data for each server individually
+        const detailedServers = [];
+        for (const basicServer of paginatedBasicServers) {
+          try {
+            console.log(`Fetching detailed data for server ${basicServer.id}`);
+            const detailedServer = await virtFusionApi.request("GET", `/servers/${basicServer.id}?remoteState=true`);
+
+            if (detailedServer && detailedServer.data) {
+              // Use the detailed server data
+              detailedServers.push(detailedServer.data);
+            } else {
+              // Fallback to basic server data if detailed fetch fails
+              console.warn(`Failed to fetch detailed data for server ${basicServer.id}, using basic data`);
+              detailedServers.push(basicServer);
+            }
+          } catch (error) {
+            console.error(`Error fetching detailed data for server ${basicServer.id}:`, error);
+            // Fallback to basic server data
+            detailedServers.push(basicServer);
+          }
+        }
+
+        console.log(`User ${userId} returning ${detailedServers.length} servers with detailed data for page ${page}`);
 
         return res.json({
-          data: paginatedServers,
+          data: detailedServers,
           current_page: page,
           last_page: lastPage,
           per_page: perPage,

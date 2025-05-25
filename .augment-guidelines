@@ -1,0 +1,78 @@
+# SkyPANEL Repository Guidelines
+
+## Project Overview
+SkyPANEL is a comprehensive VirtFusion client portal built with React/TypeScript frontend, Node.js/Express backend, PostgreSQL database, featuring user management, billing system, VirtFusion API integration, support tickets, admin dashboard, dynamic brand theming, Discord bot with AI integration, VNC console, API key management, BetterStack monitoring, SMTP2GO email system, and maintenance mode functionality.
+
+## Architecture
+- **Frontend**: React/TypeScript with Vite, shadcn/ui components, TanStack Query
+- **Backend**: Node.js/Express with TypeScript, PostgreSQL database
+- **API Integration**: VirtFusion API for server management
+- **Authentication**: JWT sessions, API keys with scopes
+- **Styling**: Tailwind CSS with dynamic brand theming
+
+## Key Features
+- User management with VirtFusion integration
+- Server management (client and admin views)
+- Support ticket system
+- Billing and invoicing
+- VNC console functionality
+- Discord bot integration
+- Dynamic brand theming system
+- API key management with scopes
+- Admin dashboard with comprehensive controls
+
+## Development Setup
+```bash
+npm install                                    # Install dependencies
+npm run db:push                               # Setup database
+npx tsx scripts/create-admin-user.ts          # Create admin user
+npm run dev                                   # Start development server (port 5000)
+```
+
+## Environment Variables Required
+- `DATABASE_URL` - PostgreSQL connection string
+- `SESSION_SECRET` - Session encryption key
+- Optional: VirtFusion API config, email configs
+
+## API Structure
+- `/api/user/*` - Client-side endpoints
+- `/api/admin/*` - Admin-only endpoints  
+- `/api/v1/*` - API key authenticated endpoints
+- VirtFusion integration via `server/virtfusion-api.ts`
+
+## Key Files
+- `server/routes_new.ts` - Main API routes
+- `server/virtfusion-api.ts` - VirtFusion API integration
+- `client/src/pages/` - Frontend pages
+- `client/src/components/` - Reusable components
+
+## Database
+- PostgreSQL with Drizzle ORM
+- Schema in `server/db/schema.ts`
+- Migrations via `npm run db:push`
+
+## VirtFusion Integration
+- User synchronization via extRelationId
+- Server management with remoteState=true for full data
+- Power controls, VNC, network management
+- Real-time server status and resource monitoring
+
+## Theming System
+- Dynamic brand colors stored in database
+- CSS variables applied at runtime
+- getBrandColors utility for consistent theming
+- All pages must use database colors, not hardcoded values
+
+## User Preferences
+- User handles all testing and server startup independently
+- Focus on specific functionality requested, avoid mentioning unrelated features
+- Use actual SVG icons, not emojis
+- Consistent dropdown components across admin pages
+- Professional-grade VNC client implementation
+- Proper separation between admin and client interfaces
+
+## Recent Fixes
+- Server list table now shows correct resource info and OS details
+- VirtFusion API calls include remoteState=true for complete data
+- SVG OS icons replace emoji icons
+- Proper CPU, memory, storage display from VirtFusion API

@@ -549,8 +549,8 @@ export class VirtFusionApi {
     try {
       console.log(`Fetching servers for VirtFusion user ID: ${virtFusionUserId}`);
 
-      // Use the selfService endpoint to get user's servers
-      const endpoint = `/selfService/servers/byUserExtRelationId/${virtFusionUserId}`;
+      // Use the selfService endpoint to get user's servers with remoteState=true for complete data
+      const endpoint = `/selfService/servers/byUserExtRelationId/${virtFusionUserId}?remoteState=true`;
       const response = await this.request("GET", endpoint);
 
       console.log(`getUserServers response:`, JSON.stringify(response, null, 2));

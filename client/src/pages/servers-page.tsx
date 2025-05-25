@@ -183,7 +183,7 @@ export default function ServersListPage() {
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
     queryKey: ['/api/user/servers', page],
     queryFn: async () => {
-      let url = `/api/user/servers?page=${page}&remoteState=true`;
+      let url = `/api/user/servers?page=${page}`;
 
       try {
         const response = await fetch(url);
@@ -464,20 +464,6 @@ export default function ServersListPage() {
                     </TableHeader>
                     <TableBody>
                       {sortedServers.map((server) => {
-                        // Debug: Log server data structure to understand VirtFusion API response
-                        console.log('Server data structure:', {
-                          id: server.id,
-                          name: server.name,
-                          cpu: server.cpu,
-                          memory: server.memory,
-                          storage: server.storage,
-                          settings: server.settings,
-                          package: server.package,
-                          state: server.state,
-                          status: server.status,
-                          remoteState: server.remoteState,
-                          powerStatus: server.powerStatus
-                        });
 
                         let status;
 
@@ -516,16 +502,6 @@ export default function ServersListPage() {
                         } else {
                           status = server.commissioned === 3 ? 'Online' : 'Offline';
                         }
-
-                        // Debug: Log the actual server data structure
-                        console.log('DEBUG - Server data for resources:', {
-                          id: server.id,
-                          name: server.name,
-                          cpu: server.cpu,
-                          settings: server.settings,
-                          storage: server.storage,
-                          osTemplateInstallId: server.settings?.osTemplateInstallId
-                        });
 
                         // Get OS information for this server
                         const osInfo = getOSInfo(server.settings?.osTemplateInstallId);
