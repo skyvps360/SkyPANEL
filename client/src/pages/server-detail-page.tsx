@@ -728,7 +728,7 @@ export default function ServerDetailPage() {
   const server = serverResponse?.data;
 
   // Fetch VNC status for Quick Actions
-  const { data: vncData } = useQuery({
+  const { data: vncData, refetch: refetchVNC } = useQuery({
     queryKey: ['/api/user/servers', id, 'vnc'],
     queryFn: async () => {
       const response = await fetch(`/api/user/servers/${id}/vnc`);
@@ -1595,16 +1595,7 @@ export default function ServerDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetch()}
-                disabled={isLoading}
-                className="border-primary text-primary hover:bg-primary/10 hover:text-primary hover:border-primary"
-              >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
+              {/* Refresh button removed - now available in More dropdown */}
             </div>
           </div>
 
@@ -1794,7 +1785,14 @@ export default function ServerDetailPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => refetch()}>
+                        <DropdownMenuItem onClick={() => {
+                          refetch();
+                          refetchVNC();
+                          toast({
+                            title: "Data Refreshed",
+                            description: "Server data has been updated.",
+                          });
+                        }}>
                           <RefreshCw className="h-4 w-4 mr-2" />
                           Refresh Data
                         </DropdownMenuItem>
