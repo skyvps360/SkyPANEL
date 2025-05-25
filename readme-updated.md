@@ -1,9 +1,15 @@
 # 🚀 SkyPANEL - Enterprise VirtFusion Management Platform
-
 <div align="center">
   <h3>🌟 Next-Generation VPS Hosting Control Panel 🌟</h3>
   <p><strong>Complete VirtFusion integration with AI-powered support, real-time monitoring, and advanced automation</strong></p>
 
+  <div align="center">
+  
+  [![GitHub Stars](https://img.shields.io/github/stars/skyvps360/SkyPANEL?style=social)](https://github.com/skyvps360/SkyPANEL)
+  [![Discord](https://img.shields.io/discord/1310474963865833483?style=social&logo=discord)](https://skyvps360.xyz/discord)
+
+  </div>
+  
   ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
   ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
   ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
@@ -1580,8 +1586,4 @@ While not required, attribution is appreciated:
 <div align="center">
   <h3>🌟 Thank you for choosing SkyPANEL! 🌟</h3>
   <p>Built with ❤️ by the SkyPANEL team</p>
-
-  [![GitHub Stars](https://img.shields.io/github/stars/skyvps360/SkyPANEL?style=social)](https://github.com/skyvps360/SkyPANEL)
-  [![Discord](https://img.shields.io/discord/your-discord-id?style=social&logo=discord)](https://discord.gg/your-invite)
-  [![Twitter Follow](https://img.shields.io/twitter/follow/skyvps360?style=social)](https://twitter.com/skyvps360)
 </div>
