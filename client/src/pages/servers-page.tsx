@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -12,39 +12,57 @@ import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin } 
 
 function getStatusBadgeVariant(status: string) {
   const normalizedStatus = status.toLowerCase();
-  
+
   switch (normalizedStatus) {
     case 'running':
-    case 'complete':
-      return 'default';
+      return 'default'; // Green
     case 'stopped':
-    case 'shutdown':
-      return 'secondary';
+      return 'secondary'; // Gray
     case 'suspended':
-      return 'destructive';
-    case 'pending':
+      return 'destructive'; // Red
     case 'building':
-      return 'outline';
+    case 'pending':
+      return 'outline'; // Yellow/Orange
     default:
       return 'secondary';
   }
 }
 
-function getDisplayStatus(serverState: string) {
-  switch (serverState?.toLowerCase()) {
-    case 'complete':
+function getServerStatus(server: any) {
+  // Check multiple possible status fields from VirtFusion API
+
+  // First check remoteState (most reliable for VirtFusion)
+  if (server.remoteState?.state) {
+    const state = server.remoteState.state.toLowerCase();
+    if (state === 'running' || server.remoteState.running === true) {
       return 'RUNNING';
-    case 'stopped':
-    case 'shutdown':
+    } else if (state === 'stopped' || server.remoteState.running === false) {
       return 'STOPPED';
-    case 'suspended':
-      return 'SUSPENDED';
-    case 'pending':
-    case 'building':
-      return 'BUILDING';
-    default:
-      return serverState?.toUpperCase() || 'UNKNOWN';
+    }
   }
+
+  // Check powerStatus
+  if (server.powerStatus?.powerState) {
+    const powerState = server.powerStatus.powerState.toLowerCase();
+    if (powerState === 'running') return 'RUNNING';
+    if (powerState === 'stopped') return 'STOPPED';
+  }
+
+  // Check main state field
+  if (server.state) {
+    const state = server.state.toLowerCase();
+    if (state === 'complete') return 'RUNNING'; // VirtFusion "complete" means running
+    if (state === 'running') return 'RUNNING';
+    if (state === 'stopped') return 'STOPPED';
+    if (state === 'suspended') return 'SUSPENDED';
+    if (state === 'pending' || state === 'building') return 'BUILDING';
+  }
+
+  // Check commissioned status (fallback)
+  if (server.commissioned === 3) return 'RUNNING';
+  if (server.commissioned === 0) return 'STOPPED';
+
+  return 'UNKNOWN';
 }
 
 export default function ServersPage() {
@@ -53,18 +71,11 @@ export default function ServersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch servers from API with pagination
+  // Fetch servers from API
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
-    queryKey: ['/api/user/servers', page, searchQuery, statusFilter],
+    queryKey: ['/api/user/servers'],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '12', // Show 12 cards per page
-        ...(searchQuery && { search: searchQuery }),
-        ...(statusFilter !== 'all' && { status: statusFilter })
-      });
-      
-      const response = await fetch(`/api/user/servers?${params}`);
+      const response = await fetch('/api/user/servers');
       if (!response.ok) {
         throw new Error('Failed to fetch servers');
       }
@@ -73,9 +84,44 @@ export default function ServersPage() {
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  const servers = serversResponse?.data || [];
-  const totalPages = serversResponse?.totalPages || 1;
-  const currentPage = serversResponse?.currentPage || 1;
+  const allServers = serversResponse?.data || [];
+
+  // Client-side filtering
+  const filteredServers = allServers.filter((server: any) => {
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        server.name?.toLowerCase().includes(query) ||
+        server.id?.toString().includes(query) ||
+        server.hypervisor?.name?.toLowerCase().includes(query);
+
+      if (!matchesSearch) return false;
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      const serverStatus = getServerStatus(server).toLowerCase();
+      if (statusFilter === 'running' && serverStatus !== 'running') return false;
+      if (statusFilter === 'stopped' && serverStatus !== 'stopped') return false;
+      if (statusFilter === 'suspended' && serverStatus !== 'suspended') return false;
+    }
+
+    return true;
+  });
+
+  // Client-side pagination
+  const itemsPerPage = 12;
+  const totalPages = Math.ceil(filteredServers.length / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const servers = filteredServers.slice(startIndex, endIndex);
+  const currentPage = page;
+
+  // Reset to page 1 when search/filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, statusFilter]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -180,8 +226,8 @@ export default function ServersPage() {
             {/* Server Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {servers.map((server: any) => {
-                const status = getDisplayStatus(server.state);
-                
+                const status = getServerStatus(server);
+
                 return (
                   <Card key={server.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-3">
@@ -242,7 +288,7 @@ export default function ServersPage() {
                   >
                     Previous
                   </Button>
-                  
+
                   <div className="flex items-center gap-1">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                       const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
@@ -281,8 +327,8 @@ export default function ServersPage() {
               <Server className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No servers found</h3>
               <p className="text-muted-foreground">
-                {searchQuery || statusFilter !== 'all' 
-                  ? 'No servers match your current filters.' 
+                {searchQuery || statusFilter !== 'all'
+                  ? 'No servers match your current filters.'
                   : 'You don\'t have any servers yet.'}
               </p>
             </CardContent>
