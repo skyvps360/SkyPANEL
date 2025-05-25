@@ -7427,10 +7427,65 @@ Generated on ${new Date().toLocaleString()}
       }
 
       console.log(`Found ${allTemplates.length} unique templates across all packages`);
+      console.log(`Template IDs found: ${Array.from(seenTemplateIds).join(', ')}`);
       res.json({ success: true, data: allTemplates });
     } catch (error) {
       console.error('Error fetching all OS templates:', error);
       res.status(500).json({ success: false, error: 'Failed to fetch OS templates' });
+    }
+  });
+
+  // Get specific OS template by ID (fallback for missing templates)
+  app.get("/api/admin/templates/:templateId", isAuthenticated, async (req, res) => {
+    try {
+      const templateId = parseInt(req.params.templateId);
+
+      if (isNaN(templateId)) {
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+
+      console.log(`Fetching specific template ID: ${templateId}`);
+
+      // Try to get the template from VirtFusion API
+      try {
+        const templateResponse = await virtFusionApi.request("GET", `/templates/os/${templateId}`);
+
+        if (templateResponse && templateResponse.data) {
+          console.log(`Found template ${templateId}:`, templateResponse.data);
+          return res.json({ success: true, data: templateResponse.data });
+        }
+      } catch (error) {
+        console.error(`Error fetching template ${templateId} from /templates/os/:`, error);
+      }
+
+      // Try alternative endpoint
+      try {
+        const templateResponse = await virtFusionApi.request("GET", `/compute/templates/${templateId}`);
+
+        if (templateResponse && templateResponse.data) {
+          console.log(`Found template ${templateId} from compute endpoint:`, templateResponse.data);
+          return res.json({ success: true, data: templateResponse.data });
+        }
+      } catch (error) {
+        console.error(`Error fetching template ${templateId} from /compute/templates/:`, error);
+      }
+
+      // If not found, return a generic template
+      console.log(`Template ${templateId} not found, returning generic template`);
+      return res.json({
+        success: true,
+        data: {
+          id: templateId,
+          name: `Template ${templateId}`,
+          type: "unknown",
+          version: "",
+          architecture: "x86_64"
+        }
+      });
+
+    } catch (error) {
+      console.error(`Error fetching template ${req.params.templateId}:`, error);
+      res.status(500).json({ success: false, error: 'Failed to fetch template' });
     }
   });
 

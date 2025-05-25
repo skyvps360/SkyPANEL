@@ -887,14 +887,75 @@ export default function ServerDetailPage() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
+  // Fetch specific template by ID if not found in all-templates
+  const osTemplateId = extractOSTemplateId(server);
+  const { data: specificTemplate } = useQuery({
+    queryKey: ['/api/admin/templates', osTemplateId],
+    queryFn: async () => {
+      if (!osTemplateId) return null;
+
+      console.log(`DEBUG: Fetching specific template ID ${osTemplateId}`);
+      try {
+        const response = await fetch(`/api/admin/templates/${osTemplateId}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch template ${osTemplateId}`);
+        }
+        const data = await response.json();
+        console.log(`DEBUG: Fetched specific template ${osTemplateId}:`, data);
+        return data?.data || null;
+      } catch (error) {
+        console.error(`Error fetching specific template ${osTemplateId}:`, error);
+        return null;
+      }
+    },
+    enabled: !!osTemplateId && !!osTemplates && osTemplates.length > 0 && !osTemplates.find((t: any) => t.id === osTemplateId || t.id === String(osTemplateId) || Number(t.id) === osTemplateId),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   // Get OS information for the server
   function getOSInfo(osTemplateInstallId: number | null | undefined) {
-    console.log('DEBUG getOSInfo called with:', { osTemplateInstallId, osTemplatesCount: osTemplates?.length });
+    console.log('DEBUG getOSInfo called with:', { osTemplateInstallId, osTemplatesCount: osTemplates?.length, hasSpecificTemplate: !!specificTemplate });
     console.log('DEBUG osTemplates data:', osTemplates);
+    console.log('DEBUG specificTemplate data:', specificTemplate);
     console.log('DEBUG server data structure:', server);
+
+    // PRIORITY 1: Use OS information from qemu agent (most accurate)
+    const qemuAgentOS = server?.qemuAgent?.os || server?.remoteState?.agent?.osinfo;
+    if (qemuAgentOS) {
+      console.log('DEBUG using qemu agent OS data:', qemuAgentOS);
+
+      // Use pretty-name if available, otherwise name, otherwise construct from name + version
+      let osName = qemuAgentOS['pretty-name'] || qemuAgentOS.name;
+      if (!osName && qemuAgentOS.name && qemuAgentOS.version) {
+        osName = `${qemuAgentOS.name} ${qemuAgentOS.version}`;
+      } else if (!osName && qemuAgentOS.name) {
+        osName = qemuAgentOS.name;
+      }
+
+      if (osName) {
+        const { icon } = getOSIconAndColor(osName);
+        console.log('DEBUG returning qemu agent OS data:', { osName });
+        return {
+          name: osName,
+          icon
+        };
+      }
+    }
 
     if (!osTemplateInstallId) {
       return { name: "Unknown OS", icon: UnknownOSIcon };
+    }
+
+    // PRIORITY 2: Use specific template data if fetched
+    if (specificTemplate && (specificTemplate.id === osTemplateInstallId || specificTemplate.id === String(osTemplateInstallId) || Number(specificTemplate.id) === osTemplateInstallId)) {
+      console.log('DEBUG using specific template data:', specificTemplate);
+      const displayName = `${specificTemplate.name}${specificTemplate.version ? ` ${specificTemplate.version}` : ''}${specificTemplate.architecture ? ` (${specificTemplate.architecture})` : specificTemplate.variant ? ` (${specificTemplate.variant})` : ''}`;
+      const { icon } = getOSIconAndColor(specificTemplate.name);
+
+      return {
+        name: displayName,
+        icon
+      };
     }
 
     if (!osTemplates || osTemplates.length === 0) {
@@ -902,8 +963,12 @@ export default function ServerDetailPage() {
       return { name: `Template ${osTemplateInstallId}`, icon: UnknownOSIcon };
     }
 
-    // Find the template in the fetched data
-    const template = osTemplates?.find((t: any) => t.id === osTemplateInstallId);
+    // PRIORITY 3: Find the template in the all-templates data
+    const availableTemplates = osTemplates.map((t: any) => ({ id: t.id, name: t.name, type: t.type }));
+    console.log('DEBUG searching for template ID', osTemplateInstallId, 'in available templates:', availableTemplates);
+
+    // Try both exact match and string/number conversion
+    const template = osTemplates?.find((t: any) => t.id === osTemplateInstallId || t.id === String(osTemplateInstallId) || Number(t.id) === osTemplateInstallId);
     console.log('DEBUG found template for ID', osTemplateInstallId, ':', template);
 
     if (template) {
@@ -918,14 +983,33 @@ export default function ServerDetailPage() {
       };
     }
 
-    // Fallback for unknown template IDs
-    console.log('DEBUG template not found, returning fallback for ID:', osTemplateInstallId);
+    // PRIORITY 4: Fallback to OS name from server data
+    console.log('DEBUG template not found, checking for OS name in server data');
+    const serverOsName = server?.os?.name || server?.operatingSystem;
+    if (serverOsName && typeof serverOsName === 'string') {
+      console.log('DEBUG using OS name from server data as fallback:', serverOsName);
+      const { icon } = getOSIconAndColor(serverOsName);
+      return {
+        name: serverOsName,
+        icon
+      };
+    }
+
+    console.log('DEBUG no OS name found, returning template ID fallback for ID:', osTemplateInstallId);
     return { name: `Template ${osTemplateInstallId}`, icon: UnknownOSIcon };
   }
 
   // Helper function to extract OS template ID from server data
   function extractOSTemplateId(serverData: any): number | null {
     console.log('DEBUG extractOSTemplateId called with server data:', serverData);
+    console.log('DEBUG server OS data:', {
+      osName: serverData?.os?.name,
+      operatingSystem: serverData?.operatingSystem,
+      osTemplateInstallId: serverData?.settings?.osTemplateInstallId,
+      osId: serverData?.os?.id,
+      qemuAgentOS: serverData?.qemuAgent?.os,
+      remoteStateAgentOS: serverData?.remoteState?.agent?.osinfo
+    });
 
     // Try multiple possible locations for OS template ID
     const possiblePaths = [
