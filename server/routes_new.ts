@@ -7396,6 +7396,44 @@ Generated on ${new Date().toLocaleString()}
     }
   });
 
+  // Get all OS templates from all packages (for client-side server list)
+  app.get("/api/admin/all-templates", isAuthenticated, async (req, res) => {
+    try {
+      // Get all packages first
+      const packagesResponse = await virtFusionApi.getPackages();
+      const packages = Array.isArray(packagesResponse) ? packagesResponse : packagesResponse?.data || [];
+
+      const allTemplates: any[] = [];
+      const seenTemplateIds = new Set();
+
+      console.log(`Fetching templates from ${packages.length} packages`);
+
+      // Fetch templates for each package and deduplicate
+      for (const pkg of packages) {
+        try {
+          const templatesResponse = await virtFusionApi.getOsTemplatesForPackage(pkg.id);
+          const templates = templatesResponse?.data || [];
+
+          for (const template of templates) {
+            if (!seenTemplateIds.has(template.id)) {
+              seenTemplateIds.add(template.id);
+              allTemplates.push(template);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching templates for package ${pkg.id}:`, error);
+          // Continue with other packages
+        }
+      }
+
+      console.log(`Found ${allTemplates.length} unique templates across all packages`);
+      res.json({ success: true, data: allTemplates });
+    } catch (error) {
+      console.error('Error fetching all OS templates:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch OS templates' });
+    }
+  });
+
   app.post("/api/admin/servers", isAdmin, async (req, res) => {
     try {
       console.log(`Admin creating a new server with data:`, req.body);
@@ -8857,9 +8895,9 @@ Generated on ${new Date().toLocaleString()}
           throw new Error("Unexpected API response format");
         }
 
-        // If we got templates, return them
+        // If we got templates, return them in the expected format
         if (templates && templates.length > 0) {
-          return res.json(templates);
+          return res.json({ data: templates });
         }
 
         // Fall through to error if no templates were found
