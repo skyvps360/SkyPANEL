@@ -51,7 +51,7 @@ export class ServerLoggingService {
       };
 
       await storage.createServerLog(serverLog);
-      
+
       console.log(`Server action logged: ${logData.action} for server ${logData.serverId} by user ${logData.userId}`);
     } catch (error) {
       console.error('Failed to log server action:', error);
@@ -117,6 +117,9 @@ export class ServerLoggingService {
 
   /**
    * Log VNC action (connect, disconnect, enable, disable)
+   *
+   * NOTE: Only use this for intentional VNC actions triggered by users.
+   * Do NOT log VNC status checks that happen to toggle VNC state due to API limitations.
    */
   async logVncAction(
     serverId: number,

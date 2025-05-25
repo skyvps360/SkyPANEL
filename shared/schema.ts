@@ -100,46 +100,18 @@ export const transactions = pgTable("transactions", {
   status: text("status").notNull().default("pending"), // pending, completed, failed
   paymentMethod: text("payment_method"),
   paymentId: text("payment_id"),
-  invoiceNumber: text("invoice_number"), // Added for invoice tracking
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
   createdAt: true,
-  invoiceNumber: true, // We'll generate this on the server
 });
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 
-// Invoices
-export const invoices = pgTable("invoices", {
-  id: serial("id").primaryKey(),
-  invoiceNumber: text("invoice_number").notNull().unique(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  transactionId: integer("transaction_id").references(() => transactions.id, { onDelete: 'set null' }),
-  amount: real("amount").notNull(),
-  taxAmount: real("tax_amount").default(0),
-  totalAmount: real("total_amount").notNull(),
-  currency: text("currency").notNull().default("USD"),
-  status: text("status").notNull().default("pending"), // pending, paid, cancelled
-  dueDate: timestamp("due_date"),
-  paidDate: timestamp("paid_date"),
-  items: json("items").default([]),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
-export const insertInvoiceSchema = createInsertSchema(invoices).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
-export type Invoice = typeof invoices.$inferSelect;
 
 // Ticket Departments
 export const ticketDepartments = pgTable("ticket_departments", {

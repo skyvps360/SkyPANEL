@@ -87,17 +87,10 @@ interface TransactionType {
   amount: number;
   status: string;
   paymentId?: string;
-  invoiceNumber?: string;
+
 }
 
-interface InvoiceType {
-  id: number;
-  invoiceNumber: string;
-  userId: number;
-  amount: number;
-  status: string;
-  createdAt: string;
-}
+
 
 // Define search result types
 interface SearchResult {
@@ -218,11 +211,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     staleTime: 60 * 1000, // 1 minute
   });
 
-  // Fetch invoices for search - use admin endpoint for admins
-  const { data: invoicesData = [] } = useQuery<InvoiceType[]>({
-    queryKey: [user?.role === "admin" ? "/api/admin/invoices" : "/api/invoices"],
-    staleTime: 60 * 1000, // 1 minute
-  });
+
 
   // Fetch balance data including VirtFusion balance
   const { data: balanceData } = useQuery<{ credits: number, virtFusionCredits: number, virtFusionTokens: number }>({
@@ -235,7 +224,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const users = usersData;
   const tickets = ticketsResponse?.data || [];
   const transactions = transactionsData;
-  const invoices = invoicesData;
+
 
   // Define global navigation shortcuts
   const globalShortcuts = [
@@ -505,48 +494,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           }
         });
 
-        // Admins can search ALL invoices
-        invoices.forEach((invoice: InvoiceType) => {
-          const invoiceNumber = (invoice.invoiceNumber || "").toLowerCase();
-          const invoiceIdString = invoice.id.toString();
-          const status = (invoice.status || "").toLowerCase();
 
-          // Search by invoice number, ID, or status
-          if (invoiceNumber.includes(cleanQuery) ||
-              invoiceIdString === cleanQuery ||
-              status.includes(cleanQuery) ||
-              'invoice'.includes(cleanQuery)) {
-
-            // For admin view, show which user the invoice belongs to
-            const userName = users.find(u => u.id === invoice.userId)?.fullName || `User #${invoice.userId}`;
-
-            const formattedDate = new Date(invoice.createdAt).toLocaleDateString();
-
-            // Correctly link to invoice page
-            const invoiceLink = `/billing/invoices/${invoice.id}`;
-
-            results.push({
-              id: invoice.id,
-              type: "billing",
-              name: `Invoice: ${invoice.invoiceNumber}`,
-              description: `User: ${userName} | Amount: $${invoice.amount?.toFixed(2) || '0.00'} | Date: ${formattedDate} | Status: ${invoice.status || 'Unknown'}`,
-              url: invoiceLink,
-              icon: <Receipt className="h-4 w-4" />,
-              actionButtons: [
-                {
-                  label: "View Invoice",
-                  icon: <FileText className="h-4 w-4" />,
-                  action: invoiceLink
-                },
-                {
-                  label: "Download",
-                  icon: <Download className="h-4 w-4" />,
-                  action: `/api/invoices/${invoice.id}/download`
-                }
-              ]
-            });
-          }
-        });
 
         // System settings search for admins
         if ("system settings".includes(cleanQuery) ||
@@ -639,47 +587,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           }
         });
 
-        // Regular users can only search their own invoices
-        invoices.forEach((invoice: InvoiceType) => {
-          if (invoice.userId !== user?.id) return;
 
-          const invoiceNumber = (invoice.invoiceNumber || "").toLowerCase();
-          const invoiceIdString = invoice.id.toString();
-          const status = (invoice.status || "").toLowerCase();
-
-          // Search by invoice number, ID, or status
-          if (invoiceNumber.includes(cleanQuery) ||
-              invoiceIdString === cleanQuery ||
-              status.includes(cleanQuery) ||
-              'invoice'.includes(cleanQuery)) {
-
-            const formattedDate = new Date(invoice.createdAt).toLocaleDateString();
-
-            // Correctly link to invoice page
-            const invoiceLink = `/billing/invoices/${invoice.id}`;
-
-            results.push({
-              id: invoice.id,
-              type: "billing",
-              name: `Invoice: ${invoice.invoiceNumber}`,
-              description: `Amount: $${invoice.amount?.toFixed(2) || '0.00'} | Date: ${formattedDate} | Status: ${invoice.status || 'Unknown'}`,
-              url: invoiceLink,
-              icon: <Receipt className="h-4 w-4" />,
-              actionButtons: [
-                {
-                  label: "View Invoice",
-                  icon: <FileText className="h-4 w-4" />,
-                  action: invoiceLink
-                },
-                {
-                  label: "Download",
-                  icon: <Download className="h-4 w-4" />,
-                  action: `/api/invoices/${invoice.id}/download`
-                }
-              ]
-            });
-          }
-        });
 
         // Add user profile search for regular users
         if ("profile".includes(cleanQuery) ||
@@ -1164,15 +1072,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                   const userItems = searchResults.filter(r => r.type === "user" && typeof r.id === "number").length;
                                   const overallIndex = navItems + adminItems + ticketItems + userItems + index;
 
-                                  // Check if it's a credit transaction (which should use invoice download)
-                                  const isCreditTransaction = result.name.toLowerCase().includes('credit');
-
-                                  // For other types of transactions
+                                  // For transactions
                                   const isTransaction = result.name.toLowerCase().includes('transaction') ||
-                                                       result.name.toLowerCase().includes('debit');
-
-                                  // For invoices
-                                  const isInvoice = result.name.toLowerCase().includes('invoice') || isCreditTransaction;
+                                                       result.name.toLowerCase().includes('debit') ||
+                                                       result.name.toLowerCase().includes('credit');
 
                                   return (
                                     <div
@@ -1183,7 +1086,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                     >
                                       <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
                                        style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
-                                        {isInvoice ? <Receipt className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                                        <CreditCard className="h-4 w-4" />
                                       </div>
                                       <div className="min-w-0 flex-1">
                                         <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
@@ -1240,24 +1143,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                             </div>
                                           )}
 
-                                          {isInvoice && (
-                                            <div className="ml-2">
-                                              <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-gray-500 hover:text-gray-700"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  const url = `/api/invoices/${result.id}/download`;
-                                                  console.log("Direct invoice download URL:", url);
-                                                  window.open(url, '_blank');
-                                                }}
-                                              >
-                                                <Download className="h-4 w-4" />
-                                                <span className="sr-only">Download</span>
-                                              </Button>
-                                            </div>
-                                          )}
+
                                         </>
                                       )}
 

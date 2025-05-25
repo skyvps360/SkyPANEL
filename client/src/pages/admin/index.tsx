@@ -147,7 +147,7 @@ export default function AdminPage() {
       title: "Billing",
       icon: DollarSign,
       href: "/admin/billing",
-      description: "Manage invoices and view transaction history",
+      description: "Manage billing and view transaction history",
       color: "bg-green-50 dark:bg-green-950",
       accentColor: "text-green-600 dark:text-green-400"
     },

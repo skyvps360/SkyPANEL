@@ -7,7 +7,7 @@ import {
   serverPowerStatus,
   serverLogs,
   notifications,
-  invoices,
+
   passwordResetTokens,
   emailVerificationTokens,
   packagePricing,
@@ -36,8 +36,7 @@ import {
   type InsertSettings,
   type Notification,
   type InsertNotification,
-  type Invoice,
-  type InsertInvoice,
+
   type PasswordResetToken,
   type InsertPasswordResetToken,
   type EmailVerificationToken,
@@ -128,22 +127,7 @@ export interface IStorage {
   updateTransaction(id: number, updates: Partial<Transaction>): Promise<void>;
   getTransaction(id: number): Promise<Transaction | undefined>;
 
-  // Invoice operations
-  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
-  getInvoice(id: number): Promise<Invoice | undefined>;
-  getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined>;
-  getUserInvoices(userId: number): Promise<Invoice[]>;
-  getAllInvoices(): Promise<Invoice[]>;
-  searchInvoices(params: {
-    userId?: number;
-    startDate?: Date;
-    endDate?: Date;
-    status?: string;
-    invoiceNumber?: string;
-    search?: string;
-  }): Promise<Invoice[]>;
-  updateInvoice(id: number, updates: Partial<Invoice>): Promise<void>;
-  generateInvoiceNumber(): Promise<string>;
+
 
   // Ticket Department operations
   getAllTicketDepartments(): Promise<TicketDepartment[]>;
@@ -639,8 +623,7 @@ export class DatabaseStorage implements IStorage {
     if (params.search) {
       filters.push(or(
         ilike(transactions.description, `%${params.search}%`),
-        ilike(transactions.paymentId, `%${params.search}%`),
-        ilike(transactions.invoiceNumber, `%${params.search}%`)
+        ilike(transactions.paymentId, `%${params.search}%`)
       ));
     }
 
@@ -653,134 +636,7 @@ export class DatabaseStorage implements IStorage {
     return await query.orderBy(desc(transactions.createdAt));
   }
 
-  // Invoice operations
-  async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
-    const [createdInvoice] = await db.insert(invoices).values(invoice).returning();
-    return createdInvoice;
-  }
 
-  async getInvoice(id: number): Promise<Invoice | undefined> {
-    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
-    return invoice;
-  }
-
-  async getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined> {
-    const [invoice] = await db.select().from(invoices).where(eq(invoices.invoiceNumber, invoiceNumber));
-    return invoice;
-  }
-
-  async getUserInvoices(userId: number): Promise<Invoice[]> {
-    return await db.select()
-      .from(invoices)
-      .where(eq(invoices.userId, userId))
-      .orderBy(desc(invoices.createdAt));
-  }
-
-  async getAllInvoices(): Promise<Invoice[]> {
-    return await db.select()
-      .from(invoices)
-      .orderBy(desc(invoices.createdAt));
-  }
-
-  async searchInvoices(params: {
-    userId?: number;
-    startDate?: Date;
-    endDate?: Date;
-    status?: string;
-    invoiceNumber?: string;
-    search?: string;
-  }): Promise<Invoice[]> {
-    let query = db.select().from(invoices);
-
-    // Build filters
-    const filters = [];
-
-    if (params.userId) {
-      filters.push(eq(invoices.userId, params.userId));
-    }
-
-    if (params.startDate) {
-      filters.push(gte(invoices.createdAt, params.startDate));
-    }
-
-    if (params.endDate) {
-      // Add one day to include the end date fully
-      const endDate = new Date(params.endDate);
-      endDate.setDate(endDate.getDate() + 1);
-      filters.push(lt(invoices.createdAt, endDate));
-    }
-
-    if (params.status) {
-      filters.push(eq(invoices.status, params.status));
-    }
-
-    if (params.invoiceNumber) {
-      filters.push(eq(invoices.invoiceNumber, params.invoiceNumber));
-    }
-
-    if (params.search) {
-      filters.push(or(
-        ilike(invoices.invoiceNumber, `%${params.search}%`),
-        ilike(invoices.notes, `%${params.search}%`)
-      ));
-    }
-
-    // Apply filters if any
-    if (filters.length > 0) {
-      query = query.where(and(...filters));
-    }
-
-    // Order by created date descending
-    return await query.orderBy(desc(invoices.createdAt));
-  }
-
-  async updateInvoice(id: number, updates: Partial<Invoice>): Promise<void> {
-    await db.update(invoices)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(invoices.id, id));
-  }
-
-  async generateInvoiceNumber(): Promise<string> {
-    // Get current date in YYYYMMDD format
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const datePrefix = `${year}${month}${day}`;
-
-    // Use millisecond timestamp for uniqueness
-    const timestamp = Date.now();
-
-    // Generate a completely unique invoice number with format INV-YYYYMMDD-TIMESTAMP
-    const uniqueSuffix = timestamp.toString().slice(-6);
-
-    // Log this for debugging purpose
-    console.log(`Generating unique invoice number with timestamp: ${timestamp}`);
-
-    // Try up to 3 times to ensure unique invoice number if we have a conflict
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const invoiceNumber = `INV-${datePrefix}-${uniqueSuffix}${attempt > 0 ? `-${attempt}` : ''}`;
-
-      // Check if this invoice number already exists
-      const existingInvoice = await db.select()
-        .from(invoices)
-        .where(eq(invoices.invoiceNumber, invoiceNumber))
-        .limit(1);
-
-      if (existingInvoice.length === 0) {
-        console.log(`Generated unique invoice number: ${invoiceNumber}`);
-        return invoiceNumber;
-      }
-
-      console.log(`Invoice number ${invoiceNumber} already exists, trying another one...`);
-    }
-
-    // As a last resort, use millisecond timestamp + random number
-    const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    const finalNumber = `INV-${datePrefix}-${timestamp % 1000000}-${randomSuffix}`;
-    console.log(`Final fallback invoice number: ${finalNumber}`);
-    return finalNumber;
-  }
 
   // Ticket Department operations
   async getAllTicketDepartments(): Promise<TicketDepartment[]> {

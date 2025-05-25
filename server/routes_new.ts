@@ -33,16 +33,13 @@ import {
   transactions,
   tickets,
   ticketMessages,
-  invoices,
   settings,
   ticketDepartments,
   insertTicketSchema,
   insertTicketMessageSchema,
   insertTicketDepartmentSchema,
   InsertTransaction,
-  type InsertInvoice,
   type Transaction,
-  type Invoice,
   type User,
   type TicketDepartment,
   type InsertTicketDepartment
@@ -71,332 +68,6 @@ function isAdmin(req: Request, res: Response, next: Function) {
     return next();
   }
   res.status(403).json({ error: "Forbidden: Admin access required" });
-}
-
-// Helper function to generate invoices for transactions
-
-async function generateInvoice(transaction: Transaction | Invoice, status: string = 'pending'): Promise<string> {
-  try {
-    // If an invoice is passed, use it directly
-    if ('invoiceNumber' in transaction && transaction.invoiceNumber) {
-      console.log(`Using existing invoice ${transaction.invoiceNumber}`);
-      return generatePdfForInvoice(transaction as Invoice);
-    }
-
-    // Cast transaction to its proper type to access properties - this is critical for the function to work
-    const transactionData = transaction as Transaction;
-
-    console.log(`Generating invoice for transaction ${transactionData.id}`);
-
-    // Get tax rate setting
-    const taxRateSetting = await storage.getSetting('tax_rate');
-    console.log(`Tax rate setting:`, taxRateSetting);
-    const taxRate = taxRateSetting ? parseFloat(taxRateSetting.value) / 100 : 0;
-
-    // Get currency setting
-    const currencySetting = await storage.getSetting('currency');
-    console.log(`Currency setting:`, currencySetting);
-    const currency = currencySetting ? currencySetting.value : 'USD';
-
-    // Calculate tax and total amounts
-    const taxAmount = transactionData.amount * taxRate;
-    const totalAmount = transactionData.amount + taxAmount;
-
-    // Generate invoice number
-    const invoiceNumber = await storage.generateInvoiceNumber();
-    console.log(`Generated invoice number: ${invoiceNumber}`);
-
-    // Create invoice items - ensure it's properly formatted as JSON
-    const items = JSON.stringify([{
-      description: transactionData.description,
-      quantity: 1,
-      unitPrice: transactionData.amount,
-      totalPrice: transactionData.amount
-    }]);
-
-    // Prepare invoice data
-    // Due in 7 days
-    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const paidDate = status === 'paid' ? new Date() : undefined;
-
-    // IMPORTANT FIX: Don't use ISO strings for dates, store actual Date objects
-    // This was causing the critical bug with invoice generation
-    const invoiceData: InsertInvoice = {
-      invoiceNumber: invoiceNumber,
-      userId: transactionData.userId,
-      transactionId: transactionData.id,
-      amount: transactionData.amount,
-      taxAmount: taxAmount,
-      totalAmount: totalAmount,
-      currency: currency,
-      status: status,
-      items: items,
-      dueDate: dueDate, // Use the actual Date object
-      paidDate: paidDate, // Use the actual Date object
-      notes: `Generated for transaction #${transactionData.id}`
-    };
-
-    console.log(`Invoice data prepared:`, {
-      invoiceNumber,
-      transactionId: transactionData.id,
-      amount: transactionData.amount,
-      status
-    });
-
-    try {
-      // Create invoice in database
-      const invoice = await storage.createInvoice(invoiceData);
-      console.log(`Invoice created in database:`, invoice);
-
-      // Update transaction with invoice number
-      await storage.updateTransaction(transactionData.id, {
-        invoiceNumber: invoiceNumber
-      });
-
-      console.log(`Invoice ${invoiceNumber} generated successfully for transaction ${transactionData.id}`);
-
-      // Generate PDF for the invoice
-      return generatePdfForInvoice(invoice);
-    } catch (dbError: any) {
-      console.error(`Database error creating invoice for transaction ${transactionData.id}:`, dbError);
-      // Make error more descriptive to aid debugging
-      throw new Error(`Database error creating invoice: ${dbError.message}`);
-    }
-  } catch (error) {
-    console.error('Error generating invoice:', error);
-    throw error;
-  }
-}
-
-// Generate PDF for an invoice
-async function generatePdfForInvoice(invoice: Invoice): Promise<string> {
-  return new Promise((resolve, reject) => {
-    try {
-      // Create a new PDF document
-      const doc = new PDFDocument({ margin: 50 });
-      const chunks: Buffer[] = [];
-
-      // Collect the PDF data chunks
-      doc.on('data', (chunk) => {
-        chunks.push(chunk);
-      });
-
-      // When finished, resolve with the complete PDF data
-      doc.on('end', () => {
-        const pdfData = Buffer.concat(chunks).toString('base64');
-        resolve(pdfData);
-      });
-
-      // Get user from storage
-      storage.getUser(invoice.userId)
-        .then(user => {
-          // Format the invoice
-          formatInvoicePdf(doc, invoice, user);
-
-          // Finalize the PDF
-          doc.end();
-        })
-        .catch(error => {
-          console.error('Error getting user data for invoice:', error);
-          reject(error);
-        });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      reject(error);
-    }
-  });
-}
-
-// Format the PDF invoice document
-function formatInvoicePdf(doc: PDFKit.PDFDocument, invoice: Invoice, user?: User): void {
-  // Company info section
-  doc.fontSize(20).font('Helvetica-Bold').text('SkyVPS360', { align: 'center' });
-  doc.moveDown(0.5);
-  doc.fontSize(12).font('Helvetica').text('skyvps360.xyz', { align: 'center' });
-  doc.text('Email: support@skyvps360.xyz', { align: 'center' });
-
-  // Add separation line
-  doc.moveDown(1);
-  doc.strokeColor('#cccccc').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke();
-  doc.moveDown(1);
-
-  // Invoice header
-  doc.fontSize(16).font('Helvetica-Bold').text('INVOICE', { align: 'right' });
-  doc.fontSize(12).font('Helvetica').text(`Invoice Number: ${invoice.invoiceNumber}`, { align: 'right' });
-  doc.text(`Date: ${formatDate(invoice.createdAt)}`, { align: 'right' });
-
-  // Only show due date for non-credit purchase invoices
-  // Check if the description doesn't include credit purchase or credit addition
-  // First, try to parse the items if they're a JSON string
-  let parsedItems = invoice.items;
-  if (typeof invoice.items === 'string') {
-    try {
-      parsedItems = JSON.parse(invoice.items);
-    } catch (e) {
-      console.error('Error parsing invoice items JSON for due date check:', e);
-      parsedItems = [];
-    }
-  }
-
-  // Check if we should show due date - only for non-credit purchases
-  let showDueDate = false;
-  if (parsedItems && Array.isArray(parsedItems) && parsedItems.length > 0) {
-    showDueDate = !parsedItems.some(item =>
-      item.description &&
-      (item.description.toLowerCase().includes('credit purchase') ||
-       item.description.toLowerCase().includes('credit addition'))
-    );
-  }
-
-  if (showDueDate) {
-    doc.text(`Due Date: ${formatDate(invoice.dueDate)}`, { align: 'right' });
-  }
-
-  doc.text(`Status: ${invoice.status.toUpperCase()}`, { align: 'right' });
-
-  // Client information
-  doc.moveDown(1);
-  doc.fontSize(14).font('Helvetica-Bold').text('Bill To:');
-  doc.fontSize(12).font('Helvetica');
-  if (user) {
-    doc.text(`${user.firstName || ''} ${user.lastName || ''}`);
-    doc.text(`Username: ${user.username}`);
-    doc.text(`Email: ${user.email}`);
-  } else {
-    doc.text(`Client ID: ${invoice.userId}`);
-  }
-
-  // Invoice details - Table Header
-  doc.moveDown(2);
-  const tableTop = doc.y;
-  doc.fontSize(12).font('Helvetica-Bold');
-
-  // Draw table headers
-  let currY = tableTop;
-  doc.text('Description', 50, currY);
-  doc.text('Quantity', 300, currY, { width: 90, align: 'right' });
-  doc.text('Unit Price', 390, currY, { width: 70, align: 'right' });
-  doc.text('Amount', 460, currY, { width: 90, align: 'right' });
-
-  currY += 20;
-  doc.strokeColor('#cccccc').lineWidth(1).moveTo(50, currY).lineTo(550, currY).stroke();
-  currY += 10;
-
-  // Invoice items
-  doc.fontSize(12).font('Helvetica');
-
-  try {
-    // Parse the items if it's a JSON string
-    let parsedItems = invoice.items;
-
-    if (typeof invoice.items === 'string') {
-      try {
-        parsedItems = JSON.parse(invoice.items);
-        console.log('Successfully parsed invoice items JSON:', parsedItems);
-      } catch (parseError) {
-        console.error('Error parsing invoice items JSON:', parseError);
-        parsedItems = null;
-      }
-    }
-
-    if (parsedItems && Array.isArray(parsedItems)) {
-      parsedItems.forEach(item => {
-        doc.text(item.description, 50, currY);
-        doc.text(item.quantity.toString(), 300, currY, { width: 90, align: 'right' });
-        doc.text(formatCurrency(item.unitPrice, invoice.currency), 390, currY, { width: 70, align: 'right' });
-        doc.text(formatCurrency(item.totalPrice, invoice.currency), 460, currY, { width: 90, align: 'right' });
-        currY += 20;
-      });
-    } else {
-      // Fallback if items not available or not in the expected format
-      doc.text(invoice.notes || 'Credit Purchase', 50, currY);
-      doc.text('1', 300, currY, { width: 90, align: 'right' });
-      doc.text(formatCurrency(invoice.amount, invoice.currency), 390, currY, { width: 70, align: 'right' });
-      doc.text(formatCurrency(invoice.amount, invoice.currency), 460, currY, { width: 90, align: 'right' });
-      currY += 20;
-    }
-  } catch (itemsError) {
-    console.error('Error processing invoice items:', itemsError);
-    // Fallback if there's any error processing the items
-    doc.text('Credit Purchase', 50, currY);
-    doc.text('1', 300, currY, { width: 90, align: 'right' });
-    doc.text(formatCurrency(invoice.amount, invoice.currency), 390, currY, { width: 70, align: 'right' });
-    doc.text(formatCurrency(invoice.amount, invoice.currency), 460, currY, { width: 90, align: 'right' });
-    currY += 20;
-  }
-
-  // Draw line after items
-  doc.strokeColor('#cccccc').lineWidth(1).moveTo(50, currY).lineTo(550, currY).stroke();
-  currY += 10;
-
-  // Summary table
-  doc.fontSize(12).font('Helvetica-Bold');
-  doc.text('Subtotal:', 350, currY);
-  doc.font('Helvetica');
-  doc.text(formatCurrency(invoice.amount, invoice.currency), 460, currY, { width: 90, align: 'right' });
-  currY += 20;
-
-  doc.fontSize(12).font('Helvetica-Bold');
-  doc.text('Tax:', 350, currY);
-  doc.font('Helvetica');
-  doc.text(formatCurrency(invoice.taxAmount, invoice.currency), 460, currY, { width: 90, align: 'right' });
-  currY += 20;
-
-  doc.strokeColor('#cccccc').lineWidth(1).moveTo(350, currY).lineTo(550, currY).stroke();
-  currY += 10;
-
-  doc.fontSize(14).font('Helvetica-Bold');
-  doc.text('TOTAL:', 350, currY);
-  doc.text(formatCurrency(invoice.totalAmount, invoice.currency), 460, currY, { width: 90, align: 'right' });
-
-  // Payment Details
-  doc.moveDown(2);
-  doc.fontSize(12).font('Helvetica-Bold').text('Payment Information:');
-  doc.fontSize(12).font('Helvetica');
-  doc.text('Payment Method: PayPal');
-  if (invoice.paidDate) {
-    doc.text(`Payment Date: ${formatDate(invoice.paidDate)}`);
-  }
-
-  // Notes section
-  doc.moveDown(1);
-  doc.fontSize(12).font('Helvetica-Bold').text('Notes:');
-  doc.fontSize(12).font('Helvetica');
-
-  // Add transaction ID reference
-  if (invoice.transactionId) {
-    doc.text(`Generated for transaction #${invoice.transactionId}`);
-  }
-
-  // Show invoice notes if available
-  if (invoice.notes) {
-    doc.text(invoice.notes);
-  }
-
-  // Footer
-  const footerY = doc.page.height - 100;
-  doc.fontSize(10).font('Helvetica');
-  doc.text('Thank you for your business!', 50, footerY, { align: 'center' });
-  doc.text('Questions? Contact support@skyvps360.xyz', 50, footerY + 15, { align: 'center' });
-}
-
-// Helper function to format dates
-function formatDate(date: Date | string | null): string {
-  if (!date) return 'N/A';
-  const d = new Date(date);
-  return d.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-}
-
-// Helper function to format currency
-function formatCurrency(amount: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency
-  }).format(amount);
 }
 
 // VirtFusion API class for centralizing API calls
@@ -2912,30 +2583,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
 
       if (result) {
-        // Log VNC action (this endpoint toggles VNC state)
-        await serverLoggingService.logVncAction(
-          serverId,
-          userId,
-          'vnc_enable', // Since this toggles VNC, we'll log as enable
-          'success',
-          'VNC state toggled via API',
-          undefined,
-          req
-        );
+        // NOTE: This endpoint unfortunately toggles VNC state due to VirtFusion API limitations
+        // We don't log this as a VNC action since it's meant to be a status check, not an intentional toggle
+        // Only log VNC actions when they are intentionally triggered by user actions
 
         res.json({ success: true, data: result });
       } else {
-        // Log failed VNC action
-        await serverLoggingService.logVncAction(
-          serverId,
-          userId,
-          'vnc_enable',
-          'failed',
-          undefined,
-          'Failed to get VNC status',
-          req
-        );
-
         res.status(500).json({ error: "Failed to get VNC status" });
       }
     } catch (error: any) {
@@ -3162,14 +2815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "completed",
       });
 
-      // Generate invoice for the completed transaction
-      try {
-        const invoiceNumber = await generateInvoice(transaction, 'paid');
-        console.log(`Generated invoice ${invoiceNumber} for admin-added credits`);
-      } catch (invoiceError) {
-        console.error('Failed to generate invoice for admin-added credits:', invoiceError);
-        // Continue despite invoice generation failure
-      }
+
 
       res.status(201).json({ success: true, transaction });
     } catch (error: any) {
@@ -3224,14 +2870,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         relatedTransactionId: creditId,
       });
 
-      // Generate invoice for the reversal transaction
-      try {
-        const invoiceNumber = await generateInvoice(reversalTransaction, 'paid');
-        console.log(`Generated invoice ${invoiceNumber} for credit reversal transaction`);
-      } catch (invoiceError) {
-        console.error('Failed to generate invoice for credit reversal:', invoiceError);
-        // Continue despite invoice generation failure
-      }
+      // Transaction recorded successfully
+      console.log(`Credit reversal transaction ${reversalTransaction.id} created successfully`);
 
       res.json({ success: true });
     } catch (error: any) {
@@ -3915,212 +3555,11 @@ Generated on ${new Date().toLocaleString()}
     }
   }
 
-  // Get user's invoices
-  app.get("/api/invoices", isAuthenticated, async (req, res) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
 
-      // Filter invoices by logged-in user's ID
-      const userInvoices = await storage.getUserInvoices(req.user.id);
-      console.log(`Found ${userInvoices.length} invoices for user ${req.user.id}`);
-      res.json(userInvoices);
-    } catch (error: any) {
-      console.error("Error fetching invoices:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
 
-  // Get single invoice by ID
-  app.get("/api/invoices/:id", isAuthenticated, async (req, res) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
 
-      const invoiceId = parseInt(req.params.id);
-      if (isNaN(invoiceId)) {
-        return res.status(400).json({ error: "Invalid invoice ID" });
-      }
 
-      console.log(`Getting invoice ID: ${invoiceId} for user ID: ${req.user.id}`);
 
-      // Fetch the invoice
-      const invoice = await storage.getInvoice(invoiceId);
-
-      if (!invoice) {
-        return res.status(404).json({ error: "Invoice not found" });
-      }
-
-      // Ensure user has access to the invoice (must be their own invoice or admin)
-      if (invoice.userId !== req.user.id && req.user.role !== 'admin') {
-        return res.status(403).json({ error: "Access denied" });
-      }
-
-      res.json(invoice);
-    } catch (error: any) {
-      console.error("Error fetching invoice:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Generate missing invoices for existing transactions (for recovery)
-  app.post("/api/invoices/generate-missing", isAuthenticated, async (req, res) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      console.log(`Finding transactions without invoices for user ${req.user.id}`);
-      console.log(`User details: ${JSON.stringify(req.user)}`);
-
-      // FIXING CRITICAL ISSUE: Ensure we capture all transactions without invoices
-      // For debugging - check all transactions without invoices in the system regardless of user
-      // This helps us understand if there are any transactions that need invoices
-      const allTransactionsWithoutInvoices = await db.select()
-        .from(transactions)
-        .where(isNull(transactions.invoiceNumber));
-
-      console.log(`DEBUG: All transactions without invoices in system: ${allTransactionsWithoutInvoices.length}`);
-      console.log(`DEBUG: All transaction IDs without invoices: ${allTransactionsWithoutInvoices.map(t => t.id).join(', ')}`);
-
-      // CRITICAL FIX: By default, only generate invoices for the current user's transactions
-      // But if the user is an admin, process all transactions without invoices
-      let transactionsWithoutInvoices: Transaction[] = [];
-
-      if (req.user.role === 'admin') {
-        // Admin can generate invoices for all transactions
-        console.log('Admin user detected - processing ALL transactions without invoices');
-        transactionsWithoutInvoices = allTransactionsWithoutInvoices;
-      } else {
-        // CRITICAL FIX: Use direct database query to ensure we get all user's transactions
-        console.log(`Directly querying database for user ${req.user.id} transactions without invoices`);
-        transactionsWithoutInvoices = await db.select()
-          .from(transactions)
-          .where(
-            and(
-              eq(transactions.userId, req.user.id),
-              isNull(transactions.invoiceNumber)
-            )
-          );
-      }
-
-      console.log(`Found ${transactionsWithoutInvoices.length} transactions to process for invoices`);
-      console.log(`Transaction IDs to process: ${transactionsWithoutInvoices.map(t => t.id).join(', ')}`);
-
-      if (transactionsWithoutInvoices.length === 0) {
-        return res.json({
-          success: true,
-          message: "No missing invoices found",
-          generatedCount: 0
-        });
-      }
-
-      // Generate invoices for each transaction
-      const results = [];
-      let successCount = 0;
-      let errorCount = 0;
-
-      console.log("======= STARTING INVOICE GENERATION PROCESS =======");
-      console.log(`User ID: ${req.user.id}, Username: ${req.user.username}`);
-      console.log(`Number of transactions to process: ${transactionsWithoutInvoices.length}`);
-      console.log(`Transaction IDs: ${transactionsWithoutInvoices.map(t => t.id).join(', ')}`);
-
-      for (const transaction of transactionsWithoutInvoices) {
-        try {
-          console.log(`\n[Transaction ${transaction.id}] Starting invoice generation`);
-          console.log(`[Transaction ${transaction.id}] Details: Amount=${transaction.amount}, Type=${transaction.type}, Status=${transaction.status}`);
-
-          // Determine invoice status based on transaction status
-          const invoiceStatus = transaction.status === 'completed' ? 'paid' :
-                               transaction.status === 'failed' ? 'cancelled' : 'pending';
-
-          console.log(`[Transaction ${transaction.id}] Using invoice status: ${invoiceStatus}`);
-
-          // Generate the invoice
-          const pdfData = await generateInvoice(transaction, invoiceStatus);
-
-          console.log(`[Transaction ${transaction.id}] Successfully generated invoice with PDF data length: ${pdfData.length > 1000 ? 'OK' : 'WARNING - SHORT PDF'}`);
-
-          successCount++;
-          results.push({
-            transactionId: transaction.id,
-            success: true
-          });
-
-          console.log(`[Transaction ${transaction.id}] Invoice generation SUCCEEDED`);
-        } catch (invoiceError: any) {
-          console.error(`[Transaction ${transaction.id}] ERROR generating invoice:`, invoiceError);
-          console.error(`[Transaction ${transaction.id}] Stack trace:`, invoiceError.stack);
-          errorCount++;
-          results.push({
-            transactionId: transaction.id,
-            success: false,
-            error: invoiceError.message
-          });
-          console.error(`[Transaction ${transaction.id}] Invoice generation FAILED`);
-        }
-      }
-
-      console.log("\n======= INVOICE GENERATION SUMMARY =======");
-      console.log(`Total transactions processed: ${transactionsWithoutInvoices.length}`);
-      console.log(`Successful: ${successCount}, Failed: ${errorCount}`);
-      console.log("===========================================")
-
-      res.json({
-        success: true,
-        message: `Generated ${successCount} invoices with ${errorCount} errors`,
-        results,
-        generatedCount: successCount,
-        errorCount
-      });
-    } catch (error: any) {
-      console.error("Error generating missing invoices:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Download a specific invoice
-  app.get("/api/invoices/:id/download", isAuthenticated, async (req, res) => {
-    try {
-      const invoiceId = parseInt(req.params.id);
-
-      if (isNaN(invoiceId)) {
-        return res.status(400).json({ error: "Invalid invoice ID" });
-      }
-
-      // Get the invoice
-      const invoice = await storage.getInvoice(invoiceId);
-
-      if (!invoice) {
-        return res.status(404).json({ error: "Invoice not found" });
-      }
-
-      // Check if the invoice belongs to the user
-      if (invoice.userId !== req.user!.id && req.user!.role !== 'admin') {
-        return res.status(403).json({ error: "You do not have permission to access this invoice" });
-      }
-
-      console.log(`Generating PDF for invoice ${invoice.invoiceNumber}`);
-
-      // Generate PDF content (now returns base64 string)
-      const pdfBase64 = await generateInvoice(invoice, invoice.status);
-
-      // Convert base64 to Buffer
-      const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-
-      // Set headers for PDF download
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
-
-      // Send the PDF content
-      res.send(pdfBuffer);
-    } catch (error: any) {
-      console.error("Error downloading invoice:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
 
   // Capture and verify PayPal payment with server-side handling
   app.post("/api/billing/capture-paypal-payment", isAuthenticated, async (req, res) => {
@@ -4268,13 +3707,7 @@ Generated on ${new Date().toLocaleString()}
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for failed capture:", createdTransaction.id);
 
-          // Generate invoice for the failed payment
-          try {
-            const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-            console.log(`Generated invoice ${invoiceNumber} for failed PayPal capture`);
-          } catch (invoiceError) {
-            console.error('Failed to generate invoice for failed PayPal capture:', invoiceError);
-          }
+
         } catch (transactionError) {
           console.error("Failed to create transaction record for failed capture:", transactionError);
         }
@@ -4303,13 +3736,7 @@ Generated on ${new Date().toLocaleString()}
         const createdTransaction = await storage.createTransaction(transaction);
         console.log("Created transaction record for server error during capture:", createdTransaction.id);
 
-        // Generate invoice for the failed payment
-        try {
-          const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-          console.log(`Generated invoice ${invoiceNumber} for failed PayPal capture (server error)`);
-        } catch (invoiceError) {
-          console.error('Failed to generate invoice for failed PayPal capture (server error):', invoiceError);
-        }
+
       } catch (transactionError) {
         console.error("Failed to create transaction record for server error during capture:", transactionError);
       }
@@ -4456,13 +3883,7 @@ Generated on ${new Date().toLocaleString()}
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for failed verification:", createdTransaction.id);
 
-          // Generate invoice for the failed verification
-          try {
-            const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-            console.log(`Generated invoice ${invoiceNumber} for failed PayPal verification`);
-          } catch (invoiceError) {
-            console.error('Failed to generate invoice for failed PayPal verification:', invoiceError);
-          }
+
         } catch (transactionError) {
           console.error("Failed to create transaction record for failed verification:", transactionError);
         }
@@ -4491,13 +3912,7 @@ Generated on ${new Date().toLocaleString()}
         const createdTransaction = await storage.createTransaction(transaction);
         console.log("Created transaction record for server error during verification:", createdTransaction.id);
 
-        // Generate invoice for the failed verification
-        try {
-          const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-          console.log(`Generated invoice ${invoiceNumber} for failed PayPal verification (server error)`);
-        } catch (invoiceError) {
-          console.error('Failed to generate invoice for failed PayPal verification (server error):', invoiceError);
-        }
+
       } catch (transactionError) {
         console.error("Failed to create transaction record for server error during verification:", transactionError);
       }
@@ -4540,13 +3955,7 @@ Generated on ${new Date().toLocaleString()}
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for unverified payment:", createdTransaction.id);
 
-          // Generate invoice for the unverified payment
-          try {
-            const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-            console.log(`Generated invoice ${invoiceNumber} for unverified payment`);
-          } catch (invoiceError) {
-            console.error('Failed to generate invoice for unverified payment:', invoiceError);
-          }
+
         } catch (transactionError) {
           console.error("Failed to create transaction record for unverified payment:", transactionError);
         }
@@ -4576,13 +3985,7 @@ Generated on ${new Date().toLocaleString()}
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for payment with amount mismatch:", createdTransaction.id);
 
-          // Generate invoice for the payment with mismatched amount
-          try {
-            const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-            console.log(`Generated invoice ${invoiceNumber} for payment with amount mismatch`);
-          } catch (invoiceError) {
-            console.error('Failed to generate invoice for payment with amount mismatch:', invoiceError);
-          }
+
         } catch (transactionError) {
           console.error("Failed to create transaction record for payment with amount mismatch:", transactionError);
         }
@@ -4612,13 +4015,7 @@ Generated on ${new Date().toLocaleString()}
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for payment with no VirtFusion ID:", createdTransaction.id);
 
-          // Generate invoice for the payment with no VirtFusion ID
-          try {
-            const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-            console.log(`Generated invoice ${invoiceNumber} for payment with no VirtFusion ID`);
-          } catch (invoiceError) {
-            console.error('Failed to generate invoice for payment with no VirtFusion ID:', invoiceError);
-          }
+
         } catch (transactionError) {
           console.error("Failed to create transaction record for payment with no VirtFusion ID:", transactionError);
         }
@@ -4655,13 +4052,7 @@ Generated on ${new Date().toLocaleString()}
           const createdTransaction = await storage.createTransaction(transaction);
           console.log("Created transaction record for payment with unconfigured VirtFusion API:", createdTransaction.id);
 
-          // Generate invoice for the payment with unconfigured VirtFusion API
-          try {
-            const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-            console.log(`Generated invoice ${invoiceNumber} for payment with unconfigured VirtFusion API`);
-          } catch (invoiceError) {
-            console.error('Failed to generate invoice for payment with unconfigured VirtFusion API:', invoiceError);
-          }
+
         } catch (transactionError) {
           console.error("Failed to create transaction record for payment with unconfigured VirtFusion API:", transactionError);
         }
@@ -4756,14 +4147,7 @@ Generated on ${new Date().toLocaleString()}
           status: "completed"
         });
 
-        // Generate invoice for the completed transaction
-        try {
-          const invoiceNumber = await generateInvoice(createdTransaction, 'paid');
-          console.log(`Generated invoice ${invoiceNumber} for successful payment`);
-        } catch (invoiceError) {
-          console.error('Failed to generate invoice for completed transaction:', invoiceError);
-          // Continue despite invoice generation failure
-        }
+
 
         res.json({
           success: true,
@@ -4783,14 +4167,7 @@ Generated on ${new Date().toLocaleString()}
           description: `${transaction.description} (VirtFusion sync failed: ${virtFusionError.message})`
         });
 
-        // Generate invoice for the failed transaction
-        try {
-          const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-          console.log(`Generated invoice ${invoiceNumber} for failed payment`);
-        } catch (invoiceError) {
-          console.error('Failed to generate invoice for failed transaction:', invoiceError);
-          // Continue despite invoice generation failure
-        }
+
 
         return res.status(500).json({
           error: "Failed to add credits to VirtFusion account",
@@ -5199,14 +4576,7 @@ Generated on ${new Date().toLocaleString()}
           status: "completed"
         });
 
-        // Generate invoice for the test transaction
-        try {
-          const invoiceNumber = await generateInvoice(createdTransaction, 'paid');
-          console.log(`Generated invoice ${invoiceNumber} for test credit transaction`);
-        } catch (invoiceError) {
-          console.error('Failed to generate invoice for test transaction:', invoiceError);
-          // Continue despite invoice generation failure
-        }
+
 
         res.json({
           success: true,
@@ -5223,14 +4593,7 @@ Generated on ${new Date().toLocaleString()}
           description: `${transaction.description} (Credit addition failed: ${creditError.message})`
         });
 
-        // Generate invoice for the failed test transaction
-        try {
-          const invoiceNumber = await generateInvoice(createdTransaction, 'cancelled');
-          console.log(`Generated invoice ${invoiceNumber} for failed test credit transaction`);
-        } catch (invoiceError) {
-          console.error('Failed to generate invoice for failed test credit transaction:', invoiceError);
-          // Continue despite invoice generation failure
-        }
+
 
         return res.status(500).json({
           error: "Failed to add credits to VirtFusion account",
@@ -6217,19 +5580,16 @@ Generated on ${new Date().toLocaleString()}
     try {
       // Get summary data
       const transactions = await storage.getAllTransactions();
-      const invoices = await storage.getAllInvoices();
 
       // Calculate summary statistics
       const totalCredits = transactions
         .filter(t => t.type === 'credit' && t.status === 'completed')
         .reduce((sum, t) => sum + Number(t.amount), 0);
 
-      const pendingInvoices = invoices.filter(i => i.status !== 'paid').length;
       const pendingTransactions = transactions.filter(t => t.status === 'pending').length;
 
       res.json({
         totalCredits,
-        pendingInvoices,
         pendingTransactions
       });
     } catch (error: any) {
@@ -6238,139 +5598,15 @@ Generated on ${new Date().toLocaleString()}
     }
   });
 
-  // Admin invoice routes
-  app.get("/api/admin/invoices", isAdmin, async (req, res) => {
-    try {
-      const invoices = await storage.getAllInvoices();
 
-      // Fetch all unique user IDs from invoices
-      const userIds = [...new Set(invoices.map(inv => inv.userId))];
 
-      // Get user data for these IDs in one go
-      const users = await storage.getUsersByIds(userIds);
 
-      // Map users by their ID for easier lookup
-      const userMap = users.reduce((acc, user) => {
-        acc[user.id] = user;
-        return acc;
-      }, {} as Record<number, any>);
 
-      // Attach user data to each invoice
-      const invoicesWithUserData = invoices.map(invoice => {
-        const user = userMap[invoice.userId];
-        return {
-          ...invoice,
-          user: user ? {
-            id: user.id,
-            username: user.username || user.fullName || `User #${user.id}`,
-            email: user.email || 'No email available'
-          } : undefined
-        };
-      });
 
-      res.json(invoicesWithUserData);
-    } catch (error: any) {
-      console.error("Error fetching all invoices:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
 
-  app.get("/api/admin/invoices/:id", isAdmin, async (req, res) => {
-    try {
-      const invoiceId = parseInt(req.params.id);
 
-      if (isNaN(invoiceId)) {
-        return res.status(400).json({ error: "Invalid invoice ID" });
-      }
 
-      const invoice = await storage.getInvoice(invoiceId);
 
-      if (!invoice) {
-        return res.status(404).json({ error: "Invoice not found" });
-      }
-
-      // Make sure we're returning JSON data by setting the Content-Type header
-      res.setHeader('Content-Type', 'application/json');
-      res.json(invoice);
-    } catch (error: any) {
-      console.error(`Error fetching invoice with ID ${req.params.id}:`, error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Update invoice status (admin only)
-  app.patch("/api/admin/invoices/:id/status", isAdmin, async (req, res) => {
-    try {
-      const invoiceId = parseInt(req.params.id);
-
-      if (isNaN(invoiceId)) {
-        return res.status(400).json({ error: "Invalid invoice ID" });
-      }
-
-      // Validate the status
-      const { status } = req.body;
-      if (!status || !['pending', 'paid', 'cancelled', 'refunded'].includes(status)) {
-        return res.status(400).json({ error: "Invalid status value. Must be one of: pending, paid, cancelled, refunded" });
-      }
-
-      const invoice = await storage.getInvoice(invoiceId);
-
-      if (!invoice) {
-        return res.status(404).json({ error: "Invoice not found" });
-      }
-
-      // Update the invoice status
-      const updatedInvoice = await storage.updateInvoice(invoiceId, { status });
-
-      // If status is changed to 'paid', set the paidDate if it's not already set
-      if (status === 'paid' && !invoice.paidDate) {
-        await storage.updateInvoice(invoiceId, { paidDate: new Date().toISOString() });
-      }
-
-      res.json(updatedInvoice);
-    } catch (error: any) {
-      console.error(`Error updating invoice status for ID ${req.params.id}:`, error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Admin invoice download endpoint
-  app.get("/api/admin/invoices/:id/download", isAdmin, async (req, res) => {
-    try {
-      const invoiceId = parseInt(req.params.id);
-
-      if (isNaN(invoiceId)) {
-        return res.status(400).json({ error: "Invalid invoice ID" });
-      }
-
-      const invoice = await storage.getInvoice(invoiceId);
-
-      if (!invoice) {
-        return res.status(404).json({ error: "Invoice not found" });
-      }
-
-      // Generate PDF document for the invoice - this returns base64 data, not a file path
-      const pdfBase64 = await generateInvoice(invoice);
-
-      // Convert base64 string back to Buffer
-      const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-
-      // Set appropriate headers for PDF file download
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
-
-      // Send PDF data directly instead of using sendFile
-      res.send(pdfBuffer);
-    } catch (error: any) {
-      console.error(`Error downloading invoice with ID ${req.params.id}:`, error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Route removed to prevent duplication - see earlier implementation of /api/admin/invoices/:id/download
-
-  // Get single invoice endpoint (admin)
-  // Route removed to prevent duplication - see earlier implementation of /api/admin/invoices/:id
 
   // Get a single user by ID (admin only)
   app.get("/api/admin/users/:id", isAdmin, async (req, res) => {
@@ -8532,9 +7768,14 @@ Generated on ${new Date().toLocaleString()}
   app.post("/api/admin/servers/:id/vnc/enable", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
+      const userId = req.user?.id;
 
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
       }
 
       console.log(`Admin enabling VNC for server ID: ${serverId}`);
@@ -8544,8 +7785,30 @@ Generated on ${new Date().toLocaleString()}
       const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
 
       if (result) {
+        // Log VNC enable action (this is an intentional admin action)
+        await serverLoggingService.logVncAction(
+          serverId,
+          userId,
+          'vnc_enable',
+          'success',
+          'VNC enabled by administrator',
+          undefined,
+          req
+        );
+
         res.json({ success: true, message: "VNC enabled successfully", data: result });
       } else {
+        // Log failed VNC enable action
+        await serverLoggingService.logVncAction(
+          serverId,
+          userId,
+          'vnc_enable',
+          'failed',
+          undefined,
+          'Failed to enable VNC',
+          req
+        );
+
         res.status(500).json({ error: "Failed to enable VNC" });
       }
     } catch (error: any) {
@@ -8558,9 +7821,14 @@ Generated on ${new Date().toLocaleString()}
   app.post("/api/admin/servers/:id/vnc/disable", isAdmin, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
+      const userId = req.user?.id;
 
       if (isNaN(serverId)) {
         return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
       }
 
       console.log(`Admin disabling VNC for server ID: ${serverId}`);
@@ -8570,8 +7838,30 @@ Generated on ${new Date().toLocaleString()}
       const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
 
       if (result) {
+        // Log VNC disable action (this is an intentional admin action)
+        await serverLoggingService.logVncAction(
+          serverId,
+          userId,
+          'vnc_disable',
+          'success',
+          'VNC disabled by administrator',
+          undefined,
+          req
+        );
+
         res.json({ success: true, message: "VNC disabled successfully", data: result });
       } else {
+        // Log failed VNC disable action
+        await serverLoggingService.logVncAction(
+          serverId,
+          userId,
+          'vnc_disable',
+          'failed',
+          undefined,
+          'Failed to disable VNC',
+          req
+        );
+
         res.status(500).json({ error: "Failed to disable VNC" });
       }
     } catch (error: any) {
@@ -9288,6 +8578,9 @@ Generated on ${new Date().toLocaleString()}
             'loading_screen_animation_duration',
             'loading_screen_min_duration',
             'loading_screen_show_on_all_pages',
+
+            // VirtFusion URL for maintenance page direct access
+            'virtfusion_api_url',
 
             // Enterprise features settings
             'enterprise_features_heading',

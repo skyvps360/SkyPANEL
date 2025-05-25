@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, Receipt, FileText, History, ExternalLink, Eye } from "lucide-react";
+import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, ExternalLink, Eye, Receipt, FileText } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PayPalCheckout } from "@/components/billing/PayPalCheckout";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,53 +26,38 @@ interface Transaction {
   createdAt: string;
 }
 
-interface Invoice {
-  id: number;
-  userId: number;
-  invoiceNumber: string;
-  amount: number;
-  taxAmount: number;
-  totalAmount: number;
-  currency: string;
-  status: string;
-  transactionId: number;
-  dueDate: string;
-  paidDate?: string;
-  items: any[];
-  notes?: string;
-  createdAt: string;
-}
+
 
 export default function BillingPage() {
   const { user } = useAuth();
   const [creditAmount, setCreditAmount] = useState(50);
   const [activeTab, setActiveTab] = useState("transactions");
-  const [generatingInvoices, setGeneratingInvoices] = useState(false);
-  
+
+
   // Fetch branding data
-  const { data: brandingData } = useQuery<{ 
-    company_name: string; 
+  const { data: brandingData } = useQuery<{
+    company_name: string;
     primary_color: string;
     secondary_color: string;
     accent_color: string;
   }>({
     queryKey: ['/api/settings/branding'],
   });
-  
+
   // Get brand colors using the newer structure
   const brandColors = getBrandColors({
     primaryColor: brandingData?.primary_color,
     secondaryColor: brandingData?.secondary_color,
     accentColor: brandingData?.accent_color
   });
-  
+
   // Handle tab changes and check if user is suspended
   const handleTabChange = (tab: string) => {
     // If user is suspended and tries to access "addCredits" tab, redirect to transactions
     if (!user?.isActive && tab === "addCredits") {
       return; // Don't change the tab
     }
-    
+
     setActiveTab(tab);
   };
 
@@ -81,19 +66,19 @@ export default function BillingPage() {
     queryKey: ["/api/transactions"],
   });
 
-  // Invoices are deprecated; do not fetch or use them anymore
+
 
   // Fetch credit balance
   const { data: balanceData } = useQuery<{ credits: number, virtFusionCredits: number, virtFusionTokens: number }>({
     queryKey: ["/api/billing/balance"],
   });
-  
+
   // Fetch VirtFusion usage data for last 30 days
   const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: any }>({
     queryKey: ["/api/billing/usage/last30days"],
     staleTime: 300000, // 5 minutes
   });
-  
+
   // Log usage data when it changes
   React.useEffect(() => {
     if (usageData) {
@@ -103,39 +88,39 @@ export default function BillingPage() {
       console.error("VirtFusion usage API error:", usageErrorData);
     }
   }, [usageData, usageError, usageErrorData]);
-  
-  // Invoice download handler removed (invoices deprecated)
-  
+
+
+
   // Handle transactions PDF export/download
   const handleExportTransactions = async () => {
     try {
       const response = await fetch('/api/transactions/export');
-      
+
       if (!response.ok) {
         throw new Error(`Failed to export transactions: ${response.statusText}`);
       }
-      
+
       // Get filename from the Content-Disposition header if available
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `transactions-${new Date().toISOString().split('T')[0]}.pdf`;
-      
+
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/);
         if (filenameMatch) {
           filename = filenameMatch[1];
         }
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
+
       // Create a link and trigger download
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-      
+
       // Clean up
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
@@ -144,42 +129,42 @@ export default function BillingPage() {
       alert('Failed to export transactions. Please try again later.');
     }
   };
-  
-  // Invoice generation handler removed (invoices deprecated)
+
+
 
   // Helper function to determine if a transaction is a credit/addition
   const isCredit = (transaction: Transaction) => {
-    return transaction.type === 'credit' || 
+    return transaction.type === 'credit' ||
            transaction.type === 'virtfusion_credit';
   };
-  
+
   // Helper function to determine if a transaction is a debit/removal
   const isDebit = (transaction: Transaction) => {
-    return transaction.type === 'debit' || 
+    return transaction.type === 'debit' ||
            transaction.type === 'virtfusion_credit_removal';
   };
-  
+
   // Calculate billing summary
   const hasVirtFusionBalance = balanceData?.virtFusionCredits && balanceData.virtFusionCredits > 0;
-  
+
   // Calculate the spent and added amounts for the last 30 days from transactions
   const spentFromTransactions = transactions
     .filter(t => isDebit(t) && new Date(t.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  
+
   const addedFromTransactions = transactions
     .filter(t => isCredit(t) && new Date(t.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   const summaryData = {
     // Prioritize VirtFusion balance when available
-    balance: hasVirtFusionBalance ? 
-      balanceData?.virtFusionCredits || 0 : 
+    balance: hasVirtFusionBalance ?
+      balanceData?.virtFusionCredits || 0 :
       (balanceData?.credits || user?.credits || 0),
-    
+
     virtFusionTokens: balanceData?.virtFusionTokens || 0,
     localBalance: balanceData?.credits || user?.credits || 0,
-    
+
     // Use VirtFusion API data if available, otherwise fall back to transaction calculation
     spent30Days: (usageData && 'usage' in usageData) ? usageData.usage : spentFromTransactions,
     added30Days: addedFromTransactions,
@@ -199,7 +184,7 @@ export default function BillingPage() {
           </Avatar>
           <div>
             <div className="text-sm font-medium">
-              <a 
+              <a
                 href={`/billing/transactions/${transaction.id}`}
                 className="hover:underline text-primary"
                 onClick={(e) => {
@@ -251,7 +236,7 @@ export default function BillingPage() {
               return <Badge>{status}</Badge>;
           }
         };
-        
+
         return getStatusBadge(transaction.status);
       },
     },
@@ -259,8 +244,8 @@ export default function BillingPage() {
       id: "actions",
       header: "Actions",
       cell: (transaction: Transaction) => (
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           onClick={() => window.location.href = `/billing/transactions/${transaction.id}`}
         >
@@ -270,7 +255,7 @@ export default function BillingPage() {
       ),
     },
   ];
-  
+
 
 
   // Credit amount options
@@ -285,14 +270,14 @@ export default function BillingPage() {
           <p className="text-gray-500 mt-1">Manage your account balance and view transactions</p>
         </div>
         <div className="mt-4 md:mt-0">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex items-center"
             onClick={handleExportTransactions}
-            style={{ 
-              backgroundColor: 'transparent', 
-              color: brandColors.primary.full, 
-              borderColor: brandColors.primary.medium 
+            style={{
+              backgroundColor: 'transparent',
+              color: brandColors.primary.full,
+              borderColor: brandColors.primary.medium
             }}
           >
             <Download className="h-4 w-4 mr-2" />
@@ -307,7 +292,7 @@ export default function BillingPage() {
         <Card className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-200">
           <div className="bg-primary/5 px-6 py-4 flex items-center justify-between border-b">
             <CardTitle className="text-base font-medium">Current Balance</CardTitle>
-            <div className="h-10 w-10 rounded-full flex items-center justify-center" 
+            <div className="h-10 w-10 rounded-full flex items-center justify-center"
                  style={{ backgroundColor: brandColors.primary.extraLight }}>
               <DollarSign className="h-5 w-5" style={{ color: brandColors.primary.full }} />
             </div>
@@ -319,7 +304,7 @@ export default function BillingPage() {
                 <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
             </div>
-            
+
             {/* Show VirtFusion tokens section when available */}
             {hasVirtFusionBalance ? (
               <div className="mt-3 pt-3 border-t border-border/60">
@@ -405,13 +390,9 @@ export default function BillingPage() {
                   Add Credits
                 </TabsTrigger>
               )}
-              {/* Invoices tab hidden for client side */}
-              {/* <TabsTrigger value="invoices" className="data-[state=active]:bg-background">
-                <FileText className="h-4 w-4 mr-2" />
-                Invoices
-              </TabsTrigger> */}
+
             </TabsList>
-            
+
             <TabsContent value="transactions" className="mt-0">
               <div className="p-0">
                 {isLoading ? (
@@ -426,15 +407,15 @@ export default function BillingPage() {
                     </div>
                     <h3 className="text-lg font-medium mb-2">No Transactions Found</h3>
                     <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      {user?.isActive 
+                      {user?.isActive
                        ? "You don't have any transactions yet. Add credits to get started with your account."
                        : "You don't have any transactions yet. Your account is currently suspended."}
                     </p>
                     {user?.isActive ? (
-                      <Button 
-                        onClick={() => handleTabChange("addCredits")} 
+                      <Button
+                        onClick={() => handleTabChange("addCredits")}
                         className="px-6 py-2 transition-all hover:translate-y-[-1px]"
-                        style={{ 
+                        style={{
                           backgroundColor: brandColors.primary.full,
                           color: 'white'
                         }}
@@ -443,8 +424,8 @@ export default function BillingPage() {
                         Add Credits
                       </Button>
                     ) : (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         disabled
                       >
                         Account Suspended
@@ -461,7 +442,7 @@ export default function BillingPage() {
                         cell: (transaction) => (
                           <div className="flex items-center">
                             <Avatar className="h-9 w-9 mr-3 shadow-sm">
-                              <AvatarFallback 
+                              <AvatarFallback
                                 className="rounded-full flex items-center justify-center"
                                 style={isCredit(transaction) ? {
                                   background: `linear-gradient(135deg, ${brandColors.primary.lighter}, ${brandColors.primary.light})`,
@@ -482,8 +463,8 @@ export default function BillingPage() {
                                   <>
                                     <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
                                     <span className="capitalize flex items-center">
-                                      {transaction.paymentMethod === 'paypal' && 
-                                        <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@develop/icons/paypal.svg" 
+                                      {transaction.paymentMethod === 'paypal' &&
+                                        <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@develop/icons/paypal.svg"
                                              className="h-3 w-3 mr-1 inline opacity-70" alt="PayPal" />}
                                       {transaction.paymentMethod}
                                     </span>
@@ -514,7 +495,7 @@ export default function BillingPage() {
                         cell: (transaction) => {
                           const status = transaction.status.toLowerCase();
                           let variant = "default";
-                          
+
                           switch (status) {
                             case "completed":
                               variant = "success";
@@ -526,7 +507,7 @@ export default function BillingPage() {
                               variant = "destructive";
                               break;
                           }
-                          
+
                           return (
                             <Badge variant={variant as any} className="capitalize font-normal">
                               {transaction.status}
@@ -548,8 +529,8 @@ export default function BillingPage() {
                         id: "actions",
                         header: "",
                         cell: (transaction) => (
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => window.location.href = `/billing/transactions/${transaction.id}`}
                             className="hover:bg-primary/5 transition-colors"
@@ -592,13 +573,13 @@ export default function BillingPage() {
                         variant={creditAmount === amount ? "default" : "outline"}
                         onClick={() => setCreditAmount(amount)}
                         className={`font-medium transition-all ${creditAmount === amount ? 'shadow-md hover:shadow-lg' : 'hover:bg-primary/5'}`}
-                        style={creditAmount === amount ? { 
+                        style={creditAmount === amount ? {
                           backgroundColor: brandColors.primary.full,
                           color: 'white'
-                        } : { 
-                          backgroundColor: 'transparent', 
+                        } : {
+                          backgroundColor: 'transparent',
                           color: brandColors.primary.full,
-                          borderColor: brandColors.primary.medium 
+                          borderColor: brandColors.primary.medium
                         }}
                       >
                         ${amount}
@@ -619,10 +600,10 @@ export default function BillingPage() {
                   <div className="rounded-lg border border-border/60 p-4 shadow-sm bg-card/30">
                     <div className="flex items-center">
                       <div className="mr-4 p-2 bg-blue-50 rounded-lg">
-                        <img 
-                          src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" 
-                          alt="PayPal" 
-                          className="h-8" 
+                        <img
+                          src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg"
+                          alt="PayPal"
+                          className="h-8"
                         />
                       </div>
                       <div>

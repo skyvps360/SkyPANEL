@@ -1,8 +1,14 @@
-# 🚀 SkyPANEL - Advanced VirtFusion Client Portal
-
+# 🚀 SkyPANEL - Enterprise VirtFusion Management Platform
 <div align="center">
-  <h3>🌟 Enterprise-Grade VirtFusion Management Platform 🌟</h3>
-  <p><strong>Complete VPS hosting management solution with AI-powered support, real-time monitoring, and seamless automation</strong></p>
+  <h3>🌟 Next-Generation VPS Hosting Control Panel 🌟</h3>
+  <p><strong>Complete VirtFusion integration with AI-powered support, real-time monitoring, and advanced automation</strong></p>
+
+  <div align="center">
+
+  [![GitHub Stars](https://img.shields.io/github/stars/skyvps360/SkyPANEL?style=social)](https://github.com/skyvps360/SkyPANEL)
+  [![Discord](https://img.shields.io/discord/1310474963865833483?style=social&logo=discord)](https://skyvps360.xyz/discord)
+
+  </div>
 
   ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
   ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
@@ -12,12 +18,14 @@
   ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)
   ![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)
   ![Google AI](https://img.shields.io/badge/Google_AI-4285F4?style=for-the-badge&logo=google&logoColor=white)
+  ![VirtFusion](https://img.shields.io/badge/VirtFusion-FF6B35?style=for-the-badge&logo=server&logoColor=white)
 </div>
 
 ## 💝 Support My Work
 If you find my work helpful, consider supporting me:
 
 [![PayPal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/donate/?hosted_button_id=TEY7YEJC8X5HW)
+
 ---
 
 ## 📋 Table of Contents
@@ -25,19 +33,24 @@ If you find my work helpful, consider supporting me:
 - [Overview](#-overview)
 - [Tech Stack](#-tech-stack)
 - [Key Features](#-key-features)
-- [API Endpoints](#-api-endpoints)
+- [Complete API Documentation](#-complete-api-documentation)
 - [Environment Setup](#-environment-setup)
 - [Installation & Development](#-installation--development)
 - [VirtFusion Integration Guide](#-virtfusion-integration-guide)
 - [Brand Theming System](#-brand-theming-system)
 - [Discord Integration](#-discord-integration)
+- [AI-Powered Support](#-ai-powered-support)
+- [VNC Console](#-vnc-console)
 - [Billing & Transaction System](#-billing--transaction-system)
 - [User Management](#-user-management)
+- [Content Management](#-content-management)
+- [Monitoring & Analytics](#-monitoring--analytics)
+- [API Key Management](#-api-key-management)
+- [Maintenance Mode](#-maintenance-mode)
+- [Security Features](#-security-features)
 - [Troubleshooting](#-troubleshooting)
 - [Recent Updates](#-recent-updates)
-- [Security Features](#-security-features)
-- [Email System](#-email-system)
-- [Maintenance Mode](#-maintenance-mode)
+
 ---
 
 ## 🔍 Overview
@@ -46,7 +59,7 @@ If you find my work helpful, consider supporting me:
 
 ### 🎯 What Makes SkyPANEL Special
 
-- **🤖 AI-Powered Support**: Integrated Google Gemini AI for intelligent customer support and automated responses
+- **🤖 AI-Powered Support**: Integrated Google Gemini 2.5 Flash for intelligent customer support and automated responses
 - **🔄 Real-Time Monitoring**: BetterStack integration for live infrastructure monitoring and status reporting
 - **💬 Discord Integration**: Full two-way communication with Discord bot for ticket management and platform status
 - **🎨 Dynamic Theming**: Advanced brand customization with multi-color theming system
@@ -54,6 +67,7 @@ If you find my work helpful, consider supporting me:
 - **📊 Advanced Analytics**: Comprehensive reporting, transaction tracking, and usage monitoring
 - **🌐 VNC Console**: Built-in VNC client for direct server access and management
 - **⚡ Modern Architecture**: React/TypeScript frontend with Node.js/Express backend and PostgreSQL database
+- **🔌 Complete VirtFusion Integration**: Direct API integration for seamless VPS management
 
 ### 🏢 Perfect For
 
@@ -67,339 +81,457 @@ If you find my work helpful, consider supporting me:
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **React**: UI library for building the user interface
-- **TypeScript**: Type-safe JavaScript for robust code
-- **TailwindCSS**: Utility-first CSS framework for styling
+- **React 18**: Modern UI library with hooks and concurrent features
+- **TypeScript**: Type-safe JavaScript for robust development
+- **Vite**: Next-generation frontend build tool with HMR
+- **TailwindCSS**: Utility-first CSS framework for rapid styling
 - **Shadcn/UI**: High-quality UI components built on Radix UI
 - **Radix UI**: Unstyled, accessible component primitives
-- **React Query**: Data fetching and state management
-- **React Hook Form**: Form validation and handling
-- **Wouter**: Lightweight routing solution
-- **Vite**: Next-generation frontend build tool
-- **Framer Motion**: Animation library
-- **Recharts**: Composable charting library
-- **React Day Picker**: Date picker component
-- **React Markdown**: Markdown rendering
+- **React Query (TanStack Query)**: Powerful data fetching and state management
+- **React Hook Form**: Performant forms with easy validation
+- **Wouter**: Lightweight routing solution for SPAs
+- **Framer Motion**: Production-ready motion library for React
+- **Recharts**: Composable charting library built on D3
+- **React Markdown**: Markdown rendering with syntax highlighting
+- **React Leaflet**: Interactive maps for datacenter visualization
+- **NoVNC**: Web-based VNC client for server console access
 
 ### Backend
-- **Node.js**: JavaScript runtime for server-side code
-- **Express**: Web framework for Node.js
-- **TypeScript**: Type-safe JavaScript for robust code
-- **PostgreSQL**: Relational database for data storage
-- **Drizzle ORM**: TypeScript ORM for database operations
-- **Zod**: Schema validation and type inference
-- **Passport.js**: Authentication middleware
-- **SMTP2GO**: Email delivery service integration
-- **Discord.js**: Discord bot integration
-- **PDFKit**: PDF generation for invoices
-
-### Authentication & Payments
-- **Passport.js**: Authentication framework with local strategy
+- **Node.js**: JavaScript runtime for server-side development
+- **Express**: Fast, unopinionated web framework
+- **TypeScript**: Type-safe server-side development
+- **PostgreSQL**: Advanced relational database with JSON support
+- **Drizzle ORM**: Type-safe SQL ORM with excellent TypeScript integration
+- **Zod**: TypeScript-first schema validation
+- **Passport.js**: Authentication middleware with local strategy
 - **Express Session**: Session management with PostgreSQL store
 - **Bcrypt**: Password hashing and security
-- **PayPal JavaScript SDK**: Payment processing
+- **SMTP2GO**: Reliable email delivery service
+- **Discord.js**: Discord bot integration and webhook support
+- **PDFKit**: PDF generation for transaction exports and reports
+
+### AI & Integrations
+- **Google Gemini 2.5 Flash**: Advanced AI for customer support
+- **VirtFusion API**: Complete VPS management integration
+- **BetterStack**: Infrastructure monitoring and alerting
+- **PayPal SDK**: Payment processing and billing
+- **SendGrid**: Email delivery and templates
 
 ### DevOps & Tooling
-- **ESBuild**: JavaScript bundler for production builds
-- **TypeScript**: Type checking and code quality
-- **Drizzle Kit**: Database schema migration tool
+- **ESBuild**: Fast JavaScript bundler for production
+- **Drizzle Kit**: Database schema migration and management
+- **Cross-env**: Cross-platform environment variables
+- **TSX**: TypeScript execution for development
+- **Husky**: Git hooks for code quality
 
 ---
 
 ## ✨ Key Features
 
 ### 👥 User Management
-- Secure authentication with email verification
-- Profile management with VirtFusion sync
-- Password reset and account recovery
-- Role-based access control (Admin/User)
+- **Secure Authentication**: Email verification, password reset, and account recovery
+- **VirtFusion Sync**: Automatic synchronization with VirtFusion user accounts
+- **Profile Management**: Real-time updates synced across platforms
+- **Role-Based Access**: Admin and user roles with granular permissions
+- **API Key Management**: Personal API keys with scoped permissions
 
 ### 💳 Billing System
-- Credit-based billing system
-- Detailed transaction tracking and exports
-- Professional PDF invoice generation
-- Real-time resource usage monitoring
-- PayPal payment integration
+- **Credit-Based Billing**: Flexible credit system with real-time balance tracking
+- **Transaction Management**: Detailed transaction history with PDF exports
+- **Transaction Exports**: PDF export functionality for transaction records
+- **PayPal Integration**: Secure payment processing with webhook validation
+- **Usage Monitoring**: Real-time VirtFusion resource usage tracking
+- **Admin Controls**: Manual credit adjustments and transaction management
 
 ### 🤝 VirtFusion Integration
-- Direct API integration for user management
-- Real-time resource monitoring
-- Automated sync for user profile changes
-- Intelligent extRelationId mapping
+- **Direct API Integration**: Complete VirtFusion API integration for all operations
+- **Real-Time Sync**: Live server status, resource usage, and billing data
+- **User Management**: Automatic user creation and synchronization
+- **Server Control**: Power management, password resets, and console access
+- **Resource Monitoring**: Live CPU, memory, disk, and network statistics
+- **Billing Integration**: Automatic credit deduction based on usage
 
 ### 🎫 Support System
-- Full ticket management
-- Threaded message conversations
-- Status tracking and priority levels
-- Admin assignment and bulk actions
+- **Ticket Management**: Full-featured support ticket system with departments
+- **Threaded Conversations**: Message threading with file attachments
+- **Status Tracking**: Open, closed, and priority level management
+- **Admin Assignment**: Ticket routing and bulk operations
+- **Discord Integration**: Two-way sync with Discord threads
+- **AI Assistance**: Google Gemini AI for intelligent response suggestions
 
 ### 📊 Admin Dashboard
-- Comprehensive user management
-- Financial reporting and transaction tracking
-- System configuration and settings
-- VirtFusion API testing tools
+- **User Management**: Comprehensive user administration with VirtFusion sync
+- **Server Management**: Direct VirtFusion server control and monitoring
+- **Financial Reporting**: Transaction tracking and revenue analytics
+- **System Configuration**: Dynamic settings and branding management
+- **Content Management**: Blog, documentation, and FAQ administration
+- **Monitoring Tools**: Real-time system health and performance metrics
 
 ### 🔔 Notifications
-- Email notifications for account events
-- Discord webhook integration
-- Transaction confirmations
-- Support ticket updates
-
-### 🤖 Discord Bot Integration
-- **AI-Powered Support**: `/ask` command with Google Gemini AI integration
-- **Platform Status**: `/status` command with real-time monitoring data
-- **Ticket Management**: Full two-way sync between Discord and ticket system
-- **Role-Based Permissions**: Configurable access control for bot commands
-- **Thread Management**: Automatic thread creation and status synchronization
-- **Interactive Buttons**: Quick actions for ticket operations
-
-### 🖥️ VNC Console
-- **Built-in VNC Client**: Custom-built VNC client for direct server access through web browser
-- **Real-time Desktop Streaming**: Live framebuffer rendering with full mouse/keyboard control
-- **VirtFusion Integration**: Seamless VNC enable/disable via VirtFusion API
-- **Protocol Support**: Full VNC RFB protocol implementation with authentication
-- **Framebuffer Rendering**: Real-time pixel data parsing and canvas rendering
-- **Connection Management**: WebSocket proxy with automatic retry logic and timeout handling
-- **Security**: Secure authentication using VirtFusion server credentials
-- **Cross-Platform**: Works on any device with a modern web browser
-- **Multiple Encodings**: Support for Raw and CopyRect VNC encodings
-- **Real-time Updates**: Live desktop updates with proper pixel format handling
-
-### 🔑 API Key Management
-- **Secure Token Generation**: Cryptographically secure API key creation
-- **Granular Scopes**: Fine-grained access control (read:user, read:servers, etc.)
-- **Expiration Management**: Configurable key expiration dates
-- **Usage Tracking**: Comprehensive audit logging for security
-- **Admin Interface**: Full management dashboard for key lifecycle
-- **One-time Display**: Security-focused key revelation system
-
-### 📊 Monitoring & Analytics
-- **BetterStack Integration**: Real-time infrastructure monitoring
-- **Status Page**: Live service availability indicators
-- **Incident Tracking**: Automated incident detection and reporting
-- **SLA Monitoring**: Service level agreement tracking and display
-- **Performance Metrics**: Comprehensive system performance analytics
-- **Alert System**: Automated notifications for service disruptions
+- **Email Notifications**: Automated emails for account events and transactions
+- **Discord Webhooks**: Real-time notifications to Discord channels
+- **Transaction Alerts**: Payment confirmations and billing updates
+- **Support Updates**: Ticket status changes and new message alerts
+- **System Alerts**: Maintenance mode and service status notifications
 
 ---
 
-## 🔌 API Endpoints
+## 🔌 Complete API Documentation
 
-### 🔐 Authentication & Users
-```
-POST /api/auth/register               # Create new user account
-POST /api/auth/login                  # Authenticate and create session
-GET  /api/auth/logout                 # End current user session
-GET  /api/user                        # Get current user profile
-PATCH /api/user/profile               # Update user profile information
-POST /api/auth/request-password-reset # Request password reset email
-POST /api/auth/verify-reset-code      # Verify password reset code
-POST /api/auth/reset-password         # Complete password reset
-POST /api/auth/request-username       # Request username reminder email
-POST /api/auth/change-password        # Change password (authenticated users)
-GET  /api/verification-status         # Check email verification status
-POST /api/verification/verify-email   # Verify email with code
-POST /api/verification/resend         # Resend verification email
+SkyPANEL provides a comprehensive REST API with over 100 endpoints for complete platform integration. All endpoints support JSON request/response format with proper error handling and validation.
+
+### 🔐 Authentication & Authorization
+
+#### API Key Authentication
+```bash
+# Include API key in Authorization header
+Authorization: Bearer your_api_key_here
 ```
 
-### 💰 Billing & Transactions
-```
-GET  /api/transactions                      # List user transactions
-GET  /api/transactions/:id                  # Get transaction details
-GET  /api/transactions/export               # Generate transaction PDF export
-GET  /api/invoices                          # List user invoices
-GET  /api/invoices/:id                      # Get invoice details
-GET  /api/invoices/:id/download             # Download invoice PDF
-POST /api/billing/capture-paypal-payment    # Process PayPal payment
-GET  /api/billing/usage                     # Get user resource usage
-GET  /api/billing/balance                   # Get user credit balance
-POST /api/credits                           # Add credit to user (admin only)
-DELETE /api/credits/:id                     # Cancel credit transaction (admin only)
+#### Available Scopes
+- `read:user` - Read user profile information
+- `read:servers` - Read server information and status
+- `write:servers` - Create, update, or delete servers
+- `read:billing` - View billing information and transactions
+- `read:tickets` - View support tickets
+- `write:tickets` - Create and update support tickets
+- `admin:users` - Administrative access to user accounts (admin only)
+- `admin:billing` - Administrative access to billing functions (admin only)
+- `admin:system` - Administrative access to system settings (admin only)
+
+#### Rate Limiting
+- **100 requests per minute** per API key
+- **429 Too Many Requests** response when exceeded
+- Rate limit headers included in all responses
+
+### 👤 User & Authentication Endpoints
+
+#### User Management
+```bash
+GET    /api/user                           # Get current user profile
+PATCH  /api/user                           # Update user profile
+GET    /api/user/notifications              # Get user notifications
+PATCH  /api/user/notifications/:id/read    # Mark notification as read
 ```
 
-### 🌐 VirtFusion Integration
-```
-POST /api/virtfusion/sync-user              # Sync user with VirtFusion
-GET  /api/virtfusion/usage-stats            # Get VirtFusion usage stats
-POST /api/test-virtfusion-user              # Test VirtFusion API connectivity (admin)
-POST /api/test-virtfusion-credit            # Test credit addition (admin)
-```
-
-### 🎫 Support System
-```
-GET  /api/tickets                      # List user tickets with pagination (page, limit params)
-POST /api/tickets                      # Create new support ticket with department selection
-GET  /api/tickets/:id                  # Get ticket details with VPS server info (when applicable)
-POST /api/tickets/:id/messages         # Add message to ticket
-POST /api/tickets/:id/close            # Close a ticket
-POST /api/tickets/:id/reopen           # Reopen a previously closed ticket
-GET  /api/tickets/:id/download         # Download ticket conversation as PDF
-GET  /api/tickets/:id/messages         # Get all messages for a ticket
-GET  /api/ticket-departments           # Get all available ticket departments
-DELETE /api/tickets/:id                # Delete ticket (admin only)
+#### Authentication
+```bash
+POST   /api/auth/login                     # Authenticate user
+POST   /api/auth/register                  # Create new account
+POST   /api/auth/logout                    # End session
+POST   /api/auth/forgot-password           # Request password reset
+POST   /api/auth/reset-password            # Reset password with token
+POST   /api/auth/change-password           # Change password (authenticated)
+GET    /api/verification-status            # Check email verification
+POST   /api/verification/verify-email      # Verify email with code
+POST   /api/verification/resend            # Resend verification email
 ```
 
-### 📋 Pagination
-The tickets listing endpoints now support pagination:
+### 🖥️ Server Management Endpoints
+
+#### User Server Operations
+```bash
+GET    /api/user/servers                   # List user's servers (paginated)
+GET    /api/user/servers/:id               # Get server details
+POST   /api/user/servers/:id/reset-password # Reset server password
+POST   /api/user/servers/:id/power/:action # Power control (boot/shutdown/restart/poweroff)
+GET    /api/user/servers/:id/vnc           # Get VNC status (toggles state)
+GET    /api/user/servers/:id/traffic       # Get traffic statistics
+GET    /api/user/servers/:id/logs          # Get server action logs
 ```
-GET /api/tickets?page=1&limit=10       # Get first page with 10 items per page
-GET /api/admin/tickets?page=2&limit=25 # Get second page with 25 items per page
+
+#### Server Packages & Plans
+```bash
+GET    /api/server-packages                # Get available server packages
+GET    /api/plan-features                  # Get plan features for public display
+GET    /api/datacenter-locations           # Get datacenter locations
+```
+
+### 💰 Billing & Transaction Endpoints
+
+#### User Billing
+```bash
+GET    /api/billing/balance                # Get account balance
+GET    /api/billing/usage/last30days       # Get 30-day usage statistics
+POST   /api/billing/add-credits            # Add credits to account
+GET    /api/transactions                   # List user transactions
+GET    /api/transactions/:id               # Get transaction details
+GET    /api/transactions/export            # Export transactions as PDF
+
+```
+
+#### PayPal Integration
+```bash
+POST   /api/billing/capture-paypal-payment # Process PayPal payment
+```
+
+### 🎫 Support System Endpoints
+
+#### Ticket Management
+```bash
+GET    /api/tickets                        # List tickets (paginated)
+POST   /api/tickets                        # Create new ticket
+GET    /api/tickets/:id                    # Get ticket details
+POST   /api/tickets/:id/messages           # Add message to ticket
+POST   /api/tickets/:id/close              # Close ticket
+POST   /api/tickets/:id/reopen             # Reopen ticket
+GET    /api/tickets/:id/download           # Download ticket as PDF
+GET    /api/ticket-departments             # Get available departments
+```
+
+### 🔑 API Key Management Endpoints
+
+#### Personal API Keys
+```bash
+GET    /api/user/api-keys                  # List user's API keys
+POST   /api/user/api-keys                  # Create new API key
+DELETE /api/user/api-keys/:id              # Delete API key
+```
+
+### 🛠️ Admin Endpoints (Admin Access Required)
+
+#### User Administration
+```bash
+GET    /api/admin/users                    # List all users
+GET    /api/admin/users/:id                # Get user details
+PATCH  /api/admin/users/:id                # Update user
+DELETE /api/admin/users/:id                # Delete user
+POST   /api/admin/users/:id/reset-password # Reset user password
+PATCH  /api/admin/users/:id/status         # Enable/disable account
+```
+
+#### Server Administration
+```bash
+GET    /api/admin/servers                  # List all servers
+GET    /api/admin/servers/:id              # Get server details
+POST   /api/admin/servers                  # Create server
+DELETE /api/admin/servers/:id              # Delete server
+POST   /api/admin/servers/:id/power/:action # Server power control
+POST   /api/admin/servers/:id/suspend      # Suspend server
+POST   /api/admin/servers/:id/unsuspend    # Unsuspend server
+GET    /api/admin/servers/:id/vnc          # Get VNC status
+POST   /api/admin/servers/:id/vnc/enable   # Enable VNC
+POST   /api/admin/servers/:id/vnc/disable  # Disable VNC
+```
+
+#### Billing Administration
+```bash
+GET    /api/admin/transactions             # List all transactions
+
+POST   /api/credits                        # Add credits to user
+DELETE /api/credits/:id                    # Cancel credit transaction
+```
+
+#### Support Administration
+```bash
+GET    /api/admin/tickets                  # List all tickets (paginated)
+DELETE /api/admin/tickets/:id              # Delete ticket
+```
+
+#### System Administration
+```bash
+GET    /api/admin/settings                 # Get system settings
+POST   /api/admin/settings                 # Update system settings
+GET    /api/admin/platform-stats           # Get platform statistics
+GET    /api/admin/services/status          # Get service status
+POST   /api/admin/maintenance/enable       # Enable maintenance mode
+POST   /api/admin/maintenance/disable      # Disable maintenance mode
+GET    /api/admin/maintenance/generate-token # Generate bypass token
+```
+
+#### Content Management
+```bash
+GET    /api/admin/blog                     # List blog posts
+POST   /api/admin/blog                     # Create blog post
+PATCH  /api/admin/blog/:id                 # Update blog post
+DELETE /api/admin/blog/:id                 # Delete blog post
+GET    /api/admin/faqs                     # List FAQs
+POST   /api/admin/faqs                     # Create FAQ
+PUT    /api/admin/faqs/:id                 # Update FAQ
+DELETE /api/admin/faqs/:id                 # Delete FAQ
+GET    /api/admin/plan-features            # List plan features
+POST   /api/admin/plan-features            # Create plan feature
+PUT    /api/admin/plan-features/:id        # Update plan feature
+DELETE /api/admin/plan-features/:id        # Delete plan feature
+GET    /api/admin/datacenter-locations     # List datacenter locations
+POST   /api/admin/datacenter-locations     # Create location
+PUT    /api/admin/datacenter-locations/:id # Update location
+DELETE /api/admin/datacenter-locations/:id # Delete location
+```
+
+### 🌐 Public Endpoints (No Authentication Required)
+
+#### Public Information
+```bash
+GET    /api/public/service-status          # Get service status
+GET    /api/public/platform-stats          # Get platform statistics
+GET    /api/public/blog                    # Get published blog posts
+GET    /api/public/blog/:slug              # Get blog post by slug
+GET    /api/public/docs                    # Get documentation
+GET    /api/public/packages                # Get available server packages
+GET    /api/settings/public                # Get public settings
+GET    /api/settings/branding              # Get branding information
+```
+
+### 🔧 Maintenance Mode Endpoints
+
+#### Maintenance Management
+```bash
+GET    /api/maintenance/status             # Get maintenance status
+POST   /api/maintenance/toggle             # Enable/disable maintenance mode (admin only)
+GET    /api/maintenance/token              # Get maintenance bypass token (admin only)
+POST   /api/maintenance/token/regenerate   # Regenerate bypass token (admin only)
+POST   /api/maintenance/token/validate     # Validate bypass token
+```
+
+### 🔐 Protected Routes (Authentication Required)
+
+#### User Profile Management
+```bash
+GET    /api/user                           # Get current user profile
+PATCH  /api/user/profile                   # Update user profile
+GET    /api/verification-status            # Check email verification status
+```
+
+#### Password & Authentication Management
+```bash
+POST   /api/auth/request-password-reset    # Request password reset via email
+POST   /api/auth/verify-reset-code         # Verify password reset code
+POST   /api/auth/request-username          # Request username reminder via email
+POST   /api/auth/change-password           # Change password (authenticated users)
+```
+
+#### Server Management (User Access)
+```bash
+GET    /api/user/servers                   # List user's servers (paginated)
+GET    /api/user/servers/:id               # Get specific server details
+POST   /api/user/servers/:id/reset-password # Reset server password
+POST   /api/user/servers/:id/power/:action # Server power control (boot/shutdown/restart/poweroff)
+GET    /api/user/servers/:id/vnc           # Get/toggle VNC status
+GET    /api/user/servers/:id/traffic       # Get server traffic statistics
+GET    /api/user/servers/:id/logs          # Get server action logs
+```
+
+#### Billing & Financial Management
+```bash
+GET    /api/transactions                   # List user transactions
+GET    /api/transactions/:id               # Get specific transaction details
+GET    /api/transactions/export            # Export transactions as PDF
+GET    /api/transactions/:id/download      # Download transaction receipt as PDF
+
+```
+
+#### Resource Management
+```bash
+GET    /api/resource-packs                 # Get available resource packs (returns empty - VirtFusion integration)
+GET    /api/resource-packs/:id             # Get specific resource pack (not implemented)
+GET    /api/ip-addresses                   # Get available IP addresses from VirtFusion
+GET    /api/storage-volumes                # Get storage volumes (returns empty - VirtFusion integration)
+```
+
+### 🛡️ Admin-Only Endpoints (Admin Role Required)
+
+#### Package & Pricing Management
+```bash
+GET    /api/admin/packages                 # Get all VirtFusion packages with pricing
+POST   /api/admin/packages/:id/pricing     # Create/update package pricing
+DELETE /api/admin/packages/:id/pricing     # Delete package pricing
+GET    /api/admin/hypervisors              # Get hypervisor groups for server creation
+```
+
+#### Credit Management
+```bash
+POST   /api/credits                        # Add credits to user account
+DELETE /api/credits/:id                    # Cancel/reverse credit transaction
+```
+
+#### Testing & Development
+```bash
+POST   /api/test-virtfusion-user           # Test VirtFusion user creation (admin only)
+```
+
+#### Resource Pack Management (VirtFusion Integration)
+```bash
+POST   /api/resource-packs                 # Create resource pack (not implemented)
+DELETE /api/resource-packs/:id             # Delete resource pack (not implemented)
+POST   /api/resource-packs/:id/servers     # Manage servers in resource pack (not implemented)
+```
+
+#### Email System Administration
+```bash
+GET    /api/admin/email-logs               # List email logs with filtering
+GET    /api/admin/email-logs/:id           # Get specific email log details
+```
+
+#### Package Template Management
+```bash
+GET    /api/admin/packages/:packageId/templates # Get OS templates for specific package
+```
+
+### 🔌 API-Only Routes (API Key Authentication Only)
+
+These routes are exclusively for API key authentication and cannot be accessed via web sessions:
+
+#### API-Only User Information
+```bash
+GET    /api/me                             # Get current user info (API key only)
+GET    /api/servers                        # Get user servers (API key only)
+GET    /api/balance                        # Get user credit balance (API key only)
+```
+
+### 🔌 V1 API Routes (Versioned API)
+
+The V1 API provides versioned endpoints with enhanced functionality:
+
+#### V1 User & Billing
+```bash
+GET    /api/v1/me                          # Get current user information (enhanced)
+GET    /api/v1/balance                     # Get user credit balance (enhanced)
+```
+
+### 📊 Pagination Support
+
+Many endpoints support pagination with the following parameters:
+```bash
+?page=1&limit=20                          # Page number and items per page
 ```
 
 Response format for paginated endpoints:
 ```json
 {
-  "data": [
-    { "id": 1, "subject": "Ticket Subject", ... },
-    { "id": 2, "subject": "Another Ticket", ... },
-    ...
-  ],
+  "data": [...],
   "pagination": {
-    "total": 45,       // Total number of items
-    "pages": 5,        // Total number of pages
-    "current": 1,      // Current page number
-    "perPage": 10      // Items per page
+    "currentPage": 1,
+    "totalPages": 5,
+    "totalItems": 100,
+    "itemsPerPage": 20
   }
 }
 ```
 
-### ⚙️ Admin User Management
-```
-GET  /api/admin/users                      # List all users with pagination
-GET  /api/admin/users/:id                  # Get user details
-PATCH /api/admin/users/:id                 # Update user information
-DELETE /api/admin/users/:id                # Delete user (with VirtFusion sync)
-POST /api/admin/users/:id/reset-password   # Reset user password (VirtFusion integrated)
-PATCH /api/admin/users/:id/status          # Enable/disable user account
-GET  /api/admin/users/:id/usage            # Get VirtFusion usage data for user
-POST /api/admin/users/:id/virtfusion-credit # Add VirtFusion credits to user
-DELETE /api/admin/users/:id/virtfusion-credit # Remove VirtFusion credits from user
-POST /api/admin/users/:id/sync-virtfusion  # Sync user with VirtFusion
-PUT  /api/admin/users/:id/virtfusion       # Edit VirtFusion user settings
-```
+### ⚠️ Error Handling
 
-### 🖥️ Admin Server Management
-```
-GET  /api/admin/servers                    # List all servers with pagination
-GET  /api/admin/servers/:id                # Get server details with real-time status
-POST /api/admin/servers                    # Create new server
-POST /api/admin/servers/:id/build          # Build server with OS template
-DELETE /api/admin/servers/:id              # Delete server
-POST /api/admin/servers/:id/power/boot     # Boot server
-POST /api/admin/servers/:id/power/shutdown # Shutdown server
-POST /api/admin/servers/:id/power/restart  # Restart server
-POST /api/admin/servers/:id/power/poweroff # Force power off server
-POST /api/admin/servers/:id/suspend        # Suspend server
-POST /api/admin/servers/:id/unsuspend      # Unsuspend server
-POST /api/admin/servers/:id/throttle-cpu   # Apply CPU throttling
-```
+All API endpoints return consistent error responses:
 
-### 🖥️ VNC Management
-```
-GET  /api/admin/servers/:id/vnc            # Get VNC status (toggles state)
-POST /api/admin/servers/:id/vnc/enable     # Enable VNC for server
-POST /api/admin/servers/:id/vnc/disable    # Disable VNC for server
-GET  /api/admin/servers/:id/vnc/test       # Test VNC connectivity
-```
+#### HTTP Status Codes
+- `200` - Success
+- `400` - Bad Request (validation errors)
+- `401` - Unauthorized (authentication required)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found
+- `429` - Too Many Requests (rate limited)
+- `500` - Internal Server Error
 
-### 🔧 Admin System Management
+#### Error Response Format
+```json
+{
+  "error": {
+    "code": "invalid_scope",
+    "message": "The API key does not have the required scope",
+    "required_scope": "write:servers"
+  }
+}
 ```
-GET  /api/admin/packages                   # List VirtFusion packages with pricing
-GET  /api/admin/hypervisors                # List hypervisor groups
-POST /api/admin/packages/:id/pricing       # Create/update package pricing
-DELETE /api/admin/packages/:id/pricing     # Delete package pricing
-GET  /api/admin/packages/:packageId/templates # Get OS templates for package
-GET  /api/admin/transactions               # List all transactions with search
-GET  /api/admin/billing                    # Get billing summary data
-POST /api/admin/settings                   # Update system settings
-GET  /api/admin/settings                   # Get all system settings
-GET  /api/admin/email-logs                 # List email logs with filters
-GET  /api/admin/email-logs/:id             # Get email log details
-```
-
-### 📝 Content Management
-```
-GET  /api/admin/blog                       # List all blog posts
-GET  /api/admin/blog/:id                   # Get blog post details
-POST /api/admin/blog                       # Create new blog post
-PATCH /api/admin/blog/:id                  # Update blog post
-DELETE /api/admin/blog/:id                 # Delete blog post
-GET  /api/admin/faqs                       # List all FAQs
-POST /api/admin/faqs                       # Create new FAQ
-PUT  /api/admin/faqs/:id                   # Update FAQ
-DELETE /api/admin/faqs/:id                 # Delete FAQ
-GET  /api/admin/plan-features              # List all plan features
-POST /api/admin/plan-features              # Create new plan feature
-PUT  /api/admin/plan-features/:id          # Update plan feature
-DELETE /api/admin/plan-features/:id        # Delete plan feature
-GET  /api/admin/datacenter-locations       # List all datacenter locations
-POST /api/admin/datacenter-locations       # Create new datacenter location
-PUT  /api/admin/datacenter-locations/:id   # Update datacenter location
-DELETE /api/admin/datacenter-locations/:id # Delete datacenter location
-GET  /api/admin/legal                      # Get all legal content
-POST /api/admin/legal                      # Create/update legal content
-```
-
-### 🎨 Public & Branding APIs
-```
-GET  /api/settings/branding               # Get company branding information
-GET  /api/settings/public                 # Get all public settings
-GET  /api/plan-features                   # Get active plan features for public display
-GET  /api/public/packages                 # Get all VirtFusion packages (public)
-GET  /api/package-pricing                 # Get pricing information for all packages
-GET  /api/datacenter-locations            # Get all datacenter locations for map
-GET  /api/public/platform-stats           # Get platform-wide statistics
-GET  /api/faqs                            # Get all public FAQ items
-GET  /api/public/blog                     # Get all published blog posts
-GET  /api/public/blog/:slug               # Get specific blog post by slug
-GET  /api/public/docs                     # Get all public documentation pages
-```
-
-### 🔑 SSO & Authentication Tokens
-```
-POST /api/sso/virtfusion/token            # Generate VirtFusion panel access token
-POST /api/sso/virtfusion/server/:id/token # Generate server-specific access token (deprecated)
-```
-
-### 🛠️ Maintenance Mode
-```
-GET  /api/maintenance/status               # Get maintenance mode status
-POST /api/maintenance/toggle               # Toggle maintenance mode on/off (admin only)
-GET  /api/maintenance/token                # Get current maintenance bypass token (admin only)
-POST /api/maintenance/token/regenerate     # Generate new maintenance bypass token (admin only)
-POST /api/maintenance/validate-token       # Validate maintenance bypass token from form submission
-```
-
-### 🔑 API Key Management
-```
-GET  /api/api-keys                        # List user's API keys
-POST /api/api-keys                        # Create new API key
-DELETE /api/api-keys/:id                  # Delete API key
-GET  /api/admin/api-keys                  # List all API keys (admin only)
-```
-
-#### API Key Authentication
-API keys can be used to authenticate requests by including them in the Authorization header:
-```
-Authorization: Bearer your_api_key_here
-```
-
-Supported scopes:
-- `read:user` - Read user profile information
-- `read:servers` - Read server information
-- `read:billing` - Read billing and transaction data
-- `write:tickets` - Create and manage support tickets
-
-#### Maintenance Mode Bypass Methods
-
-The system supports several methods for bypassing maintenance mode:
-
-1. **Admin User Session**: Administrators remain logged in during maintenance mode
-2. **Maintenance Token**: Use a special token in the URL (`?maintenance_token=xxx`)
-3. **Cookie-Based Bypass**: Browser cookie that persists across sessions
-4. **Form Submission**: Enter token on maintenance page for temporary bypass
-
-JavaScript resources like share-modal.js are properly loaded during maintenance mode to ensure the page functions correctly. The middleware checks for bypass conditions before blocking access to resources.
 
 ---
 
@@ -412,7 +544,7 @@ Create a `.env` file with the following variables:
 DATABASE_URL=postgres://username:password@hostname:port/database
 
 # Session Management
-SESSION_SECRET=your_secure_random_string
+SESSION_SECRET=your_secure_random_string_here
 
 # VirtFusion API Integration
 VIRTFUSION_API_URL=https://your-virtfusion.com/api/v1
@@ -421,7 +553,7 @@ VIRTFUSION_API_KEY=your_virtfusion_api_key
 # Email Configuration (SMTP2GO)
 SMTP2GO_API_KEY=your_smtp2go_api_key
 SMTP_FROM=noreply@your-domain.com
-SMTP_FROM_NAME=SkyVPS360 Support
+SMTP_FROM_NAME=Your Company Support
 
 # Discord Integration (Optional)
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/your-webhook-url
@@ -433,6 +565,12 @@ DISCORD_GUILD_ID=your_discord_server_id
 DISCORD_CHANNEL_ID=your_discord_channel_id
 DISCORD_ALLOWED_ROLE_IDS=role_id_1,role_id_2
 DISCORD_ALLOWED_USER_IDS=user_id_1,user_id_2
+
+# Google AI Integration
+GOOGLE_AI_API_KEY=your_google_gemini_api_key
+
+# BetterStack Monitoring (Optional)
+BETTERSTACK_API_KEY=your_betterstack_api_key
 
 # PayPal Configuration
 VITE_PAYPAL_SANDBOX=true_or_false
@@ -454,7 +592,7 @@ NODE_ENV=development
 ```bash
 # Clone the repository
 git clone https://github.com/skyvps360/SkyPANEL.git
-cd skyvps360-portal
+cd SkyPANEL
 
 # Install dependencies
 npm install
@@ -475,75 +613,17 @@ npm run build
 npm start
 ```
 
-### Updating Packages
+### Package Management
 
-To keep your packages up to date and ensure your application is secure, you can use the `npm-check-updates` tool. This tool will check for any outdated packages and update them to the latest versions.
+To keep your packages up to date:
 
-1. Install `npm-check-updates` globally if you haven't already:
-   ```bash
-   npm install -g npm-check-updates
-   ```
+```bash
+# Check for outdated packages and update them
+npm run update-packages
 
-2. To check for outdated packages and update them, run the following command:
-   ```bash
-   npm run update-packages
-   ```
-
-This will update your `package.json` with the latest versions of your dependencies. After updating, make sure to run `npm install` to install the updated packages.
-
----
-
-## 🎨 Brand Theming System
-
-SkyVPS360 implements a comprehensive brand theming system that allows dynamic customization of the application's appearance through an advanced color management system.
-
-### Color System Overview
-
-The brand theming system uses three main colors:
-
-- **Primary Color**: Used for primary buttons, navigation links, and important UI elements
-- **Secondary Color**: Used for secondary actions, accents, and supporting elements
-- **Accent Color**: Used for highlights, callouts, badges, and attention-grabbing elements
-
-### Color Management Features
-
-- **Interactive Color Pickers**: Visual color selection tools in admin settings
-- **Hex Code Input**: Direct hex code entry for precise color control
-- **Color Presets**: Quick-selection options for harmonious color combinations
-- **Real-time Preview**: Live preview of color choices on UI components
-- **Color Transformations**: Automatic generation of light/dark/opacity variations
-- **Shadcn UI Integration**: Seamless integration with component library via CSS variables
-
-### Implementation Details
-
-- Colors are stored in the database as hex values (without # prefix)
-- CSS variables are generated at runtime and applied to the document root
-- Integration with Shadcn UI's theming system enables consistent styling
-- Backward compatibility with legacy `companyColor` setting is maintained
-- Comprehensive color variations (light, extraLight, dark, border, etc.) for each brand color
-
-### Admin Configuration
-
-To customize brand colors:
-
-1. Navigate to **Admin → Settings → General**
-2. In the **Brand Colors** section:
-   - Use color pickers by clicking on color swatches
-   - Enter hex codes directly in the input fields
-   - Select from preset colors for quick styling
-3. See real-time previews of how colors will appear in UI elements
-4. Click **Save Changes** to apply the new color scheme globally
-
-### Technical Implementation
-
-The brand theming system is implemented in `client/src/lib/brand-theme.ts` with these key functions:
-
-- `getBrandColors()`: Generates color variations for each brand color
-- `hexToHSL()`: Converts hex colors to HSL format for Shadcn UI integration
-- `applyBrandColorVars()`: Applies color variables to the document root
-- `applyToShadcnTheme()`: Updates Shadcn UI theme variables
-
-For more details on the technical implementation, see the [brand-theme.md](./brand-theme.md) documentation file.
+# Install updated packages
+npm install
+```
 
 ---
 
@@ -551,171 +631,137 @@ For more details on the technical implementation, see the [brand-theme.md](./bra
 
 ### Setting Up VirtFusion API Access
 
-1. Obtain API credentials from your VirtFusion admin panel
-2. Configure the `VIRTFUSION_API_URL` and `VIRTFUSION_API_KEY` environment variables
-3. Test connectivity using the admin test endpoints
+1. **Obtain API Credentials**: Get your API URL and key from VirtFusion admin panel
+2. **Configure Environment**: Set `VIRTFUSION_API_URL` and `VIRTFUSION_API_KEY`
+3. **Test Connectivity**: Use admin test endpoints to verify connection
 
 ### User Integration
 
-When integrating with VirtFusion, the application handles user mapping through:
+SkyPANEL handles VirtFusion user mapping through:
 
-1. **External Relation ID Mapping**: For API endpoints requiring `extRelationId`, we use the local `user.id` as the parameter, not `user.virtFusionId`
-   - **IMPORTANT**: All VirtFusion API calls use our local user ID as the extRelationId parameter in URLs and requests
-   - Example: `/users/{extRelationId}/byExtRelation/resetPassword` uses our local user.id value
-2. **User Profile Sync**: When users update their profiles, we sync:
-   - Username/name changes (VirtFusion API supports this)
-   - Email changes (VirtFusion API supports this)
-   - Password resets (Using VirtFusion's API-generated passwords)
+#### External Relation ID Mapping
+- **IMPORTANT**: All VirtFusion API calls use our local `user.id` as the `extRelationId` parameter
+- Example: `/users/{extRelationId}/byExtRelation/resetPassword` uses local user.id value
+- This ensures proper mapping between SkyPANEL users and VirtFusion accounts
 
-### Password Integration with VirtFusion
+#### User Profile Synchronization
+When users update their profiles, we sync:
+- **Username/Name Changes**: Automatically synced to VirtFusion
+- **Email Changes**: Updated in both systems simultaneously
+- **Password Resets**: Uses VirtFusion API-generated secure passwords
 
-The password reset process now fully integrates with VirtFusion:
+### Password Integration
 
-1. Admin or user initiates a password reset
-2. System makes a POST request to VirtFusion API: `/users/{extRelationId}/byExtRelation/resetPassword`
-3. VirtFusion returns a secure temporary password in the response
-4. System updates local database with the hashed VirtFusion-generated password
-5. Both systems maintain password synchronization
+The password reset process fully integrates with VirtFusion:
+
+1. **Admin/User Initiates Reset**: Password reset triggered from either interface
+2. **VirtFusion API Call**: POST to `/users/{extRelationId}/byExtRelation/resetPassword`
+3. **Secure Password Generation**: VirtFusion returns cryptographically secure password
+4. **Database Update**: Local database updated with hashed VirtFusion password
+5. **Synchronization**: Both systems maintain password consistency
 
 ```javascript
-// Example of a VirtFusion password reset API call
+// Example VirtFusion password reset
 const response = await virtFusionApi.resetUserPassword(user.id);
-// Response format: {"data": {"email": "user@example.com", "password": "secureGeneratedPassword"}}
 const temporaryPassword = response.data.password;
 ```
 
-### Hourly Statistics Integration
+### Resource Usage Tracking
 
-For resource usage tracking:
+For billing and monitoring:
+
 ```javascript
-// Example: Fetching hourly statistics
+// Fetch hourly statistics from VirtFusion
 const response = await axios.get(
   `${apiBaseUrl}/selfService/hourlyStats/byUserExtRelationId/${userId}`,
   { headers: { Authorization: `Bearer ${apiToken}` } }
 );
 
-// Parse the monthly total (handling both number and string formats)
+// Parse monthly usage data
 const monthlyTotal = parseFloat(response.data.monthlyTotal.value);
 ```
 
----
+### Server Management Integration
 
-## 📝 Blog System
-
-The application includes a comprehensive blog system with both admin and public-facing interfaces.
-
-### Blog Features
-
-- **Admin Management Interface**: Complete CRUD operations for blog posts
-- **Rich Text Editing**: Format posts with headings, lists, code blocks, and more
-- **Featured Images**: Upload and manage images for blog posts
-- **SEO-Friendly URLs**: Automatic slug generation from post titles
-- **Publishing Control**: Schedule posts or save as drafts
-- **Author Attribution**: Associate posts with specific admin authors
-- **Categories and Tags**: Organize posts for better discoverability
-- **Featured Posts**: Highlight important articles on the homepage
-- **Date Formatting**: Proper localized date display for posts
-- **ZOD Validation**: Comprehensive server-side validation using Zod schemas with proper date coercion
-
-### Blog Data Model
-
-Each blog post contains:
-- **Title**: The post headline
-- **Slug**: URL-friendly identifier generated from the title
-- **Content**: Rich text body content
-- **Author**: Admin who created the post
-- **Published Date**: When the post was published
-- **Status**: Draft, published, or scheduled
-- **Featured Image**: Optional header image URL
-- **Meta Description**: SEO-friendly summary for search engines
-
-## ❓ FAQ System
-
-The application includes a FAQ system for common questions and support information.
-
-### FAQ Features
-
-- **Categorized Questions**: Group related questions for better organization
-- **Accordion Interface**: Expandable/collapsible answers for better readability
-- **Admin Management**: Full CRUD operations for FAQ items in admin panel
-- **Search Functionality**: Find answers quickly with integrated search
-- **Priority Ordering**: Arrange FAQs by importance or frequency
-- **Rich Text Answers**: Format answers with lists, links, and formatting
-- **Public API**: Access FAQs programmatically for third-party integration
-
-### FAQ Data Model
-
-Each FAQ item contains:
-- **Question**: The question text
-- **Answer**: Detailed response with optional formatting
-- **Category**: Grouping classification (e.g., "Billing", "Technical")
-- **Priority**: Numeric ordering value for display sequence
-- **Status**: Active or inactive state
-
-## 🗺️ Datacenter Map
-
-The application features an interactive world map displaying datacenter locations with real-time visualization.
-
-### Map Features
-
-- **Stylized World Map**: Modern design with continental outlines and grid patterns
-- **Location-list Interface**: Sidebar with regions and locations for easy selection
-- **Non-interactive Map Markers**: Visual indicators that don't have cursor interaction issues
-- **Region-Based Coloring**: Different colors for markers based on geographic region
-- **Responsive Design**: Map adapts seamlessly to different screen sizes
-- **Admin Management**: Full CRUD operations for datacenter locations in admin panel
-- **Dynamic Updates**: Map automatically reflects changes from admin interface
-
-### Datacenter Location Management
-
-Administrators can manage datacenter locations through the admin interface:
-
-1. **Adding Locations**: Create new datacenter entries with name, code, and coordinates
-2. **Editing Locations**: Update existing datacenter information and positioning
-3. **Removing Locations**: Delete unused or deprecated datacenter locations
-4. **Status Management**: Mark datacenter locations as active or inactive
-
-### Location Data Structure
-
-Each datacenter location contains:
-- **Code**: Short identifier (e.g., "ASH", "DFW", "LON")
-- **Name**: Full name (e.g., "Ashburn", "Dallas-Fort Worth", "London")
-- **Coordinates**: Latitude and longitude for map positioning
-- **Status**: Active or inactive state
-- **Region**: Geographic region for grouping and color-coding
-
-### Implementation Details
-
-The datacenter map is implemented using:
-- **SVG-Based Rendering**: For crisp visuals at any resolution
-- **React Components**: Modular approach for maintainability
-- **CSS Animations**: For marker pulsing effects and transitions
-- **Dynamic Styling**: Automatically applies appropriate colors based on region
-- **Optimized Performance**: Minimal re-renders even with many location markers
+- **Real-Time Status**: Live server state monitoring
+- **Power Control**: Direct VirtFusion power management
+- **Resource Monitoring**: CPU, memory, disk, and network statistics
+- **VNC Access**: Integrated VNC console management
+- **Traffic Statistics**: Bandwidth usage tracking
 
 ---
 
-## 🔊 Discord Integration
+## 🎨 Brand Theming System
 
-The portal offers comprehensive Discord integration with both webhook notifications and a two-way communication system through a Discord bot.
+SkyPANEL implements a comprehensive brand theming system for dynamic customization.
+
+### Color System Overview
+
+The theming system uses three main brand colors:
+
+- **Primary Color**: Main buttons, navigation, and primary UI elements
+- **Secondary Color**: Secondary actions, accents, and supporting elements
+- **Accent Color**: Highlights, callouts, badges, and attention elements
+
+### Features
+
+- **Interactive Color Pickers**: Visual color selection in admin settings
+- **Hex Code Input**: Direct hex code entry for precise control
+- **Color Presets**: Quick-selection harmonious color combinations
+- **Real-time Preview**: Live preview of color changes on UI components
+- **Automatic Variations**: Generated light/dark/opacity variations
+- **Shadcn UI Integration**: Seamless integration via CSS variables
+
+### Implementation
+
+Colors are stored in the database and applied dynamically:
+
+- **Database Storage**: Hex values stored without # prefix
+- **Runtime Generation**: CSS variables generated and applied to document root
+- **Component Integration**: Shadcn UI components automatically use brand colors
+- **Backward Compatibility**: Legacy `companyColor` setting maintained
+
+### Admin Configuration
+
+To customize brand colors:
+
+1. Navigate to **Admin → Settings → General**
+2. Use the **Brand Colors** section:
+   - Click color swatches to open color pickers
+   - Enter hex codes directly in input fields
+   - Select from preset color combinations
+3. Preview changes in real-time
+4. Click **Save Changes** to apply globally
+
+### Technical Implementation
+
+Key functions in `client/src/lib/brand-theme.ts`:
+
+- `getBrandColors()`: Generates color variations for each brand color
+- `hexToHSL()`: Converts hex colors to HSL for Shadcn UI
+- `applyBrandColorVars()`: Applies variables to document root
+- `applyToShadcnTheme()`: Updates Shadcn UI theme variables
+
+---
+
+## 💬 Discord Integration
+
+SkyPANEL offers comprehensive Discord integration with webhook notifications and a powerful two-way communication bot.
 
 ### Webhook Notifications
 
 #### Setup Process
-
-1. Create a Discord webhook in your server settings
-2. Configure the webhook URL in the admin panel or environment variables
-3. Optionally add a role ID for mentions in notifications
+1. **Create Discord Webhook**: Set up webhook in your Discord server settings
+2. **Configure URL**: Add webhook URL to admin panel or environment variables
+3. **Role Mentions**: Optionally configure role ID for notifications
 
 #### Notification Types
-
-- **Ticket Created**: When a new support ticket is submitted
-- **Ticket Replied**: When users or admins add replies to tickets
-- **Ticket Status Changed**: When tickets are opened, closed, or status changes
-- **Ticket Deleted**: When an admin deletes a ticket
+- **Ticket Events**: Creation, replies, status changes, and deletions
+- **System Alerts**: Maintenance mode and service status updates
+- **Billing Events**: Payment confirmations and transaction updates
+- **User Events**: Registration and account changes
 
 #### Example Webhook Payload
-
 ```javascript
 const payload = {
   content: roleId ? `<@&${roleId}>` : '',
@@ -728,7 +774,7 @@ const payload = {
       { name: 'User', value: userName, inline: true },
       { name: 'Priority', value: ticket.priority || 'Medium', inline: true },
     ],
-    footer: { text: `SkyVPS360 - ${companyName}` },
+    footer: { text: `SkyPANEL - ${companyName}` },
     timestamp: new Date().toISOString()
   }]
 };
@@ -736,880 +782,803 @@ const payload = {
 
 ### Discord Bot Integration
 
-The system includes a powerful Discord bot for two-way ticket management directly from Discord.
+The system includes a powerful Discord bot for two-way ticket management.
 
-#### Key Bot Features
+#### Bot Commands
 
-- **Two-way Communication**: Support staff can respond to tickets directly in Discord threads
-- **Thread Creation**: Automatically creates a Discord thread for each new ticket
-- **Status Commands**: Close, reopen, or change ticket status directly from Discord
-- **Message Sync**: All messages from Discord are synced back to the ticket system
-- **Permission System**: Role-based and user-based permission controls for ticket commands
-- **Interactive Buttons**: Clickable buttons for ticket actions like reopening closed tickets
-
-#### Permission System
-
-Administrators can control who can interact with tickets through Discord by setting:
-
-1. **Allowed Role IDs**: Specific Discord role IDs that can use ticket commands
-2. **Allowed User IDs**: Specific Discord user IDs that can use ticket commands
-
-This granular permission system allows for proper support team management and access control.
-
-#### Example Command Handling
-
-```javascript
-// Check if the user is allowed to use ticket commands
-const isAllowed = await this.isUserAllowed(interaction.user.id, member);
-
-if (!isAllowed) {
-  await interaction.reply({
-    content: 'You do not have permission to use this command. Only authorized roles or users can manage tickets.',
-    ephemeral: true
-  });
-  return;
-}
-```
-
----
-
-## 💵 Billing & Transaction System
-
-### Transaction Types
-
-- **Credit Purchase**: Adding credits via PayPal
-- **Credit Usage**: Deductions for VirtFusion resource usage
-- **Credit Refund**: Refunds to user accounts
-- **Credit Addition**: Manual additions by admins
-
-### Invoice Generation
-
-The system automatically generates PDF invoices for all transactions with:
-
-1. Professional formatting and branding
-2. Complete transaction details including IDs
-3. Tax calculations based on system settings
-4. Proper date formatting and due dates when applicable
-
-### Customizing PDF Invoices
-
-The invoice PDF generation now uses the dynamic company name from settings instead of hardcoded values:
-
-```javascript
-// Company information - Using dynamic company name from settings
-const companyName = await db.query.settings.findFirst({
-  where: eq(schema.settings.key, 'company_name')
-});
-const displayName = companyName?.value || 'SkyVPS360';
-
-doc.fontSize(20).font('Helvetica-Bold').text(displayName, { align: 'center' });
-doc.moveDown(0.5);
-doc.fontSize(12).font('Helvetica').text('your-domain.com', { align: 'center' });
-doc.text('Email: support@your-domain.com', { align: 'center' });
-
-// Footer information
-const footerY = doc.page.height - 100;
-doc.fontSize(10).font('Helvetica');
-doc.text('Thank you for your business!', 50, footerY, { align: 'center' });
-doc.text(`Questions? Contact support@${domain}`, 50, footerY + 15, { align: 'center' });
-```
-
----
-
-## 🤖 Discord Bot Integration
-
-SkyPANEL features a comprehensive Discord bot that bridges your hosting platform with Discord, providing AI-powered support, real-time monitoring, and seamless ticket management.
-
-### 🎯 Bot Commands
-
-#### `/ask` - AI-Powered Support
-- **Purpose**: Get intelligent responses to technical questions using Google Gemini AI
+##### `/ask` - AI-Powered Support
+- **Purpose**: Get intelligent responses using Google Gemini AI
 - **Usage**: `/ask question: How do I reset my VPS password?`
 - **Features**:
-  - Context-aware responses based on your hosting environment
-  - Integration with company branding and policies
-  - Rate limiting to prevent abuse
-  - Content moderation for safety
+  - Context-aware responses based on hosting environment
+  - Company branding and policy integration
+  - Rate limiting and content moderation
   - Fallback to human support when needed
 
-#### `/status` - Platform Monitoring
-- **Purpose**: Display real-time platform status and infrastructure health
+##### `/status` - Platform Monitoring
+- **Purpose**: Display real-time platform status and health
 - **Usage**: `/status`
 - **Features**:
   - Live service availability indicators
   - BetterStack integration for monitoring data
   - Incident reporting and history
   - SLA monitoring and uptime statistics
-  - Fancy embedded messages with pagination
-  - Available anywhere in Discord (not restricted to ticket threads)
+  - Available anywhere in Discord (not restricted to threads)
 
-#### `/ticket` - Support Management
+##### `/ticket` - Support Management
 - **Purpose**: Manage support tickets directly from Discord
 - **Available Commands**:
   - `/ticket close` - Close the current ticket thread
   - `/ticket reopen` - Reopen a closed ticket thread
 - **Features**:
-  - Two-way synchronization between Discord and ticket system
+  - Two-way synchronization with ticket system
   - Automatic thread creation for new tickets
-  - Status updates reflected in both platforms
+  - Status updates in both platforms
   - Interactive buttons for quick actions
 
-### 🔐 Permission System
+#### Permission System
 
-The Discord bot includes a sophisticated permission system:
+The Discord bot includes sophisticated access control:
 
-- **Role-Based Access**: Configure which Discord roles can use bot commands
-- **User-Specific Permissions**: Grant access to individual Discord users
-- **Admin Interface**: Manage permissions through the SkyPANEL admin panel
+- **Role-Based Access**: Configure which Discord roles can use commands
+- **User-Specific Permissions**: Grant access to individual users
+- **Admin Interface**: Manage permissions through SkyPANEL admin panel
 - **Granular Control**: Different permission levels for different commands
 - **Security**: Prevents unauthorized access to sensitive operations
 
-### 🔄 Two-Way Integration
+#### Two-Way Integration Features
 
-- **Ticket Creation**: New tickets automatically create Discord threads
-- **Message Sync**: Messages posted in Discord sync to the ticket system
-- **Status Updates**: Ticket status changes reflect in Discord thread names
-- **Notifications**: Real-time notifications for ticket updates
-- **Thread Management**: Automatic archiving and unarchiving based on ticket status
+- **Automatic Thread Creation**: New tickets create Discord threads
+- **Message Synchronization**: Discord messages sync to ticket system
+- **Status Reflection**: Ticket status changes update Discord thread names
+- **Real-Time Notifications**: Instant notifications for ticket updates
+- **Thread Management**: Automatic archiving based on ticket status
 
 ---
 
-## 🖥️ VNC Console
+## 🤖 AI-Powered Support
 
-SkyPANEL includes a built-in VNC client that provides direct access to your VPS servers through a web browser, eliminating the need for external VNC software.
+SkyPANEL integrates Google Gemini 2.5 Flash for intelligent customer support automation.
 
-### 🌟 Key Features
+### AI Features
 
-- **Browser-Based**: No software installation required - works in any modern web browser
-- **Real-Time Control**: Full mouse and keyboard control with live desktop streaming
-- **VirtFusion Integration**: Seamless enable/disable VNC through VirtFusion API
-- **Automatic Management**: Intelligent connection handling with retry logic
-- **Security**: Secure authentication using VirtFusion server credentials
-- **Cross-Platform**: Compatible with Windows, macOS, Linux, and mobile devices
+#### Intelligent Response Generation
+- **Context-Aware**: AI understands ticket context and history
+- **Company Branding**: Responses include company-specific information
+- **Technical Accuracy**: Trained on hosting and VPS management topics
+- **Fallback Handling**: Graceful degradation when AI cannot help
 
-### 🔧 Technical Implementation
+#### Content Safety & Moderation
+- **Built-in Filters**: Automatic content moderation for safety
+- **Rate Limiting**: Prevents API abuse and manages costs
+- **Error Handling**: Robust fallback mechanisms for API failures
+- **Audit Logging**: Complete logging of AI interactions
 
-- **Custom VNC Client**: Built specifically for SkyPANEL using modern web technologies
-- **WebSocket Connection**: Real-time communication for responsive control
-- **Framebuffer Updates**: Efficient screen updates for smooth performance
-- **Connection Timeouts**: 30+ second timeouts for reliable connectivity
+### Implementation
+
+#### Discord Bot Integration
+```javascript
+// AI-powered /ask command
+const aiResponse = await geminiService.generateResponse(question, {
+  context: 'hosting_support',
+  company: companyName,
+  user: interaction.user.id
+});
+```
+
+#### Support Ticket Assistance
+- **Response Suggestions**: AI suggests responses for support agents
+- **Ticket Classification**: Automatic categorization and priority assignment
+- **Knowledge Base**: AI draws from documentation and FAQs
+- **Escalation Detection**: Identifies when human intervention is needed
+
+#### Configuration
+
+AI features can be configured in the admin panel:
+
+- **API Key Management**: Secure Google AI API key storage
+- **Response Templates**: Customizable AI response templates
+- **Rate Limiting**: Configurable usage limits and quotas
+- **Content Filters**: Adjustable safety and moderation settings
+
+---
+
+## 🌐 VNC Console
+
+SkyPANEL includes a built-in web-based VNC client for direct server access.
+
+### Key Features
+
+#### Browser-Based Access
+- **No Software Required**: Works in any modern web browser
+- **Cross-Platform**: Compatible with Windows, macOS, Linux, and mobile
+- **Real-Time Control**: Full mouse and keyboard control with live streaming
+- **Responsive Design**: Adapts to different screen sizes and devices
+
+#### VirtFusion Integration
+- **Seamless Management**: Enable/disable VNC through VirtFusion API
+- **Automatic Configuration**: Retrieves VNC credentials automatically
+- **Security**: Uses VirtFusion server authentication
+- **Status Monitoring**: Real-time VNC connection status
+
+### Technical Implementation
+
+#### Custom VNC Client
+- **Modern Web Technologies**: Built specifically for SkyPANEL
+- **WebSocket Communication**: Real-time data transmission
+- **Framebuffer Updates**: Efficient screen rendering for smooth performance
+- **Protocol Support**: Full VNC RFB protocol implementation
+
+#### Connection Management
+- **Automatic Retry**: Exponential backoff for connection failures
+- **Timeout Handling**: 30+ second timeouts for reliable connectivity
 - **Port Testing**: Automatic testing of multiple VNC ports (5900-5910)
-- **Exponential Backoff**: Smart retry patterns for connection failures
+- **Error Recovery**: Intelligent error handling and recovery
 
-### 🚀 Usage
+### Usage Instructions
 
-1. **Access VNC Console**: Navigate to server details in the admin panel
-2. **Enable VNC**: Click "Enable VNC" to activate VNC on the server
-3. **View Connection Details**: See IP, port, and password information
-4. **Connect**: Click "Open VNC Console" to launch the web-based client
-5. **Control Server**: Use mouse and keyboard to interact with the server desktop
+#### For Users
+1. **Navigate to Server**: Go to server details in user dashboard
+2. **Check VNC Status**: View current VNC connection status
+3. **Request Access**: Contact admin if VNC is not enabled
+4. **Connect**: Click "Open VNC Console" when available
 
-### 🔒 Security Features
+#### For Administrators
+1. **Access Admin Panel**: Navigate to server management
+2. **Enable VNC**: Click "Enable VNC" for the target server
+3. **View Credentials**: See IP, port, and password information
+4. **Launch Console**: Click "Open VNC Console" to access server
+5. **Manage Access**: Enable/disable VNC as needed
 
-- **VirtFusion Authentication**: Uses existing VirtFusion server credentials
-- **Secure Connections**: All VNC traffic is properly authenticated
-- **Admin Access**: VNC console access restricted to authorized administrators
-- **Session Management**: Automatic cleanup of inactive VNC sessions
+### Security Features
+
+#### Authentication & Access Control
+- **VirtFusion Credentials**: Uses existing server authentication
+- **Admin Restrictions**: VNC console access limited to administrators
+- **Secure Connections**: All VNC traffic properly authenticated
+- **Session Management**: Automatic cleanup of inactive sessions
+
+#### Audit & Logging
+- **Access Logging**: Complete logs of VNC access attempts
+- **Action Tracking**: Records of VNC enable/disable operations
+- **Security Monitoring**: Detection of unauthorized access attempts
+- **Compliance**: Audit trails for security compliance
+
+---
+
+## 💵 Billing & Transaction System
+
+SkyPANEL provides a comprehensive billing system with credit-based payments and professional invoicing.
+
+### Transaction Types
+
+#### Credit Operations
+- **Credit Purchase**: Adding credits via PayPal payment processing
+- **Credit Usage**: Automatic deductions for VirtFusion resource usage
+- **Credit Refund**: Refunds processed to user accounts
+- **Credit Addition**: Manual credit additions by administrators
+
+#### Transaction Management
+- **Real-Time Processing**: Instant transaction processing and confirmation
+- **Audit Trail**: Complete transaction history with detailed logging
+- **Status Tracking**: Pending, completed, failed, and canceled statuses
+- **Reference Tracking**: PayPal transaction IDs and internal references
+
+### Transaction Export System
+
+The system provides professional PDF export functionality for transaction records:
+
+#### Features
+- **Professional Formatting**: Clean, branded transaction records
+- **Complete Details**: Transaction IDs, dates, amounts, and descriptions
+- **Export Options**: PDF export for users and administrators
+- **Company Branding**: Dynamic company name and logo integration
+
+#### Customization
+```javascript
+// Dynamic company branding in transaction exports
+const companyName = await db.query.settings.findFirst({
+  where: eq(schema.settings.key, 'company_name')
+});
+const displayName = companyName?.value || 'SkyPANEL';
+
+// Professional transaction export formatting
+doc.fontSize(20).font('Helvetica-Bold').text(displayName, { align: 'center' });
+doc.text('support@your-domain.com', { align: 'center' });
+```
+
+### PayPal Integration
+
+#### Payment Processing
+- **Secure Payments**: PayPal JavaScript SDK integration
+- **Webhook Validation**: Automatic payment verification
+- **Sandbox Support**: Development and testing environment
+- **Multi-Currency**: Configurable currency support (USD default)
+
+#### Configuration
+```bash
+# PayPal Environment Variables
+VITE_PAYPAL_SANDBOX=true_or_false
+VITE_PAYPAL_CLIENT_ID=your_paypal_client_id
+VITE_PAYPAL_SECRET=your_paypal_secret
+VITE_PAYPAL_CURRENCY=USD
+```
+
+### VirtFusion Billing Integration
+
+#### Automatic Billing
+- **Usage Tracking**: Real-time resource usage monitoring
+- **Credit Deduction**: Automatic billing based on VirtFusion usage
+- **Synchronization**: Two-way credit sync between systems
+- **Reporting**: Detailed usage reports and analytics
+
+#### Credit Management
+```javascript
+// Add credits to VirtFusion account
+await virtFusionApi.addCreditToUser(user.id, {
+  tokens: amount,
+  reference_1: Date.now(),
+  reference_2: `Added via SkyPANEL by ${admin.username}`
+});
+```
 
 ---
 
 ## 👥 User Management
 
+SkyPANEL provides comprehensive user management with VirtFusion integration.
+
 ### User Registration Flow
 
-1. User submits registration form
-2. Account is created with email verification required
-3. Verification email is sent with unique code
-4. User confirms email by entering verification code
-5. Account is marked as verified and gains full access
+#### Account Creation Process
+1. **Registration Form**: User submits registration with email verification
+2. **Account Creation**: Account created with pending verification status
+3. **Email Verification**: Unique verification code sent via email
+4. **Code Confirmation**: User enters verification code to activate account
+5. **Account Activation**: Account marked as verified with full access
 
-### Password Reset Process
+#### VirtFusion Integration
+- **Automatic Sync**: New users automatically created in VirtFusion
+- **External Relation ID**: Local user ID used as VirtFusion extRelationId
+- **Profile Sync**: Real-time synchronization of profile changes
+- **Credit Sync**: Automatic credit balance synchronization
 
-#### For Forgotten Passwords
-1. User requests password reset via email
-2. Secure reset token is generated and emailed
-3. User verifies identity with token
-4. New password is set and secured with bcrypt hashing
-5. User is notified of successful password reset
+### Password Management
 
-#### Admin-Triggered Reset
-1. Admin initiates password reset from user management page
-2. System calls VirtFusion API to generate secure temporary password
-3. Password is synchronized between dashboard and VirtFusion
-4. Admin can view and copy the temporary password
-5. User receives email notification with temporary password
+#### User-Initiated Password Reset
+1. **Forgot Password**: User requests reset via email
+2. **Secure Token**: Cryptographically secure reset token generated
+3. **Email Delivery**: Reset link sent to user's email address
+4. **Token Verification**: User verifies identity with token
+5. **Password Update**: New password set and synced with VirtFusion
 
-#### User-Initiated Reset (Profile Page)
-1. User enters current password on profile page
-2. System calls VirtFusion API to generate secure temporary password
-3. Password is synchronized between dashboard and VirtFusion
-4. User sees temporary password in modal dialog with copy functionality
-5. Confirmation email is sent with the new temporary password
+#### Admin-Triggered Password Reset
+1. **Admin Initiation**: Admin triggers reset from user management
+2. **VirtFusion API**: System calls VirtFusion password reset API
+3. **Secure Generation**: VirtFusion generates cryptographically secure password
+4. **System Sync**: Password synchronized between both systems
+5. **Notification**: User receives email with temporary password
+
+#### Profile Password Reset
+1. **Current Password**: User enters current password for verification
+2. **VirtFusion API**: System generates new secure password via API
+3. **Modal Display**: Temporary password shown in modal with copy function
+4. **Email Confirmation**: Confirmation email sent with new password
+5. **System Sync**: Password updated in both systems
 
 ### Profile Management
 
-Users can update:
-- Full name/username (synced with VirtFusion)
-- Email address (synced with VirtFusion)
-- Password (synced with VirtFusion using API-generated secure passwords)
+#### Synchronized Fields
+- **Full Name/Username**: Real-time sync with VirtFusion user accounts
+- **Email Address**: Updated simultaneously in both systems
+- **Password**: VirtFusion API-generated secure passwords
+- **Account Status**: Active/inactive status synchronized
+- **Credit Balance**: Real-time credit balance synchronization
+
+#### Admin User Management
+- **User Search**: Advanced search and filtering capabilities
+- **Bulk Operations**: Mass user operations and updates
+- **Role Management**: Admin and user role assignments
+- **Account Control**: Enable/disable user accounts
+- **Credit Management**: Manual credit adjustments and tracking
 
 ---
 
-## 🔍 Troubleshooting
+## 📝 Content Management
 
-### API Architecture Issues
+SkyPANEL includes a comprehensive content management system for blogs, documentation, and FAQs.
 
-- **Circular Dependencies**:
-  - Check import statements in routes.ts and routes_new.ts to avoid circular references
-  - Make sure VirtFusionApi, AuthService, and EmailService are imported from the same module in all files
-  - If API endpoints return success but don't actually modify data, check for duplicate route definitions
+### Blog System
 
-- **API Route Conflicts**:
-  - Ensure that the same endpoint (e.g., `/api/admin/plan-features`) is not defined in multiple files
-  - Check server/index.ts for proper route imports (should use routes_new.ts for all routes)
-  - Look for inconsistent field names between frontend forms and backend validation (e.g., title vs name)
+#### Features
+- **Rich Text Editor**: Full-featured content editor with formatting
+- **SEO Optimization**: Automatic slug generation and meta descriptions
+- **Featured Images**: Image upload and management for blog posts
+- **Publishing Control**: Draft, published, and scheduled post states
+- **Author Attribution**: Posts associated with admin authors
+- **Categories**: Organize posts with category system
 
-- **Form Validation Errors**:
-  - Verify error messages match field names used in the frontend forms
-  - Check console logs for validation errors that might be hidden in the UI
-  - Ensure required fields are properly marked in both frontend and backend code
-
-### VirtFusion API Issues
-
-- **Connection Problems**: Verify API URL and key in environment variables
-- **Synchronization Issues**: Ensure correct parameter mapping in API calls
-- **User Updates Failing**: Confirm VirtFusion user exists and extRelationId is correct
-- **Debugging API Calls**: Enable detailed logging by setting `DEBUG=api:*` environment variable
-
-### Transaction & Invoice Issues
-
-- **Missing Transactions**: Check database connectivity and record creation
-- **PDF Generation Fails**: Ensure pdfkit library is properly installed
-- **Transaction Export Errors**: Verify transaction data completeness
-- **Invoice Numbering**: Check invoice number generation sequence
-
-### Authentication Problems
-
-- **Login Failures**: Verify credentials storage and hash comparison
-- **Session Expiration**: Check session configuration and timeout settings
-- **Password Reset Issues**:
-  - Confirm email delivery and token validation
-  - Verify VirtFusion API connectivity for password resets
-  - Check proper error handling for VirtFusion API failures
-- **Account Verification**: Test email delivery and code validation
-
----
-
-## 🆕 Recent Updates
-
-### AI-Powered Support Enhancement (May 2025)
-- ✅ Integrated Google's Gemini AI for intelligent ticket response suggestions
-- ✅ Upgraded to Gemini 2.5 Flash Preview model for improved performance and capabilities
-- ✅ Implemented AI response generation based on ticket context and history
-- ✅ Added rate limiting for AI services to comply with API usage limits
-- ✅ Implemented proper error handling and fallback mechanisms for AI responses
-- ✅ Created support agent interface for reviewing and editing AI-generated responses
-- ✅ Added company branding integration into AI responses
-- ✅ Ensured content safety with moderation filters for AI-generated content
-
-### Global Infrastructure Monitoring (May 2025)
-- ✅ Integrated BetterStack API for real-time infrastructure monitoring
-- ✅ Created status page with live service availability indicators
-- ✅ Implemented incident reporting and history tracking
-- ✅ Added SLA (Service Level Agreement) monitoring and display
-- ✅ Developed monitoring dashboard with uptime statistics
-- ✅ Added automated incident notifications through Discord and email
-- ✅ Implemented maintenance mode scheduling and announcements
-
-### API Key Management System (May 2025)
-- ✅ Built comprehensive API key generation and management system
-- ✅ Implemented secure token generation with proper encryption
-- ✅ Added API key scopes for granular access control
-- ✅ Created admin interface for managing and revoking API keys
-- ✅ Added user interface for personal API key management
-- ✅ Implemented expiration dates for temporary API access
-- ✅ Added audit logging for API key usage and security events
-
-### Brand Color System Upgrade (May 2025)
-- ✅ Implemented comprehensive brand color system with primary, secondary, and accent colors
-- ✅ Replaced the single companyColor field with the new multi-color system
-- ✅ Added backward compatibility with existing companyColor database field
-- ✅ Enhanced styling consistency throughout admin and client areas
-- ✅ Updated UI components to use the new brand color system for dynamic theming
-- ✅ Improved support ticket interface with branded message styling
-- ✅ Updated API endpoints to support the new color properties
-- ✅ Added color transformations for various opacity and shade variants
-- ✅ Implemented proper color validation and fallback mechanisms
-- ✅ Added interactive color pickers for all brand colors in admin settings
-- ✅ Fixed styling inconsistencies in admin interface buttons and dialogs
-- ✅ Improved hover states for sidebar icons with proper color transitions
-- ✅ Created color preview system in settings to visualize theme changes
-- ✅ Added preset color options for quick brand theme selection
-
-### Maintenance Mode & Pagination Improvements (May 2025)
-- ✅ Fixed maintenance mode middleware to properly allow JavaScript resource loading
-- ✅ Enhanced authentication flow in maintenance middleware using Passport.js
-- ✅ Improved admin access during maintenance mode by updating API routes allowlist
-- ✅ Fixed maintenance token regeneration feature in admin interface
-- ✅ Fixed UI issues in API docs page by resolving React Fragment errors
-- ✅ Implemented pagination for tickets pages with server-side support
-- ✅ Added pagination controls (page navigation and items per page selector) to user and admin ticket pages
-- ✅ Added pagination metadata (total, pages, current, perPage) to tickets endpoints
-- ✅ Updated dashboard components to work with the new paginated response format
-
-### Ticket System Enhancements (May 2025)
-- ✅ Enhanced ticket creation with department selection functionality
-- ✅ Improved VirtFusion API integration for VPS-related tickets
-- ✅ Added VPS server information retrieval and display on ticket detail pages
-- ✅ Added network details card with IP addresses, DNS, and gateway information
-- ✅ Fixed React hooks order in ticket detail page for proper rendering
-- ✅ Added ticket reopening functionality with Discord thread management
-- ✅ Enhanced API endpoints to support the updated ticket creation flow
-
-### Discord Integration Improvements (May 2025)
-- ✅ Implemented role-based permission system for Discord bot commands
-- ✅ Added user ID-based restriction capability for more granular access control
-- ✅ Created admin UI for configuring allowed Discord roles and users
-- ✅ Added permission checking system to enforce role/user restrictions
-- ✅ Improved ticket reopening functionality with interactive buttons
-- ✅ Enhanced Discord webhook notifications with consistent branding
-- ✅ Reorganized admin settings tabs with dedicated Discord integration section
-- ✅ Fixed ticket status synchronization between platform and Discord threads
-
-### Bug Fixes and Improvements (May 2025)
-- ✅ Fixed VirtFusion API integration issues in ticket creation workflow
-- ✅ Fixed circular dependency issue between routes.ts and routes_new.ts that caused API conflicts
-- ✅ Improved VirtFusion token display in billing pages (100 tokens = $1.00 USD)
-- ✅ Resolved plan feature management issues (create/edit/delete operations failing despite success messages)
-- ✅ Corrected API error messages to match frontend field names (title vs name) for better error reporting
-- ✅ Added defensive error handling in plan feature API endpoints with detailed logging
-- ✅ Added validation and proper type checking throughout API routes
-- ✅ Fixed share-modal.js with defensive coding to prevent "Cannot read properties of null" TypeError errors
-- ✅ Enhanced logging for all admin operations for better troubleshooting
-
-### API System Upgrade (May 2025)
-- ✅ Unified API system - migrated from dual API architecture to a single consolidated API system
-- ✅ Completed full migration of all endpoints from routes.ts to routes_new.ts maintaining backward compatibility
-- ✅ Fixed VirtFusionApi import path to eliminate circular dependencies
-- ✅ Added comprehensive admin endpoints (packages, blog, docs, plan-features, FAQs, email logs)
-- ✅ Added missing maintenance mode API endpoints with email notification integration
-- ✅ Added public API endpoints for blog, docs, and FAQs with proper content handling
-- ✅ Fixed platform-stats endpoint to combine real API values with manual settings values
-- ✅ Added email logs endpoints with proper filtering and detail views
-- ✅ Added authentication endpoints (password reset, verification) with proper error handling
-- ✅ Fixed datacenter location API endpoints to properly preserve status values (active, coming soon, inactive)
-- ✅ Improved datacenter location management with proper status handling (active, coming soon, inactive)
-- ✅ Enhanced map marker functionality to properly reflect location status
-- ✅ Implemented interactive world map view with Leaflet.js for better visualization of datacenter locations
-- ✅ Created comprehensive API documentation page with interactive testing functionality
-- ✅ Fixed API documentation page integration with dashboard layout
-- ✅ Improved API response consistency and error handling
-- ✅ Added proper SQL-based sorting for datacenter locations by display order
-
-### UI Improvements (May 2025)
-- ✅ Fixed z-index issues in the datacenter maps - legend is now properly hidden behind the modal overlay when viewing datacenter information
-- ✅ Improved map legend visuals with consistent styling for all status types (active, coming soon, inactive)
-- ✅ Enhanced datacenter detail popups with better display of provider, tier, address, and description information
-- ✅ Fixed status badge display in both main and simplified datacenter map components
-
-### Datacenter Map Redesign (May 2025)
-- ✅ Completely redesigned datacenter map component with non-interactive visual map and location list-based interaction model
-- ✅ Fixed the "jumping markers" issue in datacenter map for better UX by separating visuals from interaction points
-- ✅ Enhanced user experience with clearer visual indicators for datacenter locations
-- ✅ Optimized map rendering for better performance and reduced layout shifts
-- ✅ Added proper region-based color coding for better location identification
-- ✅ Implemented responsive design that works well on all screen sizes
-- ✅ Added dynamic region grouping in the location selector list for better organization
-- ✅ Created clear visual feedback for active/selected locations
-
-### Admin Dashboard and Plan Features Management
-- ✅ Created centralized admin dashboard with improved navigation and search functionality
-- ✅ Relocated admin features from the main dashboard to dedicated admin section
-- ✅ Added search bar to admin dashboard (with Ctrl+K/Cmd+K keyboard shortcut)
-- ✅ Implemented plan feature management system for dynamic service offerings
-- ✅ Built admin interface for creating, editing, and managing plan features
-- ✅ Added support for Lucide icons in plan features with visual icon picker
-- ✅ Updated plans page to display dynamic features from database instead of hardcoded cards
-- ✅ Changed plan features display from card layout to clean row-based format with blue header
-- ✅ Implemented auto-refresh for plan features to ensure latest data is always displayed
-- ✅ Added category field to plan features schema for better organization and filtering
-- ✅ Fixed field naming conventions between frontend and backend (title vs name)
-- ✅ Fixed validation logic in plan feature creation/update to properly handle required fields
-- ✅ Optimized API mutations to use "body" parameter instead of "data" for consistency
-- ✅ Enhanced UI with loading states and proper empty state handling
-- ✅ Added transaction history and view functionality for server billing
-
-### API Documentation & Key Management System
-- ✅ Implemented comprehensive API documentation explorer with interactive testing
-- ✅ Improved error handling and validation for all API routes
-- ✅ Added API key generation system with secure key creation and storage
-- ✅ Developed API key management interface for creating, revoking, and deleting keys
-- ✅ Implemented scoped permissions system for API keys (read, write, admin)
-- ✅ Added key expiration options (7 days, 30 days, 90 days, 1 year, no expiration)
-- ✅ Created secure API key display UI with copy-to-clipboard functionality
-- ✅ Fixed inconsistent hashing between API key generation and validation
-- ✅ Standardized property naming conventions between client and server
-- ✅ Improved CSS for API key creation dialog with better formatting
-- ✅ Enhanced security with one-time display of generated API keys
-- ✅ Added usage examples with curl commands for API endpoints
-
-### API Request System Improvements
-- ✅ Completely rewrote the API request utility function for better error handling
-- ✅ Updated apiRequest signature from `apiRequest("METHOD", "/url", data)` to `apiRequest("/url", { method: "METHOD", body: data })`
-- ✅ Fixed response handling for binary content (PDF downloads) and HTML responses
-- ✅ Corrected "res.json is not a function" errors throughout the application
-- ✅ Updated all components to use the new apiRequest format (VirtFusionSsoHandler, ticket system, PayPalCheckout, etc.)
-- ✅ Improved error display with more descriptive messages
-- ✅ Added automatic content-type detection for API responses
-- ✅ Enhanced error handling to prevent "body stream already read" errors
-- ✅ Fixed HTTP header management for binary content responses
-- ✅ Fixed JSON circular reference errors in VirtFusion API error handling
-- ✅ Standardized API response formats across all endpoints
-
-### API Example - Old Format vs New Format
-```javascript
-// OLD FORMAT: apiRequest(method, url, data)
-// Example of old API call:
-const response = await apiRequest("POST", "/api/auth/login", {
-  username: "user",
-  password: "pass"
-});
-
-// NEW FORMAT: apiRequest(url, { method, body })
-// Example of new API call:
-const response = await apiRequest("/api/auth/login", {
-  method: "POST",
-  body: { username: "user", password: "pass" }
-});
-```
-
-### Password Reset System Improvements
-- ✅ Fixed password reset on profile page to use same VirtFusion API integration as admin page
-- ✅ Implemented exact same workflow for both admin and user-initiated resets
-- ✅ Fixed VirtFusion password synchronization to ensure passwords stay in sync
-- ✅ Added verbose error logging to help diagnose VirtFusion integration issues
-- ✅ Enhanced error handling for VirtFusion API failures with proper fallbacks
-
-### Maintenance Mode Implementation
-- ✅ Added complete maintenance mode system with admin bypass capability
-- ✅ Created dedicated maintenance page with Discord link and status info
-- ✅ Implemented maintenance bypass using secure token validation mechanism
-- ✅ Added maintenance mode banner to the landing page with real-time status updates
-- ✅ Added admin controls for toggling maintenance and regenerating secret tokens
-- ✅ Improved code organization by using middleware functions for maintenance operations
-- ✅ Fixed maintenance page URL routing and redirection
-- ✅ Enhanced maintenance mode with static HTML page to prevent module loading errors
-- ✅ Standardized on the correct maintenance page URL ('/maintenance')
-- ✅ Added form-based token validation for easier admin access during maintenance
-- ✅ Updated maintenance page to handle token validation and redirect to the dashboard
-- ✅ Enhanced security by validating tokens server-side
-- ✅ Improved UX by showing the actual domain in token usage instructions
-
-### Brand Color System Implementation
-- ✅ Created a comprehensive brand theming system with primary, secondary, and accent colors
-- ✅ Implemented color variant generation for light/dark/opacity variations
-- ✅ Added proper HSL color transformations for consistent styling
-- ✅ Created helper functions to generate standardized component styles
-- ✅ Implemented backward compatibility with existing companyColor field
-- ✅ Updated all UI components to use the new color system
-- ✅ Improved support ticket interface with branded message styling
-- ✅ Added consistent color application throughout admin and client areas
-- ✅ Enhanced CSS variable generation for theme consistency
-
-#### Old Single-Color System vs New Multi-Color System
-
-**Old System (Before May 2025):**
+#### Blog Data Model
 ```typescript
-// Old approach: Single color field in database
-const companyColor = "33be00"; // Single hex color without #
-
-// Old styling approach
-style={{
-  backgroundColor: `#${companyColor}`,
-  color: 'white'
-}}
-
-// Old rgba approach (manual conversion)
-style={{
-  backgroundColor: `rgba(${parseInt(companyColor.slice(0,2), 16)}, ${parseInt(companyColor.slice(2,4), 16)}, ${parseInt(companyColor.slice(4,6), 16)}, 0.1)`
-}}
+interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;           // URL-friendly identifier
+  content: string;        // Rich text content
+  author: string;         // Admin author
+  publishedAt: Date;      // Publication date
+  status: 'draft' | 'published' | 'scheduled';
+  featuredImage?: string; // Optional header image
+  metaDescription?: string; // SEO description
+}
 ```
 
-**New System (May 2025 and later):**
+#### Public API
+- **Public Blog Feed**: `/api/public/blog` - Get published posts
+- **Post by Slug**: `/api/public/blog/:slug` - Get specific post
+- **Admin Management**: Full CRUD operations in admin panel
+
+### FAQ System
+
+#### Features
+- **Categorized Questions**: Group related questions for organization
+- **Accordion Interface**: Expandable/collapsible answers
+- **Search Functionality**: Find answers quickly with integrated search
+- **Priority Ordering**: Arrange FAQs by importance or frequency
+- **Rich Text Answers**: Format answers with lists, links, and styling
+
+#### FAQ Data Model
 ```typescript
-// New approach: Multiple color properties
-const colors = {
-  primaryColor: "33be00",   // Primary brand color
-  secondaryColor: "10b981", // Secondary color for accents
-  accentColor: "f59e0b"     // Accent color for highlights
-};
-
-// Generate brand colors with variants
-const brandColors = getBrandColors(colors);
-
-// New styling approach with helper functions
-style={getContainerStyle()} // Returns consistent container styling
-
-// Direct color usage
-style={{ color: brandColors.primary.full }}
-
-// Light/dark variants
-style={{
-  backgroundColor: brandColors.primary.light,
-  color: brandColors.primary.dark
-}}
-
-// Badge styling helper
-style={getBadgeStyle(accentColor, 0.1)}
+interface FAQ {
+  id: number;
+  question: string;       // The question text
+  answer: string;         // Detailed response
+  category: string;       // Grouping classification
+  priority: number;       // Display order
+  status: 'active' | 'inactive';
+}
 ```
 
-### Enhanced Password Reset System
-- ✅ Implemented VirtFusion API integration for password resets
-- ✅ Added secure temporary password generation through VirtFusion API
-- ✅ Created UI for displaying temporary passwords with copy-to-clipboard functionality
-- ✅ Implemented admin-triggered password reset with temporary password access
-- ✅ Added user-initiated password reset on profile page
-- ✅ Improved email notifications with temporary password information
-- ✅ Enhanced security with proper password synchronization between platforms
-- ✅ Added fallback mechanisms for VirtFusion API failures
+### Documentation System
 
-### User Profile Improvements
-- ✅ Fixed username/email synchronization with VirtFusion API
-- ✅ Added clear messaging about password limitations
-- ✅ Simplified password management UI with clearer instructions
-- ✅ Improved error handling for profile updates
+#### Features
+- **Hierarchical Structure**: Organized documentation with categories
+- **Search Integration**: Full-text search across all documentation
+- **Version Control**: Track changes and updates to documentation
+- **Public Access**: Documentation available without authentication
+- **Admin Management**: Full content management in admin panel
 
-### Transaction Display Enhancements
-- ✅ Fixed transaction details page to properly display all transaction data
-- ✅ Corrected "transaction-undefined.pdf" filename issues in downloads
-- ✅ Added improved debugging for transaction data processing
-- ✅ Enhanced transaction list with better sorting and filtering
+#### Implementation
+- **Markdown Support**: Rich markdown rendering for documentation
+- **Category Organization**: Logical grouping of documentation topics
+- **Cross-References**: Internal linking between documentation pages
+- **SEO Friendly**: Optimized URLs and meta information
 
-### Email System Improvements
-- ✅ Implemented SMTP2GO for all email communications (replacing SendGrid)
-- ✅ Created robust email queue system for background processing of all notifications
-- ✅ Enhanced maintenance mode to automatically notify all administrators when activated
-- ✅ Added maintenance bypass token in admin notification emails for immediate system access
-- ✅ Implemented comprehensive email logging for all system-generated emails
-- ✅ Added centralized email logs page at /admin/mail with filtering and search capabilities
-- ✅ Standardized email logging across all email types (password reset, username reminders, etc.)
-- ✅ Added SkyVPS360.xyz branding to dashboard footer with "Powerful VirtFusion Portal" text
+### Datacenter Location Management
 
-### VirtFusion Integration Fixes
-- ✅ Updated user profile API to correctly sync only supported fields with VirtFusion
+#### Interactive Map Features
+- **World Map Visualization**: SVG-based world map with location markers
+- **Location Details**: Detailed information for each datacenter
+- **Status Indicators**: Active, coming soon, and inactive status
+- **Regional Grouping**: Color-coded markers by geographic region
 
-### Branding System Improvements
-- ✅ Implemented dynamic company name across the entire platform from database settings
-- ✅ Fixed issues with ToS and Privacy Policy pages showing raw HTML instead of properly rendered content
+#### Admin Management
+- **Location CRUD**: Create, read, update, delete datacenter locations
+- **Coordinate Management**: Latitude/longitude positioning for map markers
+- **Status Control**: Active/inactive status management
+- **Display Order**: Custom ordering for location lists
 
-### Blog System Improvements
-- ✅ Fixed ZodError in blog post creation by adding proper date coercion in server validation
-- ✅ Enhanced content management with better error handling for dates and text fields
-- ✅ Improved admin interface for creating and editing blog content
-- ✅ Added comprehensive API documentation for blog endpoints
-- ✅ Fixed slug generation and validation for better URL creation
-
-### Bug Fixes and UX Improvements
-- ✅ Removed "Add User" button from admin users page as requested
-- ✅ Updated documentation to reflect recent changes and completed tasks
-- ✅ Enhanced data validation across the application to prevent type mismatches
-- ✅ Improved error handling for form submissions across the application
-- ✅ Replaced data-branding attribute approach with direct JavaScript implementation for better reliability
-- ✅ Added support for domain name customization in all static pages
-- ✅ Maintained hardcoded "SkyVPS360.xyz" branding in dashboard footer as required
-- ✅ Added proper error handling for branding information fetching
-- ✅ Implemented consistent branding API endpoint at `/api/settings/branding`
-- ✅ Added dashboard footer links to ToS, Privacy Policy, Discord and Status page
-- ✅ Ensured all branding elements load properly with appropriate fallbacks
-
-### Dashboard Footer Updates
-- ✅ Hardcoded "SkyVPS360.xyz" branding in footer (as specifically requested)
-- ✅ Added "Powerful VirtFusion Portal" tagline in the footer
-- ✅ Implemented required links in the footer:
-  - Terms of Service (`/tos`)
-  - Privacy Policy (`/privacy`)
-  - Discord (`https://skyvps360.xyz/discord`)
-  - Status Page (`/#status`)
-- ✅ Kept footer styling consistent with the overall dashboard design
-- ✅ Fixed critical parameter mapping for extRelationId in API calls
-- ✅ Enhanced error handling for VirtFusion API connectivity issues
-- ✅ Added detailed logging for troubleshooting integration problems
-
-### Code Quality Improvements
-- ✅ Enhanced error handling throughout the application
-- ✅ Added more robust data validation with Zod schemas
-- ✅ Improved TypeScript type safety across components
-
-### UI and Plan Display Improvements (May 2025)
-- ✅ Fixed network speed display to consistently show port speeds in GB/MB format across the entire application
-- ✅ Added automatic bandwidth conversion from GB to TB for large packages (1000+ GB shown as TB)
-- ✅ Simplified order buttons to just "Order Now" instead of plan-specific text
-- ✅ Enhanced button styling with gradient background and shadow effects for improved visual appeal
-- ✅ Modified plan features to only reload on page refresh rather than auto-reloading to prevent unnecessary API calls
-- ✅ Updated "Sold Out" styles to use amber color palette with better visibility in both light and dark modes
-- ✅ Improved error handling for VirtFusion API connectivity issues on the plans page
-- ✅ Better API response parsing and error reporting
-- ✅ Refactored maintenance endpoints to use middleware functions for better organization
+#### Data Structure
+```typescript
+interface DatacenterLocation {
+  id: number;
+  code: string;           // Short identifier (e.g., "NYC", "LON")
+  name: string;           // Full name (e.g., "New York", "London")
+  country: string;        // Country name
+  continent: string;      // Continental region
+  latitude: number;       // Map positioning
+  longitude: number;      // Map positioning
+  status: 'active' | 'coming_soon' | 'inactive';
+  features: string[];     // Available features
+}
+```
 
 ---
 
-## 🖥️ VNC Console System
+## 📊 Monitoring & Analytics
 
-SkyPANEL features a comprehensive VNC (Virtual Network Computing) console system that provides direct access to server desktops through a web browser. The system includes a custom-built VNC client with full RFB protocol support.
+SkyPANEL integrates with BetterStack for comprehensive monitoring and provides detailed analytics.
 
-### 🎯 VNC Features
+### BetterStack Integration
 
-#### Custom VNC Client
-- **Built from Scratch**: Custom VNC client implementation for optimal performance
-- **RFB Protocol Support**: Full VNC Remote Framebuffer protocol implementation
-- **Real-time Rendering**: Live framebuffer updates with pixel-perfect accuracy
-- **Multiple Encodings**: Support for Raw (0) and CopyRect (1) VNC encodings
-- **Authentication**: VNC authentication with password support
-- **Cross-Platform**: Works on any device with a modern web browser
+#### Service Monitoring
+- **Uptime Monitoring**: Real-time service availability tracking
+- **Incident Management**: Automatic incident detection and reporting
+- **SLA Monitoring**: Service level agreement tracking and reporting
+- **Performance Metrics**: Response time and performance analytics
 
-#### VirtFusion Integration
-- **Seamless API Integration**: Direct integration with VirtFusion VNC management
-- **Enable/Disable Control**: Toggle VNC access through admin interface
-- **Status Monitoring**: Real-time VNC connection status checking
-- **Automatic Configuration**: Server credentials automatically retrieved from VirtFusion
+#### Status Page Integration
+- **Public Status Page**: Real-time service status for customers
+- **Incident History**: Historical incident tracking and resolution times
+- **Maintenance Windows**: Scheduled maintenance notifications
+- **Service Dependencies**: Monitor interconnected service health
 
-#### Connection Management
-- **WebSocket Proxy**: Secure WebSocket-to-TCP proxy for VNC connections
-- **Automatic Retry**: Built-in retry logic for failed connections
-- **Timeout Handling**: Configurable connection timeouts (30+ seconds)
-- **Error Recovery**: Graceful handling of connection failures
-- **Port Testing**: Multiple VNC port testing (5900-5910)
-
-### 🔧 Technical Implementation
-
-#### VNC Client Architecture
-The VNC client is implemented in `public/vnc-client.js` with the following components:
-
-- **Protocol Handshake**: Handles VNC version negotiation and authentication
-- **Framebuffer Parser**: Parses server framebuffer updates and rectangle data
-- **Pixel Renderer**: Converts raw pixel data to RGBA format for canvas rendering
-- **Input Handler**: Manages mouse and keyboard input forwarding to server
-- **Connection Manager**: Handles WebSocket connections and error recovery
-
-#### Key Functions
-```javascript
-// Main VNC client initialization
-function connectVNC(host, port, password)
-
-// Framebuffer update handling
-function handleFramebufferUpdate(data)
-
-// Pixel format conversion
-function convertPixelData(pixelData, pixelFormat)
-
-// Canvas rendering
-function drawRectangle(x, y, width, height, pixels)
-```
-
-#### WebSocket Proxy
-The server-side WebSocket proxy (`/vnc-proxy`) provides:
-
-- **TCP Bridge**: Converts WebSocket messages to TCP socket data
-- **Connection Pooling**: Manages multiple concurrent VNC connections
-- **Error Handling**: Proper cleanup of failed connections
-- **Security**: Validates connection parameters and enforces timeouts
-
-### 🚀 Usage Guide
-
-#### Admin Interface
-1. Navigate to **Admin → Servers**
-2. Select a server and go to the **VNC** tab
-3. Click **Enable VNC** to activate VNC access
-4. Use **Test Connection** to verify connectivity
-5. Click **Open VNC Console** to launch the web client
-
-#### VNC Console Controls
-- **Mouse Control**: Click and drag for mouse input
-- **Keyboard Input**: Type directly for keyboard input
-- **Connection Status**: Real-time connection status display
-- **Reconnect**: Manual reconnection option
-- **Full Screen**: Expand console to full screen mode
-
-#### Connection Process
-1. **VNC Enable**: Admin enables VNC through VirtFusion API
-2. **Credential Retrieval**: System fetches VNC connection details
-3. **WebSocket Connection**: Browser connects to WebSocket proxy
-4. **TCP Bridge**: Proxy establishes TCP connection to VNC server
-5. **Protocol Handshake**: VNC authentication and setup
-6. **Desktop Streaming**: Live framebuffer updates begin
-
-### 🔧 Configuration
-
-#### VirtFusion API Settings
+#### Configuration
 ```bash
-# VirtFusion API configuration
-VIRTFUSION_API_URL=https://your-virtfusion.com/api/v1
-VIRTFUSION_API_TOKEN=your_api_token
+# BetterStack Environment Variables
+BETTERSTACK_API_KEY=your_betterstack_api_key
 ```
 
-#### VNC Connection Parameters
-- **Default Port Range**: 5900-5910
-- **Connection Timeout**: 30 seconds
-- **Retry Attempts**: 3 automatic retries
-- **Authentication**: Password-based VNC auth
-- **Pixel Format**: 32-bit RGBA (default)
+### Platform Analytics
 
-### 🛠️ Troubleshooting
+#### User Analytics
+- **Registration Trends**: Track user growth and registration patterns
+- **Activity Monitoring**: User engagement and platform usage statistics
+- **Geographic Distribution**: User location and regional analytics
+- **Retention Metrics**: User retention and churn analysis
 
-#### Common Issues
-1. **Connection Timeout**: Check VNC server status and network connectivity
-2. **Authentication Failed**: Verify VNC password in VirtFusion
-3. **Black Screen**: Ensure server desktop is active and VNC is enabled
-4. **Slow Performance**: Check network bandwidth and server resources
+#### Financial Analytics
+- **Revenue Tracking**: Real-time revenue and transaction analytics
+- **Payment Methods**: Payment method preferences and success rates
+- **Credit Usage**: Credit consumption patterns and trends
+- **Billing Efficiency**: Payment processing and collection metrics
 
-#### Debug Information
-The VNC client provides detailed console logging:
-```javascript
-// Enable debug logging
-localStorage.setItem('vnc-debug', 'true');
+#### System Performance
+- **API Performance**: Endpoint response times and error rates
+- **Database Performance**: Query performance and optimization metrics
+- **Resource Usage**: Server resource consumption and scaling metrics
+- **Error Tracking**: Application error monitoring and resolution
+
+### Admin Dashboard Analytics
+
+#### Real-Time Metrics
+- **Active Users**: Currently online users and session tracking
+- **System Health**: Live system status and performance indicators
+- **Transaction Volume**: Real-time payment and billing activity
+- **Support Metrics**: Ticket volume and response time tracking
+
+#### Historical Reports
+- **Growth Reports**: User and revenue growth over time
+- **Usage Reports**: Platform feature usage and adoption
+- **Performance Reports**: System performance trends and optimization
+- **Financial Reports**: Detailed financial analytics and forecasting
+
+---
+
+## 🔑 API Key Management
+
+SkyPANEL provides comprehensive API key management for secure third-party integrations.
+
+### API Key Features
+
+#### Security & Authentication
+- **Secure Generation**: Cryptographically secure API key generation
+- **Scoped Permissions**: Granular permission control for each API key
+- **Rate Limiting**: Built-in rate limiting (100 requests per minute)
+- **Expiration Management**: Optional API key expiration dates
+- **Audit Logging**: Complete usage tracking and access logs
+
+#### Available Scopes
+- `read:user` - Read user profile information
+- `read:servers` - Read server information and status
+- `write:servers` - Create, update, or delete servers
+- `read:billing` - View billing information and transactions
+- `read:tickets` - View support tickets
+- `write:tickets` - Create and update support tickets
+- `admin:users` - Administrative access to user accounts (admin only)
+- `admin:billing` - Administrative access to billing functions (admin only)
+- `admin:system` - Administrative access to system settings (admin only)
+
+### User API Key Management
+
+#### Creating API Keys
+1. **Navigate to Profile**: Go to user profile settings
+2. **API Keys Section**: Access the API key management area
+3. **Create New Key**: Click "Create New API Key"
+4. **Select Scopes**: Choose required permissions for the key
+5. **Generate Key**: System generates secure API key
+6. **Copy Key**: Copy the key immediately (shown only once)
+
+#### Managing API Keys
+- **View Keys**: List all created API keys with creation dates
+- **Scope Display**: View assigned scopes for each key
+- **Usage Statistics**: Track API key usage and request counts
+- **Delete Keys**: Remove API keys when no longer needed
+
+### Admin API Key Management
+
+#### System-Wide Monitoring
+- **All API Keys**: View all user API keys across the platform
+- **Usage Analytics**: Monitor API usage patterns and trends
+- **Security Monitoring**: Detect unusual API usage patterns
+- **Rate Limit Management**: Configure and monitor rate limiting
+
+#### Security Features
+- **Automatic Revocation**: Revoke compromised or suspicious keys
+- **Usage Alerts**: Notifications for unusual API activity
+- **Scope Auditing**: Track permission usage and access patterns
+- **Compliance Reporting**: Generate API usage reports for compliance
+
+---
+
+## 🚧 Maintenance Mode
+
+SkyPANEL includes a comprehensive maintenance mode system for planned downtime.
+
+### Maintenance Mode Features
+
+#### Activation & Control
+- **Admin Control**: Enable/disable maintenance mode from admin panel
+- **Bypass Tokens**: Generate secure tokens for admin access during maintenance
+- **Custom Messages**: Configure custom maintenance messages for users
+- **Scheduled Maintenance**: Plan and schedule maintenance windows
+
+#### User Experience
+- **Maintenance Page**: Professional maintenance page with company branding
+- **Estimated Duration**: Display expected maintenance completion time
+- **Status Updates**: Real-time updates on maintenance progress
+- **Contact Information**: Support contact details during maintenance
+
+### Implementation
+
+#### Admin Controls
+```bash
+# Enable maintenance mode
+POST /api/admin/maintenance/enable
+
+# Disable maintenance mode
+POST /api/admin/maintenance/disable
+
+# Generate bypass token
+GET /api/admin/maintenance/generate-token
 ```
 
-#### API Endpoints for VNC Management
-```
-GET  /api/admin/servers/:id/vnc            # Get VNC status (toggles state)
-POST /api/admin/servers/:id/vnc/enable     # Enable VNC for server
-POST /api/admin/servers/:id/vnc/disable    # Disable VNC for server
-GET  /api/admin/servers/:id/vnc/test       # Test VNC connectivity
-```
+#### Bypass System
+- **Secure Tokens**: Cryptographically secure bypass tokens
+- **Time-Limited**: Tokens expire after maintenance completion
+- **Admin Access**: Full admin functionality during maintenance
+- **Token Validation**: Secure token verification system
 
-### 🔒 Security Considerations
-
-- **Secure Authentication**: VNC passwords managed through VirtFusion
-- **WebSocket Security**: WSS encryption for production deployments
-- **Access Control**: Admin-only VNC management interface
-- **Session Management**: Automatic cleanup of inactive connections
-- **Network Isolation**: VNC traffic isolated through proxy layer
+#### Notification Integration
+- **Discord Notifications**: Automatic Discord notifications for maintenance events
+- **Email Alerts**: Email notifications to administrators and users
+- **Status Page Updates**: Automatic status page updates via BetterStack
+- **API Responses**: Maintenance status included in API responses
 
 ---
 
 ## 🔒 Security Features
 
-- **Secure Password Storage**: bcrypt hashing with appropriate salt rounds
-- **Input Validation**: Comprehensive Zod schema validation
-- **Session Security**: Secure cookie-based sessions with proper expiration
-- **CSRF Protection**: Token validation for state-changing requests
-- **Role-Based Permissions**: Access control for protected resources
-- **API Security**: JWT authentication for API endpoints
-- **Rate Limiting**: Protection against brute force attacks
-- **Error Handling**: Secure error responses without sensitive details
-- **Data Validation**: Proper sanitation of all user inputs
+SkyPANEL implements enterprise-grade security measures throughout the platform.
+
+### Authentication & Authorization
+
+#### Password Security
+- **Bcrypt Hashing**: Industry-standard password hashing with salt
+- **VirtFusion Integration**: Secure password synchronization
+- **Password Policies**: Configurable password strength requirements
+- **Account Lockout**: Protection against brute force attacks
+
+#### Session Management
+- **Secure Sessions**: PostgreSQL-backed session storage
+- **Session Expiration**: Configurable session timeout periods
+- **CSRF Protection**: Cross-site request forgery protection
+- **Secure Cookies**: HTTP-only and secure cookie flags
+
+### Data Protection
+
+#### Database Security
+- **Encrypted Connections**: SSL/TLS encrypted database connections
+- **Input Validation**: Comprehensive input sanitization and validation
+- **SQL Injection Protection**: Parameterized queries and ORM protection
+- **Data Encryption**: Sensitive data encryption at rest
+
+#### API Security
+- **Rate Limiting**: Comprehensive rate limiting across all endpoints
+- **Input Validation**: Zod schema validation for all API inputs
+- **Error Handling**: Secure error responses without information leakage
+- **CORS Configuration**: Proper cross-origin resource sharing setup
+
+### Monitoring & Auditing
+
+#### Security Logging
+- **Access Logs**: Comprehensive logging of all user actions
+- **Failed Attempts**: Tracking of failed login and access attempts
+- **API Usage**: Complete API usage logging and monitoring
+- **Admin Actions**: Detailed logging of administrative actions
+
+#### Threat Detection
+- **Anomaly Detection**: Unusual activity pattern detection
+- **IP Monitoring**: Suspicious IP address tracking
+- **Rate Limit Violations**: Detection and blocking of abuse attempts
+- **Security Alerts**: Real-time security event notifications
 
 ---
 
-## 📧 Email System
+## 🔧 Troubleshooting
 
-The application uses SMTP2GO for reliable email delivery with comprehensive logging and monitoring capabilities.
+Common issues and their solutions for SkyPANEL deployment and operation.
 
-### Email Features
+### Installation Issues
 
-- **SMTP2GO Integration**: All emails are sent through SMTP2GO's reliable API
-- **Background Processing**: Emails are processed in a background queue system
-- **Email Types**:
-  - **Password Reset**: Secure token-based password reset emails
-  - **Email Verification**: Account verification codes
-  - **Username Reminder**: Username recovery emails
-  - **Admin Notifications**: Maintenance mode alerts with bypass tokens
-  - **Password Change**: Notifications when passwords are changed
-  - **Admin Password Reset**: Alerts when an admin resets a user's password
+#### Database Connection Problems
+```bash
+# Check database connection
+npm run db:check
 
-### Queue System
+# Reset database schema
+npm run db:reset
 
-The email queue system ensures:
-1. **Reliable Delivery**: Emails are queued and sent even if SMTP2GO temporarily fails
-2. **Error Handling**: Failed emails are logged with detailed error information
-3. **Background Processing**: Email sending doesn't block the main application thread
-4. **Retry Mechanism**: Failed emails can be retried automatically
-5. **Efficient Batching**: Multiple emails can be processed in batches for better performance
+# Verify environment variables
+echo $DATABASE_URL
+```
 
-### Admin Monitoring
+#### VirtFusion API Issues
+```bash
+# Test VirtFusion connectivity
+curl -H "Authorization: Bearer $VIRTFUSION_API_KEY" \
+     "$VIRTFUSION_API_URL/test"
 
-Administrators can monitor all email activity through:
-1. **Email Logs Dashboard**: Located at `/admin/mail` in the admin panel
-2. **Filtering Capabilities**: Filter by email type, status, recipient, or date range
-3. **Detailed View**: View complete email details including metadata
-4. **Search Functionality**: Search across all email fields
-5. **Status Tracking**: Monitor pending, sent, and failed emails
+# Verify API credentials in admin panel
+# Navigate to Admin → Settings → VirtFusion
+```
 
-### SMTP2GO Configuration
+### Common Runtime Issues
 
-To configure SMTP2GO:
-1. Create an SMTP2GO account at https://smtp2go.com/
-2. Obtain an API key from your SMTP2GO dashboard
-3. Add the API key to your environment variables as `SMTP2GO_API_KEY`
-4. Configure sender information using `SMTP_FROM` and `SMTP_FROM_NAME` variables
+#### Email Delivery Problems
+- **SMTP Configuration**: Verify SMTP2GO API key and settings
+- **Email Templates**: Check email template configuration
+- **Rate Limiting**: Ensure email rate limits are not exceeded
+- **DNS Configuration**: Verify SPF and DKIM records
+
+#### Payment Processing Issues
+- **PayPal Configuration**: Verify PayPal client ID and secret
+- **Webhook Validation**: Check PayPal webhook endpoint configuration
+- **Sandbox Mode**: Ensure correct sandbox/production settings
+- **Currency Settings**: Verify currency configuration matches PayPal
+
+### Performance Optimization
+
+#### Database Performance
+```sql
+-- Check slow queries
+SELECT query, mean_time, calls
+FROM pg_stat_statements
+ORDER BY mean_time DESC
+LIMIT 10;
+
+-- Optimize frequently used indexes
+CREATE INDEX CONCURRENTLY idx_users_email ON users(email);
+CREATE INDEX CONCURRENTLY idx_tickets_status ON tickets(status);
+```
+
+#### Application Performance
+- **Connection Pooling**: Configure PostgreSQL connection pooling
+- **Caching**: Implement Redis caching for frequently accessed data
+- **CDN Integration**: Use CDN for static asset delivery
+- **Load Balancing**: Configure load balancing for high availability
+
+### Monitoring & Debugging
+
+#### Log Analysis
+```bash
+# View application logs
+npm run logs
+
+# Check error logs
+tail -f logs/error.log
+
+# Monitor API performance
+grep "slow query" logs/app.log
+```
+
+#### Health Checks
+```bash
+# Check system health
+curl http://localhost:3000/api/health
+
+# Verify database connectivity
+curl http://localhost:3000/api/db-health
+
+# Test VirtFusion integration
+curl http://localhost:3000/api/virtfusion-health
+```
 
 ---
 
-## 🛠️ Maintenance Mode
+## 🆕 Recent Updates
 
-The application includes a comprehensive maintenance mode system that allows administrators to temporarily restrict access to the platform while performing updates or maintenance.
+### Version 2.0.0 - Major Platform Overhaul
 
-### How Maintenance Mode Works
+#### New Features
+- **🤖 AI-Powered Support**: Google Gemini 2.5 Flash integration for intelligent customer support
+- **💬 Discord Bot**: Complete Discord integration with two-way ticket management
+- **🌐 VNC Console**: Built-in web-based VNC client for direct server access
+- **🎨 Brand Theming**: Advanced multi-color theming system with real-time preview
+- **📊 Enhanced Analytics**: Comprehensive monitoring with BetterStack integration
+- **🔑 API Key Management**: Granular API access control with scoped permissions
 
-1. **Activation Process**: Administrators can enable maintenance mode through the admin settings interface
-2. **Access Control**: When enabled, all non-admin users are redirected to a dedicated maintenance page
-3. **Bypass Mechanisms**: Two methods for admin access:
-   - **Form Entry**: Enter the maintenance token in the provided form on the maintenance page
-   - **URL Entry**: Append the token to the site URL (e.g., `/{secret_token}`)
-4. **Authentication Flow**: After token validation, admins can access the dashboard and login
-5. **Session Persistence**: Session maintains maintenance bypass permission after login
-6. **Dynamic Domain Display**: Admin panel shows the actual current domain in token usage instructions
-7. **Landing Page Banner**: A notification banner appears at the top of the landing page showing maintenance status
+#### Technical Improvements
+- **⚡ Performance**: Optimized database queries and improved caching
+- **🔒 Security**: Enhanced authentication and authorization systems
+- **📱 Mobile**: Improved responsive design and mobile experience
+- **🔄 Real-Time**: WebSocket integration for live updates
+- **🛠️ DevOps**: Improved deployment and monitoring capabilities
 
-### Maintenance Page Features
+#### VirtFusion Integration Enhancements
+- **🔄 Real-Time Sync**: Live synchronization of user data and server status
+- **💰 Billing Integration**: Automatic credit deduction based on usage
+- **🔐 Password Management**: Secure password reset via VirtFusion API
+- **📊 Resource Monitoring**: Real-time server resource tracking
 
-During maintenance mode, users are presented with:
-- **Status Message**: Customizable maintenance notification
-- **Expected Completion**: Estimated timeframe when service will resume
-- **Discord Link**: Direct link to the Discord community (https://skyvps360.xyz/discord)
-- **Status Page**: Link to external service status dashboard
-- **Admin Access Form**: Secure token entry form for administrators
-- **Error Feedback**: Clear feedback on invalid token attempts
-- **Responsive Design**: Mobile-friendly layout that works on all devices
-- **Static HTML**: High reliability with no JavaScript dependencies
+### Migration Guide
 
-### Landing Page Banner
+#### From Version 1.x
+1. **Backup Database**: Create complete database backup before migration
+2. **Update Dependencies**: Run `npm install` to update all packages
+3. **Database Migration**: Execute `npm run db:push` to apply schema changes
+4. **Environment Variables**: Add new environment variables for AI and Discord
+5. **Test Integration**: Verify VirtFusion and payment integrations
 
-When maintenance mode is enabled, the landing page displays a notification banner with:
-- **Alert Icon**: Visual indicator of maintenance status
-- **Custom Message**: Shows the admin-defined maintenance message
-- **Estimated Time**: Displays the estimated completion time if set
-- **More Info Button**: Links to the full maintenance page
-- **Responsive Design**: Properly adapts to different screen sizes
-- **Real-time Status**: Fetches current maintenance status from the API
-- **Automatic Display**: Shows/hides based on current maintenance status
+#### Breaking Changes
+- **API Endpoints**: Some API endpoints have been restructured for consistency
+- **Database Schema**: New tables added for Discord integration and API keys
+- **Authentication**: Enhanced session management may require re-login
+- **Configuration**: New settings added for AI and monitoring features
 
-### Admin Controls
+---
 
-Administrators have several maintenance-related controls:
-- **Toggle Maintenance**: Enable/disable maintenance mode
-- **Custom Message**: Set a custom maintenance message
-- **Completion Time**: Specify an estimated completion time
-- **Secret Token**: View and regenerate the maintenance bypass token
+## 📞 Support & Community
 
-### Implementation Details
+### Getting Help
 
-- **Middleware Approach**: Implemented as Express middleware for consistent application
-- **Database Storage**: Maintenance settings stored in the settings table
-- **Token Generation**: Secure random token generation with UUID-based implementation
-- **Static HTML Page**: Robust maintenance page served directly from Express for maximum reliability
-- **Redirect Handling**: URL standardization with proper redirects from misspelled paths
-- **Landing Page Banner**: Maintenance mode banner automatically appears on the landing page when enabled
-- **Landing Page Access**: Special handling to keep landing page accessible during maintenance
-- **API Endpoints**: RESTful endpoints for managing maintenance state and status
-- **Form-Based Validation**: Server-side token validation using form submission
-- **Dynamic Configuration**: All maintenance settings configurable through admin UI
-- **Real-time Domain Detection**: Dynamic domain name display in admin instructions
-- **Error Handling**: Graceful error handling for token validation attempts
+#### Documentation
+- **API Documentation**: Complete API reference with examples
+- **Integration Guides**: Step-by-step integration tutorials
+- **Troubleshooting**: Common issues and solutions
+- **Best Practices**: Recommended deployment and configuration practices
+
+#### Community Support
+- **GitHub Issues**: Report bugs and request features
+- **Discord Community**: Join our Discord server for real-time support
+- **Email Support**: Contact support@skypanel.dev for assistance
+- **Professional Support**: Enterprise support packages available
+
+### Contributing
+
+#### Development
+- **Fork Repository**: Create your own fork for development
+- **Feature Branches**: Use feature branches for new development
+- **Pull Requests**: Submit pull requests with detailed descriptions
+- **Code Review**: All changes undergo thorough code review
+
+#### Bug Reports
+- **Issue Templates**: Use provided templates for bug reports
+- **Reproduction Steps**: Include detailed steps to reproduce issues
+- **Environment Details**: Provide system and configuration information
+- **Logs**: Include relevant log files and error messages
+
+---
+
+## 📄 License
+
+SkyPANEL is released under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+### Commercial Use
+- **Free for Commercial Use**: Use SkyPANEL for commercial hosting businesses
+- **White-Label Ready**: Remove branding and customize for your business
+- **No Licensing Fees**: No ongoing licensing or usage fees
+- **Support Available**: Professional support and customization services available
+
+### Attribution
+While not required, attribution is appreciated:
+- **GitHub Star**: Star the repository if you find it useful
+- **Social Media**: Share your SkyPANEL deployment on social media
+- **Community**: Contribute back to the community with improvements
 
 ---
 
 <div align="center">
-  <p>Built with ❤️ by the SkyVPS360 team</p>
-  <p>© 2025 SkyVPS360. All rights reserved.</p>
+  <h3>🌟 Thank you for choosing SkyPANEL! 🌟</h3>
+  <p>Built with ❤️ by the SkyPANEL team</p>
 </div>

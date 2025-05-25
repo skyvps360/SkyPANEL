@@ -36,10 +36,10 @@ interface ApiEndpoint {
   method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   path: string;
   description: string;
-  parameters?: { 
-    name: string; 
-    type: string; 
-    required: boolean; 
+  parameters?: {
+    name: string;
+    type: string;
+    required: boolean;
     description: string;
     example?: string;
   }[];
@@ -66,7 +66,7 @@ const ApiKeyManagement = () => {
   const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
   const [expirationDays, setExpirationDays] = useState<number | null>(90);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
-  
+
   // Query for API keys
   const { data: apiKeys = [], refetch: refetchApiKeys } = useQuery<any[]>({
     queryKey: ["/api/user/api-keys"],
@@ -79,16 +79,16 @@ const ApiKeyManagement = () => {
       });
     }
   });
-  
+
   // Available scopes
   const availableScopes = [
     { value: "read:user", label: "Read user information" },
     { value: "read:servers", label: "Read server information" },
     { value: "write:servers", label: "Modify servers" },
     { value: "read:billing", label: "Read billing information" },
-    { value: "read:invoices", label: "Read invoices" }
+
   ];
-  
+
   // Create API key
   const handleCreateApiKey = async () => {
     if (!newKeyName.trim()) {
@@ -99,7 +99,7 @@ const ApiKeyManagement = () => {
       });
       return;
     }
-    
+
     if (selectedScopes.length === 0) {
       toast({
         title: "No scopes selected",
@@ -108,35 +108,35 @@ const ApiKeyManagement = () => {
       });
       return;
     }
-    
+
     try {
       const response = await fetch('/api/user/api-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: newKeyName, 
+        body: JSON.stringify({
+          name: newKeyName,
           scopes: selectedScopes,
-          expiresIn: expirationDays 
+          expiresIn: expirationDays
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to create API key');
       }
-      
+
       const data = await response.json();
-      
+
       // Show the API key
       setNewApiKey(data.key);
-      
+
       // Reset form
       setNewKeyName('');
       setSelectedScopes([]);
       setExpirationDays(90);
-      
+
       // Refetch keys
       refetchApiKeys();
-      
+
     } catch (error) {
       toast({
         title: "Error creating API key",
@@ -145,29 +145,29 @@ const ApiKeyManagement = () => {
       });
     }
   };
-  
+
   // Delete API key
   const handleDeleteApiKey = async (keyId: number) => {
     if (!confirm("Are you sure you want to delete this API key? This action cannot be undone.")) {
       return;
     }
-    
+
     try {
       const response = await fetch(`/api/user/api-keys/${keyId}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to delete API key');
       }
-      
+
       toast({
         title: "API Key Deleted",
         description: "Your API key has been deleted successfully.",
       });
-      
+
       refetchApiKeys();
-      
+
     } catch (error) {
       toast({
         title: "Error deleting API key",
@@ -176,7 +176,7 @@ const ApiKeyManagement = () => {
       });
     }
   };
-  
+
   // Copy API key to clipboard
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -192,7 +192,7 @@ const ApiKeyManagement = () => {
       });
     });
   };
-  
+
   return (
     <>
       <Card>
@@ -212,7 +212,7 @@ const ApiKeyManagement = () => {
               Create API Key
             </Button>
           </div>
-          
+
           {apiKeys.length === 0 ? (
             <div className="text-center py-8 border rounded-md bg-muted/50">
               <Key className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
@@ -268,7 +268,7 @@ const ApiKeyManagement = () => {
           )}
         </CardContent>
       </Card>
-      
+
       {/* Create API Key Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="sm:max-w-md">
@@ -278,7 +278,7 @@ const ApiKeyManagement = () => {
               Create a new API key to access the API. Make sure to copy your key as you won't be able to see it again.
             </DialogDescription>
           </DialogHeader>
-          
+
           {newApiKey ? (
             <div className="space-y-4">
               <Alert variant="info" className="bg-amber-50 text-amber-800 border-amber-200">
@@ -288,7 +288,7 @@ const ApiKeyManagement = () => {
                   This API key will only be shown once. Please copy it now and store it securely.
                 </AlertDescription>
               </Alert>
-              
+
               <div className="relative">
                 <Input
                   value={newApiKey}
@@ -305,7 +305,7 @@ const ApiKeyManagement = () => {
                   <Copy className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
@@ -332,7 +332,7 @@ const ApiKeyManagement = () => {
                   A name to help you identify this key later.
                 </p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Permissions (Scopes)</Label>
                 <div className="grid gap-2">
@@ -356,7 +356,7 @@ const ApiKeyManagement = () => {
                   ))}
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Expiration</Label>
                 <div className="flex items-center justify-between">
@@ -382,7 +382,7 @@ const ApiKeyManagement = () => {
                   </div>
                 )}
               </div>
-              
+
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
@@ -405,24 +405,24 @@ const ApiKeyManagement = () => {
 // API Endpoint Component
 const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagSelect: (tag: string) => void }) => {
   const [copied, setCopied] = useState(false);
-  
+
   // Copy endpoint URL to clipboard
   const copyEndpointUrl = () => {
     navigator.clipboard.writeText(endpoint.path);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  
+
   // Format the curl command for the API endpoint
   const getCurlCommand = (): string => {
     let cmd = `curl -X ${endpoint.method} \\
   "${window.location.origin}${endpoint.path}"`;
-    
+
     if (endpoint.requiresAuth) {
       cmd += ` \\
   -H "Authorization: Bearer YOUR_API_KEY_HERE"`;
     }
-    
+
     if (endpoint.parameters && ['POST', 'PUT', 'PATCH'].includes(endpoint.method)) {
       const exampleBody: Record<string, any> = {};
       endpoint.parameters.forEach(param => {
@@ -439,17 +439,17 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
           }
         }
       });
-      
+
       if (Object.keys(exampleBody).length > 0) {
         cmd += ` \\
   -H "Content-Type: application/json" \\
   -d '${JSON.stringify(exampleBody, null, 2)}'`;
       }
     }
-    
+
     return cmd;
   };
-  
+
   // Get method color class
   const getMethodColor = (method: string): string => {
     const colors: Record<string, string> = {
@@ -479,7 +479,7 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
         <div className="space-y-4">
           <div>
             <p className="text-sm">{endpoint.description}</p>
-            
+
             <div className="flex flex-wrap gap-1 mt-2">
               {endpoint.tags?.map((tag) => (
                 <Badge
@@ -496,7 +496,7 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
               ))}
             </div>
           </div>
-          
+
           <div>
             <div className="flex items-center gap-2">
               <h4 className="font-medium text-sm">Endpoint URL</h4>
@@ -513,7 +513,7 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
               {endpoint.path}
             </div>
           </div>
-          
+
           {endpoint.parameters && endpoint.parameters.length > 0 && (
             <div>
               <h4 className="font-medium text-sm mb-2">Parameters</h4>
@@ -522,7 +522,7 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
                 <div className="col-span-2 font-medium">Type</div>
                 <div className="col-span-2 font-medium">Required</div>
                 <div className="col-span-5 font-medium">Description</div>
-                
+
                 {endpoint.parameters.map((param, idx) => (
                   /* Using a div wrapper instead of React.Fragment to avoid Replit metadata attributes */
                   <div key={idx} className="contents">
@@ -542,14 +542,14 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
               </div>
             </div>
           )}
-          
+
           <div>
             <h4 className="font-medium text-sm mb-2">Example Response</h4>
             <pre className="bg-muted p-2 rounded-md font-mono text-xs overflow-x-auto whitespace-pre-wrap">
               {endpoint.responseExample}
             </pre>
           </div>
-          
+
           <div>
             <h4 className="font-medium text-sm mb-2">cURL Example</h4>
             <div className="relative">
@@ -570,7 +570,7 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
               </Button>
             </div>
           </div>
-          
+
           {endpoint.requiresAuth && (
             <Alert variant="warning" className="bg-amber-50 text-amber-800 border-amber-200">
               <AlertCircle className="h-4 w-4" />
@@ -587,9 +587,9 @@ const EndpointCard = ({ endpoint, onTagSelect }: { endpoint: ApiEndpoint; onTagS
 };
 
 // Tag filter component
-const TagFilter = ({ tags, selectedTags, onTagSelect }: { 
-  tags: string[]; 
-  selectedTags: string[]; 
+const TagFilter = ({ tags, selectedTags, onTagSelect }: {
+  tags: string[];
+  selectedTags: string[];
   onTagSelect: (tag: string) => void;
 }) => {
   return (
@@ -615,14 +615,14 @@ const TagFilter = ({ tags, selectedTags, onTagSelect }: {
 const ApiCategory = ({ title, description, endpoints, onTagSelect, selectedTags }: ApiCategoryProps) => {
   // Get all unique tags from endpoints
   const allTags = [...new Set(endpoints.flatMap(endpoint => endpoint.tags || []))].sort();
-  
+
   // Filter endpoints based on selected tags
   const filteredEndpoints = selectedTags.length > 0
-    ? endpoints.filter(endpoint => 
+    ? endpoints.filter(endpoint =>
         endpoint.tags && endpoint.tags.some(tag => selectedTags.includes(tag))
       )
     : endpoints;
-  
+
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -632,10 +632,10 @@ const ApiCategory = ({ title, description, endpoints, onTagSelect, selectedTags 
       {allTags.length > 0 && (
         <CardContent className="pt-0 pb-2">
           <div className="mb-2 text-sm font-medium">Filter by tag:</div>
-          <TagFilter 
-            tags={allTags} 
-            selectedTags={selectedTags} 
-            onTagSelect={onTagSelect} 
+          <TagFilter
+            tags={allTags}
+            selectedTags={selectedTags}
+            onTagSelect={onTagSelect}
           />
         </CardContent>
       )}
@@ -648,10 +648,10 @@ const ApiCategory = ({ title, description, endpoints, onTagSelect, selectedTags 
         ) : (
           <Accordion type="multiple" className="space-y-4">
             {filteredEndpoints.map((endpoint, index) => (
-              <EndpointCard 
-                key={index} 
-                endpoint={endpoint} 
-                onTagSelect={onTagSelect} 
+              <EndpointCard
+                key={index}
+                endpoint={endpoint}
+                onTagSelect={onTagSelect}
               />
             ))}
           </Accordion>
@@ -664,7 +664,7 @@ const ApiCategory = ({ title, description, endpoints, onTagSelect, selectedTags 
 // Endpoint Overview component
 const EndpointOverview = () => {
   const { setActiveTab } = useApiDocsContext();
-  
+
   return (
     <div className="space-y-6">
       <Card>
@@ -676,7 +676,7 @@ const EndpointOverview = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p>
-            Most API endpoints require authentication using API keys. To authenticate, include your API key 
+            Most API endpoints require authentication using API keys. To authenticate, include your API key
             in the Authorization header of your request:
           </p>
           <div className="bg-muted p-3 rounded-md font-mono text-sm">
@@ -684,9 +684,9 @@ const EndpointOverview = () => {
           </div>
           <p>
             You can manage your API keys in the
-            <Button 
-              variant="link" 
-              className="px-1 py-0 h-auto font-normal" 
+            <Button
+              variant="link"
+              className="px-1 py-0 h-auto font-normal"
               onClick={() => setActiveTab("api-keys")}
             >
               API Keys
@@ -696,10 +696,10 @@ const EndpointOverview = () => {
           <div className="flex flex-col gap-2 mt-4">
             <h4 className="font-medium">Rate Limiting</h4>
             <p className="text-sm">
-              API requests are limited to 100 requests per minute per API key. If you exceed this limit, 
+              API requests are limited to 100 requests per minute per API key. If you exceed this limit,
               you'll receive a 429 Too Many Requests response.
             </p>
-            
+
             <h4 className="font-medium mt-2">Response Format</h4>
             <p className="text-sm">
               All API responses are returned in JSON format with appropriate HTTP status codes.
@@ -707,7 +707,7 @@ const EndpointOverview = () => {
           </div>
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Response Format</CardTitle>
@@ -719,7 +719,7 @@ const EndpointOverview = () => {
           <p>
             All API responses follow a consistent format to make integration easier.
           </p>
-          
+
           <div className="bg-muted rounded-md p-4">
             <h5 className="font-medium mb-2 text-sm">Success Response (200 OK)</h5>
             <pre className="font-mono text-sm overflow-x-auto">
@@ -733,7 +733,7 @@ const EndpointOverview = () => {
 }`}
             </pre>
           </div>
-          
+
           <div className="bg-muted rounded-md p-4 mt-4">
             <h5 className="font-medium mb-2 text-sm">Error Response (400, 401, 403, 404, 500)</h5>
             <pre className="font-mono text-sm overflow-x-auto">
@@ -747,7 +747,7 @@ const EndpointOverview = () => {
 }`}
             </pre>
           </div>
-          
+
           <Alert className="mt-4">
             <Info className="h-4 w-4" />
             <AlertTitle>Tip</AlertTitle>
@@ -1029,8 +1029,8 @@ const userEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/verification-status",
     description: "Check if the user's email is verified",
-    responseExample: JSON.stringify({ 
-      verified: true 
+    responseExample: JSON.stringify({
+      verified: true
     }, null, 2),
     requiresAuth: true,
     tags: ["user", "account"]
@@ -1185,82 +1185,9 @@ const serverEndpoints: ApiEndpoint[] = [
 
 // Billing endpoints
 const billingEndpoints: ApiEndpoint[] = [
-  {
-    method: "GET",
-    path: "/api/invoices",
-    description: "Get all invoices for the authenticated user",
-    responseExample: JSON.stringify([
-      {
-        id: 123,
-        invoiceNumber: "INV-20250504-6471",
-        userId: 456,
-        amount: 29.99,
-        status: "paid",
-        dueDate: "2025-05-15T00:00:00Z",
-        paidDate: "2025-05-10T15:30:00Z",
-        items: [
-          {
-            description: "VPS Server - Standard Plan",
-            quantity: 1,
-            unitPrice: 29.99,
-            total: 29.99
-          }
-        ],
-        createdAt: "2025-05-04T12:00:00Z"
-      }
-    ], null, 2),
-    requiresAuth: true,
-    tags: ["billing", "invoices"]
-  },
-  {
-    method: "GET",
-    path: "/api/invoices/:id",
-    description: "Get details of a specific invoice",
-    parameters: [
-      { name: "id", type: "number", required: true, description: "The invoice ID", example: "123" }
-    ],
-    responseExample: JSON.stringify({
-      id: 123,
-      invoiceNumber: "INV-20250504-6471",
-      userId: 456,
-      amount: 29.99,
-      status: "paid",
-      dueDate: "2025-05-15T00:00:00Z",
-      paidDate: "2025-05-10T15:30:00Z",
-      items: [
-        {
-          description: "VPS Server - Standard Plan",
-          quantity: 1,
-          unitPrice: 29.99,
-          total: 29.99
-        }
-      ],
-      user: {
-        fullName: "John Doe",
-        email: "john@example.com"
-      },
-      company: {
-        name: "SkyVPS360",
-        address: "123 Cloud St, Server City, SC 12345",
-        email: "billing@skyvps360.xyz",
-        phone: "+1 (555) 123-4567"
-      },
-      createdAt: "2025-05-04T12:00:00Z"
-    }, null, 2),
-    requiresAuth: true,
-    tags: ["billing", "invoices"]
-  },
-  {
-    method: "GET",
-    path: "/api/invoices/:id/download",
-    description: "Download invoice as PDF",
-    parameters: [
-      { name: "id", type: "number", required: true, description: "The invoice ID", example: "123" }
-    ],
-    responseExample: "PDF binary data",
-    requiresAuth: true,
-    tags: ["billing", "invoices", "export"]
-  },
+
+
+
   {
     method: "GET",
     path: "/api/transactions",
@@ -1272,7 +1199,7 @@ const billingEndpoints: ApiEndpoint[] = [
         amount: 29.99,
         type: "payment",
         status: "completed",
-        description: "Payment for invoice #INV-20250504-6471",
+        description: "PayPal Credit Purchase",
         paymentMethod: "credit_card",
         paymentId: "ch_1Abc123Def456",
         createdAt: "2025-05-10T15:30:00Z"
@@ -1294,15 +1221,11 @@ const billingEndpoints: ApiEndpoint[] = [
       amount: 29.99,
       type: "payment",
       status: "completed",
-      description: "Payment for invoice #INV-20250504-6471",
+      description: "PayPal Credit Purchase",
       paymentMethod: "credit_card",
       paymentId: "ch_1Abc123Def456",
       createdAt: "2025-05-10T15:30:00Z",
-      invoiceId: 123,
-      invoice: {
-        invoiceNumber: "INV-20250504-6471",
-        amount: 29.99
-      }
+
     }, null, 2),
     requiresAuth: true,
     tags: ["billing", "transactions"]
@@ -1330,32 +1253,7 @@ const billingEndpoints: ApiEndpoint[] = [
     requiresAuth: true,
     tags: ["account", "credits", "api-keys", "v1-api"],
   },
-  {
-    method: "GET",
-    path: "/api/billing/invoices",
-    description: "Get a list of invoices for the authenticated user",
-    responseExample: JSON.stringify({
-      success: true,
-      data: [
-        {
-          id: "INV-001",
-          amount: 29.99,
-          status: "paid",
-          date: "2025-03-01T00:00:00Z",
-          due_date: "2025-03-15T00:00:00Z"
-        },
-        {
-          id: "INV-002",
-          amount: 29.99,
-          status: "pending",
-          date: "2025-04-01T00:00:00Z",
-          due_date: "2025-04-15T00:00:00Z"
-        }
-      ]
-    }, null, 2),
-    requiresAuth: true,
-    tags: ["billing", "invoices"]
-  },
+
   {
     method: "GET",
     path: "/api/billing/usage/last30days",
@@ -1433,9 +1331,9 @@ const apiKeyEndpoints: ApiEndpoint[] = [
     path: "/api/user/api-keys",
     description: "Retrieve API keys for the authenticated user",
     responseExample: JSON.stringify([
-      { 
-        id: 1, 
-        name: "My API Key", 
+      {
+        id: 1,
+        name: "My API Key",
         scopes: ["read:user", "read:servers"],
         lastUsed: "2025-04-20T14:15:00Z",
         createdAt: "2025-04-15T10:30:00Z",
@@ -1455,9 +1353,9 @@ const apiKeyEndpoints: ApiEndpoint[] = [
       { name: "scopes", type: "array", required: true, description: "Array of permission scopes for the API key", example: '["read:user", "read:servers"]' },
       { name: "expiresIn", type: "number", required: false, description: "Days until expiration (null for never)", example: 90 }
     ],
-    responseExample: JSON.stringify({ 
-      success: true, 
-      key: "sk_live_abcd1234...", 
+    responseExample: JSON.stringify({
+      success: true,
+      key: "sk_live_abcd1234...",
       id: 2,
       name: "My API Key",
       scopes: ["read:user", "read:servers"],
@@ -1473,9 +1371,9 @@ const apiKeyEndpoints: ApiEndpoint[] = [
     parameters: [
       { name: "id", type: "number", required: true, description: "The API key ID", example: "1" }
     ],
-    responseExample: JSON.stringify({ 
-      success: true, 
-      message: "API key deleted successfully" 
+    responseExample: JSON.stringify({
+      success: true,
+      message: "API key deleted successfully"
     }, null, 2),
     requiresAuth: true,
     tags: ["api-keys"]
@@ -1487,9 +1385,9 @@ const apiKeyEndpoints: ApiEndpoint[] = [
     parameters: [
       { name: "id", type: "number", required: true, description: "The API key ID", example: "1" }
     ],
-    responseExample: JSON.stringify({ 
-      success: true, 
-      message: "API key revoked successfully" 
+    responseExample: JSON.stringify({
+      success: true,
+      message: "API key revoked successfully"
     }, null, 2),
     requiresAuth: true,
     tags: ["api-keys"]
@@ -1498,11 +1396,11 @@ const apiKeyEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/validate-key",
     description: "Validate an API key and return its associated user and scope information",
-    responseExample: JSON.stringify({ 
+    responseExample: JSON.stringify({
       valid: true,
       userId: 123,
       scopes: ["read:user", "read:servers"],
-      expiresAt: "2025-07-20T00:00:00Z" 
+      expiresAt: "2025-07-20T00:00:00Z"
     }, null, 2),
     requiresAuth: true,
     tags: ["api-keys", "authentication"]
@@ -1676,30 +1574,7 @@ const adminEndpoints: ApiEndpoint[] = [
     requiresAdmin: true,
     tags: ["admin", "tickets", "support"]
   },
-  {
-    method: "GET",
-    path: "/api/admin/invoices",
-    description: "Get all invoices in the system (for admin monitoring)",
-    responseExample: JSON.stringify([
-      {
-        id: 123,
-        invoiceNumber: "INV-20250504-6471",
-        userId: 456,
-        user: {
-          username: "johndoe",
-          email: "john@example.com"
-        },
-        amount: 29.99,
-        status: "paid",
-        dueDate: "2025-05-15T00:00:00Z",
-        paidDate: "2025-05-10T15:30:00Z",
-        createdAt: "2025-05-04T12:00:00Z"
-      }
-    ], null, 2),
-    requiresAuth: true,
-    requiresAdmin: true,
-    tags: ["admin", "billing", "invoices"]
-  },
+
   {
     method: "GET",
     path: "/api/admin/transactions",
@@ -1715,14 +1590,10 @@ const adminEndpoints: ApiEndpoint[] = [
         amount: 29.99,
         type: "payment",
         status: "completed",
-        description: "Payment for invoice #INV-20250504-6471",
+        description: "Payment for server credits",
         paymentMethod: "credit_card",
         paymentId: "ch_1Abc123Def456",
-        createdAt: "2025-05-10T15:30:00Z",
-        invoiceId: 123,
-        invoice: {
-          invoiceNumber: "INV-20250504-6471"
-        }
+        createdAt: "2025-05-10T15:30:00Z"
       }
     ], null, 2),
     requiresAuth: true,
@@ -1790,32 +1661,32 @@ const adminEndpoints: ApiEndpoint[] = [
     path: "/api/maintenance/toggle",
     description: "Toggle maintenance mode for the platform",
     parameters: [
-      { 
-        name: "enabled", 
-        type: "boolean", 
-        required: true, 
-        description: "Whether to enable or disable maintenance mode", 
-        example: true 
+      {
+        name: "enabled",
+        type: "boolean",
+        required: true,
+        description: "Whether to enable or disable maintenance mode",
+        example: true
       },
-      { 
-        name: "message", 
-        type: "string", 
-        required: false, 
-        description: "Message to display to users during maintenance", 
-        example: "System maintenance in progress" 
+      {
+        name: "message",
+        type: "string",
+        required: false,
+        description: "Message to display to users during maintenance",
+        example: "System maintenance in progress"
       },
-      { 
-        name: "estimatedCompletion", 
-        type: "string", 
-        required: false, 
-        description: "Estimated date/time when maintenance will be complete", 
-        example: "2025-05-03T01:30:00Z" 
+      {
+        name: "estimatedCompletion",
+        type: "string",
+        required: false,
+        description: "Estimated date/time when maintenance will be complete",
+        example: "2025-05-03T01:30:00Z"
       }
     ],
-    responseExample: JSON.stringify({ 
-      success: true, 
-      enabled: true, 
-      message: "System maintenance in progress", 
+    responseExample: JSON.stringify({
+      success: true,
+      enabled: true,
+      message: "System maintenance in progress",
       estimatedCompletion: "2025-05-03T01:30:00Z"
     }, null, 2),
     requiresAuth: true,
@@ -1830,8 +1701,8 @@ const publicEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/public/service-status",
     description: "Retrieve real-time status information for all platform services",
-    responseExample: JSON.stringify({ 
-      overall: "operational", 
+    responseExample: JSON.stringify({
+      overall: "operational",
       services: [
         {
           name: "API Services",
@@ -1862,11 +1733,11 @@ const publicEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/public/platform-stats",
     description: "Retrieve platform statistics including server and hypervisor counts",
-    responseExample: JSON.stringify({ 
-      serverCount: 48989, 
-      hypervisorCount: 501, 
-      activeServerCount: 45631, 
-      uptime: "99.99%" 
+    responseExample: JSON.stringify({
+      serverCount: 48989,
+      hypervisorCount: 501,
+      activeServerCount: 45631,
+      uptime: "99.99%"
     }, null, 2),
     requiresAuth: false,
     tags: ["statistics", "public"]
@@ -1903,18 +1774,18 @@ const publicEndpoints: ApiEndpoint[] = [
     path: "/api/public/packages",
     description: "Retrieve available packages for the platform",
     responseExample: JSON.stringify([
-      { 
-        id: 1, 
-        name: "Starter", 
-        description: "Basic package for small workloads", 
-        price: 5.99, 
+      {
+        id: 1,
+        name: "Starter",
+        description: "Basic package for small workloads",
+        price: 5.99,
         features: ["1 CPU", "1GB RAM", "25GB Storage"]
       },
-      { 
-        id: 2, 
-        name: "Professional", 
-        description: "Recommended for most users", 
-        price: 15.99, 
+      {
+        id: 2,
+        name: "Professional",
+        description: "Recommended for most users",
+        price: 15.99,
         features: ["2 CPU", "4GB RAM", "50GB Storage"]
       }
     ], null, 2),
@@ -1926,11 +1797,11 @@ const publicEndpoints: ApiEndpoint[] = [
     path: "/api/datacenter-locations",
     description: "Retrieve list of available datacenter locations",
     responseExample: JSON.stringify([
-      { 
-        id: 1, 
-        name: "New York", 
-        code: "nyc1", 
-        latitude: 40.7128, 
+      {
+        id: 1,
+        name: "New York",
+        code: "nyc1",
+        latitude: 40.7128,
         longitude: -74.0060,
         status: "active",
         countryCode: "US",
@@ -1949,14 +1820,14 @@ export default function ApiDocsPage() {
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  
+
   const searchInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Query for settings
   const { data: settings = {} } = useQuery<Record<string, string>>({
     queryKey: ["/api/settings/public"],
   });
-  
+
   // Query for API keys
   const { data: apiKeys = [] } = useQuery<any[]>({
     queryKey: ["/api/user/api-keys"],
@@ -1964,25 +1835,25 @@ export default function ApiDocsPage() {
       console.error("Error fetching API keys:", error);
     }
   });
-  
+
   // Create context value for child components
   const apiDocsContextValue: ApiDocsContextType = {
     activeTab,
     setActiveTab
   };
-  
+
   // Function to get company name from settings
   const getCompanyName = (): string => {
     return settings.company_name || 'SkyVPS360';
   };
-  
+
   // Search function
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const term = searchInputRef.current?.value || "";
     setSearchTerm(term);
   };
-  
+
   // Tag filter handler
   const handleTagSelect = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -1991,7 +1862,7 @@ export default function ApiDocsPage() {
       setSelectedTags([...selectedTags, tag]);
     }
   };
-  
+
   // Clear search
   const clearSearch = () => {
     if (searchInputRef.current) {
@@ -1999,37 +1870,37 @@ export default function ApiDocsPage() {
     }
     setSearchTerm("");
   };
-  
+
   // Reset filters
   const resetFilters = () => {
     clearSearch();
     setSelectedTags([]);
   };
-  
+
   // Filter endpoints based on search term
   const getFilteredEndpoints = (endpoints: ApiEndpoint[]) => {
     if (!searchTerm) return endpoints;
-    
+
     return endpoints.filter(endpoint =>
       endpoint.path.toLowerCase().includes(searchTerm.toLowerCase()) ||
       endpoint.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       endpoint.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   };
-  
+
   // Get all unique tags from all endpoints
   const getAllTags = (): string[] => {
     const allTags = new Set<string>();
-    
+
     [...userEndpoints, ...serverEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...adminEndpoints, ...publicEndpoints].forEach(endpoint => {
       endpoint.tags?.forEach(tag => allTags.add(tag));
     });
-    
+
     return Array.from(allTags).sort();
   };
-  
+
   // No API key selection - removed
-  
+
   return (
     <DashboardLayout>
       <div className="container max-w-6xl py-6 space-y-8">
@@ -2039,7 +1910,7 @@ export default function ApiDocsPage() {
             Learn how to integrate your applications with the {getCompanyName()} API.
           </p>
         </div>
-        
+
         <ApiDocsContext.Provider value={apiDocsContextValue}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="flex justify-between flex-col md:flex-row gap-4">
@@ -2073,7 +1944,7 @@ export default function ApiDocsPage() {
                   <span>Public</span>
                 </TabsTrigger>
               </TabsList>
-              
+
               {activeTab !== "overview" && activeTab !== "api-keys" && (
                 <div className="flex space-x-2">
                   <form onSubmit={handleSearch} className="relative">
@@ -2100,11 +1971,11 @@ export default function ApiDocsPage() {
                 </div>
               )}
             </div>
-            
+
             <TabsContent value="overview" className="space-y-6">
               <EndpointOverview />
             </TabsContent>
-            
+
             <TabsContent value="user" className="space-y-6">
               <ApiCategory
                 title="User Endpoints"
@@ -2114,7 +1985,7 @@ export default function ApiDocsPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="servers" className="space-y-6">
               <ApiCategory
                 title="Server Endpoints"
@@ -2124,7 +1995,7 @@ export default function ApiDocsPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="billing" className="space-y-6">
               <ApiCategory
                 title="Billing Endpoints"
@@ -2134,7 +2005,7 @@ export default function ApiDocsPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="api-keys" className="space-y-6">
               <ApiKeyManagement />
               <ApiCategory
@@ -2145,7 +2016,7 @@ export default function ApiDocsPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="admin" className="space-y-6">
               <Card className="mb-6">
                 <CardHeader>
@@ -2164,7 +2035,7 @@ export default function ApiDocsPage() {
                   </Alert>
                 </CardContent>
               </Card>
-              
+
               <ApiCategory
                 title="Admin Endpoints"
                 description="Endpoints for system administration and user management."
@@ -2173,7 +2044,7 @@ export default function ApiDocsPage() {
                 selectedTags={selectedTags}
               />
             </TabsContent>
-            
+
             <TabsContent value="public" className="space-y-6">
               <ApiCategory
                 title="Public Endpoints"

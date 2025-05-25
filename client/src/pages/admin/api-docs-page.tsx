@@ -891,52 +891,7 @@ const billingEndpoints: ApiEndpoint[] = [
     requiresAuth: true,
     tags: ["billing", "transactions"]
   },
-  {
-    method: "GET",
-    path: "/api/invoices",
-    description: "Get invoice history",
-    responseExample: JSON.stringify([
-      {
-        id: 1,
-        invoiceNumber: "INV-2025001",
-        userId: 1,
-        amount: 20.00,
-        status: "paid",
-        createdAt: "2025-04-01T10:00:00Z",
-        dueDate: "2025-04-15T00:00:00Z",
-        paidAt: "2025-04-02T09:30:00Z"
-      }
-    ], null, 2),
-    requiresAuth: true,
-    tags: ["billing", "invoices"]
-  },
-  {
-    method: "GET",
-    path: "/api/invoices/:id",
-    description: "Get details for a specific invoice",
-    parameters: [
-      { name: "id", type: "string", required: true, description: "Invoice ID", example: "1" }
-    ],
-    responseExample: JSON.stringify({
-      id: 1,
-      invoiceNumber: "INV-2025001",
-      userId: 1,
-      amount: 20.00,
-      status: "paid",
-      items: [
-        {
-          description: "Server credits purchase",
-          amount: 20.00,
-          quantity: 1
-        }
-      ],
-      createdAt: "2025-04-01T10:00:00Z",
-      dueDate: "2025-04-15T00:00:00Z",
-      paidAt: "2025-04-02T09:30:00Z"
-    }, null, 2),
-    requiresAuth: true,
-    tags: ["billing", "invoices"]
-  },
+
   {
     method: "POST",
     path: "/api/billing/add-credits",
@@ -1153,32 +1108,7 @@ const adminEndpoints: ApiEndpoint[] = [
     requiresAdmin: true,
     tags: ["admin", "billing"]
   },
-  {
-    method: "GET",
-    path: "/api/admin/invoices",
-    description: "Get all invoices (admin only)",
-    responseExample: JSON.stringify([
-      {
-        id: 1,
-        invoiceNumber: "INV-2025001",
-        userId: 1,
-        amount: 20.00,
-        status: "paid",
-        createdAt: "2025-04-01T10:00:00Z",
-        dueDate: "2025-04-15T00:00:00Z",
-        paidAt: "2025-04-02T09:30:00Z",
-        user: {
-          id: 1,
-          username: "exampleuser",
-          fullName: "Example User",
-          email: "user@example.com"
-        }
-      }
-    ], null, 2),
-    requiresAuth: true,
-    requiresAdmin: true,
-    tags: ["admin", "billing", "invoices"]
-  },
+
   {
     method: "POST",
     path: "/api/admin/settings",
@@ -1693,7 +1623,7 @@ export default function ApiDocsAdminPage() {
             <TabsContent value="billing" className="space-y-6">
               <ApiCategory
                 title="Billing Endpoints"
-                description="Endpoints for managing billing, transactions, and invoices."
+                description="Endpoints for managing billing and transactions."
                 endpoints={getFilteredEndpoints(billingEndpoints)}
                 onTagSelect={handleTagSelect}
                 selectedTags={selectedTags}

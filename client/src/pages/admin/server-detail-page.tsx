@@ -330,6 +330,7 @@ const VNCTab = ({ serverId }: { serverId: number }) => {
   const queryClient = useQueryClient();
 
   // Fetch VNC status
+  // NOTE: Increased cache time to reduce VNC API calls since each call toggles VNC state
   const { data: vncData, isLoading: vncLoading, error: vncError, refetch: refetchVNC } = useQuery({
     queryKey: ['/api/admin/servers', serverId, 'vnc'],
     queryFn: async () => {
@@ -339,7 +340,8 @@ const VNCTab = ({ serverId }: { serverId: number }) => {
       }
       return response.json();
     },
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to reduce API calls
+    refetchInterval: false, // Disable automatic refetching
   });
 
 
