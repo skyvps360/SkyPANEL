@@ -38,11 +38,7 @@
         scrollLock: false
       };
 
-      // Font settings with persistence
-      this.fontSettings = {
-        size: localStorage.getItem('vnc-font-size') || '14px',
-        family: localStorage.getItem('vnc-font-family') || 'Consolas'
-      };
+
 
       // Extract connection details
       const urlParams = new URLSearchParams(this.url.split('?')[1]);
@@ -174,12 +170,6 @@
       this.toolbar.appendChild(altTabBtn);
       this.toolbar.appendChild(winKeyBtn);
       this.toolbar.appendChild(altF4Btn);
-
-      this.toolbar.appendChild(this.createSeparator());
-
-      // Font customization
-      const fontControls = this.createFontControls();
-      this.toolbar.appendChild(fontControls);
 
       this.toolbar.appendChild(this.createSeparator());
 
@@ -323,92 +313,7 @@
       return group;
     }
 
-    createFontControls() {
-      const container = document.createElement('div');
-      container.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      `;
 
-      // Font size selector
-      const sizeLabel = document.createElement('span');
-      sizeLabel.textContent = 'Size:';
-      sizeLabel.style.cssText = `
-        color: #e2e8f0;
-        font-size: 11px;
-        font-weight: 500;
-      `;
-
-      const sizeSelect = document.createElement('select');
-      sizeSelect.style.cssText = `
-        background: #374151;
-        border: 1px solid #6b7280;
-        color: #e5e7eb;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 11px;
-        cursor: pointer;
-      `;
-
-      const sizes = ['8px', '10px', '12px', '14px', '16px', '18px', '20px', '24px'];
-      sizes.forEach(size => {
-        const option = document.createElement('option');
-        option.value = size;
-        option.textContent = size;
-        option.selected = size === this.fontSettings.size;
-        sizeSelect.appendChild(option);
-      });
-
-      sizeSelect.addEventListener('change', (e) => {
-        this.fontSettings.size = e.target.value;
-        localStorage.setItem('vnc-font-size', e.target.value);
-        this.applyFontSettings();
-      });
-
-      // Font family selector
-      const familyLabel = document.createElement('span');
-      familyLabel.textContent = 'Font:';
-      familyLabel.style.cssText = `
-        color: #e2e8f0;
-        font-size: 11px;
-        font-weight: 500;
-        margin-left: 8px;
-      `;
-
-      const familySelect = document.createElement('select');
-      familySelect.style.cssText = `
-        background: #374151;
-        border: 1px solid #6b7280;
-        color: #e5e7eb;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 11px;
-        cursor: pointer;
-      `;
-
-      const families = ['Consolas', 'Monaco', 'Courier New', 'Ubuntu Mono', 'Source Code Pro', 'monospace'];
-      families.forEach(family => {
-        const option = document.createElement('option');
-        option.value = family;
-        option.textContent = family;
-        option.selected = family === this.fontSettings.family;
-        familySelect.appendChild(option);
-      });
-
-      familySelect.addEventListener('change', (e) => {
-        this.fontSettings.family = e.target.value;
-        localStorage.setItem('vnc-font-family', e.target.value);
-        this.applyFontSettings();
-      });
-
-      container.appendChild(sizeLabel);
-      container.appendChild(sizeSelect);
-      container.appendChild(familyLabel);
-      container.appendChild(familySelect);
-
-      return container;
-    }
 
     createModifierIndicators() {
       const container = document.createElement('div');
@@ -460,6 +365,11 @@
         e.stopPropagation();
       });
 
+      this.canvas.addEventListener('mousedown', (e) => {
+        this.focusCanvas();
+        e.preventDefault();
+      });
+
       this.canvas.addEventListener('focus', () => {
         this.hasFocus = true;
         this.canvas.style.borderColor = '#3b82f6';
@@ -479,6 +389,20 @@
         e.preventDefault();
       });
 
+      // More aggressive focus management - capture any interaction with VNC area
+      this.target.addEventListener('click', (e) => {
+        if (e.target !== this.canvas) {
+          this.focusCanvas();
+        }
+      });
+
+      // Auto-focus when mouse enters the VNC area
+      this.target.addEventListener('mouseenter', () => {
+        if (!this.hasFocus) {
+          this.focusCanvas();
+        }
+      });
+
       // Global click handler to maintain focus
       document.addEventListener('click', (e) => {
         if (!this.target.contains(e.target)) {
@@ -489,9 +413,21 @@
     }
 
     focusCanvas() {
-      this.canvas.focus();
-      this.hasFocus = true;
-      console.log('VNC: Canvas manually focused');
+      try {
+        this.canvas.focus({ preventScroll: true });
+        this.hasFocus = true;
+        console.log('VNC: Canvas manually focused');
+
+        // Force focus if it didn't work
+        setTimeout(() => {
+          if (!this.hasFocus) {
+            this.canvas.focus();
+            console.log('VNC: Force-focused canvas after delay');
+          }
+        }, 100);
+      } catch (error) {
+        console.error('VNC: Error focusing canvas:', error);
+      }
     }
 
     connectToRealVNC() {
@@ -699,6 +635,9 @@
 
           // Update connection status
           this.updateConnectionStatus(true);
+
+          // Show success message
+          this.showToast('VNC connection established! Click canvas to start using keyboard/mouse.', 'success');
         }
 
         this.vncState.stage = 'normal';
@@ -1301,6 +1240,14 @@
     }
 
     handleMouseDown(e) {
+      if (!this.connected || !this.ws) {
+        console.log('VNC: Ignoring mousedown - not connected');
+        return;
+      }
+
+      // Ensure canvas has focus
+      this.focusCanvas();
+
       const rect = this.canvas.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) * (this.canvas.width / rect.width));
       const y = Math.floor((e.clientY - rect.top) * (this.canvas.height / rect.height));
@@ -1310,28 +1257,38 @@
       if (e.button === 1) buttonMask = 2; // Middle button
       if (e.button === 2) buttonMask = 4; // Right button
 
+      console.log('VNC: Mouse down at', x, y, 'button:', e.button, 'mask:', buttonMask);
       this.sendPointerEvent(x, y, buttonMask);
       e.preventDefault();
+      e.stopPropagation();
     }
 
     handleMouseUp(e) {
+      if (!this.connected || !this.ws) {
+        console.log('VNC: Ignoring mouseup - not connected');
+        return;
+      }
+
       const rect = this.canvas.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) * (this.canvas.width / rect.width));
       const y = Math.floor((e.clientY - rect.top) * (this.canvas.height / rect.height));
 
       // Send mouse up (button mask = 0)
+      console.log('VNC: Mouse up at', x, y, 'button:', e.button);
       this.sendPointerEvent(x, y, 0);
       e.preventDefault();
+      e.stopPropagation();
     }
 
     handleMouseMove(e) {
+      if (!this.connected || !this.ws) return;
+
       const rect = this.canvas.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) * (this.canvas.width / rect.width));
       const y = Math.floor((e.clientY - rect.top) * (this.canvas.height / rect.height));
 
       // Send mouse move with current button state
       this.sendPointerEvent(x, y, this.currentButtonMask || 0);
-      e.preventDefault();
     }
 
     handleMouseWheel(e) {
@@ -1351,19 +1308,88 @@
     }
 
     handleKeyDown(e) {
+      if (!this.connected || !this.ws) {
+        console.log('VNC: Ignoring keydown - not connected');
+        return;
+      }
+
+      if (!this.hasFocus) {
+        console.log('VNC: Ignoring keydown - canvas not focused');
+        return;
+      }
+
+      console.log('VNC: Key down:', {
+        key: e.key,
+        code: e.code,
+        keyCode: e.keyCode,
+        ctrlKey: e.ctrlKey,
+        altKey: e.altKey,
+        shiftKey: e.shiftKey,
+        metaKey: e.metaKey
+      });
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Update modifier states
+      this.updateModifierState(e, true);
+
       const keysym = this.getKeysym(e);
       if (keysym) {
+        console.log('VNC: Sending key down:', keysym.toString(16));
         this.sendKeyEvent(keysym, true);
+      } else {
+        console.warn('VNC: No keysym found for key:', e.key);
       }
-      e.preventDefault();
     }
 
     handleKeyUp(e) {
+      if (!this.connected || !this.ws) {
+        console.log('VNC: Ignoring keyup - not connected');
+        return;
+      }
+
+      if (!this.hasFocus) {
+        console.log('VNC: Ignoring keyup - canvas not focused');
+        return;
+      }
+
+      console.log('VNC: Key up:', {
+        key: e.key,
+        code: e.code,
+        keyCode: e.keyCode
+      });
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Update modifier states
+      this.updateModifierState(e, false);
+
       const keysym = this.getKeysym(e);
       if (keysym) {
+        console.log('VNC: Sending key up:', keysym.toString(16));
         this.sendKeyEvent(keysym, false);
       }
-      e.preventDefault();
+    }
+
+    updateModifierState(e, isDown) {
+      const modifierMap = {
+        'Shift': 'shift',
+        'Control': 'ctrl',
+        'Alt': 'alt',
+        'Meta': 'meta',
+        'CapsLock': 'capsLock',
+        'NumLock': 'numLock',
+        'ScrollLock': 'scrollLock'
+      };
+
+      const modifierKey = modifierMap[e.key];
+      if (modifierKey) {
+        this.modifierState[modifierKey] = isDown;
+        this.updateModifierIndicator(modifierKey, isDown);
+        console.log('VNC: Modifier state updated:', modifierKey, isDown);
+      }
     }
 
     // Send VNC PointerEvent message
@@ -1491,27 +1517,90 @@
     sendClipboardText(text) {
       if (!this.connected || !this.ws) return;
 
-      // VNC ClientCutText message (type 6)
-      const textBytes = new TextEncoder().encode(text);
-      const message = new Uint8Array(8 + textBytes.length);
+      console.log('VNC: Sending clipboard text as keystrokes:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
 
-      message[0] = 6; // ClientCutText message type
-      message[1] = 0; // Padding
-      message[2] = 0; // Padding
-      message[3] = 0; // Padding
+      // Send text as individual keystrokes with proper timing
+      let delay = 0;
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const charCode = char.charCodeAt(0);
 
-      // Text length (4 bytes, big-endian)
-      const length = textBytes.length;
-      message[4] = (length >> 24) & 0xFF;
-      message[5] = (length >> 16) & 0xFF;
-      message[6] = (length >> 8) & 0xFF;
-      message[7] = length & 0xFF;
+        setTimeout(() => {
+          // Handle special characters
+          if (char === '\n' || char === '\r') {
+            // Send Enter key
+            this.sendKeyEvent(0xFF0D, true);  // Enter down
+            setTimeout(() => this.sendKeyEvent(0xFF0D, false), 50); // Enter up
+          } else if (char === '\t') {
+            // Send Tab key
+            this.sendKeyEvent(0xFF09, true);  // Tab down
+            setTimeout(() => this.sendKeyEvent(0xFF09, false), 50); // Tab up
+          } else if (charCode >= 32 && charCode <= 126) {
+            // Regular ASCII characters
+            let keysym = charCode;
+            let needShift = false;
 
-      // Text data
-      message.set(textBytes, 8);
+            // Handle uppercase letters and special characters that need Shift
+            if (char >= 'A' && char <= 'Z') {
+              needShift = true;
+            } else if ('!@#$%^&*()_+{}|:"<>?'.includes(char)) {
+              needShift = true;
+              // Map shifted characters to their base keys
+              const shiftMap = {
+                '!': '1', '@': '2', '#': '3', '$': '4', '%': '5',
+                '^': '6', '&': '7', '*': '8', '(': '9', ')': '0',
+                '_': '-', '+': '=', '{': '[', '}': ']', '|': '\\',
+                ':': ';', '"': "'", '<': ',', '>': '.', '?': '/'
+              };
+              if (shiftMap[char]) {
+                keysym = shiftMap[char].charCodeAt(0);
+              }
+            }
 
-      this.ws.send(message);
-      console.log('VNC: Sent clipboard text:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+            if (needShift) {
+              this.sendKeyEvent(0xFFE1, true);  // Shift down
+              setTimeout(() => {
+                this.sendKeyEvent(keysym, true);   // Key down
+                setTimeout(() => {
+                  this.sendKeyEvent(keysym, false);  // Key up
+                  setTimeout(() => this.sendKeyEvent(0xFFE1, false), 20); // Shift up
+                }, 30);
+              }, 20);
+            } else {
+              this.sendKeyEvent(keysym, true);   // Key down
+              setTimeout(() => this.sendKeyEvent(keysym, false), 30); // Key up
+            }
+          }
+        }, delay);
+
+        delay += 80; // 80ms between characters for reliable input
+      }
+
+      // Also send as VNC clipboard for servers that support it
+      try {
+        const textBytes = new TextEncoder().encode(text);
+        const message = new Uint8Array(8 + textBytes.length);
+
+        message[0] = 6; // ClientCutText message type
+        message[1] = 0; // Padding
+        message[2] = 0; // Padding
+        message[3] = 0; // Padding
+
+        // Text length (4 bytes, big-endian)
+        const length = textBytes.length;
+        message[4] = (length >> 24) & 0xFF;
+        message[5] = (length >> 16) & 0xFF;
+        message[6] = (length >> 8) & 0xFF;
+        message[7] = length & 0xFF;
+
+        // Text data
+        message.set(textBytes, 8);
+
+        this.ws.send(message);
+        console.log('VNC: Also sent as VNC clipboard message');
+      } catch (error) {
+        console.error('VNC: Error sending VNC clipboard message:', error);
+      }
     }
 
     sendVirtualTerminal(terminalNumber) {
@@ -1651,11 +1740,7 @@
       }
     }
 
-    applyFontSettings() {
-      // Apply font settings to any text rendering in VNC display
-      console.log('VNC: Applying font settings:', this.fontSettings);
-      // This would be used for any overlay text or UI elements
-    }
+
 
     showToast(message, type = 'info') {
       const toast = document.createElement('div');

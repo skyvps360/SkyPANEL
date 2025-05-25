@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Monitor, Wifi, WifiOff, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
+import { Monitor, Wifi, WifiOff, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { getBrandColors } from '@/lib/brand-theme';
@@ -21,7 +21,6 @@ const VNCConsole: React.FC = () => {
 
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Get connection parameters from URL
@@ -311,27 +310,7 @@ const VNCConsole: React.FC = () => {
     }, 500);
   };
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
 
-  // Handle fullscreen change
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, []);
 
   if (!host || !port || !password) {
     return (
@@ -400,25 +379,6 @@ const VNCConsole: React.FC = () => {
             >
               <RotateCcw className="h-4 w-4 mr-1" />
               Reconnect
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleFullscreen}
-              style={{
-                borderColor: brandColors.primary.full,
-                color: brandColors.primary.full
-              }}
-              className="hover:bg-opacity-10"
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = brandColors.primary.light;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
           </div>
         </div>
