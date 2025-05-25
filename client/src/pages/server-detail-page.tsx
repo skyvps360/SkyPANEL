@@ -53,7 +53,9 @@ import {
   RotateCcw,
   Square,
   PowerOff,
-  ChevronDown
+  ChevronDown,
+  FileText,
+  Terminal
 } from "lucide-react";
 
 // Helper function to format data size to human readable format
@@ -590,9 +592,9 @@ export default function ServerDetailPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // State for storing generated password
+  // State for storing generated password and active tab
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
-  const [showVncModal, setShowVncModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Fetch branding settings for brand colors
   const { data: brandingData } = useQuery<{
@@ -718,6 +720,53 @@ export default function ServerDetailPage() {
 
   // Extract the server data from the response
   const server = serverResponse?.data;
+
+  // Fetch VNC status for Quick Actions
+  const { data: vncData } = useQuery({
+    queryKey: ['/api/user/servers', id, 'vnc'],
+    queryFn: async () => {
+      const response = await fetch(`/api/user/servers/${id}/vnc`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch VNC status');
+      }
+      return response.json();
+    },
+    enabled: !!id && !isNaN(serverId),
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
+  const vncStatus = vncData?.data?.data?.vnc;
+  const isVNCEnabled = vncStatus?.enabled === true;
+
+  // Function to open VNC console in popup window
+  const openVNCConsole = () => {
+    if (!vncStatus || !isVNCEnabled) {
+      toast({
+        title: "VNC Not Available",
+        description: "VNC must be enabled before connecting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create VNC console popup
+    const vncUrl = `/vnc-console?host=${encodeURIComponent(vncStatus.ip)}&port=${vncStatus.port}&password=${encodeURIComponent(vncStatus.password)}&serverId=${serverId}`;
+
+    // Open VNC console in a new popup window
+    const popup = window.open(
+      vncUrl,
+      'vnc-console',
+      'width=1024,height=768,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
+    );
+
+    if (!popup) {
+      toast({
+        title: "Popup Blocked",
+        description: "Please allow popups for this site to use VNC console",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Server state logic for button enable/disable - matches the status display logic
   const getServerRunningState = () => {
@@ -1504,10 +1553,10 @@ export default function ServerDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => navigate('/servers')}
-                className="flex items-center gap-2 hover:bg-primary/10"
+                className="flex items-center gap-2 border-primary text-primary hover:bg-primary/10 hover:text-primary hover:border-primary"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Servers
@@ -1545,7 +1594,7 @@ export default function ServerDetailPage() {
                 size="sm"
                 onClick={() => refetch()}
                 disabled={isLoading}
-                className="hover:bg-primary/10"
+                className="border-primary text-primary hover:bg-primary/10 hover:text-primary hover:border-primary"
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -1686,44 +1735,80 @@ export default function ServerDetailPage() {
                       <PowerOff className="h-4 w-4" />
                       Power Off
                     </Button>
+
+                    {/* Tab Navigation Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary">
+                          <FileText className="h-4 w-4" />
+                          {activeTab === "overview" ? "Overview" :
+                           activeTab === "specs" ? "Specifications" :
+                           activeTab === "network" ? "Network" :
+                           activeTab === "traffic" ? "Traffic" :
+                           activeTab === "storage" ? "Storage" :
+                           activeTab === "vnc" ? "VNC" :
+                           activeTab === "console" ? "Controls" : "Overview"}
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => setActiveTab("overview")}>
+                          <Server className="h-4 w-4 mr-2" />
+                          Overview
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setActiveTab("specs")}>
+                          <Cpu className="h-4 w-4 mr-2" />
+                          Specifications
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setActiveTab("network")}>
+                          <Network className="h-4 w-4 mr-2" />
+                          Network
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setActiveTab("traffic")}>
+                          <Activity className="h-4 w-4 mr-2" />
+                          Traffic
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setActiveTab("storage")}>
+                          <HardDrive className="h-4 w-4 mr-2" />
+                          Storage
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setActiveTab("vnc")}>
+                          <Monitor className="h-4 w-4 mr-2" />
+                          VNC
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setActiveTab("console")}>
+                          <Terminal className="h-4 w-4 mr-2" />
+                          Controls
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Settings Dropdown - moved into Quick Actions */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary">
+                          <Settings className="h-4 w-4" />
+                          More
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => refetch()}>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Refresh Data
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => copyToClipboard(server?.uuid || '', 'uuid')}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy UUID
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={openVNCConsole}>
+                          <Monitor className="h-4 w-4 mr-2" />
+                          Open VNC Console
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-
-                  {/* VNC Console Action */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowVncModal(true)}
-                    className="flex items-center gap-2 hover:bg-primary/10"
-                  >
-                    <Monitor className="h-4 w-4" />
-                    VNC Console
-                  </Button>
-
-                  {/* Settings Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        More
-                        <ChevronDown className="h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => refetch()}>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Refresh Data
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => copyToClipboard(server?.uuid || '', 'uuid')}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy UUID
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setShowVncModal(true)}>
-                        <Monitor className="h-4 w-4 mr-2" />
-                        Open VNC Console
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
             </Card>
@@ -1762,16 +1847,8 @@ export default function ServerDetailPage() {
 
         {/* Server details */}
         {!isLoading && !error && server && (
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid grid-cols-2 md:grid-cols-7 lg:w-[900px] bg-muted/60 border-border">
-              <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
-              <TabsTrigger value="specs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Specifications</TabsTrigger>
-              <TabsTrigger value="network" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Network</TabsTrigger>
-              <TabsTrigger value="traffic" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Traffic</TabsTrigger>
-              <TabsTrigger value="storage" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Storage</TabsTrigger>
-              <TabsTrigger value="vnc" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">VNC</TabsTrigger>
-              <TabsTrigger value="console" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Controls</TabsTrigger>
-            </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            {/* Tab navigation is now handled by the dropdown in Quick Actions */}
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-4">
