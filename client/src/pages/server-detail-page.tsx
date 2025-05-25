@@ -2284,7 +2284,7 @@ export default function ServerDetailPage() {
                             ) : (
                               <span className="text-muted-foreground text-sm flex items-center">
                                 <InfoIcon className="h-4 w-4 mr-1" />
-                                Use the Reset Password option in Controls tab
+                                Use the Reset Password option in More tab
                               </span>
                             )}
                           </td>

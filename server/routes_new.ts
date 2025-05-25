@@ -13,7 +13,7 @@ import { EmailVerificationService } from "./email-verification-service";
 import { discordService } from "./discord-service";
 import { discordBotService } from "./discord-bot-service";
 import { virtFusionService } from "./virtfusion-service";
-import { VirtFusionApi } from "./virtfusion-api";
+import { VirtFusionApi as ImportedVirtFusionApi } from "./virtfusion-api";
 import { emailService } from "./email";
 import { betterStackService } from "./betterstack-service";
 import { geminiService } from "./gemini-service";
@@ -2661,13 +2661,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found or no VirtFusion account" });
       }
 
-      // Verify the server belongs to this user by checking VirtFusion
+      // Verify the server belongs to this user using the same method as VNC endpoint
       try {
-        const serverDetails = await virtFusionApi.getServer(serverId, true);
+        // Get user's servers to verify ownership
+        const userServers = await virtFusionApi.getUserServers(user.virtFusionId);
+        if (!userServers || !userServers.data) {
+          return res.status(404).json({ error: "No servers found for user" });
+        }
 
-        // Check if the server belongs to this user (using extRelationId)
-        if (!serverDetails?.data?.owner?.extRelationID ||
-            parseInt(serverDetails.data.owner.extRelationID) !== userId) {
+        // Check if the server belongs to the user
+        const serverExists = userServers.data.some((server: any) => server.id === serverId);
+        if (!serverExists) {
+          console.log(`User ${userId} (VirtFusion ID: ${user.virtFusionId}) attempted to reset password for server ${serverId} which they don't own`);
           return res.status(403).json({ error: "Access denied: Server does not belong to this user" });
         }
       } catch (error: any) {
@@ -2677,7 +2682,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use the VirtFusion API to reset the server password
       try {
-        const response = await virtFusionApi.resetServerPassword(serverId, 'root', false);
+        // Create a new VirtFusion API instance to use the correct method
+        const vfApi = new ImportedVirtFusionApi();
+        await vfApi.updateSettings();
+        const response = await vfApi.resetServerPassword(serverId, 'root', true);
 
         console.log('User server password reset response:', response);
 
@@ -9213,6 +9221,30 @@ Generated on ${new Date().toLocaleString()}
     } catch (error: any) {
       console.error("Error fetching branding settings:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get cloud pricing settings (accessible to authenticated users)
+  app.get("/api/settings/cloud-pricing", isAuthenticated, async (req, res) => {
+    try {
+      const cloudPricingKeys = [
+        'cloud_cpu_price_per_core',
+        'cloud_ram_price_per_gb',
+        'cloud_storage_price_per_gb',
+        'cloud_network_price_per_mbps'
+      ];
+
+      const cloudPricing: Record<string, string> = {};
+
+      for (const key of cloudPricingKeys) {
+        const setting = await storage.getSetting(key);
+        cloudPricing[key] = setting?.value || '0.00';
+      }
+
+      return res.json(cloudPricing);
+    } catch (error: any) {
+      console.error('Error fetching cloud pricing settings:', error);
+      return res.status(500).json({ error: 'Failed to fetch cloud pricing settings' });
     }
   });
 

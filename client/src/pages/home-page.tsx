@@ -142,35 +142,41 @@ export default function HomePage() {
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard
-          title={hasVirtFusion ? "VirtFusion Balance" : "Credit Balance"}
-          value={`$${displayCredits.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          })}`}
-          icon={<DollarSign />}
-          iconColor={`${brandColors.primary.full}`}
-          iconBgColor={`${brandColors.primary.lighter}`}
-          trend={hasVirtFusion ? {
-            value: `${stats.virtFusionTokens.toLocaleString()} tokens`,
-            positive: true
-          } : undefined}
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <Link href="/billing">
+          <StatCard
+            title={hasVirtFusion ? "VirtFusion Balance" : "Credit Balance"}
+            value={`$${displayCredits.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            })}`}
+            icon={<DollarSign />}
+            iconColor={`${brandColors.primary.full}`}
+            iconBgColor={`${brandColors.primary.lighter}`}
+            trend={hasVirtFusion ? {
+              value: `${stats.virtFusionTokens.toLocaleString()} tokens`,
+              positive: true
+            } : undefined}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+          />
+        </Link>
 
         {/* Local credit balance has been removed as requested */}
 
-        <StatCard
-          title="Support Tickets"
-          value={stats.openTickets}
-          icon={<Ticket />}
-          iconColor={`${brandColors.primary.full}`}
-          iconBgColor={`${brandColors.primary.lighter}`}
-          trend={stats.openTickets > 0 ? {
-            value: `${stats.openTickets} awaiting response`,
-            positive: false
-          } : undefined}
-        />
+        <Link href="/tickets">
+          <StatCard
+            title="Support Tickets"
+            value={stats.openTickets}
+            icon={<Ticket />}
+            iconColor={`${brandColors.primary.full}`}
+            iconBgColor={`${brandColors.primary.lighter}`}
+            trend={stats.openTickets > 0 ? {
+              value: `${stats.openTickets} awaiting response`,
+              positive: false
+            } : undefined}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+          />
+        </Link>
 
         <Link href="/servers">
           <StatCard

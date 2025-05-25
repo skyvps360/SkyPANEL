@@ -37,7 +37,8 @@ import {
   Ticket,
   Hourglass,
   Mail,
-  PenTool
+  PenTool,
+  Cloud
 } from "lucide-react";
 
 interface Setting {
@@ -225,10 +226,21 @@ const loadingScreenSchema = z.object({
 
 type LoadingScreenFormData = z.infer<typeof loadingScreenSchema>;
 
+// Cloud pricing settings schema
+const cloudPricingSchema = z.object({
+  cpuPricePerCore: z.string().regex(/^\d*\.?\d*$/, { message: "CPU price must be a valid number" }),
+  ramPricePerGB: z.string().regex(/^\d*\.?\d*$/, { message: "RAM price must be a valid number" }),
+  storagePricePerGB: z.string().regex(/^\d*\.?\d*$/, { message: "Storage price must be a valid number" }),
+  networkPricePerMbps: z.string().regex(/^\d*\.?\d*$/, { message: "Network price must be a valid number" }),
+});
+
+type CloudPricingFormData = z.infer<typeof cloudPricingSchema>;
+
 // Define the settings options for dropdown
 const settingsOptions = [
   { value: "general", label: "General", icon: <SettingsIcon className="h-4 w-4 mr-2" /> },
   { value: "billing", label: "Billing", icon: <CreditCard className="h-4 w-4 mr-2" /> },
+  { value: "cloud", label: "Cloud", icon: <Cloud className="h-4 w-4 mr-2" /> },
   { value: "email", label: "Email", icon: <Mail className="h-4 w-4 mr-2" /> },
   { value: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4 mr-2" /> },
   { value: "virtfusion", label: "VirtFusion API", icon: <Server className="h-4 w-4 mr-2" /> },
@@ -342,6 +354,17 @@ export default function SettingsPage() {
       smtpPass: getSettingValue("smtp_pass", ""),
       emailFrom: getSettingValue("email_from", ""),
       emailName: getSettingValue("email_name", "VirtFusion Billing"),
+    },
+  });
+
+  // Cloud pricing form
+  const cloudPricingForm = useForm<CloudPricingFormData>({
+    resolver: zodResolver(cloudPricingSchema),
+    defaultValues: {
+      cpuPricePerCore: getSettingValue("cloud_cpu_price_per_core", "0.00"),
+      ramPricePerGB: getSettingValue("cloud_ram_price_per_gb", "0.00"),
+      storagePricePerGB: getSettingValue("cloud_storage_price_per_gb", "0.00"),
+      networkPricePerMbps: getSettingValue("cloud_network_price_per_mbps", "0.00"),
     },
   });
 
@@ -1128,7 +1151,7 @@ export default function SettingsPage() {
         fetchMaintenanceToken();
       }
     }
-  }, [settings, virtFusionForm, billingForm, emailForm, generalForm, notificationsForm, maintenanceForm, designForm, loadingScreenForm]);
+  }, [settings, virtFusionForm, billingForm, emailForm, cloudPricingForm, generalForm, notificationsForm, maintenanceForm, designForm, loadingScreenForm]);
 
   // Handle VirtFusion API form submission
   const onVirtFusionSubmit = async (data: VirtFusionFormData) => {
@@ -1203,6 +1226,33 @@ export default function SettingsPage() {
       toast({
         title: "Settings saved",
         description: "Email settings have been updated",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+    } catch (error: any) {
+      toast({
+        title: "Error saving settings",
+        description: error.message || "Failed to save settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaveInProgress(false);
+    }
+  };
+
+  // Handle Cloud pricing form submission
+  const onCloudPricingSubmit = async (data: CloudPricingFormData) => {
+    setSaveInProgress(true);
+
+    try {
+      await updateSettingMutation.mutateAsync({ key: "cloud_cpu_price_per_core", value: data.cpuPricePerCore });
+      await updateSettingMutation.mutateAsync({ key: "cloud_ram_price_per_gb", value: data.ramPricePerGB });
+      await updateSettingMutation.mutateAsync({ key: "cloud_storage_price_per_gb", value: data.storagePricePerGB });
+      await updateSettingMutation.mutateAsync({ key: "cloud_network_price_per_mbps", value: data.networkPricePerMbps });
+
+      toast({
+        title: "Settings saved",
+        description: "Cloud pricing settings have been updated",
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
@@ -1782,7 +1832,159 @@ export default function SettingsPage() {
                 </form>
               </TabsContent>
 
+              <TabsContent value="cloud">
+                <form onSubmit={cloudPricingForm.handleSubmit(onCloudPricingSubmit)}>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium">Cloud Pricing Configuration</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Set pricing per resource unit for cloud server configurations
+                      </p>
+                    </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="cpuPricePerCore">CPU Price per Core</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="cpuPricePerCore"
+                            placeholder="0.00"
+                            className="pl-8"
+                            {...cloudPricingForm.register("cpuPricePerCore")}
+                          />
+                        </div>
+                        {cloudPricingForm.formState.errors.cpuPricePerCore && (
+                          <p className="text-sm text-destructive mt-1">
+                            {cloudPricingForm.formState.errors.cpuPricePerCore.message}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Price charged per CPU core per hour
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="ramPricePerGB">RAM Price per GB</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="ramPricePerGB"
+                            placeholder="0.00"
+                            className="pl-8"
+                            {...cloudPricingForm.register("ramPricePerGB")}
+                          />
+                        </div>
+                        {cloudPricingForm.formState.errors.ramPricePerGB && (
+                          <p className="text-sm text-destructive mt-1">
+                            {cloudPricingForm.formState.errors.ramPricePerGB.message}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Price charged per GB of RAM per hour
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="storagePricePerGB">Storage Price per GB</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="storagePricePerGB"
+                            placeholder="0.00"
+                            className="pl-8"
+                            {...cloudPricingForm.register("storagePricePerGB")}
+                          />
+                        </div>
+                        {cloudPricingForm.formState.errors.storagePricePerGB && (
+                          <p className="text-sm text-destructive mt-1">
+                            {cloudPricingForm.formState.errors.storagePricePerGB.message}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Price charged per GB of storage per hour
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="networkPricePerMbps">Network Price per Mbps</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="networkPricePerMbps"
+                            placeholder="0.00"
+                            className="pl-8"
+                            {...cloudPricingForm.register("networkPricePerMbps")}
+                          />
+                        </div>
+                        {cloudPricingForm.formState.errors.networkPricePerMbps && (
+                          <p className="text-sm text-destructive mt-1">
+                            {cloudPricingForm.formState.errors.networkPricePerMbps.message}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Price charged per Mbps of network bandwidth per hour
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="bg-muted/50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2 flex items-center">
+                        <Cloud className="h-4 w-4 mr-2" />
+                        Pricing Preview
+                      </h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">CPU:</span>
+                          <span className="ml-2 font-mono">
+                            ${cloudPricingForm.watch("cpuPricePerCore") || "0.00"}/core/hr
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">RAM:</span>
+                          <span className="ml-2 font-mono">
+                            ${cloudPricingForm.watch("ramPricePerGB") || "0.00"}/GB/hr
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Storage:</span>
+                          <span className="ml-2 font-mono">
+                            ${cloudPricingForm.watch("storagePricePerGB") || "0.00"}/GB/hr
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Network:</span>
+                          <span className="ml-2 font-mono">
+                            ${cloudPricingForm.watch("networkPricePerMbps") || "0.00"}/Mbps/hr
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        className="w-32"
+                        disabled={saveInProgress || !cloudPricingForm.formState.isDirty}
+                      >
+                        {saveInProgress ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </TabsContent>
 
               <TabsContent value="general">
                 <form onSubmit={generalForm.handleSubmit(onGeneralSubmit)}>
