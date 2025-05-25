@@ -57,6 +57,128 @@ import {
   FileText
 } from "lucide-react";
 
+// OS Icon Components with actual OS logos
+const UbuntuIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#E95420"/>
+    <circle cx="4.5" cy="12" r="2.5" fill="white"/>
+    <circle cx="19.5" cy="12" r="2.5" fill="white"/>
+    <circle cx="12" cy="4.5" r="2.5" fill="white"/>
+    <circle cx="4.5" cy="12" r="1" fill="#E95420"/>
+    <circle cx="19.5" cy="12" r="1" fill="#E95420"/>
+    <circle cx="12" cy="4.5" r="1" fill="#E95420"/>
+  </svg>
+);
+
+const DebianIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#A81D33"/>
+    <path d="M8.5 8.5c1.5-1.5 3.5-1.5 5 0s1.5 3.5 0 5-3.5 1.5-5 0-1.5-3.5 0-5z" fill="white"/>
+    <path d="M10 10c.5-.5 1.5-.5 2 0s.5 1.5 0 2-1.5.5-2 0-.5-1.5 0-2z" fill="#A81D33"/>
+  </svg>
+);
+
+const CentOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="3" fill="#932279"/>
+    <path d="M12 4L8 8h8l-4-4z" fill="white"/>
+    <path d="M12 20l4-4H8l4 4z" fill="white"/>
+    <path d="M4 12l4-4v8l-4-4z" fill="white"/>
+    <path d="M20 12l-4 4V8l4 4z" fill="white"/>
+  </svg>
+);
+
+const RockyLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#10B981"/>
+    <path d="M12 3L6 9l6 3 6-3-6-6z" fill="white"/>
+    <path d="M6 15l6 3 6-3" stroke="white" strokeWidth="2" fill="none"/>
+    <path d="M6 12l6 3 6-3" stroke="white" strokeWidth="2" fill="none"/>
+  </svg>
+);
+
+const AlmaLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#0EA5E9"/>
+    <path d="M12 4l8 16H4l8-16z" fill="white"/>
+    <path d="M12 8l4 8H8l4-8z" fill="#0EA5E9"/>
+  </svg>
+);
+
+const FedoraIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#294172"/>
+    <path d="M8 8h8v8H8z" fill="#3C6EB4"/>
+    <circle cx="12" cy="12" r="2" fill="white"/>
+  </svg>
+);
+
+const WindowsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" fill="#00BCF2"/>
+    <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.851" fill="white"/>
+  </svg>
+);
+
+const ArchLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#1793D1"/>
+    <path d="M12 2L4 22h16L12 2z" fill="white"/>
+    <path d="M12 6L8 18h8L12 6z" fill="#1793D1"/>
+  </svg>
+);
+
+const FreeBSDIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#990000"/>
+    <path d="M8 8l8 8M16 8l-8 8" stroke="white" strokeWidth="3"/>
+    <circle cx="12" cy="12" r="3" stroke="white" strokeWidth="2" fill="none"/>
+  </svg>
+);
+
+const AlpineIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#0D597F"/>
+    <path d="M12 3L3 21h18L12 3z" fill="white"/>
+    <path d="M12 7L7 17h10L12 7z" fill="#0D597F"/>
+  </svg>
+);
+
+const UnknownOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#6B7280"/>
+    <path d="M12 8v4M12 16h.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+function getOSIconAndColor(osName: string) {
+  const name = osName?.toLowerCase() || '';
+
+  if (name.includes('ubuntu')) {
+    return { icon: UbuntuIcon };
+  } else if (name.includes('debian')) {
+    return { icon: DebianIcon };
+  } else if (name.includes('centos')) {
+    return { icon: CentOSIcon };
+  } else if (name.includes('rocky')) {
+    return { icon: RockyLinuxIcon };
+  } else if (name.includes('alma')) {
+    return { icon: AlmaLinuxIcon };
+  } else if (name.includes('fedora')) {
+    return { icon: FedoraIcon };
+  } else if (name.includes('arch')) {
+    return { icon: ArchLinuxIcon };
+  } else if (name.includes('freebsd')) {
+    return { icon: FreeBSDIcon };
+  } else if (name.includes('alpine')) {
+    return { icon: AlpineIcon };
+  } else if (name.includes('windows')) {
+    return { icon: WindowsIcon };
+  } else {
+    return { icon: UnknownOSIcon };
+  }
+}
+
 // Helper function to format data size to human readable format
 const formatBytes = (bytes: number, decimals: number = 2): string => {
   if (bytes === 0) return '0 Bytes';
@@ -726,6 +848,130 @@ export default function ServerDetailPage() {
 
   // Extract the server data from the response
   const server = serverResponse?.data;
+
+  // Debug server data structure
+  console.log('DEBUG: Full server response:', serverResponse);
+  console.log('DEBUG: Server data:', server);
+
+  // Fetch OS templates to get OS information
+  const { data: osTemplates } = useQuery({
+    queryKey: ['/api/admin/all-templates'],
+    queryFn: async () => {
+      try {
+        // Try the all-templates endpoint first (works for authenticated users)
+        const response = await fetch('/api/admin/all-templates');
+        if (!response.ok) {
+          throw new Error('Failed to fetch OS templates');
+        }
+        const data = await response.json();
+        console.log('DEBUG: Fetched OS templates:', data);
+        return data?.data || [];
+      } catch (error) {
+        console.error('Error fetching OS templates from all-templates:', error);
+
+        // Fallback to the os-templates endpoint
+        try {
+          const fallbackResponse = await fetch('/api/os-templates');
+          if (!fallbackResponse.ok) {
+            throw new Error('Failed to fetch OS templates from fallback');
+          }
+          const fallbackData = await fallbackResponse.json();
+          console.log('DEBUG: Fetched OS templates from fallback:', fallbackData);
+          return fallbackData?.data || [];
+        } catch (fallbackError) {
+          console.error('Error fetching OS templates from fallback:', fallbackError);
+          return [];
+        }
+      }
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
+  // Get OS information for the server
+  function getOSInfo(osTemplateInstallId: number | null | undefined) {
+    console.log('DEBUG getOSInfo called with:', { osTemplateInstallId, osTemplatesCount: osTemplates?.length });
+    console.log('DEBUG osTemplates data:', osTemplates);
+    console.log('DEBUG server data structure:', server);
+
+    if (!osTemplateInstallId) {
+      return { name: "Unknown OS", icon: UnknownOSIcon };
+    }
+
+    if (!osTemplates || osTemplates.length === 0) {
+      console.log('DEBUG: No OS templates available yet');
+      return { name: `Template ${osTemplateInstallId}`, icon: UnknownOSIcon };
+    }
+
+    // Find the template in the fetched data
+    const template = osTemplates?.find((t: any) => t.id === osTemplateInstallId);
+    console.log('DEBUG found template for ID', osTemplateInstallId, ':', template);
+
+    if (template) {
+      // Build the display name from template data
+      const displayName = `${template.name}${template.version ? ` ${template.version}` : ''}${template.architecture ? ` (${template.architecture})` : template.variant ? ` (${template.variant})` : ''}`;
+      const { icon } = getOSIconAndColor(template.name);
+
+      console.log('DEBUG returning template data:', { displayName, templateName: template.name });
+      return {
+        name: displayName,
+        icon
+      };
+    }
+
+    // Fallback for unknown template IDs
+    console.log('DEBUG template not found, returning fallback for ID:', osTemplateInstallId);
+    return { name: `Template ${osTemplateInstallId}`, icon: UnknownOSIcon };
+  }
+
+  // Helper function to extract OS template ID from server data
+  function extractOSTemplateId(serverData: any): number | null {
+    console.log('DEBUG extractOSTemplateId called with server data:', serverData);
+
+    // Try multiple possible locations for OS template ID
+    const possiblePaths = [
+      serverData?.settings?.osTemplateInstallId,
+      serverData?.osTemplateInstallId,
+      serverData?.osTemplateId,
+      serverData?.templateId,
+      serverData?.os?.templateId,
+      serverData?.os?.id,
+      serverData?.template?.id
+    ];
+
+    for (const path of possiblePaths) {
+      if (path && typeof path === 'number') {
+        console.log('DEBUG found OS template ID:', path);
+        return path;
+      }
+    }
+
+    console.log('DEBUG no OS template ID found in server data');
+    return null;
+  }
+
+  // Helper function to get OS info with fallbacks
+  function getServerOSInfo(serverData: any) {
+    // First try to get OS template ID and match with templates
+    const osTemplateId = extractOSTemplateId(serverData);
+    if (osTemplateId) {
+      return getOSInfo(osTemplateId);
+    }
+
+    // Fallback to OS name from server data if available
+    const osName = serverData?.os?.name || serverData?.operatingSystem;
+    if (osName && typeof osName === 'string') {
+      console.log('DEBUG using OS name from server data:', osName);
+      const { icon } = getOSIconAndColor(osName);
+      return {
+        name: osName,
+        icon
+      };
+    }
+
+    // Final fallback
+    console.log('DEBUG no OS information found, using unknown');
+    return { name: "Unknown OS", icon: UnknownOSIcon };
+  }
 
   // Fetch VNC status for Quick Actions
   const { data: vncData, refetch: refetchVNC } = useQuery({
@@ -1568,13 +1814,34 @@ export default function ServerDetailPage() {
                 Back to Servers
               </Button>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">
+                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
                   {isLoading ? (
                     <Skeleton className="h-9 w-64" />
                   ) : error ? (
                     "Error Loading Server"
                   ) : (
-                    server?.name || "Server Details"
+                    <>
+                      {server?.name || "Server Details"}
+                      {/* OS Icon and Name */}
+                      {(() => {
+                        const osInfo = getServerOSInfo(server);
+                        if (osInfo && osInfo.name !== "Unknown OS") {
+                          const OSIcon = osInfo.icon;
+                          return (
+                            <div className="flex items-center gap-2 ml-2">
+                              <div className="w-px h-6 bg-border"></div>
+                              <div className="flex items-center gap-2">
+                                <OSIcon className="w-6 h-6" />
+                                <span className="text-lg font-medium text-muted-foreground">
+                                  {osInfo.name}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </>
                   )}
                 </h1>
                 {!isLoading && !error && server?.uuid && (
@@ -1881,6 +2148,22 @@ export default function ServerDetailPage() {
                         <tr>
                           <td className="py-1 pr-2 text-muted-foreground">Hypervisor ID:</td>
                           <td className="py-1 font-medium">{server.hypervisorId}</td>
+                        </tr>
+
+                        <tr>
+                          <td className="py-1 pr-2 text-muted-foreground">Operating System:</td>
+                          <td className="py-1 font-medium">
+                            {(() => {
+                              const osInfo = getServerOSInfo(server);
+                              const OSIcon = osInfo.icon;
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <OSIcon className="w-4 h-4" />
+                                  <span>{osInfo.name}</span>
+                                </div>
+                              );
+                            })()}
+                          </td>
                         </tr>
 
                         <tr>
