@@ -671,11 +671,47 @@ export default function ServerDetailPage() {
       return response.json();
     },
     enabled: !!id && !isNaN(serverId),
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: 5000, // Refetch every 5 seconds
   });
 
   // Extract the server data from the response
   const server = serverResponse?.data;
+
+  // Server state logic for button enable/disable - matches the status display logic
+  const getServerRunningState = () => {
+    // Return false if server data is not loaded yet
+    if (!server) return false;
+
+    // First check the powerStatus from our database tracking
+    if (server.powerStatus?.powerState === "RUNNING") return true;
+    if (server.powerStatus?.powerState === "STOPPED") return false;
+
+    // Check remoteState.state and remoteState.running which comes from the ?remoteState=true parameter
+    if (server.remoteState?.state === "running" || server.remoteState?.running === true) return true;
+    if (server.remoteState?.state === "stopped" || server.remoteState?.running === false) return false;
+
+    // Fall back to server.state if neither powerStatus nor remoteState is available
+    if (server.state === "running" || server.state === "RUNNING") return true;
+    if (server.state === "stopped" || server.state === "STOPPED") return false;
+    if (server.state === "complete") return false; // VirtFusion often uses "complete" for stopped servers
+
+    // Default to false (stopped) for unknown states
+    return false;
+  };
+
+  const isServerRunning = getServerRunningState();
+  const isServerStopped = !isServerRunning;
+
+  console.log("DEBUG - Server state:", {
+    rawState: server?.state,
+    powerStatus: server?.powerStatus?.powerState,
+    remoteState: server?.remoteState?.state,
+    remoteRunning: server?.remoteState?.running,
+    isServerRunning: isServerRunning,
+    isServerStopped: isServerStopped,
+    bootShouldBeEnabled: isServerStopped,
+    shutdownShouldBeEnabled: isServerRunning
+  });
 
 
 
@@ -2022,27 +2058,64 @@ export default function ServerDetailPage() {
                           {/* IPv6 Addresses */}
                           {intf.ipv6 && intf.ipv6.length > 0 && (
                             <div className="mt-3">
-                              <h4 className="text-sm font-semibold mb-2">IPv6 Subnets</h4>
+                              <h4 className="text-sm font-semibold mb-2">IPv6 Addresses</h4>
                               <div className="space-y-2 mt-1">
                                 {intf.ipv6.map((ip: any, ipIdx: number) => (
                                   <div key={ipIdx} className="bg-muted rounded-md p-2 text-sm">
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-mono">{ip.subnet}/{ip.cidr}</span>
+                                    {/* Subnet Information */}
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="font-mono text-blue-700 font-medium">{ip.subnet}/{ip.cidr}</span>
                                       <Button
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => copyToClipboard(`${ip.subnet}/${ip.cidr}`, "subnet")}
                                         className="h-6 w-6"
-                                        title="Copy to clipboard"
+                                        title="Copy subnet to clipboard"
                                       >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy">
                                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path>
                                         </svg>
                                       </Button>
                                     </div>
+
+                                    {/* Individual IPv6 Addresses */}
+                                    {ip.addresses && ip.addresses.length > 0 && (
+                                      <div className="mb-2">
+                                        <h5 className="text-xs font-medium text-muted-foreground mb-1">Individual Addresses:</h5>
+                                        <div className="space-y-1">
+                                          {ip.addresses.map((addr: string, addrIdx: number) => (
+                                            <div key={addrIdx} className="flex items-center justify-between bg-blue-50 rounded px-2 py-1">
+                                              <span className="font-mono text-xs">{addr}</span>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => copyToClipboard(addr, "ip")}
+                                                className="h-4 w-4"
+                                                title="Copy address to clipboard"
+                                              >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy">
+                                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path>
+                                                </svg>
+                                              </Button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Show message when no individual addresses are available */}
+                                    {(!ip.addresses || ip.addresses.length === 0) && (
+                                      <div className="text-xs text-muted-foreground bg-yellow-50 rounded px-2 py-1 mb-2">
+                                        No individual addresses assigned yet. This is a subnet allocation.
+                                      </div>
+                                    )}
+
                                     <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
                                       <span><span className="font-medium">Gateway:</span> {ip.gateway}</span>
+                                      <span><span className="font-medium">Order:</span> {ip.order}</span>
+                                      <span><span className="font-medium">Enabled:</span> {ip.enabled ? 'Yes' : 'No'}</span>
                                       {ip.routeNet && <span className="bg-blue-100 text-blue-800 px-1 rounded">Route Net</span>}
                                       {ip.exhausted && <span className="bg-red-100 text-red-800 px-1 rounded">Exhausted</span>}
                                     </div>
@@ -2175,18 +2248,19 @@ export default function ServerDetailPage() {
                           {/* IPv6 addresses if available */}
                           {intf.ipv6 && intf.ipv6.length > 0 && (
                             <div className="mt-3">
-                              <h4 className="text-sm font-semibold">IPv6 Subnets</h4>
+                              <h4 className="text-sm font-semibold">IPv6 Addresses</h4>
                               <div className="space-y-2 mt-1">
                                 {intf.ipv6.map((ip: any, ipIdx: number) => (
                                   <div key={ipIdx} className="bg-muted rounded-md p-2 text-sm">
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-mono">{ip.subnet}/{ip.cidr}</span>
+                                    {/* Subnet Information */}
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="font-mono text-blue-700 font-medium">{ip.subnet}/{ip.cidr}</span>
                                       <Button
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => copyToClipboard(`${ip.subnet}/${ip.cidr}`, "subnet")}
                                         className="h-6 w-6"
-                                        title="Copy to clipboard"
+                                        title="Copy subnet to clipboard"
                                       >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy">
                                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -2194,6 +2268,40 @@ export default function ServerDetailPage() {
                                         </svg>
                                       </Button>
                                     </div>
+
+                                    {/* Individual IPv6 Addresses */}
+                                    {ip.addresses && ip.addresses.length > 0 && (
+                                      <div className="mb-2">
+                                        <h5 className="text-xs font-medium text-muted-foreground mb-1">Individual Addresses:</h5>
+                                        <div className="space-y-1">
+                                          {ip.addresses.map((addr: string, addrIdx: number) => (
+                                            <div key={addrIdx} className="flex items-center justify-between bg-blue-50 rounded px-2 py-1">
+                                              <span className="font-mono text-xs">{addr}</span>
+                                              <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => copyToClipboard(addr, "ip")}
+                                                className="h-4 w-4"
+                                                title="Copy address to clipboard"
+                                              >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy">
+                                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2 2v1"></path>
+                                                </svg>
+                                              </Button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Show message when no individual addresses are available */}
+                                    {(!ip.addresses || ip.addresses.length === 0) && (
+                                      <div className="text-xs text-muted-foreground bg-yellow-50 rounded px-2 py-1 mb-2">
+                                        No individual addresses assigned yet. This is a subnet allocation.
+                                      </div>
+                                    )}
+
                                     <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
                                       <span><span className="font-medium">Gateway:</span> {ip.gateway}</span>
                                       <span><span className="font-medium">Enabled:</span> {ip.enabled ? 'Yes' : 'No'}</span>
@@ -2205,11 +2313,6 @@ export default function ServerDetailPage() {
                                       <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
                                         {ip.resolver1 && <span><span className="font-medium">DNS 1:</span> {ip.resolver1}</span>}
                                         {ip.resolver2 && <span><span className="font-medium">DNS 2:</span> {ip.resolver2}</span>}
-                                      </div>
-                                    )}
-                                    {ip.addresses && ip.addresses.length > 0 && (
-                                      <div className="text-xs bg-gray-50 p-2 rounded mt-1">
-                                        <span className="font-medium">Addresses:</span> {ip.addresses.join(', ')}
                                       </div>
                                     )}
                                     {ip.block && (
@@ -2743,8 +2846,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-green-50 border-green-200 hover:bg-green-200 text-green-700 hover:text-green-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => bootMutation.mutate()}
-                              disabled={bootMutation.isPending || server?.state?.toLowerCase() === "running"}
-                              title={server?.state?.toLowerCase() === "running" ? "Server is already running" : "Start the server"}
+                              disabled={bootMutation.isPending || !isServerStopped}
+                              title={!isServerStopped ? "Server must be stopped to boot" : "Start the server"}
                             >
                               <Power className="mr-2 h-4 w-4" /> Boot
                             </Button>
@@ -2752,8 +2855,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-orange-50 border-orange-200 hover:bg-orange-200 text-orange-700 hover:text-orange-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => shutdownMutation.mutate()}
-                              disabled={shutdownMutation.isPending || server?.state?.toLowerCase() !== "running"}
-                              title={server?.state?.toLowerCase() !== "running" ? "Server must be running to shutdown" : "Gracefully shutdown the server"}
+                              disabled={shutdownMutation.isPending || isServerStopped}
+                              title={isServerStopped ? "Server is already stopped" : "Gracefully shutdown the server"}
                             >
                               <Power className="mr-2 h-4 w-4" /> Shutdown
                             </Button>
@@ -2761,8 +2864,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-blue-50 border-blue-200 hover:bg-blue-200 text-blue-700 hover:text-blue-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => restartMutation.mutate()}
-                              disabled={restartMutation.isPending || server?.state?.toLowerCase() !== "running"}
-                              title={server?.state?.toLowerCase() !== "running" ? "Server must be running to restart" : "Restart the server"}
+                              disabled={restartMutation.isPending || isServerStopped}
+                              title={isServerStopped ? "Server must be running to restart" : "Restart the server"}
                             >
                               <RefreshCw className="mr-2 h-4 w-4" /> Restart
                             </Button>
@@ -2770,8 +2873,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-red-50 border-red-200 hover:bg-red-200 text-red-700 hover:text-red-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => powerOffMutation.mutate()}
-                              disabled={powerOffMutation.isPending || server?.state?.toLowerCase() !== "running"}
-                              title={server?.state?.toLowerCase() !== "running" ? "Server must be running to power off" : "Force power off the server"}
+                              disabled={powerOffMutation.isPending || isServerStopped}
+                              title={isServerStopped ? "Server is already stopped" : "Force power off the server"}
                             >
                               <Power className="mr-2 h-4 w-4" /> Power Off
                             </Button>
