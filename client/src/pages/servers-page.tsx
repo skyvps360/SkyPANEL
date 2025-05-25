@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -20,12 +19,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -33,12 +26,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { AlertCircle, ChevronRight, ArrowRight, Server, RefreshCw, RotateCw, Eye } from "lucide-react";
+import { AlertCircle, ArrowRight, Server, RefreshCw, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/hooks/use-auth";
-import { getBrandColors } from "@/lib/brand-theme";
 
 function getStatusBadgeVariant(status: string) {
   const normalizedStatus = status.toLowerCase();
@@ -68,8 +59,7 @@ function getStatusBadgeVariant(status: string) {
   }
 }
 
-export default function ServersPage() {
-  const { user } = useAuth();
+export default function ServersListPage() {
   const [page, setPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
@@ -78,28 +68,14 @@ export default function ServersPage() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [perPage, setPerPage] = useState<number>(10);
 
-  // Fetch branding data for dynamic colors
-  const { data: brandingData } = useQuery<{
-    primary_color: string;
-    secondary_color: string;
-    accent_color: string;
-  }>({
-    queryKey: ["/api/settings/branding"],
-  });
-
-  // Get brand colors from database settings
-  const brandColors = getBrandColors({
-    primaryColor: brandingData?.primary_color || '',
-    secondaryColor: brandingData?.secondary_color || '',
-    accentColor: brandingData?.accent_color || '',
-  });
-
-  // Fetch user's servers from API
+  // Fetch servers from API with pagination
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
     queryKey: ['/api/user/servers', page],
     queryFn: async () => {
+      let url = `/api/user/servers?page=${page}`;
+
       try {
-        const response = await fetch(`/api/user/servers?page=${page}&perPage=${perPage}`);
+        const response = await fetch(url);
 
         if (!response.ok) {
           console.error('API Response not OK:', response.status, response.statusText);
@@ -107,17 +83,16 @@ export default function ServersPage() {
         }
 
         const data = await response.json();
-        console.log('User servers API response:', data);
+        console.log('Server API response:', data);
 
-        // Check if the response is in the expected format with pagination data
         if (data && typeof data === 'object' && 'data' in data) {
           return data;
         } else if (Array.isArray(data)) {
           return {
             data: data,
             current_page: page,
-            last_page: Math.ceil(data.length / perPage),
-            per_page: perPage,
+            last_page: Math.ceil(data.length / 10),
+            per_page: 10,
             total: data.length
           };
         } else {
@@ -125,12 +100,12 @@ export default function ServersPage() {
             data: [],
             current_page: 1,
             last_page: 1,
-            per_page: perPage,
+            per_page: 10,
             total: 0
           };
         }
       } catch (error) {
-        console.error('Error fetching user servers:', error);
+        console.error('Error fetching servers:', error);
         throw error;
       } finally {
         setIsRefreshing(false);
@@ -139,29 +114,25 @@ export default function ServersPage() {
     },
   });
 
-  // Handle manual refresh
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refetch();
   };
 
-  // Set up auto-refresh interval
   useEffect(() => {
     if (!autoRefreshEnabled) return;
 
     const interval = setInterval(() => {
-      console.log('Auto-refreshing user server list...');
+      console.log('Auto-refreshing server list...');
       refetch();
       setLastRefreshed(new Date());
-    }, 60 * 1000); // Refresh every 60 seconds
+    }, 60 * 1000);
 
     return () => clearInterval(interval);
   }, [autoRefreshEnabled, refetch]);
 
-  // Get the servers array from the response and sort it
   const servers = serversResponse?.data || [];
 
-  // Sort servers based on the current sort field and direction
   const sortedServers = [...servers].sort((a, b) => {
     if (sortField === 'id') {
       return sortDirection === 'desc'
@@ -179,11 +150,9 @@ export default function ServersPage() {
     return 0;
   });
 
-  // Get pagination details from the API response or use defaults
   const totalPages = serversResponse?.last_page || 1;
   const currentPage = serversResponse?.current_page || page;
 
-  // Function to toggle sort direction or change sort field
   const toggleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -197,18 +166,9 @@ export default function ServersPage() {
     <DashboardLayout>
       <div className="container py-6">
         <div className="mb-6">
-          <Breadcrumb>
-            <Breadcrumb.Item href="/dashboard">Dashboard</Breadcrumb.Item>
-            <Breadcrumb.Item>
-              <span className="flex items-center gap-1">
-                <Server className="h-4 w-4" />
-                My Servers
-              </span>
-            </Breadcrumb.Item>
-          </Breadcrumb>
-          <h1 className="text-3xl font-bold mt-2">My Virtual Servers</h1>
+          <h1 className="text-3xl font-bold mt-2">My Servers</h1>
           <p className="text-muted-foreground mt-1">
-            Manage and monitor your virtual servers
+            View and manage your virtual servers
           </p>
         </div>
 
@@ -241,29 +201,26 @@ export default function ServersPage() {
         )}
 
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <CardTitle>Virtual Servers</CardTitle>
-                <div className="text-xs text-muted-foreground mt-1 flex items-center">
-                  <span>Last updated: {lastRefreshed.toLocaleTimeString()}</span>
-                  <div className="ml-4 flex items-center">
-                    <label className="flex items-center gap-2 cursor-pointer">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Virtual Servers</CardTitle>
+              <div className="text-xs text-muted-foreground mt-1 flex items-center">
+                <span>Last updated: {lastRefreshed.toLocaleTimeString()}</span>
+                <div className="ml-4 flex items-center">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <div
+                      className={`flex h-[18px] w-[32px] shrink-0 cursor-pointer rounded-full border-2 border-transparent p-[1px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${autoRefreshEnabled ? 'bg-primary' : 'bg-input'}`}
+                      onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                      role="checkbox"
+                      aria-checked={autoRefreshEnabled}
+                      tabIndex={0}
+                    >
                       <div
-                        className={`flex h-[18px] w-[32px] shrink-0 cursor-pointer rounded-full border-2 border-transparent p-[1px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50`}
-                        style={{ backgroundColor: autoRefreshEnabled ? (brandColors.primary.full || '#3b82f6') : '#e5e7eb' }}
-                        onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                        role="checkbox"
-                        aria-checked={autoRefreshEnabled}
-                        tabIndex={0}
-                      >
-                        <div
-                          className={`pointer-events-none h-[14px] w-[14px] rounded-full bg-background shadow-sm transition-transform ${autoRefreshEnabled ? 'translate-x-[14px]' : 'translate-x-0'}`}
-                        ></div>
-                      </div>
-                      <span>Auto-refresh {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
-                    </label>
-                  </div>
+                        className={`pointer-events-none h-[14px] w-[14px] rounded-full bg-background shadow-sm transition-transform ${autoRefreshEnabled ? 'translate-x-[14px]' : 'translate-x-0'}`}
+                      ></div>
+                    </div>
+                    <span>Auto-refresh {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -275,7 +232,6 @@ export default function ServersPage() {
               </div>
             ) : servers?.length ? (
               <>
-                {/* Table management controls */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Sort by:</span>
@@ -300,11 +256,7 @@ export default function ServersPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="ml-2 gap-1 text-xs px-2"
-                      style={{
-                        color: brandColors.primary.full || '#3b82f6',
-                        borderColor: brandColors.primary.full || '#3b82f6'
-                      }}
+                      className="ml-2 gap-1 text-xs px-2 text-primary"
                       onClick={() => {
                         setIsRefreshing(true);
                         refetch().finally(() => setIsRefreshing(false));
@@ -315,6 +267,21 @@ export default function ServersPage() {
                       <RotateCw className={`h-3.5 w-3.5 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
                       {isRefreshing ? 'Refreshing...' : 'Refresh'}
                     </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Show:</span>
+                    <Select value={perPage.toString()} onValueChange={(value) => setPerPage(Number(value))}>
+                      <SelectTrigger className="w-[80px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-muted-foreground">per page</span>
                   </div>
                 </div>
 
@@ -348,14 +315,13 @@ export default function ServersPage() {
                             )}
                           </div>
                         </TableHead>
-                        <TableHead className="hidden md:table-cell">IP Address</TableHead>
+                        <TableHead className="hidden md:table-cell">Resources</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {sortedServers.map((server) => {
-                        // Determine status using power status if available, otherwise use commissioned state
                         let status;
 
                         if (server.powerStatus && server.powerStatus.powerState) {
@@ -393,7 +359,20 @@ export default function ServersPage() {
                             </TableCell>
                             <TableCell className="hidden md:table-cell">
                               <div className="text-sm">
-                                {server.ipAddress || server.ip || 'Not assigned'}
+                                <div>
+                                  {server?.cpu?.cores || 'N/A'} vCPU • {
+                                    server?.settings?.resources?.memory
+                                      ? `${(server.settings.resources.memory / 1024).toFixed(1)} GB`
+                                      : 'N/A'
+                                  } RAM
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {server?.storage && server.storage.length > 0
+                                    ? `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB`
+                                    : server?.settings?.resources?.storage
+                                      ? `${server.settings.resources.storage} GB`
+                                      : 'N/A'} Storage
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -403,17 +382,9 @@ export default function ServersPage() {
                             </TableCell>
                             <TableCell className="text-right">
                               <Link href={`/servers/${server.id}`}>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-1"
-                                  style={{
-                                    color: brandColors.primary.full || '#3b82f6',
-                                    borderColor: brandColors.primary.full || '#3b82f6'
-                                  }}
-                                >
-                                  <Eye className="h-3 w-3" />
-                                  View Details
+                                <Button variant="outline" size="sm">
+                                  <ArrowRight className="h-4 w-4 mr-1" />
+                                  Manage
                                 </Button>
                               </Link>
                             </TableCell>
@@ -424,50 +395,56 @@ export default function ServersPage() {
                   </Table>
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex justify-center mt-6">
                     <Pagination>
                       <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() => setPage(Math.max(1, page - 1))}
-                            className={page === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
+                        {currentPage > 1 && (
+                          <PaginationItem>
+                            <PaginationPrevious
+                              onClick={() => setPage(currentPage - 1)}
+                              className="cursor-pointer"
+                            />
+                          </PaginationItem>
+                        )}
 
                         {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          const pageNum = Math.max(1, Math.min(totalPages - 4, page - 2)) + i;
-                          return (
-                            <PaginationItem key={pageNum}>
-                              <PaginationLink
-                                onClick={() => setPage(pageNum)}
-                                isActive={pageNum === currentPage}
-                                className="cursor-pointer"
-                              >
-                                {pageNum}
-                              </PaginationLink>
-                            </PaginationItem>
-                          );
+                          const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                          if (pageNum <= totalPages) {
+                            return (
+                              <PaginationItem key={pageNum}>
+                                <PaginationLink
+                                  onClick={() => setPage(pageNum)}
+                                  isActive={pageNum === currentPage}
+                                  className="cursor-pointer"
+                                >
+                                  {pageNum}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          }
+                          return null;
                         })}
 
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() => setPage(Math.min(totalPages, page + 1))}
-                            className={page === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                          />
-                        </PaginationItem>
+                        {currentPage < totalPages && (
+                          <PaginationItem>
+                            <PaginationNext
+                              onClick={() => setPage(currentPage + 1)}
+                              className="cursor-pointer"
+                            />
+                          </PaginationItem>
+                        )}
                       </PaginationContent>
                     </Pagination>
                   </div>
                 )}
               </>
             ) : (
-              <div className="text-center py-12">
-                <Server className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-2 text-sm font-semibold text-muted-foreground">No servers found</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  You don't have any virtual servers yet.
+              <div className="text-center py-8">
+                <Server className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">No servers found</p>
+                <p className="text-muted-foreground mt-1">
+                  You don't have any servers yet. Contact support to get started.
                 </p>
               </div>
             )}

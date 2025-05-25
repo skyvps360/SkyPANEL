@@ -2568,8 +2568,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found or no VirtFusion account" });
       }
 
-      // Get server details from VirtFusion
-      const server = await virtFusionApi.getServer(serverId, true);
+      // Get server details from VirtFusion with real-time state
+      const server = await virtFusionApi.request("GET", `/servers/${serverId}?remoteState=true`);
 
       if (!server) {
         return res.status(404).json({ error: "Server not found" });
@@ -2595,8 +2595,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied - server does not belong to you" });
       }
 
-      console.log(`User ${userId} successfully retrieved server ${serverId} details`);
-      return res.json(server);
+      // Transform the server data to ensure consistent status mapping
+      const transformedServer = {
+        ...server,
+        // Add our own status mapping for consistency
+        status: server.data?.state || server.data?.status || server.status || 'unknown',
+        // Ensure we have the VirtFusion data structure
+        data: server.data ? {
+          ...server.data,
+          // Normalize the state field for client consistency
+          state: server.data.state || server.data.status || 'unknown'
+        } : null
+      };
+
+      console.log(`User ${userId} successfully retrieved server ${serverId} details, status: ${transformedServer.status}`);
+      return res.json(transformedServer);
     } catch (error) {
       console.error('Error fetching server details:', error);
       return res.status(500).json({ error: 'Failed to fetch server details' });
@@ -2672,6 +2685,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error executing power action:`, error);
       return res.status(500).json({ error: `Failed to execute ${req.params.action} command` });
+    }
+  });
+
+  // Get VNC status for a user's server
+  app.get("/api/user/servers/:id/vnc", isAuthenticated, async (req, res) => {
+    try {
+      const serverId = parseInt(req.params.id);
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`User ${userId} getting VNC status for server ID: ${serverId}`);
+
+      // Get user from database
+      const user = await storage.getUser(userId);
+
+      if (!user || !user.virtFusionId) {
+        return res.status(404).json({ error: "User not found or no VirtFusion account" });
+      }
+
+      // Get user's servers to verify ownership
+      const userServers = await virtFusionApi.getUserServers(user.virtFusionId);
+      if (!userServers || !userServers.data) {
+        return res.status(404).json({ error: "No servers found for user" });
+      }
+
+      // Check if the server belongs to the user
+      const serverExists = userServers.data.some((server: any) => server.id === serverId);
+      if (!serverExists) {
+        return res.status(403).json({ error: "Access denied - server does not belong to user" });
+      }
+
+      // VirtFusion API only supports POST /servers/{id}/vnc (no GET)
+      // This endpoint toggles VNC state and returns current status
+      // WARNING: This will toggle the VNC state!
+      console.log(`Making VNC API call - this will toggle VNC state for server ${serverId}`);
+
+      // Create a new VirtFusion API instance to use the request method
+      const vfApi = new VirtFusionApi();
+      const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
+
+      if (result) {
+        res.json({ success: true, data: result });
+      } else {
+        res.status(500).json({ error: "Failed to get VNC status" });
+      }
+    } catch (error: any) {
+      console.error("Error getting VNC status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+
+
+  // Get server traffic statistics for user
+  app.get("/api/user/servers/:id/traffic", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const serverId = parseInt(req.params.id);
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`User ${userId} fetching traffic statistics for server ${serverId}`);
+
+      // Get user to find their VirtFusion ID
+      const user = await storage.getUser(userId);
+      if (!user || !user.virtFusionId) {
+        return res.status(404).json({ error: "User not found or no VirtFusion account" });
+      }
+
+      // Get user's servers to verify ownership
+      const userServers = await virtFusionApi.getUserServers(user.virtFusionId);
+      if (!userServers || !userServers.data) {
+        return res.status(404).json({ error: "No servers found for user" });
+      }
+
+      // Check if the server belongs to the user
+      const serverExists = userServers.data.some((server: any) => server.id === serverId);
+      if (!serverExists) {
+        return res.status(403).json({ error: "Access denied - server does not belong to user" });
+      }
+
+      // Get traffic data from VirtFusion
+      const trafficData = await virtFusionApi.getServerTraffic(serverId);
+
+      if (!trafficData || !trafficData.data) {
+        return res.status(404).json({ error: "Traffic data not found" });
+      }
+
+      return res.json(trafficData);
+    } catch (error: any) {
+      console.error(`Error fetching traffic data for server ${req.params.id}:`, error.message);
+      res.status(500).json({
+        error: "Failed to fetch server traffic data from VirtFusion",
+        message: error.message
+      });
     }
   });
 

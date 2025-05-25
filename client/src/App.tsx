@@ -10,8 +10,8 @@ import ForgotUsernamePage from "@/pages/auth/forgot-username-page";
 import ResetPasswordPage from "@/pages/auth/reset-password-page";
 import VerifyPage from "@/pages/auth/verify-page";
 import PackagesPage from "@/pages/packages-page";
-import ServersPage from "@/pages/servers-page";
-import ClientServerDetailPage from "@/pages/server-detail-page";
+import UserServersPage from "@/pages/servers-page";
+import UserServerDetailPage from "@/pages/server-detail-page";
 import BillingPage from "@/pages/billing-page";
 import TransactionDetailPage from "@/pages/transaction-detail-page";
 // Invoice-related pages have been removed
@@ -265,8 +265,8 @@ function Router() {
         <Route path="/auth/forgot-username" component={ForgotUsernamePage} />
         <Route path="/auth/reset-password" component={ResetPasswordPage} />
         <ProtectedRoute path="/packages" component={PackagesPage} />
-        <ProtectedRoute path="/servers" component={ServersPage} />
-        <ProtectedRoute path="/servers/:id" component={ClientServerDetailPage} />
+        <ProtectedRoute path="/servers" component={UserServersPage} />
+        <ProtectedRoute path="/servers/:id" component={UserServerDetailPage} />
         <ProtectedRoute path="/billing" component={BillingPage} allowSuspended={true} />
         <ProtectedRoute path="/billing/transactions/:id" component={TransactionDetailPage} allowSuspended={true} />
         <ProtectedRoute path="/tickets" component={TicketsPage} allowSuspended={true} />
@@ -285,8 +285,8 @@ function Router() {
         <Route path="/tos" component={TermsOfServicePage} />
         <Route path="/privacy" component={PrivacyPolicyPage} />
 
-        {/* VNC Console - Admin only */}
-        <AdminProtectedRoute path="/vnc-console" component={VNCConsole} />
+        {/* VNC Console - User access allowed */}
+        <ProtectedRoute path="/vnc-console" component={VNCConsole} />
 
         {/* Admin Routes */}
         <AdminProtectedRoute path="/admin" component={AdminDashboard} />
