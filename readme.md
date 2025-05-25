@@ -154,12 +154,16 @@ If you find my work helpful, consider supporting me:
 - **Interactive Buttons**: Quick actions for ticket operations
 
 ### 🖥️ VNC Console
-- **Built-in VNC Client**: Direct server access through web browser
-- **Real-time Connection**: Live desktop streaming with mouse/keyboard control
+- **Built-in VNC Client**: Custom-built VNC client for direct server access through web browser
+- **Real-time Desktop Streaming**: Live framebuffer rendering with full mouse/keyboard control
 - **VirtFusion Integration**: Seamless VNC enable/disable via VirtFusion API
-- **Connection Management**: Automatic retry logic and timeout handling
-- **Security**: Secure authentication using VirtFusion credentials
+- **Protocol Support**: Full VNC RFB protocol implementation with authentication
+- **Framebuffer Rendering**: Real-time pixel data parsing and canvas rendering
+- **Connection Management**: WebSocket proxy with automatic retry logic and timeout handling
+- **Security**: Secure authentication using VirtFusion server credentials
 - **Cross-Platform**: Works on any device with a modern web browser
+- **Multiple Encodings**: Support for Raw and CopyRect VNC encodings
+- **Real-time Updates**: Live desktop updates with proper pixel format handling
 
 ### 🔑 API Key Management
 - **Secure Token Generation**: Cryptographically secure API key creation
@@ -209,6 +213,8 @@ GET  /api/invoices/:id/download             # Download invoice PDF
 POST /api/billing/capture-paypal-payment    # Process PayPal payment
 GET  /api/billing/usage                     # Get user resource usage
 GET  /api/billing/balance                   # Get user credit balance
+POST /api/credits                           # Add credit to user (admin only)
+DELETE /api/credits/:id                     # Cancel credit transaction (admin only)
 ```
 
 ### 🌐 VirtFusion Integration
@@ -257,21 +263,62 @@ Response format for paginated endpoints:
 }
 ```
 
-### ⚙️ Admin Routes
+### ⚙️ Admin User Management
 ```
-GET  /api/admin/users                      # List all users
+GET  /api/admin/users                      # List all users with pagination
 GET  /api/admin/users/:id                  # Get user details
-PATCH /api/admin/users/:id                 # Update user
-DELETE /api/admin/users/:id                # Delete user
-GET  /api/admin/transactions               # List all transactions
+PATCH /api/admin/users/:id                 # Update user information
+DELETE /api/admin/users/:id                # Delete user (with VirtFusion sync)
+POST /api/admin/users/:id/reset-password   # Reset user password (VirtFusion integrated)
+PATCH /api/admin/users/:id/status          # Enable/disable user account
+GET  /api/admin/users/:id/usage            # Get VirtFusion usage data for user
+POST /api/admin/users/:id/virtfusion-credit # Add VirtFusion credits to user
+DELETE /api/admin/users/:id/virtfusion-credit # Remove VirtFusion credits from user
+POST /api/admin/users/:id/sync-virtfusion  # Sync user with VirtFusion
+PUT  /api/admin/users/:id/virtfusion       # Edit VirtFusion user settings
+```
+
+### 🖥️ Admin Server Management
+```
+GET  /api/admin/servers                    # List all servers with pagination
+GET  /api/admin/servers/:id                # Get server details with real-time status
+POST /api/admin/servers                    # Create new server
+POST /api/admin/servers/:id/build          # Build server with OS template
+DELETE /api/admin/servers/:id              # Delete server
+POST /api/admin/servers/:id/power/boot     # Boot server
+POST /api/admin/servers/:id/power/shutdown # Shutdown server
+POST /api/admin/servers/:id/power/restart  # Restart server
+POST /api/admin/servers/:id/power/poweroff # Force power off server
+POST /api/admin/servers/:id/suspend        # Suspend server
+POST /api/admin/servers/:id/unsuspend      # Unsuspend server
+POST /api/admin/servers/:id/throttle-cpu   # Apply CPU throttling
+```
+
+### 🖥️ VNC Management
+```
+GET  /api/admin/servers/:id/vnc            # Get VNC status (toggles state)
+POST /api/admin/servers/:id/vnc/enable     # Enable VNC for server
+POST /api/admin/servers/:id/vnc/disable    # Disable VNC for server
+GET  /api/admin/servers/:id/vnc/test       # Test VNC connectivity
+```
+
+### 🔧 Admin System Management
+```
+GET  /api/admin/packages                   # List VirtFusion packages with pricing
+GET  /api/admin/hypervisors                # List hypervisor groups
+POST /api/admin/packages/:id/pricing       # Create/update package pricing
+DELETE /api/admin/packages/:id/pricing     # Delete package pricing
+GET  /api/admin/packages/:packageId/templates # Get OS templates for package
+GET  /api/admin/transactions               # List all transactions with search
+GET  /api/admin/billing                    # Get billing summary data
 POST /api/admin/settings                   # Update system settings
 GET  /api/admin/settings                   # Get all system settings
-GET  /api/admin/email-logs                 # List all email logs with optional filters
-GET  /api/admin/email-logs/:id             # Get detailed information about a specific email log
-GET  /api/admin/plan-features              # List all plan features
-POST /api/admin/plan-features              # Create new plan feature
-PUT  /api/admin/plan-features/:id          # Update plan feature
-DELETE /api/admin/plan-features/:id        # Delete plan feature
+GET  /api/admin/email-logs                 # List email logs with filters
+GET  /api/admin/email-logs/:id             # Get email log details
+```
+
+### 📝 Content Management
+```
 GET  /api/admin/blog                       # List all blog posts
 GET  /api/admin/blog/:id                   # Get blog post details
 POST /api/admin/blog                       # Create new blog post
@@ -281,25 +328,37 @@ GET  /api/admin/faqs                       # List all FAQs
 POST /api/admin/faqs                       # Create new FAQ
 PUT  /api/admin/faqs/:id                   # Update FAQ
 DELETE /api/admin/faqs/:id                 # Delete FAQ
+GET  /api/admin/plan-features              # List all plan features
+POST /api/admin/plan-features              # Create new plan feature
+PUT  /api/admin/plan-features/:id          # Update plan feature
+DELETE /api/admin/plan-features/:id        # Delete plan feature
 GET  /api/admin/datacenter-locations       # List all datacenter locations
 POST /api/admin/datacenter-locations       # Create new datacenter location
 PUT  /api/admin/datacenter-locations/:id   # Update datacenter location
 DELETE /api/admin/datacenter-locations/:id # Delete datacenter location
+GET  /api/admin/legal                      # Get all legal content
+POST /api/admin/legal                      # Create/update legal content
 ```
 
-### 🎨 Branding and Content
+### 🎨 Public & Branding APIs
 ```
-GET  /api/settings/branding               # Get company branding information (name, domain)
+GET  /api/settings/branding               # Get company branding information
 GET  /api/settings/public                 # Get all public settings
 GET  /api/plan-features                   # Get active plan features for public display
-GET  /api/packages                        # Get all VirtFusion packages with availability status
+GET  /api/public/packages                 # Get all VirtFusion packages (public)
 GET  /api/package-pricing                 # Get pricing information for all packages
-GET  /api/datacenter-locations            # Get all datacenter locations for the map
-GET  /api/public/platform-stats           # Get platform-wide statistics (servers, users, etc.)
+GET  /api/datacenter-locations            # Get all datacenter locations for map
+GET  /api/public/platform-stats           # Get platform-wide statistics
 GET  /api/faqs                            # Get all public FAQ items
 GET  /api/public/blog                     # Get all published blog posts
-GET  /api/public/blog/:slug               # Get a specific blog post by slug
+GET  /api/public/blog/:slug               # Get specific blog post by slug
 GET  /api/public/docs                     # Get all public documentation pages
+```
+
+### 🔑 SSO & Authentication Tokens
+```
+POST /api/sso/virtfusion/token            # Generate VirtFusion panel access token
+POST /api/sso/virtfusion/server/:id/token # Generate server-specific access token (deprecated)
 ```
 
 ### 🛠️ Maintenance Mode
@@ -310,6 +369,26 @@ GET  /api/maintenance/token                # Get current maintenance bypass toke
 POST /api/maintenance/token/regenerate     # Generate new maintenance bypass token (admin only)
 POST /api/maintenance/validate-token       # Validate maintenance bypass token from form submission
 ```
+
+### 🔑 API Key Management
+```
+GET  /api/api-keys                        # List user's API keys
+POST /api/api-keys                        # Create new API key
+DELETE /api/api-keys/:id                  # Delete API key
+GET  /api/admin/api-keys                  # List all API keys (admin only)
+```
+
+#### API Key Authentication
+API keys can be used to authenticate requests by including them in the Authorization header:
+```
+Authorization: Bearer your_api_key_here
+```
+
+Supported scopes:
+- `read:user` - Read user profile information
+- `read:servers` - Read server information
+- `read:billing` - Read billing and transaction data
+- `write:tickets` - Create and manage support tickets
 
 #### Maintenance Mode Bypass Methods
 
@@ -1270,6 +1349,140 @@ style={getBadgeStyle(accentColor, 0.1)}
 - ✅ Improved error handling for VirtFusion API connectivity issues on the plans page
 - ✅ Better API response parsing and error reporting
 - ✅ Refactored maintenance endpoints to use middleware functions for better organization
+
+---
+
+## 🖥️ VNC Console System
+
+SkyPANEL features a comprehensive VNC (Virtual Network Computing) console system that provides direct access to server desktops through a web browser. The system includes a custom-built VNC client with full RFB protocol support.
+
+### 🎯 VNC Features
+
+#### Custom VNC Client
+- **Built from Scratch**: Custom VNC client implementation for optimal performance
+- **RFB Protocol Support**: Full VNC Remote Framebuffer protocol implementation
+- **Real-time Rendering**: Live framebuffer updates with pixel-perfect accuracy
+- **Multiple Encodings**: Support for Raw (0) and CopyRect (1) VNC encodings
+- **Authentication**: VNC authentication with password support
+- **Cross-Platform**: Works on any device with a modern web browser
+
+#### VirtFusion Integration
+- **Seamless API Integration**: Direct integration with VirtFusion VNC management
+- **Enable/Disable Control**: Toggle VNC access through admin interface
+- **Status Monitoring**: Real-time VNC connection status checking
+- **Automatic Configuration**: Server credentials automatically retrieved from VirtFusion
+
+#### Connection Management
+- **WebSocket Proxy**: Secure WebSocket-to-TCP proxy for VNC connections
+- **Automatic Retry**: Built-in retry logic for failed connections
+- **Timeout Handling**: Configurable connection timeouts (30+ seconds)
+- **Error Recovery**: Graceful handling of connection failures
+- **Port Testing**: Multiple VNC port testing (5900-5910)
+
+### 🔧 Technical Implementation
+
+#### VNC Client Architecture
+The VNC client is implemented in `public/vnc-client.js` with the following components:
+
+- **Protocol Handshake**: Handles VNC version negotiation and authentication
+- **Framebuffer Parser**: Parses server framebuffer updates and rectangle data
+- **Pixel Renderer**: Converts raw pixel data to RGBA format for canvas rendering
+- **Input Handler**: Manages mouse and keyboard input forwarding to server
+- **Connection Manager**: Handles WebSocket connections and error recovery
+
+#### Key Functions
+```javascript
+// Main VNC client initialization
+function connectVNC(host, port, password)
+
+// Framebuffer update handling
+function handleFramebufferUpdate(data)
+
+// Pixel format conversion
+function convertPixelData(pixelData, pixelFormat)
+
+// Canvas rendering
+function drawRectangle(x, y, width, height, pixels)
+```
+
+#### WebSocket Proxy
+The server-side WebSocket proxy (`/vnc-proxy`) provides:
+
+- **TCP Bridge**: Converts WebSocket messages to TCP socket data
+- **Connection Pooling**: Manages multiple concurrent VNC connections
+- **Error Handling**: Proper cleanup of failed connections
+- **Security**: Validates connection parameters and enforces timeouts
+
+### 🚀 Usage Guide
+
+#### Admin Interface
+1. Navigate to **Admin → Servers**
+2. Select a server and go to the **VNC** tab
+3. Click **Enable VNC** to activate VNC access
+4. Use **Test Connection** to verify connectivity
+5. Click **Open VNC Console** to launch the web client
+
+#### VNC Console Controls
+- **Mouse Control**: Click and drag for mouse input
+- **Keyboard Input**: Type directly for keyboard input
+- **Connection Status**: Real-time connection status display
+- **Reconnect**: Manual reconnection option
+- **Full Screen**: Expand console to full screen mode
+
+#### Connection Process
+1. **VNC Enable**: Admin enables VNC through VirtFusion API
+2. **Credential Retrieval**: System fetches VNC connection details
+3. **WebSocket Connection**: Browser connects to WebSocket proxy
+4. **TCP Bridge**: Proxy establishes TCP connection to VNC server
+5. **Protocol Handshake**: VNC authentication and setup
+6. **Desktop Streaming**: Live framebuffer updates begin
+
+### 🔧 Configuration
+
+#### VirtFusion API Settings
+```bash
+# VirtFusion API configuration
+VIRTFUSION_API_URL=https://your-virtfusion.com/api/v1
+VIRTFUSION_API_TOKEN=your_api_token
+```
+
+#### VNC Connection Parameters
+- **Default Port Range**: 5900-5910
+- **Connection Timeout**: 30 seconds
+- **Retry Attempts**: 3 automatic retries
+- **Authentication**: Password-based VNC auth
+- **Pixel Format**: 32-bit RGBA (default)
+
+### 🛠️ Troubleshooting
+
+#### Common Issues
+1. **Connection Timeout**: Check VNC server status and network connectivity
+2. **Authentication Failed**: Verify VNC password in VirtFusion
+3. **Black Screen**: Ensure server desktop is active and VNC is enabled
+4. **Slow Performance**: Check network bandwidth and server resources
+
+#### Debug Information
+The VNC client provides detailed console logging:
+```javascript
+// Enable debug logging
+localStorage.setItem('vnc-debug', 'true');
+```
+
+#### API Endpoints for VNC Management
+```
+GET  /api/admin/servers/:id/vnc            # Get VNC status (toggles state)
+POST /api/admin/servers/:id/vnc/enable     # Enable VNC for server
+POST /api/admin/servers/:id/vnc/disable    # Disable VNC for server
+GET  /api/admin/servers/:id/vnc/test       # Test VNC connectivity
+```
+
+### 🔒 Security Considerations
+
+- **Secure Authentication**: VNC passwords managed through VirtFusion
+- **WebSocket Security**: WSS encryption for production deployments
+- **Access Control**: Admin-only VNC management interface
+- **Session Management**: Automatic cleanup of inactive connections
+- **Network Isolation**: VNC traffic isolated through proxy layer
 
 ---
 

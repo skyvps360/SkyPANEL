@@ -18,6 +18,31 @@
       this.url = url;
       this.options = options;
       this.connected = false;
+      this.canvas = null;
+      this.ctx = null;
+      this.ws = null;
+      this.statusDiv = null;
+      this.toolbar = null;
+      this.hasFocus = false;
+      this.currentButtonMask = 0;
+      this.isFullscreen = false;
+
+      // Modifier key state tracking
+      this.modifierState = {
+        shift: false,
+        ctrl: false,
+        alt: false,
+        meta: false,
+        capsLock: false,
+        numLock: false,
+        scrollLock: false
+      };
+
+      // Font settings with persistence
+      this.fontSettings = {
+        size: localStorage.getItem('vnc-font-size') || '14px',
+        family: localStorage.getItem('vnc-font-family') || 'Consolas'
+      };
 
       // Extract connection details
       const urlParams = new URLSearchParams(this.url.split('?')[1]);
@@ -34,7 +59,39 @@
     setupVNC() {
       this.showStatus('Connecting to VNC server...');
 
-      // Create canvas
+      // Create comprehensive VNC interface
+      this.createVNCInterface();
+
+      // Connect to real VNC server
+      this.connectToRealVNC();
+    }
+
+    createVNCInterface() {
+      // Create main container
+      const container = document.createElement('div');
+      container.style.cssText = `
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #000;
+        position: relative;
+      `;
+
+      // Create toolbar
+      this.createToolbar();
+      container.appendChild(this.toolbar);
+
+      // Create canvas container
+      const canvasContainer = document.createElement('div');
+      canvasContainer.style.cssText = `
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: #000;
+      `;
+
+      // Create canvas with improved styling
       this.canvas = document.createElement('canvas');
       this.canvas.width = 1024;
       this.canvas.height = 768;
@@ -42,14 +99,399 @@
         width: 100%;
         height: 100%;
         background: #000;
-        border: none;
+        border: 2px solid transparent;
+        transition: border-color 0.2s ease;
+        cursor: crosshair;
+        outline: none;
       `;
 
-      this.ctx = this.canvas.getContext('2d');
-      this.target.appendChild(this.canvas);
+      // Make canvas focusable
+      this.canvas.tabIndex = 0;
+      this.canvas.setAttribute('role', 'application');
+      this.canvas.setAttribute('aria-label', 'VNC Remote Desktop');
 
-      // Connect to real VNC server
-      this.connectToRealVNC();
+      this.ctx = this.canvas.getContext('2d');
+      canvasContainer.appendChild(this.canvas);
+      container.appendChild(canvasContainer);
+
+      // Clear target and add our interface
+      this.target.innerHTML = '';
+      this.target.appendChild(container);
+
+      // Set up focus management
+      this.setupFocusManagement();
+    }
+
+    createToolbar() {
+      this.toolbar = document.createElement('div');
+      this.toolbar.style.cssText = `
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border-bottom: 1px solid #475569;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        min-height: 48px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 13px;
+        user-select: none;
+      `;
+
+      // Connection status indicator
+      const statusIndicator = this.createStatusIndicator();
+      this.toolbar.appendChild(statusIndicator);
+
+      // Separator
+      this.toolbar.appendChild(this.createSeparator());
+
+      // Critical control buttons
+      const ctrlAltDelBtn = this.createButton('Ctrl+Alt+Del', '🔴', () => this.sendCtrlAltDel(), {
+        background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+        color: 'white',
+        fontWeight: 'bold'
+      });
+      this.toolbar.appendChild(ctrlAltDelBtn);
+
+      // Clipboard button
+      const clipboardBtn = this.createButton('Paste Clipboard', '📋', () => this.pasteFromClipboard());
+      this.toolbar.appendChild(clipboardBtn);
+
+      this.toolbar.appendChild(this.createSeparator());
+
+      // Virtual terminal buttons (F1-F6)
+      const vtGroup = this.createVirtualTerminalGroup();
+      this.toolbar.appendChild(vtGroup);
+
+      this.toolbar.appendChild(this.createSeparator());
+
+      // Window management buttons
+      const altTabBtn = this.createButton('Alt+Tab', '🔄', () => this.sendAltTab());
+      const winKeyBtn = this.createButton('Windows Key', '⊞', () => this.sendWindowsKey());
+      const altF4Btn = this.createButton('Alt+F4', '✖️', () => this.sendAltF4());
+
+      this.toolbar.appendChild(altTabBtn);
+      this.toolbar.appendChild(winKeyBtn);
+      this.toolbar.appendChild(altF4Btn);
+
+      this.toolbar.appendChild(this.createSeparator());
+
+      // Font customization
+      const fontControls = this.createFontControls();
+      this.toolbar.appendChild(fontControls);
+
+      this.toolbar.appendChild(this.createSeparator());
+
+      // Fullscreen and help buttons
+      const fullscreenBtn = this.createButton('Fullscreen', '⛶', () => this.toggleFullscreen());
+      const helpBtn = this.createButton('Keyboard Help', '❓', () => this.showKeyboardHelp());
+
+      this.toolbar.appendChild(fullscreenBtn);
+      this.toolbar.appendChild(helpBtn);
+
+      // Modifier key indicators (right side)
+      const modifierIndicators = this.createModifierIndicators();
+      this.toolbar.appendChild(modifierIndicators);
+    }
+
+    createButton(title, icon, onClick, customStyles = {}) {
+      const button = document.createElement('button');
+      button.innerHTML = `${icon} <span style="margin-left: 4px;">${title}</span>`;
+      button.title = title;
+      button.style.cssText = `
+        background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+        border: 1px solid #64748b;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        ${Object.entries(customStyles).map(([key, value]) => `${key}: ${value}`).join('; ')}
+      `;
+
+      button.addEventListener('mouseenter', () => {
+        if (!customStyles.background) {
+          button.style.background = 'linear-gradient(135deg, #64748b 0%, #475569 100%)';
+        }
+        button.style.transform = 'translateY(-1px)';
+        button.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+      });
+
+      button.addEventListener('mouseleave', () => {
+        if (!customStyles.background) {
+          button.style.background = 'linear-gradient(135deg, #475569 0%, #64748b 100%)';
+        }
+        button.style.transform = 'translateY(0)';
+        button.style.boxShadow = 'none';
+      });
+
+      button.addEventListener('click', onClick);
+      return button;
+    }
+
+    createSeparator() {
+      const separator = document.createElement('div');
+      separator.style.cssText = `
+        width: 1px;
+        height: 24px;
+        background: #64748b;
+        margin: 0 4px;
+      `;
+      return separator;
+    }
+
+    createStatusIndicator() {
+      const container = document.createElement('div');
+      container.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        background: rgba(0,0,0,0.2);
+      `;
+
+      this.statusDot = document.createElement('div');
+      this.statusDot.style.cssText = `
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ef4444;
+        transition: background-color 0.3s ease;
+      `;
+
+      this.statusText = document.createElement('span');
+      this.statusText.textContent = 'Disconnected';
+      this.statusText.style.cssText = `
+        color: #e2e8f0;
+        font-weight: 500;
+        font-size: 12px;
+      `;
+
+      container.appendChild(this.statusDot);
+      container.appendChild(this.statusText);
+      return container;
+    }
+
+    createVirtualTerminalGroup() {
+      const group = document.createElement('div');
+      group.style.cssText = `
+        display: flex;
+        gap: 2px;
+        background: rgba(0,0,0,0.2);
+        padding: 2px;
+        border-radius: 6px;
+      `;
+
+      for (let i = 1; i <= 6; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = `F${i}`;
+        btn.title = `Switch to Virtual Terminal ${i} (Ctrl+Alt+F${i})`;
+        btn.style.cssText = `
+          background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+          border: 1px solid #6b7280;
+          color: #e5e7eb;
+          padding: 4px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 11px;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          min-width: 28px;
+        `;
+
+        btn.addEventListener('mouseenter', () => {
+          btn.style.background = 'linear-gradient(135deg, #4b5563 0%, #374151 100%)';
+          btn.style.transform = 'scale(1.05)';
+        });
+
+        btn.addEventListener('mouseleave', () => {
+          btn.style.background = 'linear-gradient(135deg, #374151 0%, #4b5563 100%)';
+          btn.style.transform = 'scale(1)';
+        });
+
+        btn.addEventListener('click', () => this.sendVirtualTerminal(i));
+        group.appendChild(btn);
+      }
+
+      return group;
+    }
+
+    createFontControls() {
+      const container = document.createElement('div');
+      container.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      `;
+
+      // Font size selector
+      const sizeLabel = document.createElement('span');
+      sizeLabel.textContent = 'Size:';
+      sizeLabel.style.cssText = `
+        color: #e2e8f0;
+        font-size: 11px;
+        font-weight: 500;
+      `;
+
+      const sizeSelect = document.createElement('select');
+      sizeSelect.style.cssText = `
+        background: #374151;
+        border: 1px solid #6b7280;
+        color: #e5e7eb;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+      `;
+
+      const sizes = ['8px', '10px', '12px', '14px', '16px', '18px', '20px', '24px'];
+      sizes.forEach(size => {
+        const option = document.createElement('option');
+        option.value = size;
+        option.textContent = size;
+        option.selected = size === this.fontSettings.size;
+        sizeSelect.appendChild(option);
+      });
+
+      sizeSelect.addEventListener('change', (e) => {
+        this.fontSettings.size = e.target.value;
+        localStorage.setItem('vnc-font-size', e.target.value);
+        this.applyFontSettings();
+      });
+
+      // Font family selector
+      const familyLabel = document.createElement('span');
+      familyLabel.textContent = 'Font:';
+      familyLabel.style.cssText = `
+        color: #e2e8f0;
+        font-size: 11px;
+        font-weight: 500;
+        margin-left: 8px;
+      `;
+
+      const familySelect = document.createElement('select');
+      familySelect.style.cssText = `
+        background: #374151;
+        border: 1px solid #6b7280;
+        color: #e5e7eb;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+      `;
+
+      const families = ['Consolas', 'Monaco', 'Courier New', 'Ubuntu Mono', 'Source Code Pro', 'monospace'];
+      families.forEach(family => {
+        const option = document.createElement('option');
+        option.value = family;
+        option.textContent = family;
+        option.selected = family === this.fontSettings.family;
+        familySelect.appendChild(option);
+      });
+
+      familySelect.addEventListener('change', (e) => {
+        this.fontSettings.family = e.target.value;
+        localStorage.setItem('vnc-font-family', e.target.value);
+        this.applyFontSettings();
+      });
+
+      container.appendChild(sizeLabel);
+      container.appendChild(sizeSelect);
+      container.appendChild(familyLabel);
+      container.appendChild(familySelect);
+
+      return container;
+    }
+
+    createModifierIndicators() {
+      const container = document.createElement('div');
+      container.style.cssText = `
+        display: flex;
+        gap: 4px;
+        margin-left: auto;
+        align-items: center;
+      `;
+
+      const modifiers = [
+        { key: 'shift', label: 'Shift' },
+        { key: 'ctrl', label: 'Ctrl' },
+        { key: 'alt', label: 'Alt' },
+        { key: 'meta', label: 'Win' },
+        { key: 'capsLock', label: 'Caps' },
+        { key: 'numLock', label: 'Num' },
+        { key: 'scrollLock', label: 'Scroll' }
+      ];
+
+      this.modifierIndicators = {};
+
+      modifiers.forEach(({ key, label }) => {
+        const indicator = document.createElement('div');
+        indicator.textContent = label;
+        indicator.style.cssText = `
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-size: 10px;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          background: rgba(0,0,0,0.3);
+          color: #64748b;
+          border: 1px solid transparent;
+        `;
+
+        this.modifierIndicators[key] = indicator;
+        container.appendChild(indicator);
+      });
+
+      return container;
+    }
+
+    setupFocusManagement() {
+      // Enhanced focus management for reliable input capture
+      this.canvas.addEventListener('click', (e) => {
+        this.focusCanvas();
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      this.canvas.addEventListener('focus', () => {
+        this.hasFocus = true;
+        this.canvas.style.borderColor = '#3b82f6';
+        this.canvas.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.3)';
+        console.log('VNC: Canvas focused - input capture active');
+      });
+
+      this.canvas.addEventListener('blur', () => {
+        this.hasFocus = false;
+        this.canvas.style.borderColor = 'transparent';
+        this.canvas.style.boxShadow = 'none';
+        console.log('VNC: Canvas blurred - input capture inactive');
+      });
+
+      // Prevent losing focus when clicking on toolbar
+      this.toolbar.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+      });
+
+      // Global click handler to maintain focus
+      document.addEventListener('click', (e) => {
+        if (!this.target.contains(e.target)) {
+          // Clicked outside VNC area - blur canvas
+          this.canvas.blur();
+        }
+      });
+    }
+
+    focusCanvas() {
+      this.canvas.focus();
+      this.hasFocus = true;
+      console.log('VNC: Canvas manually focused');
     }
 
     connectToRealVNC() {
@@ -251,6 +693,12 @@
           this.connected = true;
           this.dispatchEvent(new CustomEvent('connect'));
           console.log('RealVNC: VNC connection fully established');
+
+          // Set up input handlers now that we're connected
+          this.setupInputHandlers();
+
+          // Update connection status
+          this.updateConnectionStatus(true);
         }
 
         this.vncState.stage = 'normal';
@@ -810,19 +1258,536 @@
       this.dispatchEvent(new CustomEvent('disconnect'));
     }
 
+    // Enhanced input handlers with comprehensive VNC support
+    setupInputHandlers() {
+      console.log('RealVNC: Setting up enhanced input handlers');
+
+      // Mouse event handlers with improved reliability
+      this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e), { passive: false });
+      this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e), { passive: false });
+      this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e), { passive: false });
+      this.canvas.addEventListener('wheel', (e) => this.handleMouseWheel(e), { passive: false });
+      this.canvas.addEventListener('contextmenu', (e) => e.preventDefault(), { passive: false });
+
+      // Keyboard event handlers with modifier tracking
+      this.canvas.addEventListener('keydown', (e) => this.handleKeyDown(e), { passive: false });
+      this.canvas.addEventListener('keyup', (e) => this.handleKeyUp(e), { passive: false });
+
+      // Focus management
+      this.canvas.addEventListener('focus', () => this.onCanvasFocus());
+      this.canvas.addEventListener('blur', () => this.onCanvasBlur());
+
+      // Ensure canvas is focusable and focused
+      this.canvas.tabIndex = 0;
+      this.focusCanvas();
+
+      console.log('RealVNC: Enhanced input handlers set up successfully');
+    }
+
+    onCanvasFocus() {
+      this.hasFocus = true;
+      this.canvas.style.borderColor = '#3b82f6';
+      this.canvas.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.3)';
+      console.log('VNC: Canvas focused - input capture active');
+    }
+
+    onCanvasBlur() {
+      this.hasFocus = false;
+      this.canvas.style.borderColor = 'transparent';
+      this.canvas.style.boxShadow = 'none';
+      // Reset all modifier states when losing focus
+      this.resetModifierStates();
+      console.log('VNC: Canvas blurred - input capture inactive');
+    }
+
+    handleMouseDown(e) {
+      const rect = this.canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) * (this.canvas.width / rect.width));
+      const y = Math.floor((e.clientY - rect.top) * (this.canvas.height / rect.height));
+
+      let buttonMask = 0;
+      if (e.button === 0) buttonMask = 1; // Left button
+      if (e.button === 1) buttonMask = 2; // Middle button
+      if (e.button === 2) buttonMask = 4; // Right button
+
+      this.sendPointerEvent(x, y, buttonMask);
+      e.preventDefault();
+    }
+
+    handleMouseUp(e) {
+      const rect = this.canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) * (this.canvas.width / rect.width));
+      const y = Math.floor((e.clientY - rect.top) * (this.canvas.height / rect.height));
+
+      // Send mouse up (button mask = 0)
+      this.sendPointerEvent(x, y, 0);
+      e.preventDefault();
+    }
+
+    handleMouseMove(e) {
+      const rect = this.canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) * (this.canvas.width / rect.width));
+      const y = Math.floor((e.clientY - rect.top) * (this.canvas.height / rect.height));
+
+      // Send mouse move with current button state
+      this.sendPointerEvent(x, y, this.currentButtonMask || 0);
+      e.preventDefault();
+    }
+
+    handleMouseWheel(e) {
+      const rect = this.canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) * (this.canvas.width / rect.width));
+      const y = Math.floor((e.clientY - rect.top) * (this.canvas.height / rect.height));
+
+      // VNC scroll wheel: button 4 (up) or button 5 (down)
+      const buttonMask = e.deltaY < 0 ? 8 : 16; // 8 = button 4, 16 = button 5
+
+      // Send wheel down
+      this.sendPointerEvent(x, y, buttonMask);
+      // Send wheel up immediately
+      setTimeout(() => this.sendPointerEvent(x, y, 0), 10);
+
+      e.preventDefault();
+    }
+
+    handleKeyDown(e) {
+      const keysym = this.getKeysym(e);
+      if (keysym) {
+        this.sendKeyEvent(keysym, true);
+      }
+      e.preventDefault();
+    }
+
+    handleKeyUp(e) {
+      const keysym = this.getKeysym(e);
+      if (keysym) {
+        this.sendKeyEvent(keysym, false);
+      }
+      e.preventDefault();
+    }
+
+    // Send VNC PointerEvent message
+    sendPointerEvent(x, y, buttonMask) {
+      if (!this.connected || !this.ws) return;
+
+      const message = new Uint8Array(6);
+      message[0] = 5; // PointerEvent message type
+      message[1] = buttonMask; // Button mask
+
+      // X position (2 bytes, big-endian)
+      message[2] = (x >> 8) & 0xFF;
+      message[3] = x & 0xFF;
+
+      // Y position (2 bytes, big-endian)
+      message[4] = (y >> 8) & 0xFF;
+      message[5] = y & 0xFF;
+
+      this.ws.send(message);
+      this.currentButtonMask = buttonMask;
+    }
+
+    // Send VNC KeyEvent message
+    sendKeyEvent(keysym, down) {
+      if (!this.connected || !this.ws) return;
+
+      const message = new Uint8Array(8);
+      message[0] = 4; // KeyEvent message type
+      message[1] = down ? 1 : 0; // Down flag
+      message[2] = 0; // Padding
+      message[3] = 0; // Padding
+
+      // Keysym (4 bytes, big-endian)
+      message[4] = (keysym >> 24) & 0xFF;
+      message[5] = (keysym >> 16) & 0xFF;
+      message[6] = (keysym >> 8) & 0xFF;
+      message[7] = keysym & 0xFF;
+
+      this.ws.send(message);
+    }
+
+    // Convert JavaScript key event to VNC keysym
+    getKeysym(e) {
+      // Basic ASCII characters
+      if (e.key.length === 1) {
+        const code = e.key.charCodeAt(0);
+        if (code >= 32 && code <= 126) {
+          return code;
+        }
+      }
+
+      // Special keys mapping
+      const specialKeys = {
+        'Backspace': 0xFF08,
+        'Tab': 0xFF09,
+        'Enter': 0xFF0D,
+        'Escape': 0xFF1B,
+        'Delete': 0xFFFF,
+        'Home': 0xFF50,
+        'End': 0xFF57,
+        'PageUp': 0xFF55,
+        'PageDown': 0xFF56,
+        'ArrowLeft': 0xFF51,
+        'ArrowUp': 0xFF52,
+        'ArrowRight': 0xFF53,
+        'ArrowDown': 0xFF54,
+        'F1': 0xFFBE,
+        'F2': 0xFFBF,
+        'F3': 0xFFC0,
+        'F4': 0xFFC1,
+        'F5': 0xFFC2,
+        'F6': 0xFFC3,
+        'F7': 0xFFC4,
+        'F8': 0xFFC5,
+        'F9': 0xFFC6,
+        'F10': 0xFFC7,
+        'F11': 0xFFC8,
+        'F12': 0xFFC9,
+        'Shift': 0xFFE1,
+        'Control': 0xFFE3,
+        'Alt': 0xFFE9,
+        'Meta': 0xFFEB
+      };
+
+      return specialKeys[e.key] || null;
+    }
+
+    // Critical VNC Control Functions
+
+    sendCtrlAltDel() {
+      console.log('VNC: Sending Ctrl+Alt+Del sequence');
+      this.showToast('Sending Ctrl+Alt+Del...', 'info');
+
+      // Send key sequence with proper timing
+      setTimeout(() => this.sendKeyEvent(0xFFE3, true), 0);   // Ctrl down
+      setTimeout(() => this.sendKeyEvent(0xFFE9, true), 50);  // Alt down
+      setTimeout(() => this.sendKeyEvent(0xFFFF, true), 100); // Del down
+      setTimeout(() => this.sendKeyEvent(0xFFFF, false), 150); // Del up
+      setTimeout(() => this.sendKeyEvent(0xFFE9, false), 200); // Alt up
+      setTimeout(() => this.sendKeyEvent(0xFFE3, false), 250); // Ctrl up
+
+      setTimeout(() => this.showToast('Ctrl+Alt+Del sent', 'success'), 300);
+    }
+
+    async pasteFromClipboard() {
+      try {
+        if (!navigator.clipboard) {
+          this.showToast('Clipboard API not supported', 'error');
+          return;
+        }
+
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          this.sendClipboardText(text);
+          this.showToast(`Pasted ${text.length} characters`, 'success');
+        } else {
+          this.showToast('Clipboard is empty', 'warning');
+        }
+      } catch (error) {
+        console.error('Clipboard access failed:', error);
+        this.showToast('Clipboard access denied', 'error');
+      }
+    }
+
+    sendClipboardText(text) {
+      if (!this.connected || !this.ws) return;
+
+      // VNC ClientCutText message (type 6)
+      const textBytes = new TextEncoder().encode(text);
+      const message = new Uint8Array(8 + textBytes.length);
+
+      message[0] = 6; // ClientCutText message type
+      message[1] = 0; // Padding
+      message[2] = 0; // Padding
+      message[3] = 0; // Padding
+
+      // Text length (4 bytes, big-endian)
+      const length = textBytes.length;
+      message[4] = (length >> 24) & 0xFF;
+      message[5] = (length >> 16) & 0xFF;
+      message[6] = (length >> 8) & 0xFF;
+      message[7] = length & 0xFF;
+
+      // Text data
+      message.set(textBytes, 8);
+
+      this.ws.send(message);
+      console.log('VNC: Sent clipboard text:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
+    }
+
+    sendVirtualTerminal(terminalNumber) {
+      console.log(`VNC: Switching to virtual terminal F${terminalNumber}`);
+      this.showToast(`Switching to VT${terminalNumber}...`, 'info');
+
+      // Send Ctrl+Alt+F[n] sequence
+      const fKey = 0xFFBE + (terminalNumber - 1); // F1 = 0xFFBE, F2 = 0xFFBF, etc.
+
+      setTimeout(() => this.sendKeyEvent(0xFFE3, true), 0);   // Ctrl down
+      setTimeout(() => this.sendKeyEvent(0xFFE9, true), 50);  // Alt down
+      setTimeout(() => this.sendKeyEvent(fKey, true), 100);   // F[n] down
+      setTimeout(() => this.sendKeyEvent(fKey, false), 150);  // F[n] up
+      setTimeout(() => this.sendKeyEvent(0xFFE9, false), 200); // Alt up
+      setTimeout(() => this.sendKeyEvent(0xFFE3, false), 250); // Ctrl up
+    }
+
+    sendAltTab() {
+      console.log('VNC: Sending Alt+Tab');
+      this.showToast('Alt+Tab sent', 'info');
+
+      setTimeout(() => this.sendKeyEvent(0xFFE9, true), 0);   // Alt down
+      setTimeout(() => this.sendKeyEvent(0xFF09, true), 50);  // Tab down
+      setTimeout(() => this.sendKeyEvent(0xFF09, false), 100); // Tab up
+      setTimeout(() => this.sendKeyEvent(0xFFE9, false), 150); // Alt up
+    }
+
+    sendWindowsKey() {
+      console.log('VNC: Sending Windows/Super key');
+      this.showToast('Windows key sent', 'info');
+
+      this.sendKeyEvent(0xFFEB, true);  // Meta/Super down
+      setTimeout(() => this.sendKeyEvent(0xFFEB, false), 100); // Meta/Super up
+    }
+
+    sendAltF4() {
+      console.log('VNC: Sending Alt+F4');
+      this.showToast('Alt+F4 sent', 'info');
+
+      setTimeout(() => this.sendKeyEvent(0xFFE9, true), 0);   // Alt down
+      setTimeout(() => this.sendKeyEvent(0xFFC1, true), 50);  // F4 down
+      setTimeout(() => this.sendKeyEvent(0xFFC1, false), 100); // F4 up
+      setTimeout(() => this.sendKeyEvent(0xFFE9, false), 150); // Alt up
+    }
+
+    toggleFullscreen() {
+      if (!this.isFullscreen) {
+        this.enterFullscreen();
+      } else {
+        this.exitFullscreen();
+      }
+    }
+
+    enterFullscreen() {
+      const container = this.target.parentElement || this.target;
+      if (container.requestFullscreen) {
+        container.requestFullscreen().then(() => {
+          this.isFullscreen = true;
+          this.showToast('Entered fullscreen mode', 'success');
+        }).catch(err => {
+          console.error('Fullscreen failed:', err);
+          this.showToast('Fullscreen not supported', 'error');
+        });
+      }
+    }
+
+    exitFullscreen() {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().then(() => {
+          this.isFullscreen = false;
+          this.showToast('Exited fullscreen mode', 'info');
+        });
+      }
+    }
+
+    showKeyboardHelp() {
+      const helpContent = `
+        <div style="font-family: monospace; line-height: 1.6;">
+          <h3 style="margin-top: 0;">VNC Keyboard Shortcuts</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <h4>System Controls:</h4>
+              <p><strong>Ctrl+Alt+Del</strong> - System attention</p>
+              <p><strong>Alt+Tab</strong> - Switch applications</p>
+              <p><strong>Alt+F4</strong> - Close window</p>
+              <p><strong>Windows Key</strong> - Start menu</p>
+            </div>
+            <div>
+              <h4>Virtual Terminals:</h4>
+              <p><strong>Ctrl+Alt+F1-F6</strong> - Switch VT</p>
+              <p><strong>Ctrl+Alt+F7</strong> - Return to GUI</p>
+            </div>
+          </div>
+          <div style="margin-top: 20px;">
+            <h4>Special Keys:</h4>
+            <p>All function keys (F1-F12), arrow keys, Home, End, Page Up/Down are supported</p>
+            <p>Modifier keys: Shift, Ctrl, Alt, Windows/Meta</p>
+            <p>Lock keys: Caps Lock, Num Lock, Scroll Lock</p>
+          </div>
+        </div>
+      `;
+
+      this.showModal('Keyboard Reference', helpContent);
+    }
+
+    updateConnectionStatus(connected) {
+      if (this.statusDot && this.statusText) {
+        if (connected) {
+          this.statusDot.style.background = '#10b981';
+          this.statusText.textContent = 'Connected';
+        } else {
+          this.statusDot.style.background = '#ef4444';
+          this.statusText.textContent = 'Disconnected';
+        }
+      }
+    }
+
+    resetModifierStates() {
+      Object.keys(this.modifierState).forEach(key => {
+        this.modifierState[key] = false;
+        this.updateModifierIndicator(key, false);
+      });
+    }
+
+    updateModifierIndicator(key, active) {
+      if (this.modifierIndicators && this.modifierIndicators[key]) {
+        const indicator = this.modifierIndicators[key];
+        if (active) {
+          indicator.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)';
+          indicator.style.color = 'white';
+          indicator.style.borderColor = '#3b82f6';
+        } else {
+          indicator.style.background = 'rgba(0,0,0,0.3)';
+          indicator.style.color = '#64748b';
+          indicator.style.borderColor = 'transparent';
+        }
+      }
+    }
+
+    applyFontSettings() {
+      // Apply font settings to any text rendering in VNC display
+      console.log('VNC: Applying font settings:', this.fontSettings);
+      // This would be used for any overlay text or UI elements
+    }
+
+    showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+      };
+
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${colors[type]};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+      `;
+
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    showModal(title, content) {
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      `;
+
+      const modalContent = document.createElement('div');
+      modalContent.style.cssText = `
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 24px;
+        border-radius: 12px;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      `;
+
+      modalContent.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h2 style="margin: 0; color: #f1f5f9;">${title}</h2>
+          <button id="closeModal" style="background: none; border: none; color: #94a3b8; font-size: 24px; cursor: pointer;">×</button>
+        </div>
+        ${content}
+      `;
+
+      modal.appendChild(modalContent);
+      document.body.appendChild(modal);
+
+      const closeModal = () => modal.remove();
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+      modalContent.querySelector('#closeModal').addEventListener('click', closeModal);
+
+      document.addEventListener('keydown', function escHandler(e) {
+        if (e.key === 'Escape') {
+          closeModal();
+          document.removeEventListener('keydown', escHandler);
+        }
+      });
+    }
+
     // Compatibility methods
     sendCredentials(creds) {
       console.log('RealVNC: Credentials provided');
     }
 
-    sendKey() {}
-    sendPointer() {}
+    sendKey(keysym, down) {
+      this.sendKeyEvent(keysym, down);
+    }
+
+    sendPointer(x, y, buttonMask) {
+      this.sendPointerEvent(x, y, buttonMask);
+    }
   }
 
   // Make available globally
   window.RFB = RealVNCClient;
 
-  console.log('RealVNC client loaded');
+  // Add CSS animations for toast notifications
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  console.log('RealVNC client loaded with comprehensive VNC features');
   window.dispatchEvent(new CustomEvent('novnc-ready', {
     detail: { RFB: RealVNCClient }
   }));
