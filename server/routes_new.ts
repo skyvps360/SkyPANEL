@@ -17,6 +17,7 @@ import { VirtFusionApi as ImportedVirtFusionApi } from "./virtfusion-api";
 import { emailService } from "./email";
 import { betterStackService } from "./betterstack-service";
 import { geminiService } from "./gemini-service";
+import { serverLoggingService } from "./server-logging-service";
 import { setLocationStatus, getLocationStatus, removeLocationStatus } from "./location-status-manager";
 import { getMaintenanceStatus, getMaintenanceToken, regenerateMaintenanceToken, toggleMaintenanceMode, validateMaintenanceToken } from "./middleware";
 import { apiKeyAuth, requireScope } from "./middleware/auth-middleware";
@@ -2698,6 +2699,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('No expected password in user server reset response', response);
         }
 
+        // Log the successful password reset action
+        await serverLoggingService.logPasswordReset(
+          serverId,
+          userId,
+          'success',
+          response?.data?.queueId,
+          undefined,
+          req
+        );
+
         res.json({
           success: true,
           message: "Server password reset successfully",
@@ -2706,6 +2717,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (error: any) {
         console.error(`Error resetting password for user server ${serverId}:`, error);
+
+        // Log the failed password reset action
+        await serverLoggingService.logPasswordReset(
+          serverId,
+          userId,
+          'failed',
+          undefined,
+          error.message || "An error occurred while resetting the server password",
+          req
+        );
+
         res.status(500).json({
           error: "Failed to reset server password",
           message: error.message || "An error occurred while resetting the server password"
@@ -2769,25 +2791,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Execute the power action
       let result;
+      let powerAction: 'power_on' | 'power_off' | 'restart' | 'poweroff';
+
       switch (action) {
         case 'boot':
           result = await virtFusionApi.bootServer(serverId);
+          powerAction = 'power_on';
           break;
         case 'shutdown':
           result = await virtFusionApi.shutdownServer(serverId);
+          powerAction = 'power_off';
           break;
         case 'restart':
           result = await virtFusionApi.restartServer(serverId);
+          powerAction = 'restart';
           break;
         case 'poweroff':
           result = await virtFusionApi.poweroffServer(serverId);
+          powerAction = 'poweroff';
           break;
       }
 
+      // Log the successful power action
+      await serverLoggingService.logPowerAction(
+        serverId,
+        userId,
+        powerAction,
+        'success',
+        result?.data?.queueId,
+        undefined,
+        req
+      );
+
       console.log(`User ${userId} successfully executed ${action} on server ${serverId}`);
       return res.json({ success: true, message: `Server ${action} command sent successfully`, result });
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error executing power action:`, error);
+
+      // Log the failed power action if we have the necessary info
+      const serverId = parseInt(req.params.id);
+      const userId = req.user?.id;
+      const action = req.params.action;
+
+      if (!isNaN(serverId) && userId) {
+        let powerAction: 'power_on' | 'power_off' | 'restart' | 'poweroff';
+        switch (action) {
+          case 'boot':
+            powerAction = 'power_on';
+            break;
+          case 'shutdown':
+            powerAction = 'power_off';
+            break;
+          case 'restart':
+            powerAction = 'restart';
+            break;
+          case 'poweroff':
+            powerAction = 'poweroff';
+            break;
+          default:
+            powerAction = 'power_on'; // fallback
+        }
+
+        await serverLoggingService.logPowerAction(
+          serverId,
+          userId,
+          powerAction,
+          'failed',
+          undefined,
+          error.message || `Failed to execute ${action} command`,
+          req
+        );
+      }
+
       return res.status(500).json({ error: `Failed to execute ${req.params.action} command` });
     }
   });
@@ -2837,8 +2912,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
 
       if (result) {
+        // Log VNC action (this endpoint toggles VNC state)
+        await serverLoggingService.logVncAction(
+          serverId,
+          userId,
+          'vnc_enable', // Since this toggles VNC, we'll log as enable
+          'success',
+          'VNC state toggled via API',
+          undefined,
+          req
+        );
+
         res.json({ success: true, data: result });
       } else {
+        // Log failed VNC action
+        await serverLoggingService.logVncAction(
+          serverId,
+          userId,
+          'vnc_enable',
+          'failed',
+          undefined,
+          'Failed to get VNC status',
+          req
+        );
+
         res.status(500).json({ error: "Failed to get VNC status" });
       }
     } catch (error: any) {
@@ -2895,6 +2992,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error fetching traffic data for server ${req.params.id}:`, error.message);
       res.status(500).json({
         error: "Failed to fetch server traffic data from VirtFusion",
+        message: error.message
+      });
+    }
+  });
+
+  // Get server logs for user
+  app.get("/api/user/servers/:id/logs", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const serverId = parseInt(req.params.id);
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`User ${userId} fetching logs for server ${serverId}`);
+
+      // Get user to find their VirtFusion ID
+      const user = await storage.getUser(userId);
+      if (!user || !user.virtFusionId) {
+        return res.status(404).json({ error: "User not found or no VirtFusion account" });
+      }
+
+      // Get user's servers to verify ownership
+      const userServers = await virtFusionApi.getUserServers(user.virtFusionId);
+      if (!userServers || !userServers.data) {
+        return res.status(404).json({ error: "No servers found for user" });
+      }
+
+      // Check if the server belongs to the user
+      const serverExists = userServers.data.some((server: any) => server.id === serverId);
+      if (!serverExists) {
+        return res.status(403).json({ error: "Access denied - server does not belong to user" });
+      }
+
+      // Parse query parameters for filtering
+      const actionType = req.query.actionType as string;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+      // Get server logs with user information
+      const logs = await storage.getServerLogsWithUser(serverId, {
+        actionType,
+        startDate,
+        endDate,
+        limit,
+        offset
+      });
+
+      // Get total count for pagination
+      const totalCount = await storage.getServerLogCount(serverId, {
+        actionType,
+        startDate,
+        endDate
+      });
+
+      return res.json({
+        logs,
+        totalCount,
+        hasMore: offset + limit < totalCount
+      });
+    } catch (error: any) {
+      console.error(`Error fetching server logs for server ${req.params.id}:`, error.message);
+      res.status(500).json({
+        error: "Failed to fetch server logs",
         message: error.message
       });
     }

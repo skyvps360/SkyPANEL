@@ -1004,6 +1004,7 @@ Users can update:
 
 ### AI-Powered Support Enhancement (May 2025)
 - ✅ Integrated Google's Gemini AI for intelligent ticket response suggestions
+- ✅ Upgraded to Gemini 2.5 Flash Preview model for improved performance and capabilities
 - ✅ Implemented AI response generation based on ticket context and history
 - ✅ Added rate limiting for AI services to comply with API usage limits
 - ✅ Implemented proper error handling and fallback mechanisms for AI responses

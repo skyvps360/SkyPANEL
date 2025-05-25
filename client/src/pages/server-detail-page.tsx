@@ -55,7 +55,8 @@ import {
   PowerOff,
   ChevronDown,
   FileText,
-  Key
+  Key,
+  ScrollText
 } from "lucide-react";
 
 // OS Icon Components with actual OS logos
@@ -443,6 +444,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ServerLogsModal } from "@/components/server/ServerLogsModal";
 
 // VNC Tab Component
 const VNCTab = ({ serverId }: { serverId: number }) => {
@@ -717,6 +719,7 @@ export default function ServerDetailPage() {
   // State for storing generated password and active tab
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
 
   // Ensure activeTab is valid (redirect console to overview since we removed it)
   useEffect(() => {
@@ -2155,6 +2158,11 @@ export default function ServerDetailPage() {
                           <Monitor className="h-4 w-4 mr-2" />
                           Open VNC Console
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsLogsModalOpen(true)}>
+                          <ScrollText className="h-4 w-4 mr-2" />
+                          Activity Logs
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -3438,6 +3446,14 @@ export default function ServerDetailPage() {
 
           </Tabs>
         )}
+
+        {/* Server Logs Modal */}
+        <ServerLogsModal
+          isOpen={isLogsModalOpen}
+          onClose={() => setIsLogsModalOpen(false)}
+          serverId={serverId}
+          serverName={server?.name}
+        />
       </div>
     </DashboardLayout>
   );

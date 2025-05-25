@@ -5,6 +5,7 @@ import {
   ticketMessages,
   settings,
   serverPowerStatus,
+  serverLogs,
   notifications,
   invoices,
   passwordResetTokens,
@@ -64,7 +65,9 @@ import {
   type FaqItem,
   type InsertFaqItem,
   type ServerPowerStatus,
-  type InsertServerPowerStatus
+  type InsertServerPowerStatus,
+  type ServerLog,
+  type InsertServerLog
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, gte, lte, count, inArray, or, ilike, lt, sql, not } from "drizzle-orm";
@@ -78,6 +81,28 @@ export interface IStorage {
   getServerPowerStatus(serverId: number): Promise<ServerPowerStatus | undefined>;
   updateServerPowerStatus(serverId: number, data: Partial<ServerPowerStatus>): Promise<void>;
   upsertServerPowerStatus(serverId: number, powerState: string): Promise<void>;
+
+  // Server logs operations
+  createServerLog(log: InsertServerLog): Promise<ServerLog>;
+  getServerLogs(serverId: number, options?: {
+    actionType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<ServerLog[]>;
+  getServerLogsWithUser(serverId: number, options?: {
+    actionType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+  }): Promise<(ServerLog & { user: User })[]>;
+  getServerLogCount(serverId: number, options?: {
+    actionType?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }): Promise<number>;
 
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -328,6 +353,165 @@ export class DatabaseStorage implements IStorage {
 
   async upsertServerPowerStatus(serverId: number, powerState: string): Promise<void> {
     await this.updateServerPowerStatus(serverId, { powerState });
+  }
+
+  // Server logs operations
+  async createServerLog(log: InsertServerLog): Promise<ServerLog> {
+    const [serverLog] = await db.insert(serverLogs).values(log).returning();
+    return serverLog;
+  }
+
+  async getServerLogs(serverId: number, options: {
+    actionType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<ServerLog[]> {
+    let query = db.select().from(serverLogs);
+
+    // Build filters
+    const filters = [eq(serverLogs.serverId, serverId)];
+
+    if (options.actionType) {
+      filters.push(eq(serverLogs.actionType, options.actionType));
+    }
+
+    if (options.startDate) {
+      filters.push(gte(serverLogs.createdAt, options.startDate));
+    }
+
+    if (options.endDate) {
+      // Add one day to include the end date fully
+      const endDate = new Date(options.endDate);
+      endDate.setDate(endDate.getDate() + 1);
+      filters.push(lt(serverLogs.createdAt, endDate));
+    }
+
+    // Apply filters
+    query = query.where(and(...filters));
+
+    // Order by created date descending (newest first)
+    query = query.orderBy(desc(serverLogs.createdAt));
+
+    // Apply pagination
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options.offset) {
+      query = query.offset(options.offset);
+    }
+
+    return await query;
+  }
+
+  async getServerLogsWithUser(serverId: number, options: {
+    actionType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<(ServerLog & { user: User })[]> {
+    let query = db.select({
+      id: serverLogs.id,
+      serverId: serverLogs.serverId,
+      userId: serverLogs.userId,
+      action: serverLogs.action,
+      actionType: serverLogs.actionType,
+      status: serverLogs.status,
+      details: serverLogs.details,
+      metadata: serverLogs.metadata,
+      userAgent: serverLogs.userAgent,
+      ipAddress: serverLogs.ipAddress,
+      queueId: serverLogs.queueId,
+      errorMessage: serverLogs.errorMessage,
+      createdAt: serverLogs.createdAt,
+      user: {
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        password: users.password,
+        fullName: users.fullName,
+        role: users.role,
+        credits: users.credits,
+        virtFusionId: users.virtFusionId,
+        isVerified: users.isVerified,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      }
+    })
+    .from(serverLogs)
+    .leftJoin(users, eq(serverLogs.userId, users.id));
+
+    // Build filters
+    const filters = [eq(serverLogs.serverId, serverId)];
+
+    if (options.actionType) {
+      filters.push(eq(serverLogs.actionType, options.actionType));
+    }
+
+    if (options.startDate) {
+      filters.push(gte(serverLogs.createdAt, options.startDate));
+    }
+
+    if (options.endDate) {
+      // Add one day to include the end date fully
+      const endDate = new Date(options.endDate);
+      endDate.setDate(endDate.getDate() + 1);
+      filters.push(lt(serverLogs.createdAt, endDate));
+    }
+
+    // Apply filters
+    query = query.where(and(...filters));
+
+    // Order by created date descending (newest first)
+    query = query.orderBy(desc(serverLogs.createdAt));
+
+    // Apply pagination
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options.offset) {
+      query = query.offset(options.offset);
+    }
+
+    return await query;
+  }
+
+  async getServerLogCount(serverId: number, options: {
+    actionType?: string;
+    startDate?: Date;
+    endDate?: Date;
+  } = {}): Promise<number> {
+    let query = db.select({ count: sql<number>`count(*)` })
+      .from(serverLogs);
+
+    // Build filters
+    const filters = [eq(serverLogs.serverId, serverId)];
+
+    if (options.actionType) {
+      filters.push(eq(serverLogs.actionType, options.actionType));
+    }
+
+    if (options.startDate) {
+      filters.push(gte(serverLogs.createdAt, options.startDate));
+    }
+
+    if (options.endDate) {
+      // Add one day to include the end date fully
+      const endDate = new Date(options.endDate);
+      endDate.setDate(endDate.getDate() + 1);
+      filters.push(lt(serverLogs.createdAt, endDate));
+    }
+
+    // Apply filters
+    query = query.where(and(...filters));
+
+    const result = await query;
+    return result[0].count;
   }
 
   // User operations
