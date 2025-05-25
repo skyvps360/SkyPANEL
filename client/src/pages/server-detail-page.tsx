@@ -54,8 +54,7 @@ import {
   Square,
   PowerOff,
   ChevronDown,
-  FileText,
-  Terminal
+  FileText
 } from "lucide-react";
 
 // Helper function to format data size to human readable format
@@ -595,6 +594,13 @@ export default function ServerDetailPage() {
   // State for storing generated password and active tab
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Ensure activeTab is valid (redirect console to overview since we removed it)
+  useEffect(() => {
+    if (activeTab === "console") {
+      setActiveTab("overview");
+    }
+  }, [activeTab]);
 
   // Fetch branding settings for brand colors
   const { data: brandingData } = useQuery<{
@@ -1746,8 +1752,7 @@ export default function ServerDetailPage() {
                            activeTab === "network" ? "Network" :
                            activeTab === "traffic" ? "Traffic" :
                            activeTab === "storage" ? "Storage" :
-                           activeTab === "vnc" ? "VNC" :
-                           activeTab === "console" ? "Controls" : "Overview"}
+                           activeTab === "vnc" ? "VNC" : "Overview"}
                           <ChevronDown className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -1775,10 +1780,6 @@ export default function ServerDetailPage() {
                         <DropdownMenuItem onClick={() => setActiveTab("vnc")}>
                           <Monitor className="h-4 w-4 mr-2" />
                           VNC
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setActiveTab("console")}>
-                          <Terminal className="h-4 w-4 mr-2" />
-                          Controls
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -3069,160 +3070,7 @@ export default function ServerDetailPage() {
               <VNCTab serverId={serverId} />
             </TabsContent>
 
-            {/* Controls Tab */}
-            <TabsContent value="console" className="space-y-4">
-              <div className="space-y-6">
-                {/* Power status card with enhanced design */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
-                      Server Power Status
-                    </CardTitle>
-                    <CardDescription>
-                      Monitor and control server power state
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="flex flex-col space-y-4">
-                        {/* Current Power Status Display */}
-                        <div className="bg-muted/40 p-4 rounded-lg border flex flex-col items-center justify-center text-center">
-                          <h3 className="text-sm font-medium text-muted-foreground mb-2">CURRENT POWER STATUS</h3>
-                          <div className="flex items-center gap-2 justify-center mb-2">
-                            <div className={`w-3 h-3 rounded-full animate-pulse ${
-                              // First check the powerStatus from our database tracking
-                              server.powerStatus?.powerState === "RUNNING" ? "bg-green-500" :
-                              server.powerStatus?.powerState === "STOPPED" ? "bg-red-500" :
-                              // Check remoteState.state and remoteState.running which comes from the ?remoteState=true parameter
-                              server.remoteState?.state === "running" || server.remoteState?.running === true ? "bg-green-500" :
-                              server.remoteState?.state === "stopped" || server.remoteState?.running === false ? "bg-red-500" :
-                              // Fall back to server.state if neither powerStatus nor remoteState is available
-                              server.state === "running" || server.state === "RUNNING" ? "bg-green-500" :
-                              server.state === "stopped" || server.state === "STOPPED" ? "bg-red-500" :
-                              server.state === "shutdown" || server.state === "SHUTTING_DOWN" ? "bg-orange-500" :
-                              server.state === "paused" || server.state === "PAUSED" ? "bg-yellow-500" :
-                              // Default to gray as unknown since we need proper power state
-                              "bg-gray-500"
-                            }`}></div>
-                            <span className="text-xl font-bold">
-                              {/* First check the powerStatus from our database tracking */}
-                              {server.powerStatus?.powerState === "RUNNING" ? "RUNNING" :
-                               server.powerStatus?.powerState === "STOPPED" ? "STOPPED" :
-                               // Check remoteState.state and remoteState.running which comes from the ?remoteState=true parameter
-                               server.remoteState?.state === "running" || server.remoteState?.running === true ? "RUNNING" :
-                               server.remoteState?.state === "stopped" || server.remoteState?.running === false ? "STOPPED" :
-                               // Fall back to server.state if neither powerStatus nor remoteState is available
-                               server.state === "running" || server.state === "RUNNING" ? "RUNNING" :
-                               server.state === "stopped" || server.state === "STOPPED" ? "STOPPED" :
-                               server.state === "shutdown" || server.state === "SHUTTING_DOWN" ? "SHUTTING DOWN" :
-                               server.state === "paused" || server.state === "PAUSED" ? "PAUSED" :
-                               "UNKNOWN"}
-                            </span>
-                          </div>
-                          <div className="mt-2">
-                            <UIBadge
-                              variant={
-                                server.suspended ? "destructive" : "default"
-                              }
-                              className={`px-3 py-1 ${
-                                !server.suspended ? "bg-green-500 hover:bg-green-600" : ""
-                              }`}
-                            >
-                              {server.suspended ? "SERVER SUSPENDED" : "SERVER ACTIVE"}
-                            </UIBadge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            Last updated: {formatDate(server.updated)}
-                          </p>
-                        </div>
 
-                        {/* Power Actions Description */}
-                        <div className="text-sm text-muted-foreground">
-                          <h4 className="font-medium mb-1">Power Actions:</h4>
-                          <ul className="list-disc list-inside space-y-1 pl-2">
-                            <li><strong>Boot</strong> - Start the server if it's stopped</li>
-                            <li><strong>Shutdown</strong> - Gracefully shut down the OS</li>
-                            <li><strong>Restart</strong> - Reboot the server</li>
-                            <li><strong>Power Off</strong> - Force power off (not recommended)</li>
-                          </ul>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col space-y-4">
-                        {/* Power Action Buttons */}
-                        <div className="bg-muted/40 p-4 rounded-lg border">
-                          <h3 className="text-sm font-medium text-muted-foreground mb-3 text-center">POWER ACTIONS</h3>
-                          <div className="grid grid-cols-2 gap-3">
-                            <Button
-                              variant="outline"
-                              className="flex-1 bg-green-50 border-green-200 hover:bg-green-200 text-green-700 hover:text-green-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              onClick={() => bootMutation.mutate()}
-                              disabled={bootMutation.isPending || !isServerStopped}
-                              title={!isServerStopped ? "Server must be stopped to boot" : "Start the server"}
-                            >
-                              <Power className="mr-2 h-4 w-4" /> Boot
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="flex-1 bg-orange-50 border-orange-200 hover:bg-orange-200 text-orange-700 hover:text-orange-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              onClick={() => shutdownMutation.mutate()}
-                              disabled={shutdownMutation.isPending || isServerStopped}
-                              title={isServerStopped ? "Server is already stopped" : "Gracefully shutdown the server"}
-                            >
-                              <Power className="mr-2 h-4 w-4" /> Shutdown
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="flex-1 bg-blue-50 border-blue-200 hover:bg-blue-200 text-blue-700 hover:text-blue-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              onClick={() => restartMutation.mutate()}
-                              disabled={restartMutation.isPending || isServerStopped}
-                              title={isServerStopped ? "Server must be running to restart" : "Restart the server"}
-                            >
-                              <RefreshCw className="mr-2 h-4 w-4" /> Restart
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="flex-1 bg-red-50 border-red-200 hover:bg-red-200 text-red-700 hover:text-red-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                              onClick={() => powerOffMutation.mutate()}
-                              disabled={powerOffMutation.isPending || isServerStopped}
-                              title={isServerStopped ? "Server is already stopped" : "Force power off the server"}
-                            >
-                              <Power className="mr-2 h-4 w-4" /> Power Off
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* State Indicator Legend */}
-                        <div className="text-xs text-muted-foreground">
-                          <h4 className="font-medium mb-1">Power State Indicators:</h4>
-                          <div className="flex flex-wrap gap-2">
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                              <span>Running</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                              <span>Stopped</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                              <span>Shutting Down</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                              <span>Paused</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-
-              </div>
-            </TabsContent>
 
           </Tabs>
         )}
