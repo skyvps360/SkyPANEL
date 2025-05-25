@@ -677,19 +677,7 @@ export default function ServerDetailPage() {
   // Extract the server data from the response
   const server = serverResponse?.data;
 
-  // Debug the structure - remove this in production
-  console.log("Server data structure:", JSON.stringify(server, null, 2));
 
-  // Log specific properties for power status debugging
-  if (server) {
-    console.log("Power Status Debug:", {
-      state: server.state,
-      remoteState: server.remoteState,
-      powerStatus: server.powerStatus,
-      status: server.status,
-      domainState: server.domainState
-    });
-  }
 
   // We're now using the formatDate function defined at the top of the file
 
@@ -754,6 +742,20 @@ export default function ServerDetailPage() {
       refetch();
       // Also invalidate the cache for future requests
       queryClient.invalidateQueries({ queryKey: ['/api/user/servers', id] });
+
+      // Poll for state changes after a short delay
+      setTimeout(() => {
+        refetch();
+        // Continue polling every 3 seconds for up to 30 seconds to catch state changes
+        const pollInterval = setInterval(() => {
+          refetch();
+        }, 3000);
+
+        // Stop polling after 30 seconds
+        setTimeout(() => {
+          clearInterval(pollInterval);
+        }, 30000);
+      }, 2000);
     },
     onError: (error) => {
       // Check if error message indicates a queue issue
@@ -832,6 +834,20 @@ export default function ServerDetailPage() {
       refetch();
       // Also invalidate the cache for future requests
       queryClient.invalidateQueries({ queryKey: ['/api/user/servers', id] });
+
+      // Poll for state changes after a short delay
+      setTimeout(() => {
+        refetch();
+        // Continue polling every 3 seconds for up to 30 seconds to catch state changes
+        const pollInterval = setInterval(() => {
+          refetch();
+        }, 3000);
+
+        // Stop polling after 30 seconds
+        setTimeout(() => {
+          clearInterval(pollInterval);
+        }, 30000);
+      }, 2000);
     },
     onError: (error) => {
       // Check if error message indicates a queue issue
@@ -910,6 +926,20 @@ export default function ServerDetailPage() {
       refetch();
       // Also invalidate the cache for future requests
       queryClient.invalidateQueries({ queryKey: ['/api/user/servers', id] });
+
+      // Poll for state changes after a short delay
+      setTimeout(() => {
+        refetch();
+        // Continue polling every 3 seconds for up to 30 seconds to catch state changes
+        const pollInterval = setInterval(() => {
+          refetch();
+        }, 3000);
+
+        // Stop polling after 30 seconds
+        setTimeout(() => {
+          clearInterval(pollInterval);
+        }, 30000);
+      }, 2000);
     },
     onError: (error) => {
       // Check if error message indicates a queue issue
@@ -988,6 +1018,20 @@ export default function ServerDetailPage() {
       refetch();
       // Also invalidate the cache for future requests
       queryClient.invalidateQueries({ queryKey: ['/api/user/servers', id] });
+
+      // Poll for state changes after a short delay
+      setTimeout(() => {
+        refetch();
+        // Continue polling every 3 seconds for up to 30 seconds to catch state changes
+        const pollInterval = setInterval(() => {
+          refetch();
+        }, 3000);
+
+        // Stop polling after 30 seconds
+        setTimeout(() => {
+          clearInterval(pollInterval);
+        }, 30000);
+      }, 2000);
     },
     onError: (error) => {
       // Check if error message indicates a queue issue
@@ -2699,8 +2743,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-green-50 border-green-200 hover:bg-green-200 text-green-700 hover:text-green-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => bootMutation.mutate()}
-                              disabled={bootMutation.isPending || server?.state?.toLowerCase() !== "stopped"}
-                              title={server?.state?.toLowerCase() !== "stopped" ? "Server must be stopped to boot" : "Start the server"}
+                              disabled={bootMutation.isPending || server?.state?.toLowerCase() === "running"}
+                              title={server?.state?.toLowerCase() === "running" ? "Server is already running" : "Start the server"}
                             >
                               <Power className="mr-2 h-4 w-4" /> Boot
                             </Button>
@@ -2708,8 +2752,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-orange-50 border-orange-200 hover:bg-orange-200 text-orange-700 hover:text-orange-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => shutdownMutation.mutate()}
-                              disabled={shutdownMutation.isPending || server?.state?.toLowerCase() === "stopped"}
-                              title={server?.state?.toLowerCase() === "stopped" ? "Server is already stopped" : "Gracefully shutdown the server"}
+                              disabled={shutdownMutation.isPending || server?.state?.toLowerCase() !== "running"}
+                              title={server?.state?.toLowerCase() !== "running" ? "Server must be running to shutdown" : "Gracefully shutdown the server"}
                             >
                               <Power className="mr-2 h-4 w-4" /> Shutdown
                             </Button>
@@ -2717,8 +2761,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-blue-50 border-blue-200 hover:bg-blue-200 text-blue-700 hover:text-blue-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => restartMutation.mutate()}
-                              disabled={restartMutation.isPending || server?.state?.toLowerCase() === "stopped"}
-                              title={server?.state?.toLowerCase() === "stopped" ? "Server must be running to restart" : "Restart the server"}
+                              disabled={restartMutation.isPending || server?.state?.toLowerCase() !== "running"}
+                              title={server?.state?.toLowerCase() !== "running" ? "Server must be running to restart" : "Restart the server"}
                             >
                               <RefreshCw className="mr-2 h-4 w-4" /> Restart
                             </Button>
@@ -2726,8 +2770,8 @@ export default function ServerDetailPage() {
                               variant="outline"
                               className="flex-1 bg-red-50 border-red-200 hover:bg-red-200 text-red-700 hover:text-red-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() => powerOffMutation.mutate()}
-                              disabled={powerOffMutation.isPending || server?.state?.toLowerCase() === "stopped"}
-                              title={server?.state?.toLowerCase() === "stopped" ? "Server is already stopped" : "Force power off the server"}
+                              disabled={powerOffMutation.isPending || server?.state?.toLowerCase() !== "running"}
+                              title={server?.state?.toLowerCase() !== "running" ? "Server must be running to power off" : "Force power off the server"}
                             >
                               <Power className="mr-2 h-4 w-4" /> Power Off
                             </Button>
@@ -2737,20 +2781,6 @@ export default function ServerDetailPage() {
                         {/* State Indicator Legend */}
                         <div className="text-xs text-muted-foreground">
                           <h4 className="font-medium mb-1">Power State Indicators:</h4>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            <span className={`px-2 py-0.5 rounded text-xs ${server?.state === "running" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}>
-                              ● Running
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-xs ${server?.state === "stopped" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-600"}`}>
-                              ● Stopped
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-xs ${server?.state === "shutdown" ? "bg-orange-100 text-orange-800" : "bg-gray-100 text-gray-600"}`}>
-                              ● Shutting Down
-                            </span>
-                            <span className={`px-2 py-0.5 rounded text-xs ${server?.state === "paused" ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-600"}`}>
-                              ● Paused
-                            </span>
-                          </div>
                           <div className="flex flex-wrap gap-2">
                             <div className="flex items-center gap-1">
                               <div className="w-2 h-2 rounded-full bg-green-500"></div>
