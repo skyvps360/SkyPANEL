@@ -2,6 +2,7 @@ import { useParams } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { getBrandColors } from "@/lib/brand-theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Tabs,
@@ -45,7 +46,14 @@ import {
   DownloadCloud,
   UploadCloud,
   LineChart,
-  Monitor
+  Monitor,
+  Copy,
+  MemoryStick,
+  Zap,
+  RotateCcw,
+  Square,
+  PowerOff,
+  ChevronDown
 } from "lucide-react";
 
 // Helper function to format data size to human readable format
@@ -302,8 +310,15 @@ const formatDate = (dateStr: string | Date | undefined): string => {
 import { Button } from "@/components/ui/button";
 import { Badge as UIBadge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // VNC Tab Component
 const VNCTab = ({ serverId }: { serverId: number }) => {
@@ -577,6 +592,27 @@ export default function ServerDetailPage() {
 
   // State for storing generated password
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [showVncModal, setShowVncModal] = useState(false);
+
+  // Fetch branding settings for brand colors
+  const { data: brandingData } = useQuery<{
+    primary_color?: string;
+    secondary_color?: string;
+    company_color?: string;
+  }>({
+    queryKey: ["/api/settings/branding"],
+  });
+
+  // Generate brand colors
+  const brandColors = getBrandColors({
+    primaryColor: brandingData?.primary_color || brandingData?.company_color,
+    secondaryColor: brandingData?.secondary_color,
+  });
+
+  // Navigation function
+  const navigate = (path: string) => {
+    window.location.href = path;
+  };
 
   // Load saved password from localStorage on initial render
   useEffect(() => {
@@ -596,7 +632,7 @@ export default function ServerDetailPage() {
   }, [id]);
 
   // Function to copy text to clipboard with context-aware messaging
-  const copyToClipboard = (text: string, type: 'password' | 'mac' | 'ip' | 'subnet' = 'password') => {
+  const copyToClipboard = (text: string, type: 'password' | 'mac' | 'ip' | 'subnet' | 'uuid' = 'password') => {
     navigator.clipboard.writeText(text)
       .then(() => {
         // Different messages based on what's being copied
@@ -613,6 +649,9 @@ export default function ServerDetailPage() {
             break;
           case 'subnet':
             description = "Subnet information copied to clipboard successfully.";
+            break;
+          case 'uuid':
+            description = "UUID copied to clipboard successfully.";
             break;
           default:
             description = "Text copied to clipboard successfully.";
@@ -641,6 +680,9 @@ export default function ServerDetailPage() {
             break;
           case 'subnet':
             errorDescription = "Failed to copy subnet information to clipboard.";
+            break;
+          case 'uuid':
+            errorDescription = "Failed to copy UUID to clipboard.";
             break;
           default:
             errorDescription = "Failed to copy text to clipboard.";
@@ -701,6 +743,45 @@ export default function ServerDetailPage() {
 
   const isServerRunning = getServerRunningState();
   const isServerStopped = !isServerRunning;
+
+  // Function to get display status for UI
+  const getDisplayStatus = () => {
+    if (!server) return 'UNKNOWN';
+
+    // First check the powerStatus from our database tracking
+    if (server.powerStatus?.powerState === "RUNNING") return 'RUNNING';
+    if (server.powerStatus?.powerState === "STOPPED") return 'STOPPED';
+
+    // Check remoteState.state and remoteState.running which comes from the ?remoteState=true parameter
+    if (server.remoteState?.state === "running" || server.remoteState?.running === true) return 'RUNNING';
+    if (server.remoteState?.state === "stopped" || server.remoteState?.running === false) return 'STOPPED';
+
+    // Fall back to server.state if neither powerStatus nor remoteState is available
+    if (server.state === "running" || server.state === "RUNNING") return 'RUNNING';
+    if (server.state === "stopped" || server.state === "STOPPED") return 'STOPPED';
+    if (server.state === "complete") return 'STOPPED'; // VirtFusion often uses "complete" for stopped servers
+
+    // Default to unknown for unknown states
+    return 'UNKNOWN';
+  };
+
+  // Power action handler
+  const handlePowerAction = (action: 'boot' | 'restart' | 'shutdown' | 'poweroff') => {
+    switch (action) {
+      case 'boot':
+        bootMutation.mutate();
+        break;
+      case 'restart':
+        restartMutation.mutate();
+        break;
+      case 'shutdown':
+        shutdownMutation.mutate();
+        break;
+      case 'poweroff':
+        powerOffMutation.mutate();
+        break;
+    }
+  };
 
   console.log("DEBUG - Server state:", {
     rawState: server?.state,
@@ -1417,81 +1498,235 @@ export default function ServerDetailPage() {
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Back button */}
-        <Link href="/servers">
-          <Button variant="outline" size="sm" className="mb-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Servers List
-          </Button>
-        </Link>
-
-        {/* Server header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Server className="h-7 w-7 text-primary" />
-              {isLoading ? (
-                <Skeleton className="h-9 w-64" />
-              ) : error ? (
-                "Error Loading Server"
-              ) : (
-                server?.name || "Server Details"
-              )}
-            </h1>
-            {!isLoading && !error && server && (
-              <p className="text-muted-foreground mt-1">
-                ID: {server.id} • UUID: {server.uuid}
-              </p>
-            )}
+        {/* Enhanced Header Section */}
+        <div className="space-y-4">
+          {/* Navigation & Title */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/servers')}
+                className="flex items-center gap-2 hover:bg-primary/10"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Servers
+              </Button>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {isLoading ? (
+                    <Skeleton className="h-9 w-64" />
+                  ) : error ? (
+                    "Error Loading Server"
+                  ) : (
+                    server?.name || "Server Details"
+                  )}
+                </h1>
+                {!isLoading && !error && server?.uuid && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-muted-foreground font-mono">
+                      UUID: {server.uuid}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(server.uuid, "uuid")}
+                      className="h-6 w-6 p-0 hover:bg-primary/10"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetch()}
+                disabled={isLoading}
+                className="hover:bg-primary/10"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
 
-          {/* Status badges */}
+          {/* Status Cards Row */}
           {!isLoading && !error && server && (
-            <div className="flex gap-2">
-              {/* Suspension status */}
-              <UIBadge
-                variant={server.suspended ? "destructive" : "default"}
-                className={`px-3 py-1 ${!server.suspended ? "bg-green-500 hover:bg-green-600" : ""}`}
-              >
-                {server.suspended ? "Suspended" : "Active"}
-              </UIBadge>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Server Status Card */}
+              <Card className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Status</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="relative">
+                        <div className={`w-3 h-3 rounded-full ${
+                          getDisplayStatus() === 'RUNNING'
+                            ? 'bg-green-500 animate-pulse'
+                            : getDisplayStatus() === 'STOPPED'
+                            ? 'bg-red-500'
+                            : 'bg-yellow-500 animate-pulse'
+                        }`} />
+                        {getDisplayStatus() === 'RUNNING' && (
+                          <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full animate-ping opacity-75" />
+                        )}
+                      </div>
+                      <span className={`font-bold text-sm ${
+                        getDisplayStatus() === 'RUNNING'
+                          ? 'text-green-700'
+                          : getDisplayStatus() === 'STOPPED'
+                          ? 'text-red-700'
+                          : 'text-yellow-700'
+                      }`}>
+                        {getDisplayStatus()}
+                      </span>
+                    </div>
+                  </div>
+                  <Server className="h-8 w-8 text-primary opacity-60" />
+                </div>
+              </Card>
 
-              {/* Power status - comes from server.state */}
-              {server.state !== "complete" && (
-                <UIBadge
-                  variant={
-                    server.state === "running" ? "default" :
-                    server.state === "stopped" ? "outline" :
-                    server.state === "shutdown" ? "secondary" :
-                    server.state === "paused" ? "secondary" :
-                    "outline"
-                  }
-                  className={`px-3 py-1 ${
-                    server.state === "running" ? "bg-blue-500 hover:bg-blue-600" :
-                    server.state === "stopped" ? "bg-gray-200 text-gray-700" :
-                    server.state === "shutdown" ? "bg-orange-300 text-orange-800" :
-                    server.state === "paused" ? "bg-yellow-300 text-yellow-800" :
-                    ""
-                  }`}
-                >
-                  {server.state === "running" ? "Running" :
-                   server.state === "stopped" ? "Stopped" :
-                   server.state === "shutdown" ? "Shutting Down" :
-                   server.state === "paused" ? "Paused" :
-                   server.state || "Unknown"}
-                </UIBadge>
-              )}
+              {/* Memory Card */}
+              <Card className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Memory</p>
+                    <p className="text-2xl font-bold text-blue-700">
+                      {server?.settings?.resources?.memory ?
+                        `${server.settings.resources.memory} MB` : 'N/A'}
+                    </p>
+                  </div>
+                  <MemoryStick className="h-8 w-8 text-blue-500 opacity-60" />
+                </div>
+              </Card>
 
-              {/* Protected status */}
-              {server.protected && (
-                <UIBadge
-                  variant="secondary"
-                  className="px-3 py-1"
-                >
-                  Protected
-                </UIBadge>
-              )}
+              {/* CPU Card */}
+              <Card className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-purple-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">CPU Cores</p>
+                    <p className="text-2xl font-bold text-purple-700">
+                      {server?.cpu?.cores || server?.settings?.resources?.cpuCores || 'N/A'}
+                    </p>
+                  </div>
+                  <Cpu className="h-8 w-8 text-purple-500 opacity-60" />
+                </div>
+              </Card>
+
+              {/* Storage Card */}
+              <Card className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-orange-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Storage</p>
+                    <p className="text-2xl font-bold text-orange-700">
+                      {server?.settings?.resources?.storage ?
+                        `${server.settings.resources.storage} GB` :
+                        server?.storage && server.storage.length > 0 ?
+                          `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB` :
+                          'N/A'}
+                    </p>
+                  </div>
+                  <HardDrive className="h-8 w-8 text-orange-500 opacity-60" />
+                </div>
+              </Card>
             </div>
+          )}
+
+          {/* Quick Actions Bar */}
+          {!isLoading && !error && server && (
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  Quick Actions
+                </h3>
+                <div className="flex items-center gap-2">
+                  {/* Power Control Actions */}
+                  <div className="flex items-center gap-1 border rounded-lg p-1">
+                    <Button
+                      variant={isServerStopped ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => handlePowerAction('boot')}
+                      disabled={!isServerStopped || isLoading}
+                      className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary"
+                    >
+                      <Power className="h-4 w-4" />
+                      Boot
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handlePowerAction('restart')}
+                      disabled={isServerStopped || isLoading}
+                      className="flex items-center gap-2 hover:bg-blue-500/10 hover:text-blue-700"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Restart
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handlePowerAction('shutdown')}
+                      disabled={isServerStopped || isLoading}
+                      className="flex items-center gap-2 hover:bg-yellow-500/10 hover:text-yellow-700"
+                    >
+                      <Square className="h-4 w-4" />
+                      Shutdown
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handlePowerAction('poweroff')}
+                      disabled={isServerStopped || isLoading}
+                      className="flex items-center gap-2 hover:bg-red-500/10 hover:text-red-700"
+                    >
+                      <PowerOff className="h-4 w-4" />
+                      Power Off
+                    </Button>
+                  </div>
+
+                  {/* VNC Console Action */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowVncModal(true)}
+                    className="flex items-center gap-2 hover:bg-primary/10"
+                  >
+                    <Monitor className="h-4 w-4" />
+                    VNC Console
+                  </Button>
+
+                  {/* Settings Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        More
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => refetch()}>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Refresh Data
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => copyToClipboard(server?.uuid || '', 'uuid')}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy UUID
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setShowVncModal(true)}>
+                        <Monitor className="h-4 w-4 mr-2" />
+                        Open VNC Console
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </Card>
           )}
         </div>
 

@@ -322,8 +322,24 @@ export default function ServersListPage() {
                     </TableHeader>
                     <TableBody>
                       {sortedServers.map((server) => {
+                        // Debug: Log server data structure to understand VirtFusion API response
+                        console.log('Server data structure:', {
+                          id: server.id,
+                          name: server.name,
+                          cpu: server.cpu,
+                          memory: server.memory,
+                          storage: server.storage,
+                          settings: server.settings,
+                          package: server.package,
+                          state: server.state,
+                          status: server.status,
+                          remoteState: server.remoteState,
+                          powerStatus: server.powerStatus
+                        });
+
                         let status;
 
+                        // Enhanced status detection for VirtFusion API response
                         if (server.powerStatus && server.powerStatus.powerState) {
                           if (server.powerStatus.powerState === "RUNNING") {
                             status = "Running";
@@ -331,6 +347,15 @@ export default function ServersListPage() {
                             status = "Stopped";
                           } else {
                             status = server.powerStatus.powerState;
+                          }
+                        } else if (server.remoteState?.state) {
+                          // Check remoteState.state from VirtFusion API
+                          if (server.remoteState.state === "running" || server.remoteState.running === true) {
+                            status = "Running";
+                          } else if (server.remoteState.state === "stopped" || server.remoteState.running === false) {
+                            status = "Stopped";
+                          } else {
+                            status = server.remoteState.state;
                           }
                         } else if (server.state) {
                           if (server.state === "running" || server.state === "RUNNING") {
@@ -342,6 +367,9 @@ export default function ServersListPage() {
                           } else {
                             status = server.state;
                           }
+                        } else if (server.status) {
+                          // Check the status field from VirtFusion API
+                          status = server.status;
                         } else {
                           status = server.commissioned === 3 ? 'Online' : 'Offline';
                         }
@@ -360,18 +388,33 @@ export default function ServersListPage() {
                             <TableCell className="hidden md:table-cell">
                               <div className="text-sm">
                                 <div>
-                                  {server?.cpu?.cores || 'N/A'} vCPU • {
+                                  {/* Enhanced CPU detection for VirtFusion API */}
+                                  {server?.cpu?.cores ||
+                                   server?.settings?.resources?.cpuCores ||
+                                   server?.settings?.resources?.cpu ||
+                                   server?.package?.cpu ||
+                                   'N/A'} vCPU • {
+                                    /* Enhanced Memory detection for VirtFusion API */
                                     server?.settings?.resources?.memory
                                       ? `${(server.settings.resources.memory / 1024).toFixed(1)} GB`
-                                      : 'N/A'
+                                      : server?.package?.memory
+                                        ? `${(server.package.memory / 1024).toFixed(1)} GB`
+                                        : server?.memory
+                                          ? `${(server.memory / 1024).toFixed(1)} GB`
+                                          : 'N/A'
                                   } RAM
                                 </div>
                                 <div className="text-xs text-muted-foreground">
+                                  {/* Enhanced Storage detection for VirtFusion API */}
                                   {server?.storage && server.storage.length > 0
                                     ? `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB`
                                     : server?.settings?.resources?.storage
                                       ? `${server.settings.resources.storage} GB`
-                                      : 'N/A'} Storage
+                                      : server?.package?.storage
+                                        ? `${server.package.storage} GB`
+                                        : server?.disk
+                                          ? `${server.disk} GB`
+                                          : 'N/A'} Storage
                                 </div>
                               </div>
                             </TableCell>
