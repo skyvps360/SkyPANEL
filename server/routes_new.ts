@@ -2480,6 +2480,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ----- User Server Management Routes -----
+
+  // Get user's servers
+  app.get("/api/user/servers", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      // Get pagination parameters
+      const page = parseInt(req.query.page as string) || 1;
+      const perPage = parseInt(req.query.perPage as string) || 10;
+
+      console.log(`User ${userId} fetching their servers (page ${page}, perPage ${perPage})`);
+
+      // Get user to find their VirtFusion ID
+      const user = await storage.getUser(userId);
+      if (!user || !user.virtFusionId) {
+        console.log(`User ${userId} has no VirtFusion ID, returning empty servers list`);
+        return res.json({
+          data: [],
+          current_page: page,
+          last_page: 1,
+          per_page: perPage,
+          total: 0
+        });
+      }
+
+      // Get user's servers from VirtFusion
+      const result = await virtFusionApi.getUserServers(user.virtFusionId);
+
+      if (result && result.data) {
+        // Apply pagination to the results
+        const servers = Array.isArray(result.data) ? result.data : [];
+        const total = servers.length;
+        const lastPage = Math.ceil(total / perPage);
+        const startIndex = (page - 1) * perPage;
+        const endIndex = startIndex + perPage;
+        const paginatedServers = servers.slice(startIndex, endIndex);
+
+        console.log(`User ${userId} has ${total} servers, returning ${paginatedServers.length} for page ${page}`);
+
+        return res.json({
+          data: paginatedServers,
+          current_page: page,
+          last_page: lastPage,
+          per_page: perPage,
+          total: total
+        });
+      } else {
+        console.log(`No servers found for user ${userId} (VirtFusion ID: ${user.virtFusionId})`);
+        return res.json({
+          data: [],
+          current_page: page,
+          last_page: 1,
+          per_page: perPage,
+          total: 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching user servers:', error);
+      return res.status(500).json({ error: 'Failed to fetch servers' });
+    }
+  });
+
+  // Get specific server details for user
+  app.get("/api/user/servers/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const serverId = parseInt(req.params.id);
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`User ${userId} fetching server ${serverId} details`);
+
+      // Get user to find their VirtFusion ID
+      const user = await storage.getUser(userId);
+      if (!user || !user.virtFusionId) {
+        return res.status(404).json({ error: "User not found or no VirtFusion account" });
+      }
+
+      // Get server details from VirtFusion
+      const server = await virtFusionApi.getServer(serverId, true);
+
+      if (!server) {
+        return res.status(404).json({ error: "Server not found" });
+      }
+
+      // Check if the server belongs to this user
+      // VirtFusion API returns server data in different formats depending on endpoint
+      // For individual server details, check both data.ownerId and data.owner.id
+      let serverOwnerId;
+      if (server.data) {
+        // Individual server endpoint returns data wrapped in 'data' property
+        serverOwnerId = server.data.ownerId || server.data.owner?.id || server.data.owner;
+      } else {
+        // Other endpoints may return server data directly
+        serverOwnerId = server.ownerId || server.owner?.id || server.owner;
+      }
+
+      console.log(`Server ${serverId} ownership check: server owner = ${serverOwnerId}, user VirtFusion ID = ${user.virtFusionId}`);
+      console.log(`Server object structure:`, JSON.stringify(server, null, 2));
+
+      if (serverOwnerId !== user.virtFusionId) {
+        console.log(`User ${userId} (VirtFusion ID: ${user.virtFusionId}) attempted to access server ${serverId} owned by ${serverOwnerId}`);
+        return res.status(403).json({ error: "Access denied - server does not belong to you" });
+      }
+
+      console.log(`User ${userId} successfully retrieved server ${serverId} details`);
+      return res.json(server);
+    } catch (error) {
+      console.error('Error fetching server details:', error);
+      return res.status(500).json({ error: 'Failed to fetch server details' });
+    }
+  });
+
+  // User server power control
+  app.post("/api/user/servers/:id/power/:action", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const serverId = parseInt(req.params.id);
+      const action = req.params.action;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      const validActions = ['boot', 'shutdown', 'restart', 'poweroff'];
+      if (!validActions.includes(action)) {
+        return res.status(400).json({ error: "Invalid power action" });
+      }
+
+      console.log(`User ${userId} requesting ${action} for server ${serverId}`);
+
+      // Get user to find their VirtFusion ID
+      const user = await storage.getUser(userId);
+      if (!user || !user.virtFusionId) {
+        return res.status(404).json({ error: "User not found or no VirtFusion account" });
+      }
+
+      // First verify the server belongs to this user
+      const server = await virtFusionApi.getServer(serverId);
+      if (!server) {
+        return res.status(404).json({ error: "Server not found" });
+      }
+
+      // Check ownership using the same logic as the details endpoint
+      let serverOwnerId;
+      if (server.data) {
+        serverOwnerId = server.data.ownerId || server.data.owner?.id || server.data.owner;
+      } else {
+        serverOwnerId = server.ownerId || server.owner?.id || server.owner;
+      }
+
+      if (serverOwnerId !== user.virtFusionId) {
+        console.log(`User ${userId} (VirtFusion ID: ${user.virtFusionId}) attempted to control server ${serverId} owned by ${serverOwnerId}`);
+        return res.status(403).json({ error: "Access denied - server does not belong to you" });
+      }
+
+      // Execute the power action
+      let result;
+      switch (action) {
+        case 'boot':
+          result = await virtFusionApi.bootServer(serverId);
+          break;
+        case 'shutdown':
+          result = await virtFusionApi.shutdownServer(serverId);
+          break;
+        case 'restart':
+          result = await virtFusionApi.restartServer(serverId);
+          break;
+        case 'poweroff':
+          result = await virtFusionApi.poweroffServer(serverId);
+          break;
+      }
+
+      console.log(`User ${userId} successfully executed ${action} on server ${serverId}`);
+      return res.json({ success: true, message: `Server ${action} command sent successfully`, result });
+    } catch (error) {
+      console.error(`Error executing power action:`, error);
+      return res.status(500).json({ error: `Failed to execute ${req.params.action} command` });
+    }
+  });
+
   // ----- Server Management Routes -----
   // All servers are now managed directly through VirtFusion, these routes now just return empty data
 

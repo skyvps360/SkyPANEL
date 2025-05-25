@@ -129,12 +129,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const searchResultsRef = useRef<HTMLDivElement>(null);
 
   // Fetch branding settings to get company name and brand colors
-  const { data: brandingSettings = {
-    company_name: 'SkyVPS360',
-    primary_color: '2563eb',
-    secondary_color: '10b981',
-    accent_color: 'f59e0b'
-  } } = useQuery<{
+  const { data: brandingSettings } = useQuery<{
     company_name: string,
     company_color?: string,  // Keep for backward compatibility
     primary_color?: string,
@@ -159,7 +154,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     } else if (settings?.company_name) {
       setCompanyName(settings.company_name);
     }
-  }, [brandingSettings, settings]);
+  }, [brandingSettings?.company_name, settings?.company_name]);
 
   // Get brand colors using the new color system with appropriate fallbacks
   const brandColors = getBrandColors({
@@ -170,6 +165,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
   // Apply brand colors to CSS variables and Shadcn theme
   useEffect(() => {
+    // Only apply if we have actual branding data
+    if (!brandingSettings?.primary_color && !brandingSettings?.company_color) {
+      return;
+    }
+
     import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
       // Apply to both our CSS variables and Shadcn theme variables
       applyBrandColorVars({
@@ -180,7 +180,12 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
       console.log('Applied brand colors to Shadcn theme in Dashboard');
     });
-  }, [brandingSettings]);
+  }, [
+    brandingSettings?.primary_color,
+    brandingSettings?.company_color,
+    brandingSettings?.secondary_color,
+    brandingSettings?.accent_color
+  ]);
 
   const queryClient = useQueryClient();
 
@@ -326,6 +331,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       icon: <Gauge className="h-5 w-5 mr-3" />,
     },
     {
+      name: "My Servers",
+      href: "/servers",
+      icon: <Server className="h-5 w-5 mr-3" />,
+    },
+    {
       name: "Billing",
       href: "/billing",
       icon: <CreditCard className="h-5 w-5 mr-3" />,
@@ -333,7 +343,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     {
       name: "Packages",
       href: "/packages",
-      icon: <Server className="h-5 w-5 mr-3" />,
+      icon: <HardDrive className="h-5 w-5 mr-3" />,
     },
     {
       name: "Support Tickets",

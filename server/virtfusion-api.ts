@@ -544,12 +544,46 @@ export class VirtFusionApi {
     return this.request("GET", endpoint);
   }
 
+  // Get servers for a specific user by their VirtFusion ID
+  async getUserServers(virtFusionUserId: number) {
+    try {
+      console.log(`Fetching servers for VirtFusion user ID: ${virtFusionUserId}`);
+
+      // Use the selfService endpoint to get user's servers
+      const endpoint = `/selfService/servers/byUserExtRelationId/${virtFusionUserId}`;
+      const response = await this.request("GET", endpoint);
+
+      console.log(`getUserServers response:`, JSON.stringify(response, null, 2));
+      return response;
+    } catch (error) {
+      console.error(`Error in getUserServers for user ${virtFusionUserId}:`, error);
+      throw error;
+    }
+  }
+
   // Get a server by ID
   async getServerById(serverId: number) {
     try {
       return this.request("GET", `/servers/${serverId}`);
     } catch (error) {
       console.error(`Error in getServerById for server ${serverId}:`, error);
+      throw error;
+    }
+  }
+
+  // Get a server by ID with optional detailed information
+  async getServer(serverId: number, detailed: boolean = false) {
+    try {
+      console.log(`Fetching server ${serverId} details (detailed: ${detailed})`);
+
+      // Use the same endpoint as getServerById but with optional detailed parameter
+      const endpoint = detailed ? `/servers/${serverId}?detailed=true` : `/servers/${serverId}`;
+      const response = await this.request("GET", endpoint);
+
+      console.log(`getServer response for server ${serverId}:`, JSON.stringify(response, null, 2));
+      return response;
+    } catch (error) {
+      console.error(`Error in getServer for server ${serverId}:`, error);
       throw error;
     }
   }
