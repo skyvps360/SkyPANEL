@@ -10,6 +10,7 @@ interface TeamMember {
   id: number;
   discordUserId: string;
   discordUsername: string;
+  displayName?: string; // Optional custom display name
   discordAvatarUrl?: string;
   role: string;
   aboutMe?: string;
@@ -147,7 +148,7 @@ export default function teamPage() {
                         {member.discordAvatarUrl ? (
                           <img
                             src={member.discordAvatarUrl}
-                            alt={`${member.discordUsername}'s avatar`}
+                            alt={`${member.displayName || member.discordUsername}'s avatar`}
                             className="w-20 h-20 rounded-full mx-auto border-4 border-gray-100 group-hover:border-gray-200 transition-colors"
                           />
                         ) : (
@@ -155,14 +156,14 @@ export default function teamPage() {
                             className="w-20 h-20 rounded-full mx-auto border-4 border-gray-100 group-hover:border-gray-200 transition-colors flex items-center justify-center text-white font-bold text-xl"
                             style={{ backgroundColor: brandColors.primary.full }}
                           >
-                            {member.discordUsername.charAt(0).toUpperCase()}
+                            {(member.displayName || member.discordUsername).charAt(0).toUpperCase()}
                           </div>
                         )}
                       </div>
 
                       {/* Name */}
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        {member.discordUsername}
+                        {member.displayName || member.discordUsername}
                       </h3>
 
                       {/* Role Badge */}

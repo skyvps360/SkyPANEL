@@ -12,6 +12,7 @@ import VerifyPage from "@/pages/auth/verify-page";
 import PackagesPage from "@/pages/packages-page";
 import UserServersPage from "@/pages/servers-page";
 import UserServerDetailPage from "@/pages/server-detail-page";
+import CreateServerPage from "@/pages/servers/create";
 import BillingPage from "@/pages/billing-page";
 import TransactionDetailPage from "@/pages/transaction-detail-page";
 // Invoice-related pages have been removed
@@ -267,6 +268,7 @@ function Router() {
         <Route path="/auth/reset-password" component={ResetPasswordPage} />
         <ProtectedRoute path="/packages" component={PackagesPage} />
         <ProtectedRoute path="/servers" component={UserServersPage} />
+        <ProtectedRoute path="/servers/create" component={CreateServerPage} />
         <ProtectedRoute path="/servers/:id" component={UserServerDetailPage} />
         <ProtectedRoute path="/billing" component={BillingPage} allowSuspended={true} />
         <ProtectedRoute path="/billing/transactions/:id" component={TransactionDetailPage} allowSuspended={true} />

@@ -1,5 +1,6 @@
 import {
   users,
+  sessions,
   transactions,
   tickets,
   ticketMessages,
@@ -7,7 +8,7 @@ import {
   serverPowerStatus,
   serverLogs,
   notifications,
-
+  apiKeys,
   passwordResetTokens,
   emailVerificationTokens,
   packagePricing,
@@ -562,9 +563,62 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<void> {
-    console.log(`Deleting user with ID: ${id}`);
-    // Delete the user record
-    await db.delete(users).where(eq(users.id, id));
+    console.log(`Deleting user with ID: ${id} and all related data`);
+
+    try {
+      // Start a transaction to ensure all deletions succeed or fail together
+      await db.transaction(async (tx) => {
+        // Delete related data in the correct order (children first, then parent)
+
+        // 1. Delete sessions
+        console.log(`Deleting sessions for user ${id}`);
+        await tx.delete(sessions).where(eq(sessions.userId, id));
+
+        // 2. Delete transactions
+        console.log(`Deleting transactions for user ${id}`);
+        await tx.delete(transactions).where(eq(transactions.userId, id));
+
+        // 3. Delete ticket messages (via tickets)
+        console.log(`Deleting ticket messages for user ${id}`);
+        const userTickets = await tx.select({ id: tickets.id }).from(tickets).where(eq(tickets.userId, id));
+        for (const ticket of userTickets) {
+          await tx.delete(ticketMessages).where(eq(ticketMessages.ticketId, ticket.id));
+        }
+
+        // 4. Delete tickets
+        console.log(`Deleting tickets for user ${id}`);
+        await tx.delete(tickets).where(eq(tickets.userId, id));
+
+        // 5. Delete notifications
+        console.log(`Deleting notifications for user ${id}`);
+        await tx.delete(notifications).where(eq(notifications.userId, id));
+
+        // 6. Delete password reset tokens
+        console.log(`Deleting password reset tokens for user ${id}`);
+        await tx.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, id));
+
+        // 7. Delete email verification tokens
+        console.log(`Deleting email verification tokens for user ${id}`);
+        await tx.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, id));
+
+        // 8. Delete API keys
+        console.log(`Deleting API keys for user ${id}`);
+        await tx.delete(apiKeys).where(eq(apiKeys.userId, id));
+
+        // 9. Delete server logs
+        console.log(`Deleting server logs for user ${id}`);
+        await tx.delete(serverLogs).where(eq(serverLogs.userId, id));
+
+        // 10. Finally, delete the user record
+        console.log(`Deleting user record for user ${id}`);
+        await tx.delete(users).where(eq(users.id, id));
+
+        console.log(`Successfully deleted user ${id} and all related data`);
+      });
+    } catch (error) {
+      console.error(`Error deleting user ${id}:`, error);
+      throw new Error(`Failed to delete user: ${error.message}`);
+    }
   }
 
   // Transaction operations

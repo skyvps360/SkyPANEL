@@ -544,6 +544,7 @@ export const teamMembers = pgTable("team_members", {
   id: serial("id").primaryKey(),
   discordUserId: text("discord_user_id").notNull().unique(),
   discordUsername: text("discord_username").notNull(),
+  displayName: text("display_name"), // Optional custom display name for public team page
   discordAvatarUrl: text("discord_avatar_url"),
   role: text("role").notNull(), // e.g., "CEO", "Developer", "Support Manager"
   aboutMe: text("about_me"), // Admin-editable description

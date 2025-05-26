@@ -44,6 +44,7 @@ interface TeamMember {
   id: number;
   discordUserId: string;
   discordUsername: string;
+  displayName?: string; // Optional custom display name
   discordAvatarUrl?: string;
   role: string;
   aboutMe?: string;
@@ -66,6 +67,7 @@ interface DiscordUser {
 const teamMemberSchema = z.object({
   discordUserId: z.string().min(1, "Discord user is required"),
   discordUsername: z.string().min(1, "Discord username is required"),
+  displayName: z.string().optional(), // Optional custom display name
   discordAvatarUrl: z.string().optional(),
   role: z.string().min(1, "Role is required"),
   aboutMe: z.string().optional(),
@@ -104,6 +106,7 @@ export default function TeamManagement({ brandColors }: TeamManagementProps) {
     defaultValues: {
       discordUserId: "",
       discordUsername: "",
+      displayName: "", // Optional custom display name
       discordAvatarUrl: "",
       role: "",
       aboutMe: "",
@@ -204,6 +207,7 @@ export default function TeamManagement({ brandColors }: TeamManagementProps) {
     form.reset({
       discordUserId: member.discordUserId,
       discordUsername: member.discordUsername,
+      displayName: member.displayName || "", // Include display name
       discordAvatarUrl: member.discordAvatarUrl,
       role: member.role,
       aboutMe: member.aboutMe || "",
@@ -322,6 +326,19 @@ export default function TeamManagement({ brandColors }: TeamManagementProps) {
                 )}
               </div>
 
+              {/* Display Name */}
+              <div className="space-y-2">
+                <Label htmlFor="displayName">Display Name (Optional)</Label>
+                <Input
+                  id="displayName"
+                  placeholder="Custom name for public display (leave empty to use Discord username)"
+                  {...form.register("displayName")}
+                />
+                <p className="text-xs text-muted-foreground">
+                  If provided, this name will be shown on the public team page instead of the Discord username
+                </p>
+              </div>
+
               {/* Role */}
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
@@ -401,6 +418,19 @@ export default function TeamManagement({ brandColors }: TeamManagementProps) {
                 <CardContent className="p-6">
                   {editingMember?.id === member.id ? (
                     <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                      {/* Display Name */}
+                      <div className="space-y-2">
+                        <Label htmlFor="displayName">Display Name (Optional)</Label>
+                        <Input
+                          id="displayName"
+                          placeholder="Custom name for public display"
+                          {...form.register("displayName")}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          If provided, this name will be shown on the public team page instead of the Discord username
+                        </p>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="role">Role</Label>
@@ -466,7 +496,14 @@ export default function TeamManagement({ brandColors }: TeamManagementProps) {
                         )}
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-medium">{member.discordUsername}</h4>
+                            <h4 className="font-medium">
+                              {member.displayName || member.discordUsername}
+                              {member.displayName && (
+                                <span className="text-sm text-muted-foreground ml-2">
+                                  (@{member.discordUsername})
+                                </span>
+                              )}
+                            </h4>
                             <Badge
                               variant={member.isActive ? "default" : "secondary"}
                               style={member.isActive ? { backgroundColor: brandColors.primary.full } : {}}
@@ -480,6 +517,11 @@ export default function TeamManagement({ brandColors }: TeamManagementProps) {
                           <p className="text-sm text-muted-foreground mb-2">
                             Discord ID: {member.discordUserId}
                           </p>
+                          {member.displayName && (
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Public Display: {member.displayName}
+                            </p>
+                          )}
                           {member.aboutMe && (
                             <p className="text-sm">{member.aboutMe}</p>
                           )}

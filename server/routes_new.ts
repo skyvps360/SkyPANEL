@@ -2887,6 +2887,401 @@ export async function registerRoutes(app: Express): Promise<Server> {
       .json({ error: "Not implemented - direct VirtFusion integration" });
   });
 
+  // ----- Client Server Management Routes -----
+
+  // Client-facing server creation endpoint
+  app.post("/api/servers", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      console.log(`User ${userId} creating a new server with data:`, req.body);
+
+      // Validate required fields for client server creation
+      const requiredFields = ['name', 'templateId'];
+      for (const field of requiredFields) {
+        if (!req.body[field]) {
+          return res.status(400).json({
+            error: `Missing required field: ${field}`,
+            message: `The ${field} field is required to create a server.`
+          });
+        }
+      }
+
+      // Validate configuration type and required fields
+      const configurationType = req.body.configurationType || 'package';
+      if (configurationType === 'package') {
+        if (!req.body.packageId) {
+          return res.status(400).json({
+            error: "Missing required field: packageId",
+            message: "Package ID is required for package-based configuration."
+          });
+        }
+      } else if (configurationType === 'custom') {
+        const customFields = ['cpuCores', 'memory', 'storage', 'networkSpeedInbound'];
+        for (const field of customFields) {
+          if (!req.body[field]) {
+            return res.status(400).json({
+              error: `Missing required field: ${field}`,
+              message: `The ${field} field is required for custom configuration.`
+            });
+          }
+        }
+      }
+
+      // Get user details
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user has VirtFusion account
+      if (!user.virtFusionId) {
+        return res.status(400).json({
+          error: "VirtFusion account required",
+          message: "Please contact support to set up your VirtFusion account."
+        });
+      }
+
+      let selectedPackage = null;
+      let estimatedCost = 0;
+
+      if (configurationType === 'package') {
+        // Validate package exists and is enabled
+        const packages = await virtFusionApi.getPackages();
+        selectedPackage = packages?.find(pkg => pkg.id === req.body.packageId && pkg.enabled);
+        if (!selectedPackage) {
+          return res.status(400).json({
+            error: "Invalid package",
+            message: "The selected package is not available."
+          });
+        }
+
+        // Get package pricing to calculate cost
+        const pricingRecords = await db.select().from(schema.packagePricing);
+        const packagePricing = pricingRecords.find(p => p.virtFusionPackageId === req.body.packageId);
+
+        if (packagePricing) {
+          estimatedCost = packagePricing.price / 100; // Convert cents to dollars
+        }
+      } else if (configurationType === 'custom') {
+        // Calculate cost based on cloud pricing settings
+        const settings = await storage.getAllSettings();
+
+        const cpuCores = req.body.cpuCores || 1;
+        const memory = req.body.memory || 1024;
+        const storage = req.body.storage || 25;
+        const networkSpeed = req.body.networkSpeedInbound || 100;
+        const natIpv4 = req.body.natIpv4 || false;
+        const publicIpv4 = req.body.publicIpv4 || false;
+        const additionalIpv6 = req.body.additionalIpv6 || 0;
+
+        // Calculate hourly costs and convert to monthly (24 * 30 = 720 hours)
+        const hoursPerMonth = 720;
+
+        if (settings.cloud_cpu_pricing_enabled === "true") {
+          estimatedCost += cpuCores * parseFloat(settings.cloud_cpu_price_per_core || "0") * hoursPerMonth;
+        }
+
+        if (settings.cloud_ram_pricing_enabled === "true") {
+          estimatedCost += (memory / 1024) * parseFloat(settings.cloud_ram_price_per_gb || "0") * hoursPerMonth;
+        }
+
+        if (settings.cloud_storage_pricing_enabled === "true") {
+          estimatedCost += storage * parseFloat(settings.cloud_storage_price_per_gb || "0") * hoursPerMonth;
+        }
+
+        if (settings.cloud_network_pricing_enabled === "true") {
+          estimatedCost += networkSpeed * parseFloat(settings.cloud_network_price_per_mbps || "0") * hoursPerMonth;
+        }
+
+        if (settings.cloud_nat_ipv4_pricing_enabled === "true" && natIpv4) {
+          estimatedCost += parseFloat(settings.cloud_nat_ipv4_price || "0") * hoursPerMonth;
+        }
+
+        if (settings.cloud_public_ipv4_pricing_enabled === "true" && publicIpv4) {
+          estimatedCost += parseFloat(settings.cloud_public_ipv4_price || "0") * hoursPerMonth;
+        }
+
+        if (settings.cloud_public_ipv6_pricing_enabled === "true" && additionalIpv6 > 0) {
+          estimatedCost += additionalIpv6 * parseFloat(settings.cloud_public_ipv6_price || "0") * hoursPerMonth;
+        }
+      }
+
+      // Check if user has sufficient credits
+      if (estimatedCost > 0 && user.credits < estimatedCost) {
+        return res.status(400).json({
+          error: "Insufficient credits",
+          message: `You need at least $${estimatedCost.toFixed(2)} to create this server. Current balance: $${user.credits.toFixed(2)}`,
+          requiredCredits: estimatedCost,
+          currentCredits: user.credits
+        });
+      }
+
+      // Prepare server creation data for VirtFusion
+      let serverData: any = {
+        userId: user.virtFusionId, // Use VirtFusion user ID
+        hypervisorId: req.body.hypervisorId || 1, // Default hypervisor if not specified
+        name: req.body.name,
+        ipv4: req.body.ipv4 || req.body.ipv4Count || 1,
+        forceIPv6: req.body.forceIPv6 !== false && req.body.ipv6Enabled !== false, // Default to true
+        selfService: 1, // Enable hourly billing for client servers
+        swapSize: req.body.swapSize || 512
+      };
+
+      if (configurationType === 'package') {
+        // Package-based configuration
+        serverData.packageId = req.body.packageId;
+        serverData.storage = req.body.storage || selectedPackage.primaryStorage;
+        serverData.traffic = req.body.traffic || selectedPackage.traffic;
+        serverData.memory = req.body.memory || selectedPackage.memory;
+        serverData.cpuCores = req.body.cpuCores || selectedPackage.cpuCores;
+        serverData.networkSpeedInbound = req.body.networkSpeedInbound || selectedPackage.primaryNetworkSpeedIn;
+        serverData.networkSpeedOutbound = req.body.networkSpeedOutbound || selectedPackage.primaryNetworkSpeedOut;
+      } else if (configurationType === 'custom') {
+        // Custom configuration - use the first available package as base and override specs
+        const packages = await virtFusionApi.getPackages();
+        const basePackage = packages?.find(pkg => pkg.enabled);
+
+        if (!basePackage) {
+          return res.status(400).json({
+            error: "No available packages",
+            message: "No packages are available for custom configuration."
+          });
+        }
+
+        serverData.packageId = basePackage.id; // Use base package
+        serverData.storage = req.body.storage;
+        serverData.traffic = req.body.traffic || basePackage.traffic; // Use package default for traffic
+        serverData.memory = req.body.memory;
+        serverData.cpuCores = req.body.cpuCores;
+        serverData.networkSpeedInbound = req.body.networkSpeedInbound || req.body.networkSpeed;
+        serverData.networkSpeedOutbound = req.body.networkSpeedOutbound || req.body.networkSpeed;
+      }
+
+      console.log("Creating server in VirtFusion with data:", serverData);
+
+      // Create server in VirtFusion
+      const serverResponse = await virtFusionApi.createServer(serverData);
+
+      if (!serverResponse || !serverResponse.id) {
+        throw new Error("Failed to create server in VirtFusion");
+      }
+
+      const serverId = serverResponse.id;
+      console.log(`Server created successfully with ID: ${serverId}`);
+
+      // Build the server with the specified OS template
+      if (req.body.templateId) {
+        try {
+          const buildData = {
+            operatingSystemId: req.body.templateId,
+            name: req.body.name || "New Server",
+            hostname: req.body.name ? req.body.name.toLowerCase().replace(/[^a-z0-9]/g, '') + ".example.com" : "server.example.com",
+            vnc: true, // Enable VNC by default
+            ipv6: serverData.forceIPv6,
+            email: true, // Send email notifications
+            swap: serverData.swapSize
+          };
+
+          console.log(`Building server ${serverId} with OS template ${req.body.templateId}`);
+
+          const buildResponse = await virtFusionApi.buildServer(serverId, buildData);
+          console.log("Server build initiated:", buildResponse);
+        } catch (buildError) {
+          console.error("Error building server:", buildError);
+          // Server was created but build failed - still return success
+          // The user can manually build it later
+        }
+      }
+
+      res.json({
+        success: true,
+        message: "Server created successfully",
+        serverId: serverId,
+        server: serverResponse
+      });
+
+    } catch (error: any) {
+      console.error("Error creating server:", error);
+      res.status(500).json({
+        error: "Failed to create server",
+        message: error.message || "An unexpected error occurred"
+      });
+    }
+  });
+
+  // Get client-accessible packages with pricing
+  app.get("/api/packages", isAuthenticated, async (req, res) => {
+    try {
+      console.log("Fetching packages for client");
+
+      // Get packages from VirtFusion
+      const packagesResponse = await virtFusionApi.getPackages();
+
+      if (!packagesResponse) {
+        return res.json([]);
+      }
+
+      // Convert to array if it's not already
+      const packagesArray = Array.isArray(packagesResponse) ? packagesResponse : packagesResponse.data || [];
+
+      // Get our package pricing records
+      const pricingRecords = await db.select().from(schema.packagePricing);
+
+      // Create a map of VirtFusion package ID to our pricing records
+      const pricingMap = pricingRecords.reduce((acc, record) => {
+        acc[record.virtFusionPackageId] = record;
+        return acc;
+      }, {} as Record<number, typeof schema.packagePricing.$inferSelect>);
+
+      // Filter enabled packages and add pricing data
+      const clientPackages = packagesArray
+        .filter(pkg => pkg.enabled) // Only show enabled packages to clients
+        .map(pkg => {
+          const pricingRecord = pricingMap[pkg.id];
+          return {
+            ...pkg,
+            pricing: pricingRecord ? {
+              price: pricingRecord.price / 100, // Convert cents to dollars
+              displayOrder: pricingRecord.displayOrder,
+              enabled: pricingRecord.enabled
+            } : null
+          };
+        })
+        .filter(pkg => !pkg.pricing || pkg.pricing.enabled) // Only show packages with enabled pricing
+        .sort((a, b) => {
+          // Sort by display order if available, otherwise by name
+          const orderA = a.pricing?.displayOrder || 999;
+          const orderB = b.pricing?.displayOrder || 999;
+          if (orderA !== orderB) return orderA - orderB;
+          return a.name.localeCompare(b.name);
+        });
+
+      res.json(clientPackages);
+    } catch (error: any) {
+      console.error("Error fetching packages for client:", error);
+      res.status(500).json({ error: "Failed to fetch packages" });
+    }
+  });
+
+  // Get hypervisors for client server creation
+  app.get("/api/hypervisors", isAuthenticated, async (req, res) => {
+    try {
+      console.log("Client fetching hypervisors for server creation");
+
+      const virtFusionApi = new VirtFusionApi();
+      await virtFusionApi.updateSettings();
+
+      // Test connection first
+      try {
+        await virtFusionApi.testConnection();
+      } catch (connError: any) {
+        console.error("VirtFusion API connection test failed:", connError);
+        return res.status(503).json({
+          error: "VirtFusion API is currently unavailable. Please try again later.",
+        });
+      }
+
+      const hypervisorsData = await virtFusionApi.getHypervisors();
+
+      // Handle different response formats
+      let hypervisors;
+      if (Array.isArray(hypervisorsData)) {
+        hypervisors = hypervisorsData;
+      } else if (hypervisorsData.data && Array.isArray(hypervisorsData.data)) {
+        hypervisors = hypervisorsData.data;
+      } else {
+        hypervisors = [];
+      }
+
+      // Filter to only enabled hypervisors and format for client use
+      const clientHypervisors = hypervisors
+        .filter((h: any) => h.enabled !== false) // Only show enabled hypervisors
+        .map((h: any) => ({
+          id: h.id,
+          name: h.name || `Hypervisor ${h.id}`,
+          location: h.location || h.name || `Location ${h.id}`,
+          ip: h.ip,
+          enabled: h.enabled !== false
+        }));
+
+      res.json(clientHypervisors);
+    } catch (error: any) {
+      console.error("Error fetching hypervisors for client:", error);
+      res.status(500).json({ error: "Failed to fetch hypervisors" });
+    }
+  });
+
+  // Get OS templates for a specific package (client-accessible)
+  app.get("/api/packages/:packageId/templates", isAuthenticated, async (req, res) => {
+    try {
+      const packageId = parseInt(req.params.packageId);
+
+      if (isNaN(packageId)) {
+        return res.status(400).json({ error: "Invalid package ID" });
+      }
+
+      console.log(`Client fetching OS templates for package ID: ${packageId}`);
+
+      // Get templates from VirtFusion
+      const templates = await virtFusionApi.getOsTemplates(packageId);
+
+      if (!templates) {
+        return res.json([]);
+      }
+
+      // Filter and format templates for client use
+      const clientTemplates = Array.isArray(templates) ? templates : templates.data || [];
+
+      res.json(clientTemplates.filter(template => template.enabled !== false));
+    } catch (error: any) {
+      console.error(`Error fetching templates for package ${req.params.packageId}:`, error);
+      res.status(500).json({ error: "Failed to fetch OS templates" });
+    }
+  });
+
+  // Get cloud pricing settings (client-accessible)
+  app.get("/api/cloud-pricing", isAuthenticated, async (req, res) => {
+    try {
+      console.log("Fetching cloud pricing settings for client");
+
+      // Get cloud pricing settings from database
+      const settingsArray = await storage.getAllSettings();
+
+      // Convert settings array to object for easier access
+      const settings = settingsArray.reduce((acc, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {} as Record<string, string>);
+
+      const cloudPricing = {
+        cpuPricePerCore: parseFloat(settings.cloud_cpu_price_per_core || "0"),
+        ramPricePerGB: parseFloat(settings.cloud_ram_price_per_gb || "0"),
+        storagePricePerGB: parseFloat(settings.cloud_storage_price_per_gb || "0"),
+        networkPricePerMbps: parseFloat(settings.cloud_network_price_per_mbps || "0"),
+        natIpv4Price: parseFloat(settings.cloud_nat_ipv4_price || "0"),
+        publicIpv4Price: parseFloat(settings.cloud_public_ipv4_price || "0"),
+        publicIpv6Price: parseFloat(settings.cloud_public_ipv6_price || "0"),
+        // Enable/disable flags
+        cpuPricingEnabled: settings.cloud_cpu_pricing_enabled === "true",
+        ramPricingEnabled: settings.cloud_ram_pricing_enabled === "true",
+        storagePricingEnabled: settings.cloud_storage_pricing_enabled === "true",
+        networkPricingEnabled: settings.cloud_network_pricing_enabled === "true",
+        natIpv4PricingEnabled: settings.cloud_nat_ipv4_pricing_enabled === "true",
+        publicIpv4PricingEnabled: settings.cloud_public_ipv4_pricing_enabled === "true",
+        publicIpv6PricingEnabled: settings.cloud_public_ipv6_pricing_enabled === "true"
+      };
+
+      res.json(cloudPricing);
+    } catch (error: any) {
+      console.error("Error fetching cloud pricing:", error);
+      res.status(500).json({ error: "Failed to fetch cloud pricing" });
+    }
+  });
+
   // ----- User Credit Management Routes -----
 
   // Add credit to user
@@ -6313,6 +6708,8 @@ Generated on ${new Date().toLocaleString()}
       }
 
       // If user has VirtFusion ID, check for servers and delete them in VirtFusion
+      let skipVirtFusionDeletion = false;
+
       if (user.virtFusionId) {
         try {
           // Create a new instance of VirtFusionApi
@@ -6361,47 +6758,86 @@ Generated on ${new Date().toLocaleString()}
                 details: "The user has active servers. Please delete or transfer all servers before deleting the user account."
               });
             }
-          } catch (usageError) {
+          } catch (usageError: any) {
             console.error(`Error checking if user has servers:`, usageError);
-            // If we can't determine if user has servers, DO NOT proceed with deletion
-            // This prevents unsync issues where we delete from our DB but user has servers in VirtFusion
-            console.log("Could not determine if user has servers, aborting deletion to prevent unsync");
-            return res.status(500).json({
-              error: "Unable to verify server status",
-              details: "Cannot delete user because we couldn't verify if they have active servers in VirtFusion. This prevents data synchronization issues."
-            });
+
+            // Check if this is a 404 error (user not found in VirtFusion)
+            const errorMessage = usageError.message || '';
+            const is404Error = errorMessage.includes('404') || errorMessage.toLowerCase().includes('user not found');
+
+            if (is404Error) {
+              console.log(`User ${userId} not found in VirtFusion (404 error during server check). This is expected for orphaned users - proceeding with deletion.`);
+              // Set a flag to skip VirtFusion deletion since user doesn't exist there
+              skipVirtFusionDeletion = true;
+            } else {
+              // For other errors (network issues, API problems), be cautious and abort
+              console.log("Could not determine if user has servers due to non-404 error, aborting deletion to prevent unsync");
+              return res.status(500).json({
+                error: "Unable to verify server status",
+                details: "Cannot delete user because we couldn't verify if they have active servers in VirtFusion. This prevents data synchronization issues."
+              });
+            }
           }
 
-          console.log(`Deleting user from VirtFusion. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
+          // Only attempt VirtFusion deletion if we haven't already determined the user doesn't exist
+          if (!skipVirtFusionDeletion) {
+            console.log(`Deleting user from VirtFusion. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
 
-          try {
-            // Use deleteUserByExtRelationId method to delete user in VirtFusion
-            await api.deleteUserByExtRelationId(extRelationId);
-            console.log(`Successfully deleted user from VirtFusion. User ID: ${userId}`);
-          } catch (virtFusionError: any) {
-            console.error(`Error deleting user from VirtFusion:`, virtFusionError);
+            try {
+              // Use deleteUserByExtRelationId method to delete user in VirtFusion
+              await api.deleteUserByExtRelationId(extRelationId);
+              console.log(`Successfully deleted user from VirtFusion. User ID: ${userId}`);
+            } catch (virtFusionError: any) {
+              console.error(`Error deleting user from VirtFusion:`, virtFusionError);
 
-            // Check for 409 error specifically (Conflict - User has servers)
-            if (virtFusionError.message && virtFusionError.message.includes("409")) {
-              return res.status(409).json({
-                error: "Cannot delete user with servers",
-                details: "The user has active servers. Please delete or transfer all servers before deleting the user account."
-              });
+              // Extract status code from error message or response
+              let statusCode = null;
+              let errorMessage = virtFusionError.message || '';
+
+              // Check if error has response status
+              if (virtFusionError.response && virtFusionError.response.status) {
+                statusCode = virtFusionError.response.status;
+              } else if (virtFusionError.status) {
+                statusCode = virtFusionError.status;
+              } else {
+                // Try to extract status code from error message
+                const statusMatch = errorMessage.match(/(\d{3})/);
+                if (statusMatch) {
+                  statusCode = parseInt(statusMatch[1]);
+                }
+              }
+
+              console.log(`VirtFusion error status code: ${statusCode}, message: ${errorMessage}`);
+
+              // Handle specific error cases
+              if (statusCode === 409 || errorMessage.includes("409") || errorMessage.toLowerCase().includes("conflict")) {
+                return res.status(409).json({
+                  error: "Cannot delete user with servers",
+                  details: "The user has active servers. Please delete or transfer all servers before deleting the user account."
+                });
+              }
+
+              // Handle 404 Not Found error (User doesn't exist in VirtFusion)
+              if (statusCode === 404 || errorMessage.includes("404") || errorMessage.toLowerCase().includes("not found")) {
+                console.log(`User not found in VirtFusion (404 error). Will still delete from our database. User ID: ${userId}`);
+                // Continue with deletion from our database - this is expected for orphaned users
+              } else if (statusCode === 400 || errorMessage.includes("400") || errorMessage.toLowerCase().includes("bad request")) {
+                console.log(`Bad request error from VirtFusion (400 error). User may not exist or be malformed. Will still delete from our database. User ID: ${userId}`);
+                // Continue with deletion from our database - this can happen with orphaned/corrupted user data
+              } else if (statusCode >= 500 || errorMessage.toLowerCase().includes("internal server error") || errorMessage.toLowerCase().includes("timeout")) {
+                // VirtFusion server error - don't delete from our database to prevent unsync
+                console.error(`VirtFusion server error (${statusCode}), aborting local deletion to prevent unsync. User ID: ${userId}`);
+                return res.status(500).json({
+                  error: "VirtFusion server error",
+                  details: `VirtFusion is experiencing server issues (${statusCode}). Please try again later. User was not deleted from SkyPANEL to maintain synchronization.`
+                });
+              } else {
+                // For other errors, log but continue with deletion (likely orphaned user)
+                console.log(`Unknown VirtFusion error (${statusCode}): ${errorMessage}. Assuming orphaned user, will delete from our database. User ID: ${userId}`);
+              }
             }
-
-            // Check for 404 Not Found error (User doesn't exist in VirtFusion)
-            if (virtFusionError.message && virtFusionError.message.includes("404")) {
-              // Log the issue but continue with deletion from our database
-              console.log(`User not found in VirtFusion (404 error). Will still delete from our database. User ID: ${userId}`);
-              // Don't return - continue with user deletion from our database
-            } else {
-              // For any other error, DO NOT delete from our database to prevent unsync
-              console.error(`VirtFusion deletion failed, aborting local deletion to prevent unsync. User ID: ${userId}`);
-              return res.status(500).json({
-                error: "Failed to delete user from VirtFusion",
-                details: `${virtFusionError.message}. User was not deleted from SkyPANEL to maintain synchronization.`
-              });
-            }
+          } else {
+            console.log(`Skipping VirtFusion deletion for user ${userId} - user doesn't exist in VirtFusion (orphaned user)`);
           }
         } catch (error: any) {
           console.error(`Error in user deletion process:`, error);
@@ -6416,7 +6852,17 @@ Generated on ${new Date().toLocaleString()}
       }
 
       // Delete user from our database
-      await storage.deleteUser(userId);
+      console.log(`Deleting user from SkyPANEL database. User ID: ${userId}`);
+      try {
+        await storage.deleteUser(userId);
+        console.log(`Successfully deleted user from SkyPANEL database. User ID: ${userId}`);
+      } catch (dbError: any) {
+        console.error(`Database error deleting user ${userId}:`, dbError);
+        return res.status(500).json({
+          error: "Database deletion failed",
+          details: `Failed to delete user from SkyPANEL database: ${dbError.message}. The user may have related data that needs to be cleaned up first.`
+        });
+      }
 
       res.json({
         success: true,
@@ -6424,7 +6870,10 @@ Generated on ${new Date().toLocaleString()}
       });
     } catch (error: any) {
       console.error("Error deleting user:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        error: "User deletion failed",
+        details: error.message || "An unexpected error occurred during user deletion"
+      });
     }
   });
 
@@ -11543,7 +11992,7 @@ Generated on ${new Date().toLocaleString()}
 
   app.post("/api/admin/team", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const { discordUserId, discordUsername, discordAvatarUrl, role, aboutMe, displayOrder } = req.body;
+      const { discordUserId, discordUsername, discordAvatarUrl, role, aboutMe, displayOrder, displayName } = req.body;
 
       if (!discordUserId || !discordUsername || !role) {
         return res.status(400).json({ error: "Discord user ID, username, and role are required" });
@@ -11558,6 +12007,7 @@ Generated on ${new Date().toLocaleString()}
       const newMember = await storage.createTeamMember({
         discordUserId,
         discordUsername,
+        displayName: displayName || null, // Optional display name
         discordAvatarUrl,
         role,
         aboutMe,
@@ -11581,7 +12031,7 @@ Generated on ${new Date().toLocaleString()}
         return res.status(400).json({ error: "Invalid team member ID" });
       }
 
-      const { role, aboutMe, displayOrder, isActive } = req.body;
+      const { role, aboutMe, displayOrder, isActive, displayName } = req.body;
 
       // Check if team member exists
       const existingMember = await storage.getTeamMemberById(id);
@@ -11594,6 +12044,7 @@ Generated on ${new Date().toLocaleString()}
         aboutMe,
         displayOrder,
         isActive,
+        displayName: displayName || null, // Optional display name
         updatedBy: req.user!.id,
       });
 

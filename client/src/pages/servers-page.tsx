@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin } from "lucide-react";
+import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Plus } from "lucide-react";
 
 function getStatusBadgeVariant(status: string) {
   const normalizedStatus = status.toLowerCase();
@@ -166,10 +166,18 @@ export default function ServersPage() {
               Manage and monitor your virtual servers
             </p>
           </div>
-          <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline">
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
+          <div className="flex gap-2">
+            <Link href="/servers/create">
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Server
+              </Button>
+            </Link>
+            <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline">
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -326,11 +334,19 @@ export default function ServersPage() {
             <CardContent className="text-center py-12">
               <Server className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No servers found</h3>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-6">
                 {searchQuery || statusFilter !== 'all'
                   ? 'No servers match your current filters.'
-                  : 'You don\'t have any servers yet.'}
+                  : 'You don\'t have any servers yet. Create your first server to get started.'}
               </p>
+              {!searchQuery && statusFilter === 'all' && (
+                <Link href="/servers/create">
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Your First Server
+                  </Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
         )}

@@ -385,11 +385,26 @@ export class VirtFusionApi {
         if (error.response.data) {
           const errorMsg = error.response.data.message ||
                           (error.response.data.msg ? error.response.data.msg : JSON.stringify(error.response.data));
-          throw new Error(`${error.response.status}: ${errorMsg}`);
+          const structuredError = new Error(`${error.response.status}: ${errorMsg}`);
+          (structuredError as any).status = error.response.status;
+          (structuredError as any).response = error.response;
+          throw structuredError;
         }
+
+        // For response errors without data
+        const responseError = new Error(`${error.response.status}: ${error.response.statusText || 'Unknown error'}`);
+        (responseError as any).status = error.response.status;
+        (responseError as any).response = error.response;
+        throw responseError;
       }
 
-      // Rethrow the original error
+      // Rethrow the original error with status if available
+      if (error.status) {
+        throw error;
+      }
+
+      // Add status 0 for unknown errors
+      (error as any).status = 0;
       throw error;
     }
   }
@@ -478,6 +493,12 @@ export class VirtFusionApi {
   // Server creation
   async createServer(serverData: any) {
     return this.request("POST", "/servers", serverData);
+  }
+
+  // Build a server with an operating system
+  async buildServer(serverId: number, buildData: any) {
+    console.log(`Building server ID: ${serverId} with data:`, buildData);
+    return this.request("POST", `/servers/${serverId}/build`, buildData);
   }
 
   // Get all packages
