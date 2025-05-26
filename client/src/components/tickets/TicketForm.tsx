@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,16 +22,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  AlertCircle, 
-  Loader2, 
-  SendHorizonal, 
-  Server, 
-  Network, 
+import {
+  AlertCircle,
+  Loader2,
+  SendHorizonal,
+  Server,
+  Network,
   Cpu,
   Wifi,
   WifiOff,
-  ExternalLink 
+  ExternalLink
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,18 +119,78 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
   const [selectedServer, setSelectedServer] = useState<VpsServer | null>(null);
   const totalSteps = 3; // 1: Department/VPS, 2: Subject/Priority, 3: Message
 
-  // Fetch departments
-  const { data: departments = [], isLoading: isLoadingDepartments } = useQuery({
+  // Debug logging
+  console.log('TicketForm: Component rendered', {
+    defaultValues,
+    isLoading,
+    currentStep,
+    selectedDepartment: selectedDepartment?.name
+  });
+
+  // Fetch departments with proper error handling and data validation
+  const { data: departmentsData, isLoading: isLoadingDepartments, error: departmentsError } = useQuery({
     queryKey: ['/api/ticket-departments'],
     retry: 1,
   });
 
-  // Fetch VPS servers if needed
-  const { data: servers = [], isLoading: isLoadingServers } = useQuery({
+  // Ensure departments is always an array with proper validation
+  const departments = useMemo(() => {
+    if (!departmentsData) {
+      console.log('TicketForm: No departments data received');
+      return [];
+    }
+
+    if (Array.isArray(departmentsData)) {
+      console.log('TicketForm: Departments loaded successfully:', departmentsData.length);
+      return departmentsData;
+    }
+
+    // Handle case where API returns an object with data property
+    if (typeof departmentsData === 'object' && Array.isArray(departmentsData.data)) {
+      console.log('TicketForm: Departments loaded from data property:', departmentsData.data.length);
+      return departmentsData.data;
+    }
+
+    // Log unexpected data structure
+    console.error('TicketForm: Unexpected departments data structure:', departmentsData);
+    return [];
+  }, [departmentsData]);
+
+  // Fetch VPS servers if needed with proper error handling
+  const { data: serversData, isLoading: isLoadingServers, error: serversError } = useQuery({
     queryKey: ['/api/user/servers'],
     retry: 1,
     enabled: selectedDepartment?.requiresVps === true,
   });
+
+  // Ensure servers is always an array with proper validation
+  const servers = useMemo(() => {
+    if (!serversData) {
+      return [];
+    }
+
+    if (Array.isArray(serversData)) {
+      return serversData;
+    }
+
+    // Handle case where API returns an object with data property
+    if (typeof serversData === 'object' && Array.isArray(serversData.data)) {
+      return serversData.data;
+    }
+
+    console.error('TicketForm: Unexpected servers data structure:', serversData);
+    return [];
+  }, [serversData]);
+
+  // Log errors for debugging
+  useEffect(() => {
+    if (departmentsError) {
+      console.error('TicketForm: Error loading departments:', departmentsError);
+    }
+    if (serversError) {
+      console.error('TicketForm: Error loading servers:', serversError);
+    }
+  }, [departmentsError, serversError]);
 
   // Initialize form with default values
   const form = useForm<TicketFormData>({
@@ -150,34 +210,34 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
     if (currentStep === 1) {
       const deptId = form.getValues('departmentId');
       if (!deptId) {
-        form.setError('departmentId', { 
-          type: 'manual', 
-          message: 'Please select a department' 
+        form.setError('departmentId', {
+          type: 'manual',
+          message: 'Please select a department'
         });
         return;
       }
-      
-      const dept = departments.find((d: TicketDepartment) => d.id === deptId);
+
+      const dept = Array.isArray(departments) ? departments.find((d: TicketDepartment) => d.id === deptId) : null;
       if (dept?.requiresVps && !form.getValues('vpsId')) {
-        form.setError('vpsId', { 
-          type: 'manual', 
-          message: 'Please select a VPS server' 
+        form.setError('vpsId', {
+          type: 'manual',
+          message: 'Please select a VPS server'
         });
         return;
       }
     }
-    
+
     if (currentStep === 2) {
       const subject = form.getValues('subject');
       if (!subject || subject.length < 5) {
-        form.setError('subject', { 
-          type: 'manual', 
-          message: 'Subject must be at least 5 characters' 
+        form.setError('subject', {
+          type: 'manual',
+          message: 'Subject must be at least 5 characters'
         });
         return;
       }
     }
-    
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -194,23 +254,30 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
     const subscription = form.watch((value, { name }) => {
       if (name === 'departmentId') {
         const deptId = form.getValues('departmentId');
-        const dept = departments.find((d: TicketDepartment) => d.id === deptId);
-        setSelectedDepartment(dept || null);
-        
-        // Reset VPS selection if the department doesn't require VPS
-        if (dept && !dept.requiresVps) {
-          form.setValue('vpsId', null);
-          setSelectedServer(null);
+
+        // Ensure departments is an array before calling find
+        if (Array.isArray(departments) && departments.length > 0) {
+          const dept = departments.find((d: TicketDepartment) => d.id === deptId);
+          setSelectedDepartment(dept || null);
+
+          // Reset VPS selection if the department doesn't require VPS
+          if (dept && !dept.requiresVps) {
+            form.setValue('vpsId', null);
+            setSelectedServer(null);
+          }
+        } else {
+          setSelectedDepartment(null);
         }
       }
     });
-    
+
     return () => subscription.unsubscribe();
   }, [form, departments]);
 
   // Set default department if one is marked as default
   useEffect(() => {
-    if (departments.length > 0 && !form.getValues('departmentId')) {
+    // Ensure departments is an array and has items before proceeding
+    if (Array.isArray(departments) && departments.length > 0 && !form.getValues('departmentId')) {
       const defaultDepartment = departments.find((d: TicketDepartment) => d.isDefault);
       if (defaultDepartment) {
         form.setValue('departmentId', defaultDepartment.id);
@@ -227,13 +294,13 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
   const updateCharCount = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCharCount(e.target.value.length);
   };
-  
+
   // Update selected server when vpsId changes
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === 'vpsId') {
         const vpsId = form.getValues('vpsId');
-        if (vpsId) {
+        if (vpsId && Array.isArray(servers) && servers.length > 0) {
           const server = servers.find((s: VpsServer) => s.id === vpsId);
           setSelectedServer(server || null);
         } else {
@@ -241,9 +308,61 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
         }
       }
     });
-    
+
     return () => subscription.unsubscribe();
   }, [form, servers]);
+
+  // Error boundary for departments data
+  if (departmentsError) {
+    return (
+      <div className="p-4 border border-destructive/20 rounded-md bg-destructive/5">
+        <h3 className="text-sm font-medium text-destructive mb-2">Error Loading Departments</h3>
+        <p className="text-sm text-muted-foreground">
+          Unable to load ticket departments. Please refresh the page or contact support if the issue persists.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Error: {departmentsError.message}
+        </p>
+      </div>
+    );
+  }
+
+  // Error boundary for departments data
+  if (departmentsError) {
+    return (
+      <div className="p-4 border border-destructive/20 rounded-md bg-destructive/5">
+        <h3 className="text-sm font-medium text-destructive mb-2">Error Loading Departments</h3>
+        <p className="text-sm text-muted-foreground">
+          Unable to load ticket departments. Please refresh the page or contact support if the issue persists.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">
+          Error: {departmentsError.message}
+        </p>
+      </div>
+    );
+  }
+
+  // Show loading state while departments are being fetched
+  if (isLoadingDepartments) {
+    return (
+      <div className="p-4 text-center">
+        <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary mb-2"></div>
+        <p className="text-sm text-muted-foreground">Loading ticket departments...</p>
+      </div>
+    );
+  }
+
+  // Show error if no departments are available
+  if (!Array.isArray(departments) || departments.length === 0) {
+    return (
+      <div className="p-4 border border-yellow-200 rounded-md bg-yellow-50">
+        <h3 className="text-sm font-medium text-yellow-800 mb-2">No Departments Available</h3>
+        <p className="text-sm text-yellow-700">
+          No ticket departments are currently available. Please contact an administrator to set up ticket departments.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -253,12 +372,12 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
           <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-muted-foreground/20"></div>
           {[1, 2, 3].map((step) => (
             <div key={step} className="relative z-10 flex flex-col items-center">
-              <div 
+              <div
                 className={`flex h-7 w-7 items-center justify-center rounded-full font-medium ${
-                  step === currentStep 
-                    ? 'bg-primary text-primary-foreground' 
-                    : step < currentStep 
-                      ? 'bg-primary/80 text-primary-foreground' 
+                  step === currentStep
+                    ? 'bg-primary text-primary-foreground'
+                    : step < currentStep
+                      ? 'bg-primary/80 text-primary-foreground'
                       : 'bg-muted-foreground/20 text-muted-foreground'
                 }`}
               >
@@ -285,7 +404,7 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
                   <FormLabel className="text-sm">Department</FormLabel>
                   <Select
                     onValueChange={(value) => field.onChange(parseInt(value))}
-                    value={field.value?.toString()}
+                    value={field.value?.toString() || ""}
                     disabled={isLoadingDepartments}
                   >
                     <FormControl>
@@ -294,11 +413,17 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {departments.map((dept: TicketDepartment) => (
-                        <SelectItem key={dept.id} value={dept.id.toString()}>
-                          {dept.name}
+                      {Array.isArray(departments) && departments.length > 0 ? (
+                        departments.map((dept: TicketDepartment) => (
+                          <SelectItem key={dept.id} value={dept.id.toString()}>
+                            {dept.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="-1" disabled>
+                          {isLoadingDepartments ? "Loading departments..." : "No departments available"}
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                   {selectedDepartment?.description && (
@@ -332,14 +457,15 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {servers.map((server: VpsServer) => (
-                          <SelectItem key={server.id} value={server.id.toString()}>
-                            {server.name} ({server.ip || "No IP"})
-                          </SelectItem>
-                        ))}
-                        {servers.length === 0 && !isLoadingServers && (
+                        {Array.isArray(servers) && servers.length > 0 ? (
+                          servers.map((server: VpsServer) => (
+                            <SelectItem key={server.id} value={server.id.toString()}>
+                              {server.name} ({server.ip || "No IP"})
+                            </SelectItem>
+                          ))
+                        ) : (
                           <SelectItem value="-1" disabled>
-                            No VPS servers found
+                            {isLoadingServers ? "Loading servers..." : "No VPS servers found"}
                           </SelectItem>
                         )}
                       </SelectContent>
@@ -352,7 +478,7 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
                 )}
               />
             )}
-            
+
             {/* VPS Server Details - only show if a VPS server is selected */}
             {selectedServer && (
               <Card className="overflow-hidden border-muted-foreground/20 shadow-sm mb-4">
@@ -398,7 +524,7 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
                             </span>
                           )}
                         </div>
-                        
+
                         {/* IP Addresses */}
                         {selectedServer.allIps && selectedServer.allIps.length > 0 ? (
                           <div className="mt-2 space-y-2">
@@ -408,8 +534,8 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
                                   <ExternalLink className="h-3 w-3 mr-1" />
                                   IP Address: {ip.address}
                                   {ip.type && (
-                                    <Badge 
-                                      variant="outline" 
+                                    <Badge
+                                      variant="outline"
                                       className={`ml-1 text-[10px] py-0 px-1 h-4 ${
                                         ip.type === 'ipv4' ? 'bg-blue-500/10' : 'bg-purple-500/10'
                                       }`}
@@ -418,8 +544,8 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
                                     </Badge>
                                   )}
                                   {ip.enabled && (
-                                    <Badge 
-                                      variant="outline" 
+                                    <Badge
+                                      variant="outline"
                                       className="ml-1 text-[10px] py-0 px-1 h-4 bg-green-500/10"
                                     >
                                       Active
@@ -476,7 +602,7 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
                   <FormLabel className="text-sm">Priority</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value || "medium"}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -558,9 +684,9 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
         {/* Navigation buttons */}
         <div className="flex justify-between pt-2">
           {currentStep > 1 ? (
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={goToPreviousStep}
               style={{borderColor: 'var(--brand-primary)', color: 'var(--brand-primary)'}}
             >
@@ -571,16 +697,16 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
           )}
 
           {currentStep < totalSteps ? (
-            <Button 
-              type="button" 
+            <Button
+              type="button"
               onClick={goToNextStep}
               style={{backgroundColor: 'var(--brand-primary)', color: 'white'}}
             >
               Continue
             </Button>
           ) : (
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isLoading}
               style={{backgroundColor: 'var(--brand-primary)', color: 'white'}}
             >

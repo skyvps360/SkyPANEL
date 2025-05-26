@@ -2818,7 +2818,7 @@ export default function SettingsPage() {
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y">
-                                  {departments.map((dept) => (
+                                  {Array.isArray(departments) && departments.length > 0 ? departments.map((dept) => (
                                     <tr key={dept.id} className="hover:bg-muted/30">
                                       <td className="py-3 px-4 text-sm">{dept.name}</td>
                                       <td className="py-3 px-4 text-sm text-muted-foreground">
@@ -2887,7 +2887,13 @@ export default function SettingsPage() {
                                         </div>
                                       </td>
                                     </tr>
-                                  ))}
+                                  )) : (
+                                    <tr>
+                                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                                        {isLoadingDepartments ? "Loading departments..." : "No departments found"}
+                                      </td>
+                                    </tr>
+                                  )}
                                 </tbody>
                               </table>
                             </div>
