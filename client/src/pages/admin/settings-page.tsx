@@ -234,6 +234,9 @@ const cloudPricingSchema = z.object({
   ramPricePerGB: z.string().regex(/^\d*\.?\d*$/, { message: "RAM price must be a valid number" }),
   storagePricePerGB: z.string().regex(/^\d*\.?\d*$/, { message: "Storage price must be a valid number" }),
   networkPricePerMbps: z.string().regex(/^\d*\.?\d*$/, { message: "Network price must be a valid number" }),
+  natIpv4Price: z.string().regex(/^\d*\.?\d*$/, { message: "NAT IPv4 price must be a valid number" }),
+  publicIpv4Price: z.string().regex(/^\d*\.?\d*$/, { message: "Public IPv4 price must be a valid number" }),
+  publicIpv6Price: z.string().regex(/^\d*\.?\d*$/, { message: "Public IPv6 price must be a valid number" }),
 });
 
 type CloudPricingFormData = z.infer<typeof cloudPricingSchema>;
@@ -368,6 +371,9 @@ export default function SettingsPage() {
       ramPricePerGB: getSettingValue("cloud_ram_price_per_gb", "0.00"),
       storagePricePerGB: getSettingValue("cloud_storage_price_per_gb", "0.00"),
       networkPricePerMbps: getSettingValue("cloud_network_price_per_mbps", "0.00"),
+      natIpv4Price: getSettingValue("cloud_nat_ipv4_price", "0.00"),
+      publicIpv4Price: getSettingValue("cloud_public_ipv4_price", "0.00"),
+      publicIpv6Price: getSettingValue("cloud_public_ipv6_price", "0.00"),
     },
   });
 
@@ -1155,6 +1161,9 @@ export default function SettingsPage() {
         ramPricePerGB: getSettingValue("cloud_ram_price_per_gb", "0.00"),
         storagePricePerGB: getSettingValue("cloud_storage_price_per_gb", "0.00"),
         networkPricePerMbps: getSettingValue("cloud_network_price_per_mbps", "0.00"),
+        natIpv4Price: getSettingValue("cloud_nat_ipv4_price", "0.00"),
+        publicIpv4Price: getSettingValue("cloud_public_ipv4_price", "0.00"),
+        publicIpv6Price: getSettingValue("cloud_public_ipv6_price", "0.00"),
       });
 
       // If maintenance mode is enabled, fetch the bypass token
@@ -1260,6 +1269,9 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "cloud_ram_price_per_gb", value: data.ramPricePerGB });
       await updateSettingMutation.mutateAsync({ key: "cloud_storage_price_per_gb", value: data.storagePricePerGB });
       await updateSettingMutation.mutateAsync({ key: "cloud_network_price_per_mbps", value: data.networkPricePerMbps });
+      await updateSettingMutation.mutateAsync({ key: "cloud_nat_ipv4_price", value: data.natIpv4Price });
+      await updateSettingMutation.mutateAsync({ key: "cloud_public_ipv4_price", value: data.publicIpv4Price });
+      await updateSettingMutation.mutateAsync({ key: "cloud_public_ipv6_price", value: data.publicIpv6Price });
 
       toast({
         title: "Settings saved",
@@ -1937,6 +1949,69 @@ export default function SettingsPage() {
                           Price charged per Mbps of network bandwidth per hour
                         </p>
                       </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="natIpv4Price">NAT IPv4 Price</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="natIpv4Price"
+                            placeholder="0.00"
+                            className="pl-8"
+                            {...cloudPricingForm.register("natIpv4Price")}
+                          />
+                        </div>
+                        {cloudPricingForm.formState.errors.natIpv4Price && (
+                          <p className="text-sm text-destructive mt-1">
+                            {cloudPricingForm.formState.errors.natIpv4Price.message}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Price charged per additional NAT IPv4 address per hour
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="publicIpv4Price">Public IPv4 Price</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="publicIpv4Price"
+                            placeholder="0.00"
+                            className="pl-8"
+                            {...cloudPricingForm.register("publicIpv4Price")}
+                          />
+                        </div>
+                        {cloudPricingForm.formState.errors.publicIpv4Price && (
+                          <p className="text-sm text-destructive mt-1">
+                            {cloudPricingForm.formState.errors.publicIpv4Price.message}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Price charged per additional public IPv4 address per hour
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="publicIpv6Price">Public IPv6 Price</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="publicIpv6Price"
+                            placeholder="0.00"
+                            className="pl-8"
+                            {...cloudPricingForm.register("publicIpv6Price")}
+                          />
+                        </div>
+                        {cloudPricingForm.formState.errors.publicIpv6Price && (
+                          <p className="text-sm text-destructive mt-1">
+                            {cloudPricingForm.formState.errors.publicIpv6Price.message}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground">
+                          Price charged per additional public IPv6 subnet per hour
+                        </p>
+                      </div>
                     </div>
 
                     <div className="bg-muted/50 p-4 rounded-lg">
@@ -1967,6 +2042,24 @@ export default function SettingsPage() {
                           <span className="text-muted-foreground">Network:</span>
                           <span className="ml-2 font-mono">
                             ${cloudPricingForm.watch("networkPricePerMbps") || "0.00"}/Mbps/hr
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">NAT IPv4:</span>
+                          <span className="ml-2 font-mono">
+                            ${cloudPricingForm.watch("natIpv4Price") || "0.00"}/IP/hr
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Public IPv4:</span>
+                          <span className="ml-2 font-mono">
+                            ${cloudPricingForm.watch("publicIpv4Price") || "0.00"}/IP/hr
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Public IPv6:</span>
+                          <span className="ml-2 font-mono">
+                            ${cloudPricingForm.watch("publicIpv6Price") || "0.00"}/subnet/hr
                           </span>
                         </div>
                       </div>
