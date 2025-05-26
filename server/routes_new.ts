@@ -2194,7 +2194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log(`User ${userId} has ${total} servers, fetching detailed data for ${paginatedBasicServers.length} servers on page ${page}`);
 
-        // Fetch detailed data for each server individually
+        // Fetch detailed data for each server individually and process IP information
         const detailedServers = [];
         for (const basicServer of paginatedBasicServers) {
           try {
@@ -2202,17 +2202,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const detailedServer = await virtFusionApi.request("GET", `/servers/${basicServer.id}?remoteState=true`);
 
             if (detailedServer && detailedServer.data) {
-              // Use the detailed server data
-              detailedServers.push(detailedServer.data);
+              // Process the detailed server data to extract IP information
+              const server = detailedServer.data;
+              let primaryIpAddress = "No IP";
+              let allIpAddresses: any[] = [];
+              let networkInfo: any = {};
+              let isNat = false;
+
+              // Process network interfaces to extract IP information
+              if (server.network && server.network.interfaces && Array.isArray(server.network.interfaces)) {
+                for (const iface of server.network.interfaces) {
+                  // Store isNat value
+                  if (typeof iface.isNat === 'boolean') {
+                    isNat = iface.isNat;
+                  }
+
+                  // Process IPv4 addresses
+                  if (iface.ipv4 && Array.isArray(iface.ipv4) && iface.ipv4.length > 0) {
+                    const ipv4Addresses = iface.ipv4.map((ip: any) => ({
+                      address: ip.address || 'Unknown',
+                      gateway: ip.gateway || 'Unknown',
+                      netmask: ip.netmask || 'Unknown',
+                      resolver1: ip.resolver1 || 'Unknown',
+                      resolver2: ip.resolver2 || 'Unknown',
+                      enabled: ip.enabled === true,
+                      order: ip.order || 0,
+                      type: 'ipv4'
+                    }));
+
+                    allIpAddresses = [...allIpAddresses, ...ipv4Addresses];
+
+                    // Set the primary IP address as the first enabled one
+                    const enabledIp = iface.ipv4.find((ip: any) => ip.enabled === true);
+                    if (!primaryIpAddress || primaryIpAddress === "No IP") {
+                      if (enabledIp && enabledIp.address) {
+                        primaryIpAddress = enabledIp.address;
+                      } else if (iface.ipv4[0].address) {
+                        primaryIpAddress = iface.ipv4[0].address;
+                      }
+                    }
+                  }
+
+                  // Process IPv6 addresses
+                  if (iface.ipv6 && Array.isArray(iface.ipv6) && iface.ipv6.length > 0) {
+                    const ipv6Addresses = iface.ipv6.map((ip: any) => ({
+                      address: ip.address || (ip.subnet ? `${ip.subnet}/${ip.cidr}` : 'Unknown'),
+                      gateway: ip.gateway || 'Unknown',
+                      netmask: ip.prefix || ip.netmask || (ip.cidr ? `/${ip.cidr}` : 'Unknown'),
+                      resolver1: ip.resolver1 || 'Unknown',
+                      resolver2: ip.resolver2 || 'Unknown',
+                      enabled: ip.enabled === true,
+                      order: ip.order || 0,
+                      type: 'ipv6'
+                    }));
+
+                    allIpAddresses = [...allIpAddresses, ...ipv6Addresses];
+
+                    // Use IPv6 as primary only if no IPv4 is available
+                    if ((primaryIpAddress === "No IP") && ipv6Addresses.length > 0) {
+                      const enabledIpv6 = iface.ipv6.find((ip: any) => ip.enabled === true);
+                      if (enabledIpv6) {
+                        if (enabledIpv6.address) {
+                          primaryIpAddress = enabledIpv6.address;
+                        } else if (enabledIpv6.subnet) {
+                          primaryIpAddress = `${enabledIpv6.subnet}/${enabledIpv6.cidr}`;
+                        }
+                      } else if (iface.ipv6[0]) {
+                        if (iface.ipv6[0].address) {
+                          primaryIpAddress = iface.ipv6[0].address;
+                        } else if (iface.ipv6[0].subnet) {
+                          primaryIpAddress = `${iface.ipv6[0].subnet}/${iface.ipv6[0].cidr}`;
+                        }
+                      }
+                    }
+                  }
+
+                  // Collect interface details
+                  networkInfo = {
+                    name: iface.name || 'eth0',
+                    mac: iface.mac || 'Unknown',
+                    isNat: iface.isNat || false,
+                    enabled: iface.enabled || false
+                  };
+                }
+              }
+
+              // If we still don't have an IP, try other possible fields
+              if (primaryIpAddress === "No IP") {
+                primaryIpAddress = server.ipAddresses?.[0]?.address || server.ip || "No IP";
+              }
+
+              // Create processed server object with IP information
+              const processedServer = {
+                ...server,
+                id: server.id,
+                name: server.name || `Server #${server.id}`,
+                hostname: server.hostname || "Unknown",
+                ip: primaryIpAddress,
+                allIps: allIpAddresses,
+                ipv4s: allIpAddresses.filter(ip => ip.type === 'ipv4'),
+                ipv6s: allIpAddresses.filter(ip => ip.type === 'ipv6'),
+                network: networkInfo,
+                hypervisorId: server.hypervisorId || null,
+                isNat: isNat,
+                status: server.state?.name || server.state || server.status || "Unknown",
+                os: server.os?.name || "Unknown",
+                package: server.package?.name || "Unknown"
+              };
+
+              detailedServers.push(processedServer);
             } else {
               // Fallback to basic server data if detailed fetch fails
               console.warn(`Failed to fetch detailed data for server ${basicServer.id}, using basic data`);
-              detailedServers.push(basicServer);
+              detailedServers.push({
+                ...basicServer,
+                allIps: [],
+                ipv4s: [],
+                ipv6s: [],
+                network: {},
+                isNat: false
+              });
             }
           } catch (error) {
             console.error(`Error fetching detailed data for server ${basicServer.id}:`, error);
-            // Fallback to basic server data
-            detailedServers.push(basicServer);
+            // Fallback to basic server data with empty IP arrays
+            detailedServers.push({
+              ...basicServer,
+              allIps: [],
+              ipv4s: [],
+              ipv6s: [],
+              network: {},
+              isNat: false
+            });
           }
         }
 
@@ -4224,175 +4345,7 @@ Generated on ${new Date().toLocaleString()}
     }
   });
 
-  // Get user's VPS servers from VirtFusion
-  app.get("/api/user/servers", isAuthenticated, async (req, res) => {
-    if (!req.user) {
-      return res.status(401).json({ error: "User not authenticated" });
-    }
 
-    try {
-      // Check if user has a VirtFusion ID
-      if (!req.user.virtFusionId) {
-        return res.json([]);
-      }
-
-      const virtFusionApi = new VirtFusionApi();
-
-      // Get user's servers from VirtFusion API
-      console.log(`Fetching servers for user ${req.user.virtFusionId} from VirtFusion API`);
-
-      // Verify API is configured
-      if (!virtFusionApi.isConfigured()) {
-        console.error("VirtFusion API is not properly configured");
-        return res.status(500).json({ error: "VirtFusion API configuration error" });
-      }
-
-      const response = await virtFusionApi.getUserServers(req.user.virtFusionId);
-
-      if (!response || !response.data) {
-        console.error("Invalid response from VirtFusion API");
-        return res.json([]);
-      }
-
-      // Format the response to include only necessary data
-      const servers = response.data.map((server: any) => {
-        // Extract all IP addresses and network information from the server
-        let primaryIpAddress = "No IP";
-        let allIpAddresses: any[] = [];
-        let allIpv6Addresses: any[] = [];
-        let networkInfo: any = {};
-        let isNat = false;
-
-        // Debugging - log the server network structure to console (only in development)
-        console.log(`Processing server ${server.id} (${server.name}), network structure:`,
-          JSON.stringify(server.network || {}, null, 2).substring(0, 500) + '...');
-
-        // Get IP from network.interfaces array based on the API documentation
-        if (server.network && server.network.interfaces && Array.isArray(server.network.interfaces)) {
-          for (const iface of server.network.interfaces) {
-            // Store isNat value
-            if (typeof iface.isNat === 'boolean') {
-              isNat = iface.isNat;
-            }
-
-            // Process IPv4 addresses
-            if (iface.ipv4 && Array.isArray(iface.ipv4) && iface.ipv4.length > 0) {
-              console.log(`Found ${iface.ipv4.length} IPv4 addresses for interface ${iface.name || 'unknown'}`);
-
-              // Store all IPv4 addresses for this interface
-              const ipv4Addresses = iface.ipv4.map((ip: any) => ({
-                address: ip.address || 'Unknown',
-                gateway: ip.gateway || 'Unknown',
-                netmask: ip.netmask || 'Unknown',
-                resolver1: ip.resolver1 || 'Unknown',
-                resolver2: ip.resolver2 || 'Unknown',
-                enabled: ip.enabled === true,
-                order: ip.order || 0,
-                type: 'ipv4'
-              }));
-
-              allIpAddresses = [...allIpAddresses, ...ipv4Addresses];
-
-              // Set the primary IP address as the first enabled one
-              const enabledIp = iface.ipv4.find((ip: any) => ip.enabled === true);
-              if (!primaryIpAddress || primaryIpAddress === "No IP") {
-                if (enabledIp && enabledIp.address) {
-                  primaryIpAddress = enabledIp.address;
-                } else if (iface.ipv4[0].address) {
-                  // Fallback to first IP if none are explicitly enabled
-                  primaryIpAddress = iface.ipv4[0].address;
-                }
-              }
-            }
-
-            // Process IPv6 addresses
-            if (iface.ipv6 && Array.isArray(iface.ipv6) && iface.ipv6.length > 0) {
-              console.log(`Found ${iface.ipv6.length} IPv6 addresses for interface ${iface.name || 'unknown'}`);
-
-              // Store all IPv6 addresses for this interface
-              const ipv6Addresses = iface.ipv6.map((ip: any) => ({
-                // Use subnet/cidr to create a proper IPv6 address display if no direct address
-                address: ip.address || (ip.subnet ? `${ip.subnet}/${ip.cidr}` : 'Unknown'),
-                gateway: ip.gateway || 'Unknown',
-                // Ensure netmask is properly set for display
-                netmask: ip.prefix || ip.netmask || (ip.cidr ? `/${ip.cidr}` : 'Unknown'),
-                resolver1: ip.resolver1 || 'Unknown',
-                resolver2: ip.resolver2 || 'Unknown',
-                enabled: ip.enabled === true,
-                order: ip.order || 0,
-                type: 'ipv6'
-              }));
-
-              allIpv6Addresses = [...allIpv6Addresses, ...ipv6Addresses];
-              allIpAddresses = [...allIpAddresses, ...ipv6Addresses];
-
-              // Use IPv6 as primary only if no IPv4 is available
-              if ((primaryIpAddress === "No IP") && ipv6Addresses.length > 0) {
-                const enabledIpv6 = iface.ipv6.find((ip: any) => ip.enabled === true);
-                if (enabledIpv6) {
-                  // For IPv6, construct address from subnet/cidr if direct address is missing
-                  if (enabledIpv6.address) {
-                    primaryIpAddress = enabledIpv6.address;
-                  } else if (enabledIpv6.subnet) {
-                    primaryIpAddress = `${enabledIpv6.subnet}/${enabledIpv6.cidr}`;
-                  }
-                } else if (iface.ipv6[0]) {
-                  // Use first IPv6 address if no enabled one found
-                  if (iface.ipv6[0].address) {
-                    primaryIpAddress = iface.ipv6[0].address;
-                  } else if (iface.ipv6[0].subnet) {
-                    primaryIpAddress = `${iface.ipv6[0].subnet}/${iface.ipv6[0].cidr}`;
-                  }
-                }
-              }
-            }
-
-            // Collect interface details
-            networkInfo = {
-              name: iface.name || 'eth0',
-              mac: iface.mac || 'Unknown',
-              isNat: iface.isNat || false,
-              enabled: iface.enabled || false
-            };
-          }
-        }
-
-        // If we still don't have an IP, try other possible fields
-        if (primaryIpAddress === "No IP") {
-          primaryIpAddress = server.ipAddresses?.[0]?.address || server.ip || "No IP";
-        }
-
-        // Log the extracted IP information
-        console.log(`Server ${server.id} (${server.name}) IP summary:`, {
-          primaryIp: primaryIpAddress,
-          ipCount: allIpAddresses.length,
-          ipv6Count: allIpv6Addresses.length,
-          isNat
-        });
-
-        return {
-          id: server.id,
-          name: server.name || `Server #${server.id}`,
-          hostname: server.hostname || "Unknown",
-          ip: primaryIpAddress,
-          allIps: allIpAddresses,
-          ipv4s: allIpAddresses.filter(ip => ip.type === 'ipv4'),
-          ipv6s: allIpAddresses.filter(ip => ip.type === 'ipv6'),
-          network: networkInfo,
-          hypervisorId: server.hypervisorId || null,
-          isNat: isNat,
-          status: server.state?.name || server.state || server.status || "Unknown",
-          os: server.os?.name || "Unknown",
-          package: server.package?.name || "Unknown"
-        };
-      });
-
-      res.json(servers);
-    } catch (error: any) {
-      console.error("Error fetching VirtFusion servers:", error);
-      res.status(500).json({ error: "Failed to fetch servers" });
-    }
-  });
 
   // Get VirtFusion usage for the last 30 days
   app.get("/api/billing/usage/last30days", isAuthenticated, async (req, res) => {
