@@ -386,22 +386,98 @@ export class DiscordBotService {
           if (line.startsWith('Department:')) {
             departmentInfo = line.replace('Department:', '').trim();
           } else if (line.startsWith('VPS:')) {
+            // More flexible parsing for VPS line: "VPS: ServerName (hostname, ip)"
             const vpsMatch = line.match(/VPS:\s*(.+?)\s*\((.+?),\s*(.+?)\)/);
             if (vpsMatch) {
-              vpsInfo.name = vpsMatch[1];
-              vpsInfo.hostname = vpsMatch[2];
-              vpsInfo.ip = vpsMatch[3];
+              vpsInfo.name = vpsMatch[1].trim();
+              vpsInfo.hostname = vpsMatch[2].trim();
+              vpsInfo.ip = vpsMatch[3].trim();
+            } else {
+              // Fallback: try to extract just the server name if format doesn't match
+              const nameMatch = line.match(/VPS:\s*(.+)/);
+              if (nameMatch) {
+                vpsInfo.name = nameMatch[1].trim();
+              }
             }
           } else if (line.startsWith('OS:')) {
             vpsInfo.os = line.replace('OS:', '').trim();
-          } else if (line.startsWith('Package:')) {
-            vpsInfo.package = line.replace('Package:', '').trim();
           } else if (line.startsWith('Status:')) {
             vpsInfo.status = line.replace('Status:', '').trim();
           }
         }
       } else {
         mainMessage = message;
+      }
+
+      // Debug logging to help troubleshoot IP extraction
+      console.log('Discord bot parsing debug:', {
+        messageLines: messageLines.slice(0, 10), // First 10 lines for debugging
+        vpsInfo,
+        departmentInfo
+      });
+
+      // If we have VPS info but missing IP, try to fetch it from the ticket's VPS ID
+      if (vpsInfo.name && (!vpsInfo.ip || vpsInfo.ip === 'undefined')) {
+        try {
+          // Get the ticket to find the VPS ID
+          const ticket = await storage.getTicket(ticketId);
+          if (ticket && ticket.vpsId) {
+            console.log(`Fetching detailed VPS info for Discord embed, VPS ID: ${ticket.vpsId}`);
+
+            // Import VirtFusionApi dynamically to avoid circular dependencies
+            const { VirtFusionApi } = await import('./virtfusion-api');
+            const virtFusionApi = new VirtFusionApi();
+
+            // Get detailed server information
+            const serverResponse = await virtFusionApi.getServer(ticket.vpsId, false);
+            if (serverResponse && serverResponse.data) {
+              const server = serverResponse.data;
+
+              // Extract IP information from network interfaces
+              let primaryIp = 'No IP available';
+              if (server.network && server.network.interfaces && Array.isArray(server.network.interfaces)) {
+                for (const iface of server.network.interfaces) {
+                  // Look for IPv4 addresses first
+                  if (iface.ipv4 && Array.isArray(iface.ipv4) && iface.ipv4.length > 0) {
+                    const enabledIp = iface.ipv4.find((ip: any) => ip.enabled === true);
+                    if (enabledIp && enabledIp.address) {
+                      primaryIp = enabledIp.address;
+                      break;
+                    } else if (iface.ipv4[0].address) {
+                      primaryIp = iface.ipv4[0].address;
+                      break;
+                    }
+                  }
+                }
+
+                // If no IPv4, try IPv6
+                if (primaryIp === 'No IP available') {
+                  for (const iface of server.network.interfaces) {
+                    if (iface.ipv6 && Array.isArray(iface.ipv6) && iface.ipv6.length > 0) {
+                      const enabledIpv6 = iface.ipv6.find((ip: any) => ip.enabled === true);
+                      if (enabledIpv6) {
+                        if (enabledIpv6.address) {
+                          primaryIp = enabledIpv6.address;
+                          break;
+                        } else if (enabledIpv6.subnet) {
+                          primaryIp = `${enabledIpv6.subnet}/${enabledIpv6.cidr}`;
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+
+              // Update VPS info with the correct IP
+              vpsInfo.ip = primaryIp;
+              console.log(`Updated VPS IP for Discord embed: ${primaryIp}`);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching VPS details for Discord embed:', error);
+          // Continue with the original parsed data
+        }
       }
 
       // Create the embed
@@ -439,17 +515,12 @@ export class DiscordBotService {
           },
           {
             name: '📡 IP Address',
-            value: vpsInfo.ip || 'No IP',
+            value: vpsInfo.ip && vpsInfo.ip !== 'undefined' ? vpsInfo.ip : 'No IP available',
             inline: true
           },
           {
             name: '💿 Operating System',
             value: vpsInfo.os || 'Unknown',
-            inline: true
-          },
-          {
-            name: '📦 Package',
-            value: vpsInfo.package || 'Unknown',
             inline: true
           },
           {
