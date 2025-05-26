@@ -335,19 +335,14 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       icon: <HardDrive className="h-5 w-5 mr-3" />,
     },
     {
-      name: "Support Tickets",
-      href: "/tickets",
-      icon: <Ticket className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "Docs",
-      href: "/docs",
-      icon: <BookOpen className="h-5 w-5 mr-3" />,
-    },
-    {
       name: "Blog",
       href: "/blog",
       icon: <FileText className="h-5 w-5 mr-3" />,
+    },
+    {
+      name: "Support Tickets",
+      href: "/tickets",
+      icon: <Ticket className="h-5 w-5 mr-3" />,
     },
    // {
    //   name: "API Documentation",

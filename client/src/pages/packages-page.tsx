@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBrandColors } from "@/lib/brand-theme";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 
 // Define the Package interface based on the VirtFusion API response
 interface Package {
@@ -36,13 +37,13 @@ interface Package {
 
 export default function PackagesPage() {
   const { toast } = useToast();
-  
+
   // Fetch packages from our new API endpoint
-  const { 
-    data, 
-    isLoading, 
-    error, 
-    refetch 
+  const {
+    data,
+    isLoading,
+    error,
+    refetch
   } = useQuery({
     queryKey: ["/api/public/packages"] as const
   });
@@ -55,17 +56,17 @@ export default function PackagesPage() {
   } = useQuery({
     queryKey: ["/api/public/package-pricing"] as const
   });
-  
+
   // Fetch branding data
-  const { data: brandingData } = useQuery<{ 
-    company_name: string; 
+  const { data: brandingData } = useQuery<{
+    company_name: string;
     primary_color: string;
     secondary_color: string;
     accent_color: string;
   }>({
     queryKey: ['/api/settings/branding'],
   });
-  
+
   // Get brand colors using the newer structure
   const brandColors = getBrandColors(brandingData?.primary_color);
 
@@ -91,7 +92,7 @@ export default function PackagesPage() {
       });
     }
   }, [error, toast]);
-  
+
   // Handle pricing error
   React.useEffect(() => {
     if (pricingError) {
@@ -112,22 +113,22 @@ export default function PackagesPage() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   };
-  
+
   // Format network speed from KB/s to GB/MB Port
   const formatNetworkSpeed = (speed: number) => {
     if (!speed || speed === 0) return '1 GB Port';
-    
+
     // VirtFusion provides speed in KB/s, convert to GB
     // 125000 KB/s = 1 Gbps = 0.125 GB/s
     const gbSpeed = speed / 125000;
-    
+
     if (gbSpeed < 1) {
       return `${(gbSpeed * 1000).toFixed(0)} MB Port`;
     } else {
       return `${gbSpeed.toFixed(0)} GB Port`;
     }
   };
-  
+
   // Format bandwidth display for better readability
   const formatBandwidth = (gb: number): string => {
     if (gb >= 1000) {
@@ -135,27 +136,27 @@ export default function PackagesPage() {
     }
     return `${gb} GB`;
   };
-  
+
   // Get package price using id or name
   const getPackagePrice = (pkg: Package): number => {
     // Try to get price by id first
     if (pricing && pricing[pkg.id.toString()]) {
       return pricing[pkg.id.toString()];
     }
-    
+
     // Then try by name
     if (pricing && pricing[pkg.name]) {
       return pricing[pkg.name];
     }
-    
+
     // Try legacy string IDs
     const stringId = pkg.id.toString();
     if (pricing && pricing[stringId]) {
       return pricing[stringId];
     }
-    
+
     console.log(`No pricing found for package ${pkg.id} / ${pkg.name}. Available pricing:`, pricing);
-    
+
     // Default fallback (no price found)
     return 0;
   };
@@ -233,16 +234,16 @@ export default function PackagesPage() {
                       <TooltipTrigger asChild>
                         {pkg.enabled ? (
                           <div className="flex items-center">
-                            <CheckCircle 
-                              className="h-5 w-5" 
+                            <CheckCircle
+                              className="h-5 w-5"
                               style={{ color: brandColors?.primary?.full || '#33be00' }}
                             />
                           </div>
                         ) : (
                           <div className="flex items-center">
-                            <XCircle 
+                            <XCircle
                               className="h-5 w-5"
-                              style={{ color: 'rgb(113, 113, 122)' }} 
+                              style={{ color: 'rgb(113, 113, 122)' }}
                             />
                           </div>
                         )}
@@ -262,8 +263,8 @@ export default function PackagesPage() {
                   {/* Package Specs */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center">
-                      <Cpu 
-                        className="h-5 w-5 mr-2 flex-shrink-0" 
+                      <Cpu
+                        className="h-5 w-5 mr-2 flex-shrink-0"
                         style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
                       />
                       <div>
@@ -272,8 +273,8 @@ export default function PackagesPage() {
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <MemoryStick 
-                        className="h-5 w-5 mr-2 flex-shrink-0" 
+                      <MemoryStick
+                        className="h-5 w-5 mr-2 flex-shrink-0"
                         style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
                       />
                       <div>
@@ -282,8 +283,8 @@ export default function PackagesPage() {
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <HardDrive 
-                        className="h-5 w-5 mr-2 flex-shrink-0" 
+                      <HardDrive
+                        className="h-5 w-5 mr-2 flex-shrink-0"
                         style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
                       />
                       <div>
@@ -292,8 +293,8 @@ export default function PackagesPage() {
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <Zap 
-                        className="h-5 w-5 mr-2 flex-shrink-0" 
+                      <Zap
+                        className="h-5 w-5 mr-2 flex-shrink-0"
                         style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
                       />
                       <div>
@@ -331,8 +332,8 @@ export default function PackagesPage() {
                 {/* Price Information */}
                 <div className="flex justify-between w-full text-base font-semibold">
                   <span className="flex items-center">
-                    <DollarSign 
-                      className="h-4 w-4 mr-1 inline" 
+                    <DollarSign
+                      className="h-4 w-4 mr-1 inline"
                       style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
                     />
                     Price:
@@ -341,22 +342,21 @@ export default function PackagesPage() {
                     ${getPackagePrice(pkg).toFixed(2)}/month
                   </span>
                 </div>
-                
-                {/* Availability Status */}
-                <div className="w-full text-center text-sm flex items-center justify-center gap-1.5">
+
+                {/* Purchase Button */}
+                <div className="w-full">
                   {pkg.enabled ? (
-                    <span className="text-sm text-muted-foreground flex items-center gap-1.5">
-                      <CheckCircle 
-                        className="h-3.5 w-3.5" 
-                        style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }} 
-                      />
-                      Available for order
-                    </span>
+                    <VirtFusionSsoButton
+                      variant="default"
+                      size="default"
+                      className="w-full"
+                      text="Purchase & Create Server"
+                    />
                   ) : (
-                    <span className="text-sm text-muted-foreground flex items-center gap-1.5">
+                    <div className="w-full text-center text-sm flex items-center justify-center gap-1.5 py-2">
                       <XCircle className="h-3.5 w-3.5 text-zinc-400" />
-                      Currently Unavailable
-                    </span>
+                      <span className="text-muted-foreground">Currently Unavailable</span>
+                    </div>
                   )}
                 </div>
               </CardFooter>

@@ -12,7 +12,7 @@ import { TicketForm } from "@/components/tickets/TicketForm";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MessageSquare, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, MessageSquare, ExternalLink, ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface Ticket {
@@ -226,7 +226,15 @@ export default function TicketsPage() {
           <h1 className="text-2xl font-semibold">Support Tickets</h1>
           <p className="text-gray-500 mt-1">Get help from our support team</p>
         </div>
-        <div className="mt-4 md:mt-0">
+        <div className="mt-4 md:mt-0 flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => window.open('/docs', '_blank')}
+            className="border-primary text-primary hover:bg-primary/10"
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            Docs
+          </Button>
           <Button
             onClick={() => setCreateDialogOpen(true)}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
