@@ -91,6 +91,7 @@ export function SharedNavbar() {
   const navItems = [
     { name: "Home", path: "/" },
     { name: "Plans", path: "/plans" },
+    { name: "Our Team", path: "/team" },
     { name: "Blog", path: "/blog" },
     { name: "Documentation", path: "/docs" },
     { name: "Status", path: "/status" },

@@ -86,6 +86,7 @@ export class DiscordBotService {
           GatewayIntentBits.GuildMessages,
           GatewayIntentBits.MessageContent,
           GatewayIntentBits.DirectMessages, // Add intent for direct messages
+          GatewayIntentBits.GuildMembers, // Required for fetching guild members
         ]
       });
 
@@ -1406,6 +1407,124 @@ export class DiscordBotService {
   private async getChannelId(): Promise<string> {
     const setting = await storage.getSetting('discord_channel_id');
     return setting?.value || '';
+  }
+
+  /**
+   * Search Discord server members by username
+   * @param query Search query (username)
+   * @param limit Maximum number of results to return
+   * @returns Array of Discord user objects
+   */
+  public async searchDiscordUsers(query: string, limit: number = 10): Promise<any[]> {
+    console.log(`Discord bot search request: query="${query}", limit=${limit}`);
+
+    if (!this.client || !this.ready) {
+      console.error('Discord bot is not ready for search');
+      return [];
+    }
+
+    try {
+      const guildId = await this.getGuildId();
+      console.log(`Discord guild ID: ${guildId}`);
+
+      if (!guildId) {
+        console.error('Discord guild ID not configured');
+        return [];
+      }
+
+      const guild = this.client.guilds.cache.get(guildId);
+      if (!guild) {
+        console.error(`Discord guild not found with ID: ${guildId}`);
+        return [];
+      }
+
+      console.log(`Found guild: ${guild.name}, member count: ${guild.memberCount}`);
+
+      // Fetch all members if not cached
+      console.log('Fetching guild members...');
+      await guild.members.fetch();
+      console.log(`Cached members count: ${guild.members.cache.size}`);
+
+      // Search members by username (case-insensitive)
+      const searchResults = guild.members.cache
+        .filter(member => {
+          const username = member.user.username.toLowerCase();
+          const globalName = member.user.globalName?.toLowerCase() || '';
+          const displayName = member.displayName.toLowerCase();
+          const queryLower = query.toLowerCase();
+
+          return username.includes(queryLower) ||
+                 globalName.includes(queryLower) ||
+                 displayName.includes(queryLower);
+        })
+        .first(limit)
+        .map(member => ({
+          id: member.user.id,
+          username: member.user.username,
+          globalName: member.user.globalName,
+          displayName: member.displayName,
+          avatar: member.user.displayAvatarURL({ size: 128 }),
+          bot: member.user.bot
+        }));
+
+      console.log(`Search results for "${query}": ${searchResults.length} members found`);
+      return searchResults;
+    } catch (error) {
+      console.error('Error searching Discord users:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get Discord user information by user ID
+   * @param userId Discord user ID
+   * @returns Discord user object or null
+   */
+  public async getDiscordUser(userId: string): Promise<any | null> {
+    console.log(`Discord bot get user request: userId="${userId}"`);
+
+    if (!this.client || !this.ready) {
+      console.error('Discord bot is not ready for user fetch');
+      return null;
+    }
+
+    try {
+      const guildId = await this.getGuildId();
+      console.log(`Discord guild ID: ${guildId}`);
+
+      if (!guildId) {
+        console.error('Discord guild ID not configured');
+        return null;
+      }
+
+      const guild = this.client.guilds.cache.get(guildId);
+      if (!guild) {
+        console.error(`Discord guild not found with ID: ${guildId}`);
+        return null;
+      }
+
+      console.log(`Fetching member with ID: ${userId} from guild: ${guild.name}`);
+      const member = await guild.members.fetch(userId);
+      if (!member) {
+        console.log(`Member not found with ID: ${userId}`);
+        return null;
+      }
+
+      const userInfo = {
+        id: member.user.id,
+        username: member.user.username,
+        globalName: member.user.globalName,
+        displayName: member.displayName,
+        avatar: member.user.displayAvatarURL({ size: 128 }),
+        bot: member.user.bot
+      };
+
+      console.log(`Successfully fetched user: ${userInfo.username}`);
+      return userInfo;
+    } catch (error) {
+      console.error(`Error getting Discord user ${userId}:`, error);
+      return null;
+    }
   }
 
   /**

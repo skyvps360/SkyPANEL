@@ -11517,6 +11517,185 @@ Generated on ${new Date().toLocaleString()}
       }
   });
 
+  // ----- Team Management Routes -----
+
+  // Public endpoint to get active team members
+  app.get("/api/team", async (req, res) => {
+    try {
+      const teamMembers = await storage.getActiveTeamMembers();
+      res.json(teamMembers);
+    } catch (error: any) {
+      console.error("Error fetching team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
+  // Admin endpoints for team management
+  app.get("/api/admin/team", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const teamMembers = await storage.getAllTeamMembers();
+      res.json(teamMembers);
+    } catch (error: any) {
+      console.error("Error fetching all team members:", error);
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
+  app.post("/api/admin/team", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const { discordUserId, discordUsername, discordAvatarUrl, role, aboutMe, displayOrder } = req.body;
+
+      if (!discordUserId || !discordUsername || !role) {
+        return res.status(400).json({ error: "Discord user ID, username, and role are required" });
+      }
+
+      // Check if team member already exists
+      const existingMember = await storage.getTeamMemberByDiscordId(discordUserId);
+      if (existingMember) {
+        return res.status(400).json({ error: "Team member with this Discord ID already exists" });
+      }
+
+      const newMember = await storage.createTeamMember({
+        discordUserId,
+        discordUsername,
+        discordAvatarUrl,
+        role,
+        aboutMe,
+        displayOrder: displayOrder || 0,
+        isActive: true,
+        createdBy: req.user!.id,
+        updatedBy: req.user!.id,
+      });
+
+      res.status(201).json(newMember);
+    } catch (error: any) {
+      console.error("Error creating team member:", error);
+      res.status(500).json({ error: "Failed to create team member" });
+    }
+  });
+
+  app.put("/api/admin/team/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid team member ID" });
+      }
+
+      const { role, aboutMe, displayOrder, isActive } = req.body;
+
+      // Check if team member exists
+      const existingMember = await storage.getTeamMemberById(id);
+      if (!existingMember) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+
+      await storage.updateTeamMember(id, {
+        role,
+        aboutMe,
+        displayOrder,
+        isActive,
+        updatedBy: req.user!.id,
+      });
+
+      const updatedMember = await storage.getTeamMemberById(id);
+      res.json(updatedMember);
+    } catch (error: any) {
+      console.error("Error updating team member:", error);
+      res.status(500).json({ error: "Failed to update team member" });
+    }
+  });
+
+  app.delete("/api/admin/team/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid team member ID" });
+      }
+
+      // Check if team member exists
+      const existingMember = await storage.getTeamMemberById(id);
+      if (!existingMember) {
+        return res.status(404).json({ error: "Team member not found" });
+      }
+
+      await storage.deleteTeamMember(id);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting team member:", error);
+      res.status(500).json({ error: "Failed to delete team member" });
+    }
+  });
+
+  // Discord user search endpoint for admin
+  app.get("/api/admin/discord/users", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log("Discord user search endpoint called");
+      const query = req.query.q as string;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      console.log(`Search parameters: query="${query}", limit=${limit}`);
+
+      if (!query || query.trim().length < 2) {
+        console.log("Query too short, returning 400");
+        return res.status(400).json({ error: "Search query must be at least 2 characters" });
+      }
+
+      console.log("Importing Discord bot service...");
+      const { discordBotService } = await import('./discord-bot-service');
+      // discordBotService is already an instance, not a class
+
+      console.log("Discord bot instance obtained, calling searchDiscordUsers...");
+      const users = await discordBotService.searchDiscordUsers(query.trim(), limit);
+
+      console.log(`Search completed, returning ${users.length} users`);
+      res.json(users);
+    } catch (error: any) {
+      console.error("Error searching Discord users:", error);
+      console.error("Error stack:", error.stack);
+      res.status(500).json({
+        error: "Failed to search Discord users",
+        details: error.message
+      });
+    }
+  });
+
+  // Get specific Discord user by ID
+  app.get("/api/admin/discord/users/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log("Discord user fetch endpoint called");
+      const userId = req.params.id;
+
+      console.log(`Fetch parameters: userId="${userId}"`);
+
+      if (!userId) {
+        console.log("User ID missing, returning 400");
+        return res.status(400).json({ error: "Discord user ID is required" });
+      }
+
+      console.log("Importing Discord bot service...");
+      const { discordBotService } = await import('./discord-bot-service');
+      // discordBotService is already an instance, not a class
+
+      console.log("Discord bot instance obtained, calling getDiscordUser...");
+      const user = await discordBotService.getDiscordUser(userId);
+
+      if (!user) {
+        console.log("User not found, returning 404");
+        return res.status(404).json({ error: "Discord user not found" });
+      }
+
+      console.log(`User fetch completed, returning user: ${user.username}`);
+      res.json(user);
+    } catch (error: any) {
+      console.error("Error fetching Discord user:", error);
+      console.error("Error stack:", error.stack);
+      res.status(500).json({
+        error: "Failed to fetch Discord user",
+        details: error.message
+      });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
 

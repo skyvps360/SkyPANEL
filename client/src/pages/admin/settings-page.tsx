@@ -24,6 +24,7 @@ import { getBrandColors } from "@/lib/brand-theme";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
+import TeamManagement from "@/components/admin/TeamManagement";
 import {
   Settings as SettingsIcon,
   CreditCard,
@@ -38,7 +39,8 @@ import {
   Hourglass,
   Mail,
   PenTool,
-  Cloud
+  Cloud,
+  Users
 } from "lucide-react";
 
 interface Setting {
@@ -243,6 +245,7 @@ const settingsOptions = [
   { value: "cloud", label: "Cloud", icon: <Cloud className="h-4 w-4 mr-2" /> },
   { value: "email", label: "Email", icon: <Mail className="h-4 w-4 mr-2" /> },
   { value: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4 mr-2" /> },
+  { value: "team", label: "team", icon: <Users className="h-4 w-4 mr-2" /> },
   { value: "virtfusion", label: "VirtFusion API", icon: <Server className="h-4 w-4 mr-2" /> },
   { value: "tickets", label: "Tickets", icon: <Ticket className="h-4 w-4 mr-2" /> },
   { value: "maintenance", label: "Maintenance", icon: <AlertTriangle className="h-4 w-4 mr-2" /> },
@@ -1151,7 +1154,7 @@ export default function SettingsPage() {
         fetchMaintenanceToken();
       }
     }
-  }, [settings, virtFusionForm, billingForm, emailForm, cloudPricingForm, generalForm, notificationsForm, maintenanceForm, designForm, loadingScreenForm]);
+  }, [settings]); // Only depend on settings, not form objects
 
   // Handle VirtFusion API form submission
   const onVirtFusionSubmit = async (data: VirtFusionFormData) => {
@@ -2635,6 +2638,10 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 </form>
+              </TabsContent>
+
+              <TabsContent value="team">
+                <TeamManagement brandColors={brandColors} />
               </TabsContent>
 
               <TabsContent value="maintenance">

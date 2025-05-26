@@ -22,6 +22,7 @@ import {
   faqItems,
   legalContent,
   ticketDepartments,
+  teamMembers,
   type User,
   type InsertUser,
   type Transaction,
@@ -36,6 +37,8 @@ import {
   type InsertSettings,
   type Notification,
   type InsertNotification,
+  type TeamMember,
+  type InsertTeamMember,
 
   type PasswordResetToken,
   type InsertPasswordResetToken,
@@ -291,6 +294,15 @@ export interface IStorage {
   getAllLegalContent(): Promise<LegalContent[]>;
   createLegalContent(content: InsertLegalContent): Promise<LegalContent>;
   updateLegalContent(id: number, updates: Partial<LegalContent>): Promise<void>;
+
+  // Team member operations
+  getAllTeamMembers(): Promise<TeamMember[]>;
+  getActiveTeamMembers(): Promise<TeamMember[]>;
+  getTeamMemberById(id: number): Promise<TeamMember | undefined>;
+  getTeamMemberByDiscordId(discordUserId: string): Promise<TeamMember | undefined>;
+  createTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  updateTeamMember(id: number, updates: Partial<TeamMember>): Promise<void>;
+  deleteTeamMember(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1658,6 +1670,51 @@ export class DatabaseStorage implements IStorage {
     await db.update(legalContent)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(legalContent.id, id));
+  }
+
+  // Team member operations
+  async getAllTeamMembers(): Promise<TeamMember[]> {
+    return await db.select()
+      .from(teamMembers)
+      .orderBy(teamMembers.displayOrder, teamMembers.role);
+  }
+
+  async getActiveTeamMembers(): Promise<TeamMember[]> {
+    return await db.select()
+      .from(teamMembers)
+      .where(eq(teamMembers.isActive, true))
+      .orderBy(teamMembers.displayOrder, teamMembers.role);
+  }
+
+  async getTeamMemberById(id: number): Promise<TeamMember | undefined> {
+    const [member] = await db.select()
+      .from(teamMembers)
+      .where(eq(teamMembers.id, id));
+    return member;
+  }
+
+  async getTeamMemberByDiscordId(discordUserId: string): Promise<TeamMember | undefined> {
+    const [member] = await db.select()
+      .from(teamMembers)
+      .where(eq(teamMembers.discordUserId, discordUserId));
+    return member;
+  }
+
+  async createTeamMember(member: InsertTeamMember): Promise<TeamMember> {
+    const [createdMember] = await db.insert(teamMembers)
+      .values(member)
+      .returning();
+    return createdMember;
+  }
+
+  async updateTeamMember(id: number, updates: Partial<TeamMember>): Promise<void> {
+    await db.update(teamMembers)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(teamMembers.id, id));
+  }
+
+  async deleteTeamMember(id: number): Promise<void> {
+    await db.delete(teamMembers).where(eq(teamMembers.id, id));
   }
 }
 

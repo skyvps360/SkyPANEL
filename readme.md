@@ -73,7 +73,7 @@ If you find my work helpful, consider supporting me:
 
 - **Hosting Providers**: Complete client management solution with billing and support
 - **VPS Resellers**: White-label ready platform with custom branding capabilities
-- **Enterprise Teams**: Advanced user management and monitoring tools
+- **Enterprise team**: Advanced user management and monitoring tools
 - **Service Providers**: Integrated support system with AI assistance and Discord integration
 
 ---

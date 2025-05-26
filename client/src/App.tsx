@@ -36,6 +36,7 @@ import DocsListPage from "@/pages/docs/index";
 import StatusPage from "@/pages/status/index";
 import SpeedTestPage from "@/pages/speed-test/index";
 import PlansPage from "@/pages/plans/index";
+import TeamsPage from "@/pages/teams-page";
 
 // Admin pages
 import AdminDashboard from "@/pages/admin/index";
@@ -282,6 +283,7 @@ function Router() {
         <Route path="/status" component={StatusPage} />
         <Route path="/speed-test" component={SpeedTestPage} />
         <Route path="/plans" component={PlansPage} />
+        <Route path="/team" component={TeamsPage} />
         <Route path="/tos" component={TermsOfServicePage} />
         <Route path="/privacy" component={PrivacyPolicyPage} />
 
