@@ -237,6 +237,14 @@ const cloudPricingSchema = z.object({
   natIpv4Price: z.string().regex(/^\d*\.?\d*$/, { message: "NAT IPv4 price must be a valid number" }),
   publicIpv4Price: z.string().regex(/^\d*\.?\d*$/, { message: "Public IPv4 price must be a valid number" }),
   publicIpv6Price: z.string().regex(/^\d*\.?\d*$/, { message: "Public IPv6 price must be a valid number" }),
+  // Enable/disable toggles
+  cpuPricingEnabled: z.boolean().default(true),
+  ramPricingEnabled: z.boolean().default(true),
+  storagePricingEnabled: z.boolean().default(true),
+  networkPricingEnabled: z.boolean().default(true),
+  natIpv4PricingEnabled: z.boolean().default(false),
+  publicIpv4PricingEnabled: z.boolean().default(false),
+  publicIpv6PricingEnabled: z.boolean().default(false),
 });
 
 type CloudPricingFormData = z.infer<typeof cloudPricingSchema>;
@@ -374,6 +382,14 @@ export default function SettingsPage() {
       natIpv4Price: getSettingValue("cloud_nat_ipv4_price", "0.00"),
       publicIpv4Price: getSettingValue("cloud_public_ipv4_price", "0.00"),
       publicIpv6Price: getSettingValue("cloud_public_ipv6_price", "0.00"),
+      // Enable/disable toggles
+      cpuPricingEnabled: getSettingValue("cloud_cpu_pricing_enabled", "true") === "true",
+      ramPricingEnabled: getSettingValue("cloud_ram_pricing_enabled", "true") === "true",
+      storagePricingEnabled: getSettingValue("cloud_storage_pricing_enabled", "true") === "true",
+      networkPricingEnabled: getSettingValue("cloud_network_pricing_enabled", "true") === "true",
+      natIpv4PricingEnabled: getSettingValue("cloud_nat_ipv4_pricing_enabled", "false") === "true",
+      publicIpv4PricingEnabled: getSettingValue("cloud_public_ipv4_pricing_enabled", "false") === "true",
+      publicIpv6PricingEnabled: getSettingValue("cloud_public_ipv6_pricing_enabled", "false") === "true",
     },
   });
 
@@ -1164,6 +1180,14 @@ export default function SettingsPage() {
         natIpv4Price: getSettingValue("cloud_nat_ipv4_price", "0.00"),
         publicIpv4Price: getSettingValue("cloud_public_ipv4_price", "0.00"),
         publicIpv6Price: getSettingValue("cloud_public_ipv6_price", "0.00"),
+        // Enable/disable toggles
+        cpuPricingEnabled: getSettingValue("cloud_cpu_pricing_enabled", "true") === "true",
+        ramPricingEnabled: getSettingValue("cloud_ram_pricing_enabled", "true") === "true",
+        storagePricingEnabled: getSettingValue("cloud_storage_pricing_enabled", "true") === "true",
+        networkPricingEnabled: getSettingValue("cloud_network_pricing_enabled", "true") === "true",
+        natIpv4PricingEnabled: getSettingValue("cloud_nat_ipv4_pricing_enabled", "false") === "true",
+        publicIpv4PricingEnabled: getSettingValue("cloud_public_ipv4_pricing_enabled", "false") === "true",
+        publicIpv6PricingEnabled: getSettingValue("cloud_public_ipv6_pricing_enabled", "false") === "true",
       });
 
       // If maintenance mode is enabled, fetch the bypass token
@@ -1265,6 +1289,7 @@ export default function SettingsPage() {
     setSaveInProgress(true);
 
     try {
+      // Save pricing values
       await updateSettingMutation.mutateAsync({ key: "cloud_cpu_price_per_core", value: data.cpuPricePerCore });
       await updateSettingMutation.mutateAsync({ key: "cloud_ram_price_per_gb", value: data.ramPricePerGB });
       await updateSettingMutation.mutateAsync({ key: "cloud_storage_price_per_gb", value: data.storagePricePerGB });
@@ -1272,6 +1297,15 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "cloud_nat_ipv4_price", value: data.natIpv4Price });
       await updateSettingMutation.mutateAsync({ key: "cloud_public_ipv4_price", value: data.publicIpv4Price });
       await updateSettingMutation.mutateAsync({ key: "cloud_public_ipv6_price", value: data.publicIpv6Price });
+
+      // Save enable/disable toggles
+      await updateSettingMutation.mutateAsync({ key: "cloud_cpu_pricing_enabled", value: data.cpuPricingEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "cloud_ram_pricing_enabled", value: data.ramPricingEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "cloud_storage_pricing_enabled", value: data.storagePricingEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "cloud_network_pricing_enabled", value: data.networkPricingEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "cloud_nat_ipv4_pricing_enabled", value: data.natIpv4PricingEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "cloud_public_ipv4_pricing_enabled", value: data.publicIpv4PricingEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "cloud_public_ipv6_pricing_enabled", value: data.publicIpv6PricingEnabled.toString() });
 
       toast({
         title: "Settings saved",
@@ -1867,13 +1901,26 @@ export default function SettingsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="cpuPricePerCore">CPU Price per Core</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="cpuPricePerCore">CPU Price per Core</Label>
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor="cpuPricingEnabled" className="text-sm text-muted-foreground">
+                              {cloudPricingForm.watch("cpuPricingEnabled") ? "Enabled" : "Disabled"}
+                            </Label>
+                            <Switch
+                              id="cpuPricingEnabled"
+                              checked={cloudPricingForm.watch("cpuPricingEnabled")}
+                              onCheckedChange={(checked) => cloudPricingForm.setValue("cpuPricingEnabled", checked, { shouldDirty: true })}
+                            />
+                          </div>
+                        </div>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
                             id="cpuPricePerCore"
                             placeholder="0.00"
                             className="pl-8"
+                            disabled={!cloudPricingForm.watch("cpuPricingEnabled")}
                             {...cloudPricingForm.register("cpuPricePerCore")}
                           />
                         </div>
@@ -1888,13 +1935,26 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="ramPricePerGB">RAM Price per GB</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="ramPricePerGB">RAM Price per GB</Label>
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor="ramPricingEnabled" className="text-sm text-muted-foreground">
+                              {cloudPricingForm.watch("ramPricingEnabled") ? "Enabled" : "Disabled"}
+                            </Label>
+                            <Switch
+                              id="ramPricingEnabled"
+                              checked={cloudPricingForm.watch("ramPricingEnabled")}
+                              onCheckedChange={(checked) => cloudPricingForm.setValue("ramPricingEnabled", checked, { shouldDirty: true })}
+                            />
+                          </div>
+                        </div>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
                             id="ramPricePerGB"
                             placeholder="0.00"
                             className="pl-8"
+                            disabled={!cloudPricingForm.watch("ramPricingEnabled")}
                             {...cloudPricingForm.register("ramPricePerGB")}
                           />
                         </div>
@@ -1909,13 +1969,26 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="storagePricePerGB">Storage Price per GB</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="storagePricePerGB">Storage Price per GB</Label>
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor="storagePricingEnabled" className="text-sm text-muted-foreground">
+                              {cloudPricingForm.watch("storagePricingEnabled") ? "Enabled" : "Disabled"}
+                            </Label>
+                            <Switch
+                              id="storagePricingEnabled"
+                              checked={cloudPricingForm.watch("storagePricingEnabled")}
+                              onCheckedChange={(checked) => cloudPricingForm.setValue("storagePricingEnabled", checked, { shouldDirty: true })}
+                            />
+                          </div>
+                        </div>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
                             id="storagePricePerGB"
                             placeholder="0.00"
                             className="pl-8"
+                            disabled={!cloudPricingForm.watch("storagePricingEnabled")}
                             {...cloudPricingForm.register("storagePricePerGB")}
                           />
                         </div>
@@ -1930,13 +2003,26 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="networkPricePerMbps">Network Price per Mbps</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="networkPricePerMbps">Network Price per Mbps</Label>
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor="networkPricingEnabled" className="text-sm text-muted-foreground">
+                              {cloudPricingForm.watch("networkPricingEnabled") ? "Enabled" : "Disabled"}
+                            </Label>
+                            <Switch
+                              id="networkPricingEnabled"
+                              checked={cloudPricingForm.watch("networkPricingEnabled")}
+                              onCheckedChange={(checked) => cloudPricingForm.setValue("networkPricingEnabled", checked, { shouldDirty: true })}
+                            />
+                          </div>
+                        </div>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
                             id="networkPricePerMbps"
                             placeholder="0.00"
                             className="pl-8"
+                            disabled={!cloudPricingForm.watch("networkPricingEnabled")}
                             {...cloudPricingForm.register("networkPricePerMbps")}
                           />
                         </div>
@@ -1951,13 +2037,26 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="natIpv4Price">NAT IPv4 Price</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="natIpv4Price">NAT IPv4 Price</Label>
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor="natIpv4PricingEnabled" className="text-sm text-muted-foreground">
+                              {cloudPricingForm.watch("natIpv4PricingEnabled") ? "Enabled" : "Disabled"}
+                            </Label>
+                            <Switch
+                              id="natIpv4PricingEnabled"
+                              checked={cloudPricingForm.watch("natIpv4PricingEnabled")}
+                              onCheckedChange={(checked) => cloudPricingForm.setValue("natIpv4PricingEnabled", checked, { shouldDirty: true })}
+                            />
+                          </div>
+                        </div>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
                             id="natIpv4Price"
                             placeholder="0.00"
                             className="pl-8"
+                            disabled={!cloudPricingForm.watch("natIpv4PricingEnabled")}
                             {...cloudPricingForm.register("natIpv4Price")}
                           />
                         </div>
@@ -1972,13 +2071,26 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="publicIpv4Price">Public IPv4 Price</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="publicIpv4Price">Public IPv4 Price</Label>
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor="publicIpv4PricingEnabled" className="text-sm text-muted-foreground">
+                              {cloudPricingForm.watch("publicIpv4PricingEnabled") ? "Enabled" : "Disabled"}
+                            </Label>
+                            <Switch
+                              id="publicIpv4PricingEnabled"
+                              checked={cloudPricingForm.watch("publicIpv4PricingEnabled")}
+                              onCheckedChange={(checked) => cloudPricingForm.setValue("publicIpv4PricingEnabled", checked, { shouldDirty: true })}
+                            />
+                          </div>
+                        </div>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
                             id="publicIpv4Price"
                             placeholder="0.00"
                             className="pl-8"
+                            disabled={!cloudPricingForm.watch("publicIpv4PricingEnabled")}
                             {...cloudPricingForm.register("publicIpv4Price")}
                           />
                         </div>
@@ -1993,13 +2105,26 @@ export default function SettingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="publicIpv6Price">Public IPv6 Price</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="publicIpv6Price">Public IPv6 Price</Label>
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor="publicIpv6PricingEnabled" className="text-sm text-muted-foreground">
+                              {cloudPricingForm.watch("publicIpv6PricingEnabled") ? "Enabled" : "Disabled"}
+                            </Label>
+                            <Switch
+                              id="publicIpv6PricingEnabled"
+                              checked={cloudPricingForm.watch("publicIpv6PricingEnabled")}
+                              onCheckedChange={(checked) => cloudPricingForm.setValue("publicIpv6PricingEnabled", checked, { shouldDirty: true })}
+                            />
+                          </div>
+                        </div>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
                           <Input
                             id="publicIpv6Price"
                             placeholder="0.00"
                             className="pl-8"
+                            disabled={!cloudPricingForm.watch("publicIpv6PricingEnabled")}
                             {...cloudPricingForm.register("publicIpv6Price")}
                           />
                         </div>
@@ -2009,7 +2134,7 @@ export default function SettingsPage() {
                           </p>
                         )}
                         <p className="text-sm text-muted-foreground">
-                          Price charged per additional public IPv6 subnet per hour
+                          Price charged per additional public IPv6 /80 subnet per hour
                         </p>
                       </div>
                     </div>
@@ -2017,52 +2142,77 @@ export default function SettingsPage() {
                     <div className="bg-muted/50 p-4 rounded-lg">
                       <h4 className="font-medium mb-2 flex items-center">
                         <Cloud className="h-4 w-4 mr-2" />
-                        Pricing Preview
+                        Pricing Preview (Enabled Options Only)
                       </h4>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">CPU:</span>
-                          <span className="ml-2 font-mono">
-                            ${cloudPricingForm.watch("cpuPricePerCore") || "0.00"}/core/hr
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">RAM:</span>
-                          <span className="ml-2 font-mono">
-                            ${cloudPricingForm.watch("ramPricePerGB") || "0.00"}/GB/hr
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Storage:</span>
-                          <span className="ml-2 font-mono">
-                            ${cloudPricingForm.watch("storagePricePerGB") || "0.00"}/GB/hr
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Network:</span>
-                          <span className="ml-2 font-mono">
-                            ${cloudPricingForm.watch("networkPricePerMbps") || "0.00"}/Mbps/hr
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">NAT IPv4:</span>
-                          <span className="ml-2 font-mono">
-                            ${cloudPricingForm.watch("natIpv4Price") || "0.00"}/IP/hr
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Public IPv4:</span>
-                          <span className="ml-2 font-mono">
-                            ${cloudPricingForm.watch("publicIpv4Price") || "0.00"}/IP/hr
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Public IPv6:</span>
-                          <span className="ml-2 font-mono">
-                            ${cloudPricingForm.watch("publicIpv6Price") || "0.00"}/subnet/hr
-                          </span>
-                        </div>
+                        {cloudPricingForm.watch("cpuPricingEnabled") && (
+                          <div>
+                            <span className="text-muted-foreground">CPU:</span>
+                            <span className="ml-2 font-mono">
+                              ${cloudPricingForm.watch("cpuPricePerCore") || "0.00"}/core/hr
+                            </span>
+                          </div>
+                        )}
+                        {cloudPricingForm.watch("ramPricingEnabled") && (
+                          <div>
+                            <span className="text-muted-foreground">RAM:</span>
+                            <span className="ml-2 font-mono">
+                              ${cloudPricingForm.watch("ramPricePerGB") || "0.00"}/GB/hr
+                            </span>
+                          </div>
+                        )}
+                        {cloudPricingForm.watch("storagePricingEnabled") && (
+                          <div>
+                            <span className="text-muted-foreground">Storage:</span>
+                            <span className="ml-2 font-mono">
+                              ${cloudPricingForm.watch("storagePricePerGB") || "0.00"}/GB/hr
+                            </span>
+                          </div>
+                        )}
+                        {cloudPricingForm.watch("networkPricingEnabled") && (
+                          <div>
+                            <span className="text-muted-foreground">Network:</span>
+                            <span className="ml-2 font-mono">
+                              ${cloudPricingForm.watch("networkPricePerMbps") || "0.00"}/Mbps/hr
+                            </span>
+                          </div>
+                        )}
+                        {cloudPricingForm.watch("natIpv4PricingEnabled") && (
+                          <div>
+                            <span className="text-muted-foreground">NAT IPv4:</span>
+                            <span className="ml-2 font-mono">
+                              ${cloudPricingForm.watch("natIpv4Price") || "0.00"}/IP/hr
+                            </span>
+                          </div>
+                        )}
+                        {cloudPricingForm.watch("publicIpv4PricingEnabled") && (
+                          <div>
+                            <span className="text-muted-foreground">Public IPv4:</span>
+                            <span className="ml-2 font-mono">
+                              ${cloudPricingForm.watch("publicIpv4Price") || "0.00"}/IP/hr
+                            </span>
+                          </div>
+                        )}
+                        {cloudPricingForm.watch("publicIpv6PricingEnabled") && (
+                          <div>
+                            <span className="text-muted-foreground">Public IPv6:</span>
+                            <span className="ml-2 font-mono">
+                              ${cloudPricingForm.watch("publicIpv6Price") || "0.00"}/80 subnet/hr
+                            </span>
+                          </div>
+                        )}
                       </div>
+                      {!cloudPricingForm.watch("cpuPricingEnabled") &&
+                       !cloudPricingForm.watch("ramPricingEnabled") &&
+                       !cloudPricingForm.watch("storagePricingEnabled") &&
+                       !cloudPricingForm.watch("networkPricingEnabled") &&
+                       !cloudPricingForm.watch("natIpv4PricingEnabled") &&
+                       !cloudPricingForm.watch("publicIpv4PricingEnabled") &&
+                       !cloudPricingForm.watch("publicIpv6PricingEnabled") && (
+                        <p className="text-muted-foreground text-center py-4">
+                          No pricing options are currently enabled
+                        </p>
+                      )}
                     </div>
 
                     <Separator />
