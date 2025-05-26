@@ -416,20 +416,8 @@ export class DiscordBotService {
         departmentInfo
       });
 
-      // Always try to fetch detailed server info for VPS tickets to ensure we have accurate data
-      let shouldFetchServerData = false;
-
-      // Check if we have VPS info but missing critical data
-      if (vpsInfo.name && (!vpsInfo.ip || vpsInfo.ip === 'undefined' || !vpsInfo.status || vpsInfo.status === 'undefined')) {
-        shouldFetchServerData = true;
-      }
-
-      // Also fetch if we have VPS info but want to ensure we have the most current status
-      if (vpsInfo.name && !shouldFetchServerData) {
-        shouldFetchServerData = true; // Always fetch for VPS tickets to get current status
-      }
-
-      if (shouldFetchServerData) {
+      // If we have VPS info but missing IP, try to fetch it from the ticket's VPS ID
+      if (vpsInfo.name && (!vpsInfo.ip || vpsInfo.ip === 'undefined')) {
         try {
           // Get the ticket to find the VPS ID
           const ticket = await storage.getTicket(ticketId);
@@ -481,12 +469,11 @@ export class DiscordBotService {
                 }
               }
 
-              // Update VPS info with the correct IP and status
+              // Update VPS info with the correct IP and other details
               vpsInfo.ip = primaryIp;
-              vpsInfo.status = server.status || 'Unknown';
               vpsInfo.hostname = server.hostname || vpsInfo.hostname || 'Unknown';
               vpsInfo.os = server.os?.name || vpsInfo.os || 'Unknown';
-              console.log(`Updated VPS info for Discord embed - IP: ${primaryIp}, Status: ${server.status}`);
+              console.log(`Updated VPS info for Discord embed - IP: ${primaryIp}`);
             }
           }
         } catch (error) {
@@ -536,11 +523,6 @@ export class DiscordBotService {
           {
             name: '💿 Operating System',
             value: vpsInfo.os || 'Unknown',
-            inline: true
-          },
-          {
-            name: '⚡ Status',
-            value: vpsInfo.status ? vpsInfo.status.toUpperCase() : 'Unknown',
             inline: true
           }
         );
