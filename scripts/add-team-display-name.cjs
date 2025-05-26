@@ -1,8 +1,5 @@
-import { Pool } from 'pg';
-import * as dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
+const { Pool } = require('pg');
+require('dotenv').config();
 
 async function addDisplayNameColumn() {
   const pool = new Pool({
@@ -76,4 +73,4 @@ if (require.main === module) {
     });
 }
 
-export { addDisplayNameColumn };
+module.exports = { addDisplayNameColumn };
