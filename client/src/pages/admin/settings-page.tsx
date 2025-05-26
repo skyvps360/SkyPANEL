@@ -1149,6 +1149,14 @@ export default function SettingsPage() {
         ]
       });
 
+      // Update Cloud pricing form
+      cloudPricingForm.reset({
+        cpuPricePerCore: getSettingValue("cloud_cpu_price_per_core", "0.00"),
+        ramPricePerGB: getSettingValue("cloud_ram_price_per_gb", "0.00"),
+        storagePricePerGB: getSettingValue("cloud_storage_price_per_gb", "0.00"),
+        networkPricePerMbps: getSettingValue("cloud_network_price_per_mbps", "0.00"),
+      });
+
       // If maintenance mode is enabled, fetch the bypass token
       if (getSettingValue("maintenance_mode", "false") === "true") {
         fetchMaintenanceToken();
