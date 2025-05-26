@@ -367,9 +367,102 @@ export class DiscordBotService {
             .setStyle(ButtonStyle.Primary)
         );
 
-      // Post the initial message to the thread with close button
+      // Parse the message to extract VPS information and main message
+      const messageLines = message.split('\n');
+      let mainMessage = '';
+      let vpsInfo: any = {};
+      let departmentInfo = '';
+
+      // Find where the additional info starts (usually after a double newline)
+      const additionalInfoIndex = messageLines.findIndex(line => line.startsWith('Department:'));
+
+      if (additionalInfoIndex !== -1) {
+        // Extract main message (everything before additional info)
+        mainMessage = messageLines.slice(0, additionalInfoIndex).join('\n').trim();
+
+        // Parse additional info
+        for (let i = additionalInfoIndex; i < messageLines.length; i++) {
+          const line = messageLines[i].trim();
+          if (line.startsWith('Department:')) {
+            departmentInfo = line.replace('Department:', '').trim();
+          } else if (line.startsWith('VPS:')) {
+            const vpsMatch = line.match(/VPS:\s*(.+?)\s*\((.+?),\s*(.+?)\)/);
+            if (vpsMatch) {
+              vpsInfo.name = vpsMatch[1];
+              vpsInfo.hostname = vpsMatch[2];
+              vpsInfo.ip = vpsMatch[3];
+            }
+          } else if (line.startsWith('OS:')) {
+            vpsInfo.os = line.replace('OS:', '').trim();
+          } else if (line.startsWith('Package:')) {
+            vpsInfo.package = line.replace('Package:', '').trim();
+          } else if (line.startsWith('Status:')) {
+            vpsInfo.status = line.replace('Status:', '').trim();
+          }
+        }
+      } else {
+        mainMessage = message;
+      }
+
+      // Create the embed
+      const embed = new EmbedBuilder()
+        .setTitle(`🎫 New Support Ticket from ${userName}`)
+        .setColor(0x00FFFF) // Cyan color
+        .setDescription(`**Subject:** ${subject}`)
+        .addFields(
+          {
+            name: '📝 Message',
+            value: mainMessage || '(No message provided)',
+            inline: false
+          },
+          {
+            name: '🏢 Department',
+            value: departmentInfo || 'Unknown',
+            inline: true
+          }
+        )
+        .setTimestamp()
+        .setFooter({ text: 'Reply to this thread to respond to the ticket' });
+
+      // Add VPS information if available
+      if (vpsInfo.name) {
+        embed.addFields(
+          {
+            name: '🖥️ VPS Server',
+            value: vpsInfo.name,
+            inline: true
+          },
+          {
+            name: '🌐 Hostname',
+            value: vpsInfo.hostname || 'Unknown',
+            inline: true
+          },
+          {
+            name: '📡 IP Address',
+            value: vpsInfo.ip || 'No IP',
+            inline: true
+          },
+          {
+            name: '💿 Operating System',
+            value: vpsInfo.os || 'Unknown',
+            inline: true
+          },
+          {
+            name: '📦 Package',
+            value: vpsInfo.package || 'Unknown',
+            inline: true
+          },
+          {
+            name: '⚡ Status',
+            value: vpsInfo.status || 'Unknown',
+            inline: true
+          }
+        );
+      }
+
+      // Post the initial message to the thread with embed and close button
       const sentMessage = await thread.send({
-        content: `**New Support Ticket from ${userName}**\n\n**Subject:** ${subject}\n\n${message}\n\n*Reply to this thread to respond to the ticket. You can also use the button below to close the ticket.*`,
+        embeds: [embed],
         components: [ticketButtons]
       });
 
@@ -471,9 +564,16 @@ export class DiscordBotService {
           return false;
         }
 
-        // Send the reply
-        const prefix = isAdmin ? `**Staff Reply from ${userName}**` : `**Customer Reply from ${userName}**`;
-        await thread.send(`${prefix}\n\n${message}`);
+        // Create an embed for the reply
+        const replyEmbed = new EmbedBuilder()
+          .setTitle(isAdmin ? '👨‍💼 Staff Reply' : '💬 Customer Reply')
+          .setColor(isAdmin ? 0x7289DA : 0xFFAA00) // Blue for staff, amber for customer
+          .setDescription(message)
+          .setAuthor({ name: userName })
+          .setTimestamp();
+
+        // Send the reply as an embed
+        await thread.send({ embeds: [replyEmbed] });
 
         console.log(`Sent reply to Discord thread for ticket #${ticketId}`);
         return true;
@@ -547,9 +647,17 @@ export class DiscordBotService {
                 .setStyle(ButtonStyle.Success)
             );
 
+          // Create embed for ticket closure
+          const closedEmbed = new EmbedBuilder()
+            .setTitle('🔒 Ticket Closed')
+            .setColor(0x808080) // Gray color
+            .setDescription('This support ticket has been closed. The thread will be archived.')
+            .setAuthor({ name: userName })
+            .setTimestamp();
+
           // Send a message with reopen button and archive the thread
           await thread.send({
-            content: `**Ticket Closed by ${userName}**\n\nThis support ticket has been closed. The thread will be archived.`,
+            embeds: [closedEmbed],
             components: [reopenButton]
           });
           await thread.setArchived(true);
@@ -563,9 +671,17 @@ export class DiscordBotService {
                 .setStyle(ButtonStyle.Primary)
             );
 
+          // Create embed for ticket reopening
+          const reopenedEmbed = new EmbedBuilder()
+            .setTitle('🔓 Ticket Reopened')
+            .setColor(0x00FF00) // Green color
+            .setDescription('This support ticket has been reopened.')
+            .setAuthor({ name: userName })
+            .setTimestamp();
+
           // Send a message and unarchive if needed
           await thread.send({
-            content: `**Ticket Reopened by ${userName}**\n\nThis support ticket has been reopened.`,
+            embeds: [reopenedEmbed],
             components: [ticketButtons]
           });
 
@@ -632,8 +748,16 @@ export class DiscordBotService {
           return true;
         }
 
+        // Create embed for ticket deletion
+        const deletedEmbed = new EmbedBuilder()
+          .setTitle('🗑️ Ticket Deleted')
+          .setColor(0xFF0000) // Red color
+          .setDescription('This support ticket has been permanently deleted. The thread will be archived.')
+          .setAuthor({ name: adminName })
+          .setTimestamp();
+
         // Send a message that the ticket was deleted
-        await thread.send(`**Ticket Deleted by ${adminName}**\n\nThis support ticket has been permanently deleted. The thread will be archived.`);
+        await thread.send({ embeds: [deletedEmbed] });
         await thread.setArchived(true);
 
         // Remove from our tracking
