@@ -1458,6 +1458,32 @@ async function testVirtFusionUserCreation(
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
+  // Health check endpoint for Docker and monitoring
+  app.get("/api/health", async (req, res) => {
+    try {
+      // Basic health check - verify database connection
+      const dbCheck = await db.select().from(settings).limit(1);
+
+      const healthStatus = {
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        version: process.env.npm_package_version || "unknown",
+        environment: process.env.NODE_ENV || "unknown",
+        uptime: process.uptime(),
+        database: "connected"
+      };
+
+      res.status(200).json(healthStatus);
+    } catch (error) {
+      console.error('Health check failed:', error);
+      res.status(503).json({
+        status: "unhealthy",
+        timestamp: new Date().toISOString(),
+        error: "Database connection failed"
+      });
+    }
+  });
+
   // Maintenance mode status endpoint
   app.get("/api/maintenance/status", async (req, res) => {
     try {
