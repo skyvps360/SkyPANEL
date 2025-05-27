@@ -21,7 +21,7 @@ import {
   ChannelType,
   Message,
   Partials,
-  InteractionResponseFlags
+  MessageFlags
 } from 'discord.js';
 import { storage } from './storage';
 import { InsertTicketMessage, InsertDiscordTicketThread } from '../shared/schema';
@@ -1233,7 +1233,7 @@ export class DiscordBotService {
         if (ticket.status.toLowerCase() === 'closed') {
           await interaction.reply({
             content: `Ticket #${ticketId} is already closed.`,
-            flags: InteractionResponseFlags.Ephemeral
+            flags: MessageFlags.Ephemeral
           });
           return;
         }
@@ -2825,7 +2825,7 @@ export class DiscordBotService {
     } catch (error: any) {
       await interaction.reply({
         content: `❌ Failed to get server info: ${error.message}`,
-        flags: InteractionResponseFlags.Ephemeral
+        flags: MessageFlags.Ephemeral
       });
     }
   }
@@ -2864,7 +2864,7 @@ export class DiscordBotService {
         } else {
           await interaction.reply({
             content: '❌ Sorry, I encountered an error while showing help information.',
-            flags: InteractionResponseFlags.Ephemeral
+            flags: MessageFlags.Ephemeral
           });
         }
       } catch (replyError: any) {
@@ -3122,7 +3122,7 @@ export class DiscordBotService {
       try {
         await interaction.followUp({
           content: '❌ Sorry, I encountered an error while updating the help information.',
-          flags: InteractionResponseFlags.Ephemeral
+          flags: MessageFlags.Ephemeral
         });
       } catch (replyError: any) {
         console.log(`Could not reply to help button interaction due to: ${replyError.message}`);
