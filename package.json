@@ -10,18 +10,7 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "update-packages": "ncu -u",
-    "wrangler": "wrangler run",
-    "docker:build": "docker build -t skypanel .",
-    "docker:build-dev": "docker build --target development -t skypanel:dev .",
-    "docker:run": "docker run -p 5000:5000 --env-file .env skypanel",
-    "docker:run-dev": "docker run -p 5000:5000 -v $(pwd):/app -v /app/node_modules --env-file .env skypanel:dev",
-    "docker:up": "docker-compose up -d",
-    "docker:up-dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
-    "docker:down": "docker-compose down",
-    "docker:down-dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml down",
-    "docker:logs": "docker-compose logs -f",
-    "docker:logs-app": "docker-compose logs -f app",
-    "docker:clean": "docker-compose down -v --remove-orphans && docker system prune -f"
+    "wrangler": "wrangler run"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

@@ -14,7 +14,13 @@ import {
   ChatInputCommandInteraction,
   ButtonInteraction,
   ApplicationCommandType,
-  Interaction
+  Interaction,
+  GuildMember,
+  User,
+  PermissionFlagsBits,
+  ChannelType,
+  Message,
+  Partials
 } from 'discord.js';
 import { storage } from './storage';
 import { InsertTicketMessage, InsertDiscordTicketThread } from '../shared/schema';
@@ -86,7 +92,14 @@ export class DiscordBotService {
           GatewayIntentBits.GuildMessages,
           GatewayIntentBits.MessageContent,
           GatewayIntentBits.DirectMessages, // Add intent for direct messages
+          GatewayIntentBits.DirectMessageReactions, // Add intent for DM reactions
+          GatewayIntentBits.DirectMessageTyping, // Add intent for DM typing
           GatewayIntentBits.GuildMembers, // Required for fetching guild members
+          GatewayIntentBits.GuildModeration, // Required for moderation actions (bans, kicks, timeouts)
+        ],
+        partials: [
+          Partials.Channel, // Required for DMs
+          Partials.Message, // Required for DM messages
         ]
       });
 
@@ -105,9 +118,17 @@ export class DiscordBotService {
           if (interaction.commandName === 'status') {
             await this.handleStatusCommand(interaction);
           }
+          // Handle help command (can be used anywhere)
+          else if (interaction.commandName === 'help') {
+            await this.handleHelpCommand(interaction);
+          }
           // Check if it's an AI command
           else if (interaction.commandName === 'ask') {
             await this.handleAICommand(interaction);
+          }
+          // Check if it's a moderation command
+          else if (this.isModerationCommand(interaction.commandName)) {
+            await this.handleModerationCommand(interaction);
           }
           // Handle ticket commands (require thread context)
           else {
@@ -120,8 +141,12 @@ export class DiscordBotService {
 
       // Handle messages in threads
       this.client.on(Events.MessageCreate, async (message) => {
+        // Debug logging for all messages
+        console.log(`Received message in channel type: ${message.channel.type}, from: ${message.author.username}, bot: ${message.author.bot}`);
+
         // Handle direct messages to bot
         if (message.channel.type === 1) { // ChannelType.DM = 1
+          console.log(`Processing DM from ${message.author.username}: ${message.content}`);
           await this.handleDirectMessage(message);
           return;
         }
@@ -888,6 +913,25 @@ export class DiscordBotService {
         new SlashCommandBuilder()
           .setName('status')
           .setDescription('Check the current platform status and service health'),
+
+        new SlashCommandBuilder()
+          .setName('help')
+          .setDescription('Show all available bot commands and their usage')
+          .addStringOption(option =>
+            option
+              .setName('category')
+              .setDescription('Show commands for a specific category')
+              .setRequired(false)
+              .addChoices(
+                { name: 'General', value: 'general' },
+                { name: 'Moderation', value: 'moderation' },
+                { name: 'AI Assistant', value: 'ai' },
+                { name: 'Tickets', value: 'tickets' }
+              )
+          ),
+
+        // Get moderation commands
+        ...this.getModerationCommands(),
       ];
 
       // Register commands for the specific guild (faster than global registration)
@@ -1135,6 +1179,12 @@ export class DiscordBotService {
       // Handle status command buttons (these don't need thread context)
       if (interaction.customId.startsWith('status_')) {
         await this.handleStatusButton(interaction);
+        return;
+      }
+
+      // Handle help command buttons (these don't need thread context)
+      if (interaction.customId.startsWith('help_')) {
+        await this.handleHelpButton(interaction);
         return;
       }
 
@@ -1634,6 +1684,335 @@ export class DiscordBotService {
   }
 
   /**
+   * Get the moderation commands for the bot
+   * @returns Array of SlashCommandBuilder objects for moderation functionality
+   */
+  private getModerationCommands(): any[] {
+    return [
+      // Kick command
+      new SlashCommandBuilder()
+        .setName('kick')
+        .setDescription('Kick a member from the server')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to kick')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for the kick')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
+        .toJSON(),
+
+      // Ban command
+      new SlashCommandBuilder()
+        .setName('ban')
+        .setDescription('Ban a member from the server')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to ban')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for the ban')
+            .setRequired(false)
+        )
+        .addIntegerOption(option =>
+          option
+            .setName('delete_days')
+            .setDescription('Number of days of messages to delete (0-7)')
+            .setMinValue(0)
+            .setMaxValue(7)
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+        .toJSON(),
+
+      // Unban command
+      new SlashCommandBuilder()
+        .setName('unban')
+        .setDescription('Unban a user from the server')
+        .addStringOption(option =>
+          option
+            .setName('user_id')
+            .setDescription('The user ID to unban')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for the unban')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
+        .toJSON(),
+
+      // Timeout command
+      new SlashCommandBuilder()
+        .setName('timeout')
+        .setDescription('Timeout a member')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to timeout')
+            .setRequired(true)
+        )
+        .addIntegerOption(option =>
+          option
+            .setName('duration')
+            .setDescription('Duration in minutes (1-40320)')
+            .setMinValue(1)
+            .setMaxValue(40320) // 28 days max
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for the timeout')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+        .toJSON(),
+
+      // Remove timeout command
+      new SlashCommandBuilder()
+        .setName('untimeout')
+        .setDescription('Remove timeout from a member')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to remove timeout from')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for removing timeout')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+        .toJSON(),
+
+      // Clear messages command
+      new SlashCommandBuilder()
+        .setName('clear')
+        .setDescription('Clear messages from the channel')
+        .addIntegerOption(option =>
+          option
+            .setName('amount')
+            .setDescription('Number of messages to delete (1-100)')
+            .setMinValue(1)
+            .setMaxValue(100)
+            .setRequired(true)
+        )
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('Only delete messages from this user')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+        .toJSON(),
+
+      // Warn command
+      new SlashCommandBuilder()
+        .setName('warn')
+        .setDescription('Warn a member')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to warn')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for the warning')
+            .setRequired(true)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+        .toJSON(),
+
+      // User info command
+      new SlashCommandBuilder()
+        .setName('userinfo')
+        .setDescription('Get information about a user')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to get info about')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+        .toJSON(),
+
+      // Server info command
+      new SlashCommandBuilder()
+        .setName('serverinfo')
+        .setDescription('Get information about the server')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
+        .toJSON(),
+    ];
+  }
+
+  /**
+   * Check if a command is a moderation command
+   * @param commandName The command name to check
+   * @returns True if it's a moderation command
+   */
+  private isModerationCommand(commandName: string): boolean {
+    const moderationCommands = ['kick', 'ban', 'unban', 'timeout', 'untimeout', 'clear', 'warn', 'userinfo', 'serverinfo'];
+    return moderationCommands.includes(commandName);
+  }
+
+  /**
+   * Check if a user has permission to use moderation commands
+   * @param interaction The Discord command interaction
+   * @returns True if user has permission
+   */
+  private async hasModeratorPermission(interaction: ChatInputCommandInteraction): Promise<boolean> {
+    if (!interaction.guild || !interaction.member) {
+      return false;
+    }
+
+    const member = interaction.member as GuildMember;
+
+    // Check if user has the required Discord permissions
+    const requiredPermissions = {
+      'kick': PermissionFlagsBits.KickMembers,
+      'ban': PermissionFlagsBits.BanMembers,
+      'unban': PermissionFlagsBits.BanMembers,
+      'timeout': PermissionFlagsBits.ModerateMembers,
+      'untimeout': PermissionFlagsBits.ModerateMembers,
+      'clear': PermissionFlagsBits.ManageMessages,
+      'warn': PermissionFlagsBits.ModerateMembers,
+      'userinfo': PermissionFlagsBits.ModerateMembers,
+      'serverinfo': PermissionFlagsBits.ModerateMembers,
+    };
+
+    const requiredPermission = requiredPermissions[interaction.commandName as keyof typeof requiredPermissions];
+    if (requiredPermission && !member.permissions.has(requiredPermission)) {
+      return false;
+    }
+
+    // Check if user is in allowed roles/users from SkyPANEL settings
+    const allowedRoleIds = await this.getAllowedRoleIds();
+    const allowedUserIds = await this.getAllowedUserIds();
+
+    // Check if user has any of the allowed roles
+    if (allowedRoleIds.length > 0) {
+      const hasAllowedRole = member.roles.cache.some(role => allowedRoleIds.includes(role.id));
+      if (hasAllowedRole) {
+        return true;
+      }
+    }
+
+    // Check if user is in allowed users list
+    if (allowedUserIds.length > 0 && allowedUserIds.includes(interaction.user.id)) {
+      return true;
+    }
+
+    // If no specific roles/users are configured, fall back to Discord permissions
+    return allowedRoleIds.length === 0 && allowedUserIds.length === 0;
+  }
+
+  /**
+   * Get allowed role IDs from settings
+   * @returns Array of allowed role IDs
+   */
+  private async getAllowedRoleIds(): Promise<string[]> {
+    const setting = await storage.getSetting('discord_allowed_role_ids');
+    if (!setting?.value) return [];
+    return setting.value.split(',').map(id => id.trim()).filter(id => id.length > 0);
+  }
+
+  /**
+   * Get allowed user IDs from settings
+   * @returns Array of allowed user IDs
+   */
+  private async getAllowedUserIds(): Promise<string[]> {
+    const setting = await storage.getSetting('discord_allowed_user_ids');
+    if (!setting?.value) return [];
+    return setting.value.split(',').map(id => id.trim()).filter(id => id.length > 0);
+  }
+
+  /**
+   * Handle moderation commands
+   * @param interaction The Discord command interaction
+   */
+  private async handleModerationCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    try {
+      // Check if user has permission to use moderation commands
+      if (!await this.hasModeratorPermission(interaction)) {
+        await interaction.reply({
+          content: '❌ You do not have permission to use moderation commands.',
+          ephemeral: true
+        });
+        return;
+      }
+
+      // Handle different moderation commands
+      switch (interaction.commandName) {
+        case 'kick':
+          await this.handleKickCommand(interaction);
+          break;
+        case 'ban':
+          await this.handleBanCommand(interaction);
+          break;
+        case 'unban':
+          await this.handleUnbanCommand(interaction);
+          break;
+        case 'timeout':
+          await this.handleTimeoutCommand(interaction);
+          break;
+        case 'untimeout':
+          await this.handleUntimeoutCommand(interaction);
+          break;
+        case 'clear':
+          await this.handleClearCommand(interaction);
+          break;
+        case 'warn':
+          await this.handleWarnCommand(interaction);
+          break;
+        case 'userinfo':
+          await this.handleUserInfoCommand(interaction);
+          break;
+        case 'serverinfo':
+          await this.handleServerInfoCommand(interaction);
+          break;
+        default:
+          await interaction.reply({
+            content: '❌ Unknown moderation command.',
+            ephemeral: true
+          });
+      }
+    } catch (error: any) {
+      console.error('Error handling moderation command:', error);
+
+      const errorMessage = error.code === 50013
+        ? '❌ I don\'t have permission to perform this action. Please check my role permissions.'
+        : `❌ An error occurred: ${error.message}`;
+
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.editReply({ content: errorMessage });
+        } else {
+          await interaction.reply({ content: errorMessage, ephemeral: true });
+        }
+      } catch (replyError) {
+        console.error('Failed to send error message:', replyError);
+      }
+    }
+  }
+
+  /**
    * Handle AI-related slash commands
    * @param interaction The Discord command interaction
    */
@@ -2000,6 +2379,927 @@ export class DiscordBotService {
         console.error('Error replying to status command:', replyError);
       }
     }
+  }
+
+  /**
+   * Handle kick command
+   * @param interaction The Discord command interaction
+   */
+  private async handleKickCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    const targetUser = interaction.options.getUser('user', true);
+    const reason = interaction.options.getString('reason') || 'No reason provided';
+
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      return;
+    }
+
+    try {
+      const member = await interaction.guild.members.fetch(targetUser.id);
+
+      if (!member.kickable) {
+        await interaction.reply({ content: '❌ I cannot kick this user. They may have higher permissions than me.', ephemeral: true });
+        return;
+      }
+
+      if (member.id === interaction.user.id) {
+        await interaction.reply({ content: '❌ You cannot kick yourself.', ephemeral: true });
+        return;
+      }
+
+      await member.kick(reason);
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFF6B35)
+        .setTitle('🦶 Member Kicked')
+        .addFields(
+          { name: 'User', value: `${targetUser.tag} (${targetUser.id})`, inline: true },
+          { name: 'Moderator', value: `${interaction.user.tag}`, inline: true },
+          { name: 'Reason', value: reason, inline: false }
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } catch (error: any) {
+      await interaction.reply({ content: `❌ Failed to kick user: ${error.message}`, ephemeral: true });
+    }
+  }
+
+  /**
+   * Handle ban command
+   * @param interaction The Discord command interaction
+   */
+  private async handleBanCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    const targetUser = interaction.options.getUser('user', true);
+    const reason = interaction.options.getString('reason') || 'No reason provided';
+    const deleteDays = interaction.options.getInteger('delete_days') || 0;
+
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      return;
+    }
+
+    try {
+      const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+
+      if (member && !member.bannable) {
+        await interaction.reply({ content: '❌ I cannot ban this user. They may have higher permissions than me.', ephemeral: true });
+        return;
+      }
+
+      if (targetUser.id === interaction.user.id) {
+        await interaction.reply({ content: '❌ You cannot ban yourself.', ephemeral: true });
+        return;
+      }
+
+      await interaction.guild.members.ban(targetUser, { reason, deleteMessageDays: deleteDays });
+
+      const embed = new EmbedBuilder()
+        .setColor(0xDC143C)
+        .setTitle('🔨 Member Banned')
+        .addFields(
+          { name: 'User', value: `${targetUser.tag} (${targetUser.id})`, inline: true },
+          { name: 'Moderator', value: `${interaction.user.tag}`, inline: true },
+          { name: 'Reason', value: reason, inline: false },
+          { name: 'Messages Deleted', value: `${deleteDays} days`, inline: true }
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } catch (error: any) {
+      await interaction.reply({ content: `❌ Failed to ban user: ${error.message}`, ephemeral: true });
+    }
+  }
+
+  /**
+   * Handle unban command
+   * @param interaction The Discord command interaction
+   */
+  private async handleUnbanCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    const userId = interaction.options.getString('user_id', true);
+    const reason = interaction.options.getString('reason') || 'No reason provided';
+
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      return;
+    }
+
+    try {
+      const bannedUser = await interaction.guild.bans.fetch(userId).catch(() => null);
+
+      if (!bannedUser) {
+        await interaction.reply({ content: '❌ This user is not banned.', ephemeral: true });
+        return;
+      }
+
+      await interaction.guild.members.unban(userId, reason);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x32CD32)
+        .setTitle('🔓 Member Unbanned')
+        .addFields(
+          { name: 'User', value: `${bannedUser.user.tag} (${bannedUser.user.id})`, inline: true },
+          { name: 'Moderator', value: `${interaction.user.tag}`, inline: true },
+          { name: 'Reason', value: reason, inline: false }
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } catch (error: any) {
+      await interaction.reply({ content: `❌ Failed to unban user: ${error.message}`, ephemeral: true });
+    }
+  }
+
+  /**
+   * Handle timeout command
+   * @param interaction The Discord command interaction
+   */
+  private async handleTimeoutCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    const targetUser = interaction.options.getUser('user', true);
+    const duration = interaction.options.getInteger('duration', true);
+    const reason = interaction.options.getString('reason') || 'No reason provided';
+
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      return;
+    }
+
+    try {
+      const member = await interaction.guild.members.fetch(targetUser.id);
+
+      if (!member.moderatable) {
+        await interaction.reply({ content: '❌ I cannot timeout this user. They may have higher permissions than me.', ephemeral: true });
+        return;
+      }
+
+      if (member.id === interaction.user.id) {
+        await interaction.reply({ content: '❌ You cannot timeout yourself.', ephemeral: true });
+        return;
+      }
+
+      const timeoutUntil = new Date(Date.now() + duration * 60 * 1000);
+      await member.timeout(duration * 60 * 1000, reason);
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFFA500)
+        .setTitle('⏰ Member Timed Out')
+        .addFields(
+          { name: 'User', value: `${targetUser.tag} (${targetUser.id})`, inline: true },
+          { name: 'Moderator', value: `${interaction.user.tag}`, inline: true },
+          { name: 'Duration', value: `${duration} minutes`, inline: true },
+          { name: 'Until', value: `<t:${Math.floor(timeoutUntil.getTime() / 1000)}:F>`, inline: true },
+          { name: 'Reason', value: reason, inline: false }
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } catch (error: any) {
+      await interaction.reply({ content: `❌ Failed to timeout user: ${error.message}`, ephemeral: true });
+    }
+  }
+
+  /**
+   * Handle untimeout command
+   * @param interaction The Discord command interaction
+   */
+  private async handleUntimeoutCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    const targetUser = interaction.options.getUser('user', true);
+    const reason = interaction.options.getString('reason') || 'No reason provided';
+
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      return;
+    }
+
+    try {
+      const member = await interaction.guild.members.fetch(targetUser.id);
+
+      if (!member.isCommunicationDisabled()) {
+        await interaction.reply({ content: '❌ This user is not timed out.', ephemeral: true });
+        return;
+      }
+
+      await member.timeout(null, reason);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x32CD32)
+        .setTitle('✅ Timeout Removed')
+        .addFields(
+          { name: 'User', value: `${targetUser.tag} (${targetUser.id})`, inline: true },
+          { name: 'Moderator', value: `${interaction.user.tag}`, inline: true },
+          { name: 'Reason', value: reason, inline: false }
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } catch (error: any) {
+      await interaction.reply({ content: `❌ Failed to remove timeout: ${error.message}`, ephemeral: true });
+    }
+  }
+
+  /**
+   * Handle clear command
+   * @param interaction The Discord command interaction
+   */
+  private async handleClearCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    const amount = interaction.options.getInteger('amount', true);
+    const targetUser = interaction.options.getUser('user');
+
+    if (!interaction.guild || !interaction.channel) {
+      await interaction.reply({ content: '❌ This command can only be used in a server channel.', ephemeral: true });
+      return;
+    }
+
+    try {
+      await interaction.deferReply({ ephemeral: true });
+
+      const channel = interaction.channel;
+      if (channel.type !== ChannelType.GuildText) {
+        await interaction.editReply({ content: '❌ This command can only be used in text channels.' });
+        return;
+      }
+
+      // Fetch messages (Discord limit is 100, so we can't fetch more than that)
+      const fetchLimit = Math.min(amount, 100);
+      const messages = await channel.messages.fetch({ limit: fetchLimit });
+
+      let messagesToDelete = Array.from(messages.values());
+
+      // Filter by user if specified
+      if (targetUser) {
+        messagesToDelete = messagesToDelete.filter(msg => msg.author.id === targetUser.id);
+      }
+
+      // Remove the command message from deletion list (if it's in the fetched messages)
+      messagesToDelete = messagesToDelete.filter(msg => msg.id !== interaction.id);
+
+      // If we need to delete more messages than we fetched, limit to what we have
+      if (messagesToDelete.length > amount) {
+        messagesToDelete = messagesToDelete.slice(0, amount);
+      }
+
+      // Discord only allows bulk delete for messages younger than 14 days
+      const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+      const recentMessages = messagesToDelete.filter(msg => msg.createdTimestamp > twoWeeksAgo);
+      const oldMessages = messagesToDelete.filter(msg => msg.createdTimestamp <= twoWeeksAgo);
+
+      let deletedCount = 0;
+
+      // Bulk delete recent messages
+      if (recentMessages.length > 0) {
+        if (recentMessages.length === 1) {
+          await recentMessages[0].delete();
+          deletedCount = 1;
+        } else {
+          const deleted = await channel.bulkDelete(recentMessages, true);
+          deletedCount += deleted.size;
+        }
+      }
+
+      // Delete old messages individually
+      for (const message of oldMessages) {
+        try {
+          await message.delete();
+          deletedCount++;
+        } catch (error) {
+          // Skip messages that can't be deleted
+        }
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00FF00)
+        .setTitle('🧹 Messages Cleared')
+        .addFields(
+          { name: 'Messages Deleted', value: deletedCount.toString(), inline: true },
+          { name: 'Moderator', value: `${interaction.user.tag}`, inline: true }
+        );
+
+      if (targetUser) {
+        embed.addFields({ name: 'Target User', value: `${targetUser.tag}`, inline: true });
+      }
+
+      embed.setTimestamp();
+
+      await interaction.editReply({ embeds: [embed] });
+    } catch (error: any) {
+      await interaction.editReply({ content: `❌ Failed to clear messages: ${error.message}` });
+    }
+  }
+
+  /**
+   * Handle warn command
+   * @param interaction The Discord command interaction
+   */
+  private async handleWarnCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    const targetUser = interaction.options.getUser('user', true);
+    const reason = interaction.options.getString('reason', true);
+
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      return;
+    }
+
+    try {
+      const member = await interaction.guild.members.fetch(targetUser.id);
+
+      if (member.id === interaction.user.id) {
+        await interaction.reply({ content: '❌ You cannot warn yourself.', ephemeral: true });
+        return;
+      }
+
+      // Try to send a DM to the user
+      try {
+        const dmEmbed = new EmbedBuilder()
+          .setColor(0xFFFF00)
+          .setTitle('⚠️ Warning Received')
+          .addFields(
+            { name: 'Server', value: interaction.guild.name, inline: true },
+            { name: 'Moderator', value: interaction.user.tag, inline: true },
+            { name: 'Reason', value: reason, inline: false }
+          )
+          .setTimestamp();
+
+        await targetUser.send({ embeds: [dmEmbed] });
+      } catch (dmError) {
+        // User has DMs disabled or blocked the bot
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(0xFFFF00)
+        .setTitle('⚠️ Member Warned')
+        .addFields(
+          { name: 'User', value: `${targetUser.tag} (${targetUser.id})`, inline: true },
+          { name: 'Moderator', value: `${interaction.user.tag}`, inline: true },
+          { name: 'Reason', value: reason, inline: false }
+        )
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed] });
+    } catch (error: any) {
+      await interaction.reply({ content: `❌ Failed to warn user: ${error.message}`, ephemeral: true });
+    }
+  }
+
+  /**
+   * Handle userinfo command
+   * @param interaction The Discord command interaction
+   */
+  private async handleUserInfoCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      return;
+    }
+
+    try {
+      const member = await interaction.guild.members.fetch(targetUser.id);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x0099FF)
+        .setTitle('👤 User Information')
+        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+        .addFields(
+          { name: 'Username', value: targetUser.tag, inline: true },
+          { name: 'ID', value: targetUser.id, inline: true },
+          { name: 'Nickname', value: member.nickname || 'None', inline: true },
+          { name: 'Account Created', value: `<t:${Math.floor(targetUser.createdTimestamp / 1000)}:F>`, inline: true },
+          { name: 'Joined Server', value: `<t:${Math.floor(member.joinedTimestamp! / 1000)}:F>`, inline: true },
+          { name: 'Roles', value: member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.toString()).join(', ') || 'None', inline: false }
+        )
+        .setTimestamp();
+
+      if (member.isCommunicationDisabled()) {
+        embed.addFields({
+          name: 'Timeout',
+          value: `Until <t:${Math.floor(member.communicationDisabledUntil!.getTime() / 1000)}:F>`,
+          inline: true
+        });
+      }
+
+      await interaction.reply({ embeds: [embed] });
+    } catch (error: any) {
+      await interaction.reply({ content: `❌ Failed to get user info: ${error.message}`, ephemeral: true });
+    }
+  }
+
+  /**
+   * Handle serverinfo command
+   * @param interaction The Discord command interaction
+   */
+  private async handleServerInfoCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!interaction.guild) {
+      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      return;
+    }
+
+    try {
+      const guild = interaction.guild;
+
+      // Fetch additional guild data
+      await guild.fetch();
+
+      const embed = new EmbedBuilder()
+        .setColor(0x0099FF)
+        .setTitle('🏰 Server Information')
+        .setThumbnail(guild.iconURL({ dynamic: true }))
+        .addFields(
+          { name: 'Server Name', value: guild.name, inline: true },
+          { name: 'Server ID', value: guild.id, inline: true },
+          { name: 'Owner', value: `<@${guild.ownerId}>`, inline: true },
+          { name: 'Created', value: `<t:${Math.floor(guild.createdTimestamp / 1000)}:F>`, inline: true },
+          { name: 'Members', value: guild.memberCount.toString(), inline: true },
+          { name: 'Channels', value: guild.channels.cache.size.toString(), inline: true },
+          { name: 'Roles', value: guild.roles.cache.size.toString(), inline: true },
+          { name: 'Boost Level', value: guild.premiumTier.toString(), inline: true },
+          { name: 'Boost Count', value: guild.premiumSubscriptionCount?.toString() || '0', inline: true }
+        )
+        .setTimestamp();
+
+      if (guild.description) {
+        embed.addFields({ name: 'Description', value: guild.description, inline: false });
+      }
+
+      await interaction.reply({ embeds: [embed] });
+    } catch (error: any) {
+      await interaction.reply({ content: `❌ Failed to get server info: ${error.message}`, ephemeral: true });
+    }
+  }
+
+  /**
+   * Handle help command
+   * @param interaction The Discord command interaction
+   */
+  private async handleHelpCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    try {
+      const category = interaction.options.getString('category');
+
+      if (category) {
+        await this.handleCategoryHelp(interaction, category);
+      } else {
+        await this.handleGeneralHelp(interaction);
+      }
+    } catch (error: any) {
+      console.error('Error handling help command:', error);
+      await interaction.reply({
+        content: '❌ Sorry, I encountered an error while showing help information.',
+        ephemeral: true
+      });
+    }
+  }
+
+  /**
+   * Handle general help (overview of all commands)
+   * @param interaction The Discord command interaction
+   */
+  private async handleGeneralHelp(interaction: ChatInputCommandInteraction): Promise<void> {
+    const embed = new EmbedBuilder()
+      .setColor(0x0099FF)
+      .setTitle('🤖 SkyPANEL Bot Commands')
+      .setDescription('Here are all the available commands. Use `/help category:name` for detailed information about specific command categories.')
+      .setThumbnail(this.client?.user?.displayAvatarURL() || null)
+      .addFields(
+        {
+          name: '🔧 **General Commands**',
+          value: '`/help` - Show this help menu\n`/status` - Check platform status',
+          inline: false
+        },
+        {
+          name: '🤖 **AI Assistant**',
+          value: '`/ask` - Ask the AI assistant questions\n*Also works in DMs!*',
+          inline: false
+        },
+        {
+          name: '🎫 **Ticket Management**',
+          value: '`/ticket close` - Close current ticket\n`/ticket reopen` - Reopen current ticket\n*Only works in ticket threads*',
+          inline: false
+        },
+        {
+          name: '🛡️ **Moderation Commands**',
+          value: '`/kick` `/ban` `/unban` `/timeout` `/untimeout`\n`/clear` `/warn` `/userinfo` `/serverinfo`\n*Requires appropriate permissions*',
+          inline: false
+        }
+      )
+      .setFooter({
+        text: 'Use /help category:moderation for detailed moderation command info',
+        iconURL: interaction.user.displayAvatarURL()
+      })
+      .setTimestamp();
+
+    // Add permission info if user has moderation permissions
+    if (interaction.guild && interaction.member) {
+      const member = interaction.member as GuildMember;
+      const hasModPerms = member.permissions.has([
+        PermissionFlagsBits.KickMembers,
+        PermissionFlagsBits.BanMembers,
+        PermissionFlagsBits.ModerateMembers,
+        PermissionFlagsBits.ManageMessages
+      ]);
+
+      if (hasModPerms) {
+        embed.addFields({
+          name: '✅ **Your Permissions**',
+          value: 'You have access to moderation commands!',
+          inline: false
+        });
+      }
+    }
+
+    // Create navigation buttons
+    const row = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('help_general')
+          .setLabel('🔧 General')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId('help_moderation')
+          .setLabel('🛡️ Moderation')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId('help_ai')
+          .setLabel('🤖 AI Assistant')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId('help_tickets')
+          .setLabel('🎫 Tickets')
+          .setStyle(ButtonStyle.Secondary)
+      );
+
+    await interaction.reply({ embeds: [embed], components: [row] });
+  }
+
+  /**
+   * Handle category-specific help
+   * @param interaction The Discord command interaction
+   * @param category The help category to show
+   */
+  private async handleCategoryHelp(interaction: ChatInputCommandInteraction, category: string): Promise<void> {
+    let embed: EmbedBuilder;
+
+    switch (category) {
+      case 'general':
+        embed = new EmbedBuilder()
+          .setColor(0x0099FF)
+          .setTitle('🔧 General Commands')
+          .setDescription('Basic bot commands available to everyone.')
+          .addFields(
+            {
+              name: '`/help [category]`',
+              value: '**Description:** Show help information\n**Usage:** `/help` or `/help category:moderation`\n**Permissions:** None required',
+              inline: false
+            },
+            {
+              name: '`/status`',
+              value: '**Description:** Check SkyPANEL platform status\n**Usage:** `/status`\n**Permissions:** None required\n**Features:** Real-time service status, refresh button',
+              inline: false
+            }
+          );
+        break;
+
+      case 'ai':
+        embed = new EmbedBuilder()
+          .setColor(0x9B59B6)
+          .setTitle('🤖 AI Assistant Commands')
+          .setDescription('Interact with the AI-powered support assistant.')
+          .addFields(
+            {
+              name: '`/ask <question>`',
+              value: '**Description:** Ask the AI assistant about SkyPANEL services\n**Usage:** `/ask question:How do I create a VPS?`\n**Permissions:** None required\n**Rate Limits:** Applied per user',
+              inline: false
+            },
+            {
+              name: '💬 **Direct Messages**',
+              value: 'You can also send direct messages to the bot for AI assistance!\nJust send a message and the AI will respond.',
+              inline: false
+            },
+            {
+              name: '🔄 **Conversation Memory**',
+              value: 'The AI remembers your conversation context for better responses.',
+              inline: false
+            }
+          );
+        break;
+
+      case 'tickets':
+        embed = new EmbedBuilder()
+          .setColor(0xE67E22)
+          .setTitle('🎫 Ticket Management Commands')
+          .setDescription('Manage support tickets (only works in ticket threads).')
+          .addFields(
+            {
+              name: '`/ticket close`',
+              value: '**Description:** Close the current support ticket\n**Usage:** `/ticket close`\n**Permissions:** Must be in ticket thread\n**Effect:** Marks ticket as resolved',
+              inline: false
+            },
+            {
+              name: '`/ticket reopen`',
+              value: '**Description:** Reopen a closed ticket\n**Usage:** `/ticket reopen`\n**Permissions:** Must be in ticket thread\n**Effect:** Marks ticket as active again',
+              inline: false
+            },
+            {
+              name: '📝 **Ticket Integration**',
+              value: 'Messages in ticket threads are automatically synced with the SkyPANEL ticket system.',
+              inline: false
+            }
+          );
+        break;
+
+      case 'moderation':
+        embed = new EmbedBuilder()
+          .setColor(0xE74C3C)
+          .setTitle('🛡️ Moderation Commands')
+          .setDescription('Server moderation tools (requires appropriate permissions).')
+          .addFields(
+            {
+              name: '**Member Actions**',
+              value: '`/kick user reason` - Kick a member\n`/ban user reason delete_days` - Ban a member\n`/unban user_id reason` - Unban a user\n`/timeout user duration reason` - Timeout a member\n`/untimeout user reason` - Remove timeout',
+              inline: false
+            },
+            {
+              name: '**Message Management**',
+              value: '`/clear amount [user]` - Delete messages (1-100)\n`/warn user reason` - Warn a member',
+              inline: false
+            },
+            {
+              name: '**Information**',
+              value: '`/userinfo [user]` - Get user information\n`/serverinfo` - Get server information',
+              inline: false
+            },
+            {
+              name: '🔐 **Required Permissions**',
+              value: 'Commands require specific Discord permissions:\n• Kick/Ban Members • Moderate Members • Manage Messages',
+              inline: false
+            }
+          );
+        break;
+
+      default:
+        await interaction.reply({
+          content: '❌ Unknown help category. Use `/help` to see all available categories.',
+          ephemeral: true
+        });
+        return;
+    }
+
+    // Add back button
+    const row = new ActionRowBuilder<ButtonBuilder>()
+      .addComponents(
+        new ButtonBuilder()
+          .setCustomId('help_back')
+          .setLabel('⬅️ Back to Overview')
+          .setStyle(ButtonStyle.Primary)
+      );
+
+    embed.setFooter({
+      text: `Requested by ${interaction.user.tag}`,
+      iconURL: interaction.user.displayAvatarURL()
+    }).setTimestamp();
+
+    await interaction.reply({ embeds: [embed], components: [row] });
+  }
+
+  /**
+   * Handle help button interactions
+   * @param interaction The Discord button interaction
+   */
+  private async handleHelpButton(interaction: ButtonInteraction): Promise<void> {
+    try {
+      await interaction.deferUpdate();
+
+      const buttonAction = interaction.customId.replace('help_', '');
+
+      if (buttonAction === 'back') {
+        // Show the general help overview
+        await this.updateHelpMessage(interaction, null);
+      } else {
+        // Show specific category help
+        await this.updateHelpMessage(interaction, buttonAction);
+      }
+    } catch (error: any) {
+      console.error('Error handling help button:', error);
+      try {
+        await interaction.followUp({
+          content: '❌ Sorry, I encountered an error while updating the help information.',
+          ephemeral: true
+        });
+      } catch (replyError) {
+        console.error('Error replying to help button:', replyError);
+      }
+    }
+  }
+
+  /**
+   * Update help message for button interactions
+   * @param interaction The Discord button interaction
+   * @param category The help category to show (null for general overview)
+   */
+  private async updateHelpMessage(interaction: ButtonInteraction, category: string | null): Promise<void> {
+    let embed: EmbedBuilder;
+    let components: ActionRowBuilder<ButtonBuilder>[] = [];
+
+    if (!category) {
+      // Show general help overview
+      embed = new EmbedBuilder()
+        .setColor(0x0099FF)
+        .setTitle('🤖 SkyPANEL Bot Commands')
+        .setDescription('Here are all the available commands. Click the buttons below for detailed information about specific command categories.')
+        .setThumbnail(this.client?.user?.displayAvatarURL() || null)
+        .addFields(
+          {
+            name: '🔧 **General Commands**',
+            value: '`/help` - Show this help menu\n`/status` - Check platform status',
+            inline: false
+          },
+          {
+            name: '🤖 **AI Assistant**',
+            value: '`/ask` - Ask the AI assistant questions\n*Also works in DMs with conversation memory!*',
+            inline: false
+          },
+          {
+            name: '🎫 **Ticket Management**',
+            value: '`/ticket close` - Close current ticket\n`/ticket reopen` - Reopen current ticket\n*Only works in ticket threads*',
+            inline: false
+          },
+          {
+            name: '🛡️ **Moderation Commands**',
+            value: '`/kick` `/ban` `/unban` `/timeout` `/untimeout`\n`/clear` `/warn` `/userinfo` `/serverinfo`\n*Requires appropriate permissions*',
+            inline: false
+          }
+        )
+        .setFooter({
+          text: 'Click the buttons below for detailed command information',
+          iconURL: interaction.user.displayAvatarURL()
+        })
+        .setTimestamp();
+
+      // Add permission info if user has moderation permissions
+      if (interaction.guild && interaction.member) {
+        const member = interaction.member as GuildMember;
+        const hasModPerms = member.permissions.has([
+          PermissionFlagsBits.KickMembers,
+          PermissionFlagsBits.BanMembers,
+          PermissionFlagsBits.ModerateMembers,
+          PermissionFlagsBits.ManageMessages
+        ]);
+
+        if (hasModPerms) {
+          embed.addFields({
+            name: '✅ **Your Permissions**',
+            value: 'You have access to moderation commands!',
+            inline: false
+          });
+        }
+      }
+
+      // Create navigation buttons
+      const row = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('help_general')
+            .setLabel('🔧 General')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId('help_moderation')
+            .setLabel('🛡️ Moderation')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId('help_ai')
+            .setLabel('🤖 AI Assistant')
+            .setStyle(ButtonStyle.Secondary),
+          new ButtonBuilder()
+            .setCustomId('help_tickets')
+            .setLabel('🎫 Tickets')
+            .setStyle(ButtonStyle.Secondary)
+        );
+
+      components = [row];
+    } else {
+      // Show category-specific help
+      switch (category) {
+        case 'general':
+          embed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle('🔧 General Commands')
+            .setDescription('Basic bot commands available to everyone.')
+            .addFields(
+              {
+                name: '`/help [category]`',
+                value: '**Description:** Show help information\n**Usage:** `/help` or `/help category:moderation`\n**Permissions:** None required',
+                inline: false
+              },
+              {
+                name: '`/status`',
+                value: '**Description:** Check SkyPANEL platform status\n**Usage:** `/status`\n**Permissions:** None required\n**Features:** Real-time service status, refresh button',
+                inline: false
+              }
+            );
+          break;
+
+        case 'ai':
+          embed = new EmbedBuilder()
+            .setColor(0x9B59B6)
+            .setTitle('🤖 AI Assistant Commands')
+            .setDescription('Interact with the AI-powered support assistant.')
+            .addFields(
+              {
+                name: '`/ask <question>`',
+                value: '**Description:** Ask the AI assistant about SkyPANEL services\n**Usage:** `/ask question:How do I create a VPS?`\n**Permissions:** None required\n**Rate Limits:** Applied per user',
+                inline: false
+              },
+              {
+                name: '💬 **Direct Messages**',
+                value: 'You can also send direct messages to the bot for AI assistance!\nJust send a message and the AI will respond with full conversation context.',
+                inline: false
+              },
+              {
+                name: '🔄 **Conversation Memory**',
+                value: 'The AI remembers your conversation context for better responses.\nEach user has their own conversation history (last 10 messages).',
+                inline: false
+              },
+              {
+                name: '⚡ **Features**',
+                value: '• Instant responses to technical questions\n• Service information and guidance\n• Rate limiting to prevent abuse\n• Integration with SkyPANEL knowledge base.',
+                inline: false
+              }
+            );
+          break;
+
+        case 'tickets':
+          embed = new EmbedBuilder()
+            .setColor(0xE67E22)
+            .setTitle('🎫 Ticket Management Commands')
+            .setDescription('Manage support tickets (only works in ticket threads).')
+            .addFields(
+              {
+                name: '`/ticket close`',
+                value: '**Description:** Close the current support ticket\n**Usage:** `/ticket close`\n**Permissions:** Must be in ticket thread\n**Effect:** Marks ticket as resolved',
+                inline: false
+              },
+              {
+                name: '`/ticket reopen`',
+                value: '**Description:** Reopen a closed ticket\n**Usage:** `/ticket reopen`\n**Permissions:** Must be in ticket thread\n**Effect:** Marks ticket as active again',
+                inline: false
+              },
+              {
+                name: '📝 **Ticket Integration**',
+                value: 'Messages in ticket threads are automatically synced with the SkyPANEL ticket system.',
+                inline: false
+              }
+            );
+          break;
+
+        case 'moderation':
+          embed = new EmbedBuilder()
+            .setColor(0xE74C3C)
+            .setTitle('🛡️ Moderation Commands')
+            .setDescription('Server moderation tools (requires appropriate permissions).')
+            .addFields(
+              {
+                name: '**Member Actions**',
+                value: '`/kick user reason` - Kick a member\n`/ban user reason delete_days` - Ban a member\n`/unban user_id reason` - Unban a user\n`/timeout user duration reason` - Timeout a member\n`/untimeout user reason` - Remove timeout',
+                inline: false
+              },
+              {
+                name: '**Message Management**',
+                value: '`/clear amount [user]` - Delete messages (1-100)\n`/warn user reason` - Warn a member',
+                inline: false
+              },
+              {
+                name: '**Information**',
+                value: '`/userinfo [user]` - Get user information\n`/serverinfo` - Get server information',
+                inline: false
+              },
+              {
+                name: '🔐 **Required Permissions**',
+                value: 'Commands require specific Discord permissions:\n• Kick/Ban Members • Moderate Members • Manage Messages',
+                inline: false
+              }
+            );
+          break;
+
+        default:
+          return; // Invalid category
+      }
+
+      // Add back button for category views
+      const row = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('help_back')
+            .setLabel('⬅️ Back to Overview')
+            .setStyle(ButtonStyle.Primary)
+        );
+
+      components = [row];
+
+      embed.setFooter({
+        text: `Requested by ${interaction.user.tag}`,
+        iconURL: interaction.user.displayAvatarURL()
+      }).setTimestamp();
+    }
+
+    await interaction.editReply({ embeds: [embed], components });
   }
 }
 
