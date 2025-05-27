@@ -20,7 +20,8 @@ import {
   PermissionFlagsBits,
   ChannelType,
   Message,
-  Partials
+  Partials,
+  InteractionResponseFlags
 } from 'discord.js';
 import { storage } from './storage';
 import { InsertTicketMessage, InsertDiscordTicketThread } from '../shared/schema';
@@ -1159,7 +1160,7 @@ export class DiscordBotService {
       try {
         await interaction.reply({
           content: `An error occurred while processing your command: ${error.message}`,
-          ephemeral: true
+          flags: InteractionResponseFlags.Ephemeral
         });
       } catch (replyError: any) {
         // If we can't reply to the interaction (e.g., it's already timed out), log it and continue
@@ -1200,7 +1201,7 @@ export class DiscordBotService {
       if (isNaN(ticketId)) {
         await interaction.reply({
           content: 'Invalid ticket ID in button.',
-          ephemeral: true
+          flags: InteractionResponseFlags.Ephemeral
         });
         return;
       }
@@ -1210,7 +1211,7 @@ export class DiscordBotService {
       if (buttonAdminUsers.length === 0) {
         await interaction.reply({
           content: 'Cannot process button: No admin users found',
-          ephemeral: true
+          flags: InteractionResponseFlags.Ephemeral
         });
         return;
       }
@@ -1222,7 +1223,7 @@ export class DiscordBotService {
       if (!ticket) {
         await interaction.reply({
           content: `Ticket #${ticketId} not found or has been deleted.`,
-          ephemeral: true
+          flags: InteractionResponseFlags.Ephemeral
         });
         return;
       }
@@ -1232,7 +1233,7 @@ export class DiscordBotService {
         if (ticket.status.toLowerCase() === 'closed') {
           await interaction.reply({
             content: `Ticket #${ticketId} is already closed.`,
-            ephemeral: true
+            flags: InteractionResponseFlags.Ephemeral
           });
           return;
         }
@@ -1257,7 +1258,7 @@ export class DiscordBotService {
 
         await interaction.reply({
           content: `Successfully closed ticket #${ticketId}.`,
-          ephemeral: true
+          flags: InteractionResponseFlags.Ephemeral
         });
       }
       else if (action === 'reopen') {
@@ -1265,7 +1266,7 @@ export class DiscordBotService {
         if (ticket.status.toLowerCase() !== 'closed') {
           await interaction.reply({
             content: `Ticket #${ticketId} is already open.`,
-            ephemeral: true
+            flags: InteractionResponseFlags.Ephemeral
           });
           return;
         }
@@ -1290,7 +1291,7 @@ export class DiscordBotService {
 
         await interaction.reply({
           content: `Successfully reopened ticket #${ticketId}.`,
-          ephemeral: true
+          flags: InteractionResponseFlags.Ephemeral
         });
       }
       // Delete ticket functionality has been removed as requested
@@ -1306,7 +1307,7 @@ export class DiscordBotService {
       try {
         await interaction.reply({
           content: `An error occurred while processing your action: ${error.message}`,
-          ephemeral: true
+          flags: InteractionResponseFlags.Ephemeral
         });
       } catch (replyError: any) {
         // If we can't reply to the interaction (e.g., it's already timed out), log it and continue
@@ -1417,8 +1418,8 @@ export class DiscordBotService {
 
       if (isInteraction) {
         await message.followUp({
-          content: chunk,
-          ephemeral: false
+          content: chunk
+          // Note: No flags needed here as we want follow-ups to be visible to everyone
         });
       } else {
         // For regular messages, we send a follow-up to the channel
@@ -2822,7 +2823,10 @@ export class DiscordBotService {
 
       await interaction.reply({ embeds: [embed] });
     } catch (error: any) {
-      await interaction.reply({ content: `❌ Failed to get server info: ${error.message}`, ephemeral: true });
+      await interaction.reply({
+        content: `❌ Failed to get server info: ${error.message}`,
+        flags: InteractionResponseFlags.Ephemeral
+      });
     }
   }
 
@@ -2832,6 +2836,9 @@ export class DiscordBotService {
    */
   private async handleHelpCommand(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
+      // Defer the reply immediately to prevent timeout
+      await interaction.deferReply({ flags: InteractionResponseFlags.Ephemeral });
+
       const category = interaction.options.getString('category');
 
       if (category) {
@@ -2841,10 +2848,29 @@ export class DiscordBotService {
       }
     } catch (error: any) {
       console.error('Error handling help command:', error);
-      await interaction.reply({
-        content: '❌ Sorry, I encountered an error while showing help information.',
-        ephemeral: true
-      });
+
+      // Special handling for common Discord API errors
+      if (error.code === 10062) { // Unknown interaction error
+        console.log('Unknown interaction error: The interaction response time expired');
+        return; // Just return without trying to reply to avoid unhandled promise rejection
+      }
+
+      try {
+        // Check if we can still reply to the interaction
+        if (interaction.deferred) {
+          await interaction.editReply({
+            content: '❌ Sorry, I encountered an error while showing help information.'
+          });
+        } else {
+          await interaction.reply({
+            content: '❌ Sorry, I encountered an error while showing help information.',
+            flags: InteractionResponseFlags.Ephemeral
+          });
+        }
+      } catch (replyError: any) {
+        // If we can't reply to the interaction (e.g., it's already timed out), log it and continue
+        console.log(`Could not reply to help interaction due to: ${replyError.message}`);
+      }
     }
   }
 
@@ -2853,6 +2879,7 @@ export class DiscordBotService {
    * @param interaction The Discord command interaction
    */
   private async handleGeneralHelp(interaction: ChatInputCommandInteraction): Promise<void> {
+    // Build the embed quickly to avoid delays
     const embed = new EmbedBuilder()
       .setColor(0x0099FF)
       .setTitle('🤖 SkyPANEL Bot Commands')
@@ -2886,23 +2913,29 @@ export class DiscordBotService {
       })
       .setTimestamp();
 
-    // Add permission info if user has moderation permissions
-    if (interaction.guild && interaction.member) {
-      const member = interaction.member as GuildMember;
-      const hasModPerms = member.permissions.has([
-        PermissionFlagsBits.KickMembers,
-        PermissionFlagsBits.BanMembers,
-        PermissionFlagsBits.ModerateMembers,
-        PermissionFlagsBits.ManageMessages
-      ]);
-
-      if (hasModPerms) {
-        embed.addFields({
-          name: '✅ **Your Permissions**',
-          value: 'You have access to moderation commands!',
-          inline: false
-        });
+    // Check permissions quickly and safely
+    let hasModPerms = false;
+    try {
+      if (interaction.guild && interaction.member) {
+        const member = interaction.member as GuildMember;
+        hasModPerms = member.permissions.has([
+          PermissionFlagsBits.KickMembers,
+          PermissionFlagsBits.BanMembers,
+          PermissionFlagsBits.ModerateMembers,
+          PermissionFlagsBits.ManageMessages
+        ]);
       }
+    } catch (permError) {
+      // If permission checking fails, just continue without showing mod perms
+      console.log('Permission check failed in help command:', permError);
+    }
+
+    if (hasModPerms) {
+      embed.addFields({
+        name: '✅ **Your Permissions**',
+        value: 'You have access to moderation commands!',
+        inline: false
+      });
     }
 
     // Create navigation buttons
@@ -2926,7 +2959,8 @@ export class DiscordBotService {
           .setStyle(ButtonStyle.Secondary)
       );
 
-    await interaction.reply({ embeds: [embed], components: [row] });
+    // Use editReply since we deferred the interaction
+    await interaction.editReply({ embeds: [embed], components: [row] });
   }
 
   /**
@@ -3035,9 +3069,8 @@ export class DiscordBotService {
         break;
 
       default:
-        await interaction.reply({
-          content: '❌ Unknown help category. Use `/help` to see all available categories.',
-          ephemeral: true
+        await interaction.editReply({
+          content: '❌ Unknown help category. Use `/help` to see all available categories.'
         });
         return;
     }
@@ -3056,7 +3089,8 @@ export class DiscordBotService {
       iconURL: interaction.user.displayAvatarURL()
     }).setTimestamp();
 
-    await interaction.reply({ embeds: [embed], components: [row] });
+    // Use editReply since we deferred the interaction
+    await interaction.editReply({ embeds: [embed], components: [row] });
   }
 
   /**
@@ -3078,13 +3112,20 @@ export class DiscordBotService {
       }
     } catch (error: any) {
       console.error('Error handling help button:', error);
+
+      // Special handling for common Discord API errors
+      if (error.code === 10062) { // Unknown interaction error
+        console.log('Unknown interaction error: The interaction response time expired');
+        return; // Just return without trying to reply to avoid unhandled promise rejection
+      }
+
       try {
         await interaction.followUp({
           content: '❌ Sorry, I encountered an error while updating the help information.',
-          ephemeral: true
+          flags: InteractionResponseFlags.Ephemeral
         });
-      } catch (replyError) {
-        console.error('Error replying to help button:', replyError);
+      } catch (replyError: any) {
+        console.log(`Could not reply to help button interaction due to: ${replyError.message}`);
       }
     }
   }
