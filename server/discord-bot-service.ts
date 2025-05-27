@@ -1160,7 +1160,7 @@ export class DiscordBotService {
       try {
         await interaction.reply({
           content: `An error occurred while processing your command: ${error.message}`,
-          flags: InteractionResponseFlags.Ephemeral
+          flags: MessageFlags.Ephemeral
         });
       } catch (replyError: any) {
         // If we can't reply to the interaction (e.g., it's already timed out), log it and continue
@@ -1201,7 +1201,7 @@ export class DiscordBotService {
       if (isNaN(ticketId)) {
         await interaction.reply({
           content: 'Invalid ticket ID in button.',
-          flags: InteractionResponseFlags.Ephemeral
+          flags: MessageFlags.Ephemeral
         });
         return;
       }
@@ -1211,7 +1211,7 @@ export class DiscordBotService {
       if (buttonAdminUsers.length === 0) {
         await interaction.reply({
           content: 'Cannot process button: No admin users found',
-          flags: InteractionResponseFlags.Ephemeral
+          flags: MessageFlags.Ephemeral
         });
         return;
       }
@@ -1223,7 +1223,7 @@ export class DiscordBotService {
       if (!ticket) {
         await interaction.reply({
           content: `Ticket #${ticketId} not found or has been deleted.`,
-          flags: InteractionResponseFlags.Ephemeral
+          flags: MessageFlags.Ephemeral
         });
         return;
       }
@@ -1258,7 +1258,7 @@ export class DiscordBotService {
 
         await interaction.reply({
           content: `Successfully closed ticket #${ticketId}.`,
-          flags: InteractionResponseFlags.Ephemeral
+          flags: MessageFlags.Ephemeral
         });
       }
       else if (action === 'reopen') {
@@ -1266,7 +1266,7 @@ export class DiscordBotService {
         if (ticket.status.toLowerCase() !== 'closed') {
           await interaction.reply({
             content: `Ticket #${ticketId} is already open.`,
-            flags: InteractionResponseFlags.Ephemeral
+            flags: MessageFlags.Ephemeral
           });
           return;
         }
@@ -1291,7 +1291,7 @@ export class DiscordBotService {
 
         await interaction.reply({
           content: `Successfully reopened ticket #${ticketId}.`,
-          flags: InteractionResponseFlags.Ephemeral
+          flags: MessageFlags.Ephemeral
         });
       }
       // Delete ticket functionality has been removed as requested
@@ -1307,7 +1307,7 @@ export class DiscordBotService {
       try {
         await interaction.reply({
           content: `An error occurred while processing your action: ${error.message}`,
-          flags: InteractionResponseFlags.Ephemeral
+          flags: MessageFlags.Ephemeral
         });
       } catch (replyError: any) {
         // If we can't reply to the interaction (e.g., it's already timed out), log it and continue
@@ -2837,7 +2837,7 @@ export class DiscordBotService {
   private async handleHelpCommand(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
       // Defer the reply immediately to prevent timeout
-      await interaction.deferReply({ flags: InteractionResponseFlags.Ephemeral });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const category = interaction.options.getString('category');
 
