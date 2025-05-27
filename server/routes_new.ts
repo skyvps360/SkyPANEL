@@ -6723,41 +6723,37 @@ Generated on ${new Date().toLocaleString()}
           const extRelationId = user.id;
           console.log(`Checking if user has servers. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
 
-          // Implement server check directly instead of using checkUserHasServers
+          // Use the more reliable getUserServers API to check for active servers
           try {
-            // Get current date in YYYY-MM-DD format for the period parameter
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            const currentDate = `${year}-${month}-${day}`;
+            console.log(`Checking for servers using getUserServers API for extRelationId: ${extRelationId}`);
 
-            // Get usage data from VirtFusion with proper period parameter
-            const usageData = await api.request(
-              "GET",
-              `/selfService/usage/byUserExtRelationId/${extRelationId}?period[]=${currentDate}&range=m`
-            );
+            // Use the dedicated getUserServers method which is more reliable
+            const serversResponse = await api.getUserServers(extRelationId);
 
-            // Check if there are any servers in the periods array
+            // Check if the user has any servers
             let hasServers = false;
-            if (usageData && usageData.data && usageData.data.periods && usageData.data.periods.length > 0) {
-              // Check if any periods have servers
-              for (const period of usageData.data.periods) {
-                if (period.servers && period.servers.length > 0) {
-                  console.log(`User with extRelationId ${extRelationId} has ${period.servers.length} servers`);
-                  hasServers = true;
-                  break;
-                }
+            let serverCount = 0;
+
+            if (serversResponse && serversResponse.data) {
+              if (Array.isArray(serversResponse.data)) {
+                serverCount = serversResponse.data.length;
+                hasServers = serverCount > 0;
+              } else if (serversResponse.data.servers && Array.isArray(serversResponse.data.servers)) {
+                serverCount = serversResponse.data.servers.length;
+                hasServers = serverCount > 0;
               }
             }
 
             if (hasServers) {
-              console.log(`User has servers attached, cannot delete. User ID: ${userId}`);
+              console.log(`User has ${serverCount} active servers, cannot delete. User ID: ${userId}`);
               return res.status(409).json({
-                error: "Cannot delete user with servers",
-                details: "The user has active servers. Please delete or transfer all servers before deleting the user account."
+                error: "Cannot delete user with active servers",
+                details: `This user has ${serverCount} active server${serverCount > 1 ? 's' : ''} in VirtFusion. All servers must be deleted or transferred to another user before the account can be removed. Please manage the user's servers first, then try deleting the account again.`,
+                serverCount: serverCount
               });
             }
+
+            console.log(`User has no servers, safe to proceed with deletion. User ID: ${userId}`);
           } catch (usageError: any) {
             console.error(`Error checking if user has servers:`, usageError);
 

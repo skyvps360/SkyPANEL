@@ -170,10 +170,13 @@ export default function UsersPage() {
 
       // Handle specific error cases with detailed user-friendly messages
       if (error.status === 409) {
-        // User has active servers
+        // User has active servers - check if we have server count information
+        const serverCount = error.serverCount;
+        const serverText = serverCount ? `${serverCount} active server${serverCount > 1 ? 's' : ''}` : 'active servers';
+
         toast({
           title: "Cannot Delete User",
-          description: "Please check to make sure the user doesn't have servers. This user has active servers in VirtFusion that must be deleted or transferred before the user account can be removed.",
+          description: error.details || `This user has ${serverText} in VirtFusion. All servers must be deleted or transferred to another user before the account can be removed. Please manage the user's servers first, then try deleting the account again.`,
           variant: "destructive",
         });
       } else if (error.status === 500 && error.details?.includes("verify server status")) {
@@ -190,11 +193,11 @@ export default function UsersPage() {
           description: "The user could not be deleted from VirtFusion. The user remains in both systems to maintain synchronization. Please check VirtFusion connectivity and try again.",
           variant: "destructive",
         });
-      } else if (error.details?.includes("servers")) {
+      } else if (error.details?.includes("servers") || error.details?.includes("active server")) {
         // Generic server-related error
         toast({
           title: "Cannot Delete User",
-          description: "Please check to make sure the user doesn't have servers. Active servers must be deleted or transferred before the user account can be removed.",
+          description: error.details || "This user has active servers that must be deleted or transferred before the user account can be removed.",
           variant: "destructive",
         });
       } else {

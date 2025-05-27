@@ -293,22 +293,28 @@ export class VirtFusionApi {
 
   async checkUserHasServers(extRelationId: number): Promise<boolean> {
     try {
-      // Fetch user's usage data which includes server information
-      const usageData = await this.getUserUsageByExtRelationId(extRelationId);
+      console.log(`Checking if user has servers using getUserServers API for extRelationId: ${extRelationId}`);
 
-      // Check if there are any servers in the periods array
-      if (usageData &&
-          usageData.data &&
-          usageData.data.periods &&
-          usageData.data.periods.length > 0) {
+      // Use the more reliable getUserServers method
+      const serversResponse = await this.getUserServers(extRelationId);
 
-        // Check if any periods have servers
-        for (const period of usageData.data.periods) {
-          if (period.servers && period.servers.length > 0) {
-            console.log(`User with extRelationId ${extRelationId} has ${period.servers.length} servers`);
-            return true;
-          }
+      // Check if the user has any servers
+      let hasServers = false;
+      let serverCount = 0;
+
+      if (serversResponse && serversResponse.data) {
+        if (Array.isArray(serversResponse.data)) {
+          serverCount = serversResponse.data.length;
+          hasServers = serverCount > 0;
+        } else if (serversResponse.data.servers && Array.isArray(serversResponse.data.servers)) {
+          serverCount = serversResponse.data.servers.length;
+          hasServers = serverCount > 0;
         }
+      }
+
+      if (hasServers) {
+        console.log(`User with extRelationId ${extRelationId} has ${serverCount} servers`);
+        return true;
       }
 
       // No servers found
