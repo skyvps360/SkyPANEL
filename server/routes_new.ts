@@ -6707,27 +6707,21 @@ Generated on ${new Date().toLocaleString()}
         return res.status(403).json({ error: "You cannot delete your own account" });
       }
 
-      // If user has VirtFusion ID, check for servers and delete them in VirtFusion
-      let skipVirtFusionDeletion = false;
-
+      // If user has VirtFusion ID, check for servers FIRST before any deletion attempts
       if (user.virtFusionId) {
         try {
           // Create a new instance of VirtFusionApi
           const api = new VirtFusionApi();
           await api.updateSettings();
 
-          // First check if the user has any servers
-          // IMPORTANT: The extRelationId should be the user.id (not virtFusionId)
-          // According to API docs: /users/{extRelationId}/byExtRelation
-          // where extRelationId is the external relation ID (our user ID)
+          // CRITICAL: Check if the user has any servers BEFORE attempting any deletion
           const extRelationId = user.id;
-          console.log(`Checking if user has servers. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
+          console.log(`CRITICAL SERVER CHECK: Checking if user has servers. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
 
-          // Use the more reliable getUserServers API to check for active servers
+          // Use the dedicated getUserServers method which is more reliable
           try {
             console.log(`Checking for servers using getUserServers API for extRelationId: ${extRelationId}`);
 
-            // Use the dedicated getUserServers method which is more reliable
             const serversResponse = await api.getUserServers(extRelationId);
 
             // Check if the user has any servers
@@ -6745,7 +6739,7 @@ Generated on ${new Date().toLocaleString()}
             }
 
             if (hasServers) {
-              console.log(`User has ${serverCount} active servers, cannot delete. User ID: ${userId}`);
+              console.log(`CRITICAL: User has ${serverCount} active servers, ABORTING DELETION COMPLETELY. User ID: ${userId}`);
               return res.status(409).json({
                 error: "Cannot delete user with active servers",
                 details: `This user has ${serverCount} active server${serverCount > 1 ? 's' : ''} in VirtFusion. All servers must be deleted or transferred to another user before the account can be removed. Please manage the user's servers first, then try deleting the account again.`,
@@ -6753,21 +6747,20 @@ Generated on ${new Date().toLocaleString()}
               });
             }
 
-            console.log(`User has no servers, safe to proceed with deletion. User ID: ${userId}`);
-          } catch (usageError: any) {
-            console.error(`Error checking if user has servers:`, usageError);
+            console.log(`Server check passed: User has no servers, safe to proceed with deletion. User ID: ${userId}`);
+          } catch (serverCheckError: any) {
+            console.error(`Error during server check:`, serverCheckError);
 
             // Check if this is a 404 error (user not found in VirtFusion)
-            const errorMessage = usageError.message || '';
+            const errorMessage = serverCheckError.message || '';
             const is404Error = errorMessage.includes('404') || errorMessage.toLowerCase().includes('user not found');
 
             if (is404Error) {
               console.log(`User ${userId} not found in VirtFusion (404 error during server check). This is expected for orphaned users - proceeding with deletion.`);
-              // Set a flag to skip VirtFusion deletion since user doesn't exist there
-              skipVirtFusionDeletion = true;
+              // User doesn't exist in VirtFusion, so no servers to check - safe to delete from our database
             } else {
-              // For other errors (network issues, API problems), be cautious and abort
-              console.log("Could not determine if user has servers due to non-404 error, aborting deletion to prevent unsync");
+              // For other errors (network issues, API problems), be cautious and abort ALL deletion
+              console.log("CRITICAL: Could not determine if user has servers due to API error, ABORTING ALL DELETION to prevent data loss");
               return res.status(500).json({
                 error: "Unable to verify server status",
                 details: "Cannot delete user because we couldn't verify if they have active servers in VirtFusion. This prevents data synchronization issues."
@@ -6775,76 +6768,77 @@ Generated on ${new Date().toLocaleString()}
             }
           }
 
-          // Only attempt VirtFusion deletion if we haven't already determined the user doesn't exist
-          if (!skipVirtFusionDeletion) {
-            console.log(`Deleting user from VirtFusion. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
+          // At this point, either:
+          // 1. User has no servers (safe to delete)
+          // 2. User doesn't exist in VirtFusion (orphaned user, safe to delete from our DB)
+          
+          // Now attempt VirtFusion user deletion (only if user exists there)
+          if (!errorMessage || !errorMessage.includes('404')) {
+            console.log(`Attempting VirtFusion user deletion. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
 
             try {
-              // Use deleteUserByExtRelationId method to delete user in VirtFusion
               await api.deleteUserByExtRelationId(extRelationId);
               console.log(`Successfully deleted user from VirtFusion. User ID: ${userId}`);
-            } catch (virtFusionError: any) {
-              console.error(`Error deleting user from VirtFusion:`, virtFusionError);
+            } catch (virtFusionDeleteError: any) {
+              console.error(`Error deleting user from VirtFusion:`, virtFusionDeleteError);
 
-              // Extract status code from error message or response
+              const deleteErrorMessage = virtFusionDeleteError.message || '';
               let statusCode = null;
-              let errorMessage = virtFusionError.message || '';
 
-              // Check if error has response status
-              if (virtFusionError.response && virtFusionError.response.status) {
-                statusCode = virtFusionError.response.status;
-              } else if (virtFusionError.status) {
-                statusCode = virtFusionError.status;
+              // Extract status code
+              if (virtFusionDeleteError.response && virtFusionDeleteError.response.status) {
+                statusCode = virtFusionDeleteError.response.status;
+              } else if (virtFusionDeleteError.status) {
+                statusCode = virtFusionDeleteError.status;
               } else {
-                // Try to extract status code from error message
-                const statusMatch = errorMessage.match(/(\d{3})/);
+                const statusMatch = deleteErrorMessage.match(/(\d{3})/);
                 if (statusMatch) {
                   statusCode = parseInt(statusMatch[1]);
                 }
               }
 
-              console.log(`VirtFusion error status code: ${statusCode}, message: ${errorMessage}`);
+              console.log(`VirtFusion deletion error status code: ${statusCode}, message: ${deleteErrorMessage}`);
 
-              // Handle specific error cases
-              if (statusCode === 409 || errorMessage.includes("409") || errorMessage.toLowerCase().includes("conflict")) {
+              // Handle specific VirtFusion deletion errors
+              if (statusCode === 409 || deleteErrorMessage.includes("409") || deleteErrorMessage.toLowerCase().includes("conflict")) {
+                // User still has servers (this shouldn't happen after our check, but be safe)
+                console.log("CRITICAL: VirtFusion reports user still has servers during deletion, ABORTING ALL DELETION");
                 return res.status(409).json({
                   error: "Cannot delete user with servers",
                   details: "The user has active servers. Please delete or transfer all servers before deleting the user account."
                 });
               }
 
-              // Handle 404 Not Found error (User doesn't exist in VirtFusion)
-              if (statusCode === 404 || errorMessage.includes("404") || errorMessage.toLowerCase().includes("not found")) {
-                console.log(`User not found in VirtFusion (404 error). Will still delete from our database. User ID: ${userId}`);
-                // Continue with deletion from our database - this is expected for orphaned users
-              } else if (statusCode === 400 || errorMessage.includes("400") || errorMessage.toLowerCase().includes("bad request")) {
-                console.log(`Bad request error from VirtFusion (400 error). User may not exist or be malformed. Will still delete from our database. User ID: ${userId}`);
-                // Continue with deletion from our database - this can happen with orphaned/corrupted user data
-              } else if (statusCode >= 500 || errorMessage.toLowerCase().includes("internal server error") || errorMessage.toLowerCase().includes("timeout")) {
-                // VirtFusion server error - don't delete from our database to prevent unsync
-                console.error(`VirtFusion server error (${statusCode}), aborting local deletion to prevent unsync. User ID: ${userId}`);
+              if (statusCode === 404 || deleteErrorMessage.includes("404") || deleteErrorMessage.toLowerCase().includes("not found")) {
+                console.log(`User not found in VirtFusion during deletion (404 error). Continuing with database deletion. User ID: ${userId}`);
+                // Continue - user doesn't exist in VirtFusion anyway
+              } else if (statusCode === 400 || deleteErrorMessage.includes("400") || deleteErrorMessage.toLowerCase().includes("bad request")) {
+                console.log(`Bad request error from VirtFusion during deletion (400 error). Continuing with database deletion. User ID: ${userId}`);
+                // Continue - likely corrupted user data
+              } else if (statusCode >= 500 || deleteErrorMessage.toLowerCase().includes("internal server error") || deleteErrorMessage.toLowerCase().includes("timeout")) {
+                // VirtFusion server error - don't delete from our database to prevent desync
+                console.error(`VirtFusion server error (${statusCode}) during deletion, ABORTING database deletion to prevent desync. User ID: ${userId}`);
                 return res.status(500).json({
                   error: "VirtFusion server error",
                   details: `VirtFusion is experiencing server issues (${statusCode}). Please try again later. User was not deleted from SkyPANEL to maintain synchronization.`
                 });
               } else {
-                // For other errors, log but continue with deletion (likely orphaned user)
-                console.log(`Unknown VirtFusion error (${statusCode}): ${errorMessage}. Assuming orphaned user, will delete from our database. User ID: ${userId}`);
+                // Unknown error - log and continue (assume orphaned user)
+                console.log(`Unknown VirtFusion deletion error (${statusCode}): ${deleteErrorMessage}. Assuming orphaned user, continuing with database deletion. User ID: ${userId}`);
               }
             }
           } else {
             console.log(`Skipping VirtFusion deletion for user ${userId} - user doesn't exist in VirtFusion (orphaned user)`);
           }
-        } catch (error: any) {
-          console.error(`Error in user deletion process:`, error);
-
+        } catch (generalError: any) {
+          console.error(`General error in user deletion process:`, generalError);
           return res.status(500).json({
             error: "Failed to process user deletion",
-            details: error.message
+            details: generalError.message
           });
         }
       } else {
-        console.log(`User ${userId} does not have a VirtFusion ID, skipping VirtFusion deletion`);
+        console.log(`User ${userId} does not have a VirtFusion ID, skipping VirtFusion operations`);
       }
 
       // Delete user from our database

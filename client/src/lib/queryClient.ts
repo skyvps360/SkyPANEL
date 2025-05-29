@@ -30,7 +30,13 @@ async function throwIfResNotOk(res: Response) {
       
       // Regular error with JSON data
       const errorMessage = errorData.message || errorData.error || `${res.status}: ${res.statusText}`;
-      throw new Error(errorMessage);
+      const error = new Error(errorMessage);
+      // Preserve all error data for proper error handling
+      (error as any).status = res.status;
+      (error as any).details = errorData.details;
+      (error as any).serverCount = errorData.serverCount;
+      (error as any).response = { status: res.status, data: errorData };
+      throw error;
     } catch (e) {
       if (e instanceof Error && (e as any).response) {
         throw e; // Rethrow our custom verification error
@@ -47,7 +53,9 @@ async function throwIfResNotOk(res: Response) {
           statusText: res.statusText,
           responseText: text
         });
-        throw new Error(`${res.status}: ${text}`);
+        const error = new Error(`${res.status}: ${text}`);
+        (error as any).status = res.status;
+        throw error;
       } catch (textError) {
         // As a last resort, if we can't read the response body at all
         console.error("Failed to read error response body:", {
@@ -56,7 +64,9 @@ async function throwIfResNotOk(res: Response) {
           statusText: res.statusText,
           error: textError
         });
-        throw new Error(`${res.status}: ${res.statusText}`);
+        const error = new Error(`${res.status}: ${res.statusText}`);
+        (error as any).status = res.status;
+        throw error;
       }
     }
   }

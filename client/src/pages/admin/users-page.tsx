@@ -167,6 +167,9 @@ export default function UsersPage() {
     },
     onError: (error: any) => {
       console.error("User deletion error:", error);
+      
+      // Close the dialog regardless of error type so user can see the toast
+      setDeleteDialogOpen(false);
 
       // Handle specific error cases with detailed user-friendly messages
       if (error.status === 409) {
