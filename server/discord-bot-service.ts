@@ -142,9 +142,6 @@ export class DiscordBotService {
 
       // Handle messages in threads
       this.client.on(Events.MessageCreate, async (message) => {
-        // Debug logging for all messages
-        console.log(`Received message in channel type: ${message.channel.type}, from: ${message.author.username}, bot: ${message.author.bot}`);
-
         // Handle direct messages to bot
         if (message.channel.type === 1) { // ChannelType.DM = 1
           console.log(`Processing DM from ${message.author.username}: ${message.content}`);

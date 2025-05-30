@@ -2900,7 +2900,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`User ${userId} creating a new server with data:`, req.body);
 
       // Validate required fields for client server creation
-      const requiredFields = ['name', 'templateId'];
+      const requiredFields = ['name', 'packageId', 'hypervisorId', 'templateId'];
       for (const field of requiredFields) {
         if (!req.body[field]) {
           return res.status(400).json({
@@ -2945,12 +2945,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Initialize VirtFusion API
+      const virtFusionApi = new VirtFusionApi();
+
       let selectedPackage = null;
       let estimatedCost = 0;
 
       if (configurationType === 'package') {
         // Validate package exists and is enabled
-        const packages = await virtFusionApi.getPackages();
+        const packagesData = await virtFusionApi.getPackages();
+
+        // Handle different response formats
+        let packages;
+        if (Array.isArray(packagesData)) {
+          packages = packagesData;
+        } else if (packagesData.data && Array.isArray(packagesData.data)) {
+          packages = packagesData.data;
+        } else {
+          packages = [];
+        }
+
         selectedPackage = packages?.find(pkg => pkg.id === req.body.packageId && pkg.enabled);
         if (!selectedPackage) {
           return res.status(400).json({
@@ -3020,94 +3034,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Prepare server creation data for VirtFusion
-      let serverData: any = {
-        userId: user.virtFusionId, // Use VirtFusion user ID
-        hypervisorId: req.body.hypervisorId || 1, // Default hypervisor if not specified
-        name: req.body.name,
-        ipv4: req.body.ipv4 || req.body.ipv4Count || 1,
-        forceIPv6: req.body.forceIPv6 !== false && req.body.ipv6Enabled !== false, // Default to true
-        selfService: 1, // Enable hourly billing for client servers
-        swapSize: req.body.swapSize || 512
-      };
+      // Prepare server creation data for VirtFusion (exactly like admin endpoint)
+      const serverData = { ...req.body };
 
-      if (configurationType === 'package') {
-        // Package-based configuration
-        serverData.packageId = req.body.packageId;
-        serverData.storage = req.body.storage || selectedPackage.primaryStorage;
-        serverData.traffic = req.body.traffic || selectedPackage.traffic;
-        serverData.memory = req.body.memory || selectedPackage.memory;
-        serverData.cpuCores = req.body.cpuCores || selectedPackage.cpuCores;
-        serverData.networkSpeedInbound = req.body.networkSpeedInbound || selectedPackage.primaryNetworkSpeedIn;
-        serverData.networkSpeedOutbound = req.body.networkSpeedOutbound || selectedPackage.primaryNetworkSpeedOut;
-      } else if (configurationType === 'custom') {
-        // Custom configuration - use the first available package as base and override specs
-        const packages = await virtFusionApi.getPackages();
-        const basePackage = packages?.find(pkg => pkg.enabled);
+      // Replace the local user ID with the VirtFusion user ID (same as admin endpoint)
+      serverData.userId = user.virtFusionId;
 
-        if (!basePackage) {
-          return res.status(400).json({
-            error: "No available packages",
-            message: "No packages are available for custom configuration."
-          });
-        }
-
-        serverData.packageId = basePackage.id; // Use base package
-        serverData.storage = req.body.storage;
-        serverData.traffic = req.body.traffic || basePackage.traffic; // Use package default for traffic
-        serverData.memory = req.body.memory;
-        serverData.cpuCores = req.body.cpuCores;
-        serverData.networkSpeedInbound = req.body.networkSpeedInbound || req.body.networkSpeed;
-        serverData.networkSpeedOutbound = req.body.networkSpeedOutbound || req.body.networkSpeed;
-      }
+      // Remove templateId from server creation data - this is for the build step only
+      delete serverData.templateId;
 
       console.log("Creating server in VirtFusion with data:", serverData);
 
-      // Create server in VirtFusion
-      const serverResponse = await virtFusionApi.createServer(serverData);
+      // Create the server through VirtFusion API (exactly like admin endpoint)
+      const response = await virtFusionApi.createServer(serverData);
 
-      if (!serverResponse || !serverResponse.id) {
-        throw new Error("Failed to create server in VirtFusion");
-      }
+      console.log(`Server created successfully:`, response);
 
-      const serverId = serverResponse.id;
-      console.log(`Server created successfully with ID: ${serverId}`);
-
-      // Build the server with the specified OS template
-      if (req.body.templateId) {
-        try {
-          const buildData = {
-            operatingSystemId: req.body.templateId,
-            name: req.body.name || "New Server",
-            hostname: req.body.name ? req.body.name.toLowerCase().replace(/[^a-z0-9]/g, '') + ".example.com" : "server.example.com",
-            vnc: true, // Enable VNC by default
-            ipv6: serverData.forceIPv6,
-            email: true, // Send email notifications
-            swap: serverData.swapSize
-          };
-
-          console.log(`Building server ${serverId} with OS template ${req.body.templateId}`);
-
-          const buildResponse = await virtFusionApi.buildServer(serverId, buildData);
-          console.log("Server build initiated:", buildResponse);
-        } catch (buildError) {
-          console.error("Error building server:", buildError);
-          // Server was created but build failed - still return success
-          // The user can manually build it later
-        }
-      }
-
-      res.json({
+      res.status(201).json({
         success: true,
         message: "Server created successfully",
-        serverId: serverId,
-        server: serverResponse
+        data: response
       });
 
     } catch (error: any) {
-      console.error("Error creating server:", error);
+      console.error("Error creating server in VirtFusion API:", error.message);
+
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+
+      // Provide a more helpful error message for common issues (same as admin endpoint)
+      let errorMessage = error.message;
+      if (error.message.includes("422")) {
+        // Try to extract the specific error from the response
+        if (error.response && error.response.data && error.response.data.errors) {
+          errorMessage = `Validation error: ${error.response.data.errors.join(', ')}`;
+        } else {
+          errorMessage = "The server creation request was invalid. Please check all fields and try again.";
+        }
+      }
+
       res.status(500).json({
-        error: "Failed to create server",
+        error: "Failed to create server in VirtFusion API",
+        message: errorMessage
+      });
+    }
+  });
+
+  // Client build server endpoint - allows users to build their own servers with an OS
+  app.post("/api/user/servers/:id/build", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const serverId = parseInt(req.params.id);
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`User ${userId} building server ID: ${serverId} with data:`, req.body);
+
+      // Get user details to find VirtFusion ID
+      const user = await storage.getUser(userId);
+      if (!user || !user.virtFusionId) {
+        return res.status(401).json({
+          error: "Unauthorized",
+          message: "No VirtFusion account associated with this user"
+        });
+      }
+
+      // Initialize VirtFusion API
+      const virtFusionApi = new VirtFusionApi();
+
+      // Verify server ownership - this is critical for security
+      const server = await virtFusionApi.getServer(serverId);
+      if (!server) {
+        return res.status(404).json({
+          error: "Server not found",
+          message: "The specified server does not exist"
+        });
+      }
+
+      // Check ownership using the same comprehensive logic as other endpoints
+      let serverOwnerId;
+      if (server.data) {
+        // Individual server endpoint returns data wrapped in 'data' property
+        serverOwnerId = server.data.ownerId || server.data.owner?.id || server.data.owner;
+      } else {
+        // Other endpoints may return server data directly
+        serverOwnerId = server.ownerId || server.owner?.id || server.owner;
+      }
+
+      console.log(`Server ${serverId} owner ID: ${serverOwnerId}, User VirtFusion ID: ${user.virtFusionId}`);
+
+      if (serverOwnerId !== user.virtFusionId) {
+        return res.status(403).json({
+          error: "Forbidden",
+          message: "You don't have permission to build this server"
+        });
+      }
+
+      // Validate required fields for build operation
+      if (!req.body.operatingSystemId) {
+        return res.status(400).json({
+          error: "Missing required field",
+          message: "The operatingSystemId field is required to build a server."
+        });
+      }
+
+      // Build request payload with required fields from request body
+      const buildData: any = {
+        operatingSystemId: req.body.operatingSystemId,
+        name: req.body.name || "",
+        hostname: req.body.hostname || "",
+        vnc: req.body.vnc !== undefined ? req.body.vnc : false,
+        ipv6: req.body.ipv6 !== undefined ? req.body.ipv6 : false,
+        email: req.body.email !== undefined ? req.body.email : true,
+        swap: req.body.swap || 512
+      };
+
+      if (req.body.sshKeys && Array.isArray(req.body.sshKeys)) {
+        buildData.sshKeys = req.body.sshKeys;
+      }
+
+      // Call the VirtFusion API to build the server with the OS
+      console.log(`Calling VirtFusion API to build server ${serverId} with data:`, buildData);
+      const result = await virtFusionApi.buildServer(serverId, buildData);
+
+      console.log(`Server build initiated successfully for ID ${serverId}:`, result);
+
+      // Extract queue ID for tracking build progress if available
+      let queueId = null;
+      if (result && result.data && result.data.queueId) {
+        queueId = result.data.queueId;
+        console.log(`Server build queued with ID: ${queueId}`);
+
+        // Store this queue ID in the database for this server
+        await storage.updateServerPowerStatus(serverId, {
+          lastQueueId: queueId,
+          lastAction: 'build',
+          lastActionTime: new Date()
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Server build initiated",
+        data: result,
+        queueId
+      });
+    } catch (error: any) {
+      console.error(`Error building server ${req.params.id}:`, error.message || "Unknown error");
+
+      if (error.response) {
+        console.error('Response status:', error.response.status);
+        console.error('Response data:', error.response.data);
+      }
+
+      res.status(500).json({
+        error: "Failed to build server",
         message: error.message || "An unexpected error occurred"
       });
     }
@@ -3144,6 +3232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const pricingRecord = pricingMap[pkg.id];
           return {
             ...pkg,
+            price: pricingRecord ? pricingRecord.price / 100 : null, // Add direct price property for backward compatibility
             pricing: pricingRecord ? {
               price: pricingRecord.price / 100, // Convert cents to dollars
               displayOrder: pricingRecord.displayOrder,
@@ -3226,19 +3315,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Client fetching OS templates for package ID: ${packageId}`);
 
-      // Get templates from VirtFusion
-      const templates = await virtFusionApi.getOsTemplates(packageId);
+      try {
+        console.log(`Starting template fetch for packageId=${packageId}`);
 
-      if (!templates) {
-        return res.json([]);
+        // First try using the specific method (same as admin endpoint)
+        const templatesResponse = await virtFusionApi.getOsTemplatesForPackage(packageId);
+
+        // Add more detailed debugging to show the full response
+        console.log(`Templates API response for package ${packageId}:`, JSON.stringify(templatesResponse).substring(0, 500));
+
+        // Process the nested template structure (same logic as admin endpoint)
+        let allTemplates: any[] = [];
+
+        // Check if the response has the expected data structure
+        if (templatesResponse && templatesResponse.data && Array.isArray(templatesResponse.data)) {
+          console.log(`Got raw templates response with ${templatesResponse.data.length} items`);
+
+          // Process each template group/category
+          for (const templateGroup of templatesResponse.data) {
+            if (templateGroup && typeof templateGroup === 'object') {
+              // Check if this is a template group with nested templates
+              if (templateGroup.templates && Array.isArray(templateGroup.templates)) {
+                console.log(`Processing template group with ${templateGroup.templates.length} templates`);
+                allTemplates.push(...templateGroup.templates);
+              } else if (templateGroup.id && templateGroup.name) {
+                // This is a direct template object
+                allTemplates.push(templateGroup);
+              }
+            }
+          }
+        } else if (Array.isArray(templatesResponse)) {
+          // Direct array response
+          allTemplates = templatesResponse;
+        } else if (templatesResponse && templatesResponse.templates && Array.isArray(templatesResponse.templates)) {
+          // Templates in a templates property
+          allTemplates = templatesResponse.templates;
+        }
+
+        console.log(`Processed ${allTemplates.length} templates for package ${packageId}`);
+
+        // Filter enabled templates and return
+        const enabledTemplates = allTemplates.filter(template => template.enabled !== false);
+        console.log(`Returning ${enabledTemplates.length} enabled templates`);
+
+        res.json(enabledTemplates);
+      } catch (error: any) {
+        console.error(`Error fetching templates for package ${packageId}:`, error);
+        res.status(500).json({ error: "Failed to fetch OS templates" });
       }
-
-      // Filter and format templates for client use
-      const clientTemplates = Array.isArray(templates) ? templates : templates.data || [];
-
-      res.json(clientTemplates.filter(template => template.enabled !== false));
     } catch (error: any) {
-      console.error(`Error fetching templates for package ${req.params.packageId}:`, error);
+      console.error(`Error in templates endpoint for package ${req.params.packageId}:`, error);
       res.status(500).json({ error: "Failed to fetch OS templates" });
     }
   });
@@ -3587,187 +3713,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
-
-  // REMOVED: This route is a duplicate of the one above and was causing routing conflicts
-  /* // Export transactions as PDF
-  app.get("/api/transactions/export", isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      const isAdmin = req.user!.role === 'admin';
-      const user = req.user!;
-
-      // Get transactions for the user or all transactions for admin
-      let transactions;
-      if (isAdmin && req.query.all === 'true') {
-        // Get transactions with search parameters for admin
-        transactions = await storage.searchTransactions({
-          userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
-          startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
-          endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
-          status: req.query.status as string | undefined,
-          type: req.query.type as string | undefined,
-          search: req.query.search as string | undefined,
-        });
-      } else {
-        // Get only user's transactions
-        transactions = await storage.getUserTransactions(userId);
-      }
-
-      // Get company settings for branding
-      const companyName = await storage.getSetting('company_name');
-      const companyNameValue = companyName?.value || 'Your Company';
-      const companyLogo = await storage.getSetting('company_logo');
-      const companyLogoValue = companyLogo?.value || '';
-
-      // Generate PDF
-      const doc = new PDFDocument({ margin: 50 });
-
-      // Buffer to store PDF data
-      let buffers: Buffer[] = [];
-      doc.on('data', buffers.push.bind(buffers));
-
-      // Format the document with transaction data
-      formatTransactionsPdf(doc, transactions, user, companyNameValue, companyLogoValue);
-
-      // Finalize the PDF and convert to base64
-      doc.end();
-
-      // Generate a promise from the events
-      const pdfPromise = new Promise<Buffer>((resolve) => {
-        doc.on('end', () => {
-          const pdfData = Buffer.concat(buffers);
-          resolve(pdfData);
-        });
-      });
-
-      // Get the completed PDF data
-      const pdfBuffer = await pdfPromise;
-
-      // Set headers for PDF download
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="transactions-${new Date().toISOString().split('T')[0]}.pdf"`);
-
-      // Send the PDF content
-      res.send(pdfBuffer);
-    } catch (error: any) {
-      console.error("Error exporting transactions:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // TRANSACTION DOWNLOAD ENDPOINT
-  app.get("/api/transactions/:id/download", isAuthenticated, async (req, res) => {
-    try {
-      // Validate transaction ID
-      const transactionIdStr = req.params.id;
-      if (!transactionIdStr || isNaN(parseInt(transactionIdStr))) {
-        return res.status(400).json({ error: "Invalid transaction ID" });
-      }
-
-      const transactionId = parseInt(transactionIdStr);
-      console.log(`Downloading transaction ID: ${transactionId} for user: ${req.user!.id}`);
-
-      // Get transaction from storage
-      const transaction = await storage.getTransaction(transactionId);
-
-      if (!transaction) {
-        console.error(`Transaction ID ${transactionId} not found in database`);
-        return res.status(404).json({ error: "Transaction not found" });
-      }
-
-      // Double check the permission
-      if (transaction.userId !== req.user!.id && req.user!.role !== 'admin') {
-        return res.status(403).json({ error: "You don't have permission to access this transaction" });
-      }
-
-      // Get user data for the report
-      const user = await storage.getUser(transaction.userId);
-
-      // Format date string
-      const dateStr = transaction.createdAt
-        ? new Date(transaction.createdAt).toLocaleDateString()
-        : 'N/A';
-
-      // Create simple text content for the transaction
-      let txtContent = `
-==============================================
-             TRANSACTION RECEIPT
-==============================================
-
-Transaction ID: #${transaction.id}
-Date: ${dateStr}
-Customer: ${user?.fullName || user?.username || 'N/A'}
-Account ID: ${user?.id || 'N/A'}
-
-----------------------------------------------
-TRANSACTION DETAILS
-----------------------------------------------
-Description: ${transaction.description || 'N/A'}
-Status: ${transaction.status || 'N/A'}
-Type: ${transaction.type || 'N/A'}
-`;
-
-      if (transaction.paymentMethod) {
-        txtContent += `Payment Method: ${transaction.paymentMethod}\n`;
-      }
-
-      if (transaction.paymentId) {
-        txtContent += `Payment ID: ${transaction.paymentId}\n`;
-      }
-
-      // Handle amount with formatting
-      const isCredit = transaction.type === 'credit' || transaction.type === 'virtfusion_credit';
-      let amount = 0;
-      try {
-        amount = typeof transaction.amount === 'number'
-          ? transaction.amount
-          : parseFloat(transaction.amount);
-      } catch (e) {
-        console.error('Error parsing transaction amount:', e);
-      }
-
-      txtContent += `\nAmount: ${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(2)}\n`;
-      txtContent += `
-----------------------------------------------
-Thank you for your business.
-Generated on ${new Date().toLocaleString()}
-==============================================
-`;
-
-      // Get company information for PDF
-      const companyName = await storage.getSetting('company_name') || { value: 'SkyVPS360' };
-      const companyLogo = await storage.getSetting('company_logo') || { value: '' };
-
-      // Create a PDF document directly piped to response
-      const doc = new PDFDocument({ margin: 50 });
-
-      // Set headers for PDF download
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="transaction-${transaction.id}.pdf"`);
-
-      // Pipe the PDF directly to the response
-      doc.pipe(res);
-
-      // Format the PDF
-      formatSingleTransactionPdf(doc, transaction, user, companyName.value, companyLogo.value);
-
-      // Finalize the PDF
-      doc.end();
-    } catch (error: any) {
-      console.error("Error generating transaction text:", error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          error: "Failed to generate transaction download",
-          details: error.message
-        });
-      } else {
-        res.end();
-      }
-    }
-  });
-
-  // Close the commented out duplicate route
-  */
 
   // Helper function to format a single transaction PDF
   function formatSingleTransactionPdf(doc: PDFKit.PDFDocument, transaction: any, user: any, companyName: string, companyLogo: string) {
@@ -6710,12 +6655,12 @@ Generated on ${new Date().toLocaleString()}
       // If user has VirtFusion ID, check for servers FIRST before any deletion attempts
       if (user.virtFusionId) {
         try {
-          // Use the same approach as the working user servers page  
+          // Use the same approach as the working user servers page
           console.log(`Getting user servers for VirtFusion user ID: ${user.virtFusionId}`);
-          
+
           // Use the global virtFusionApi instance and the proven getUserServers method
           const serversResponse = await virtFusionApi.getUserServers(user.virtFusionId);
-          
+
           console.log(`getUserServers response:`, JSON.stringify(serversResponse, null, 2));
 
           let hasServers = false;
@@ -6744,15 +6689,15 @@ Generated on ${new Date().toLocaleString()}
           }
 
           console.log(`Server check passed: User has no servers, safe to proceed with deletion. User ID: ${userId}`);
-          
+
           // At this point, either:
           // 1. User has no servers (safe to delete)
           // 2. User doesn't exist in VirtFusion (orphaned user, safe to delete from our DB)
-          
+
           // Now attempt VirtFusion user deletion (only if user exists there)
           const extRelationId = user.id; // Use local user ID as extRelationId per README
           let skipVirtFusionDeletion = false;
-          
+
           if (!skipVirtFusionDeletion) {
             console.log(`Attempting VirtFusion user deletion. User ID: ${userId}, VirtFusion extRelationId: ${extRelationId}`);
 
@@ -7484,7 +7429,7 @@ Generated on ${new Date().toLocaleString()}
       }
 
       // Build request payload with required fields from request body
-      const buildData = {
+      const buildData: any = {
         operatingSystemId: req.body.operatingSystemId,
         name: req.body.name || "",
         hostname: req.body.hostname || "",
@@ -8761,33 +8706,7 @@ Generated on ${new Date().toLocaleString()}
 
 
 
-  // Get VirtFusion packages
-  app.get("/api/packages", isAuthenticated, async (req, res) => {
-    console.log("Fetching packages from VirtFusion API");
-    try {
-      const packagesData = await virtFusionApi.getPackages();
 
-      // Log the response for debugging
-      console.log("Packages response:", JSON.stringify(packagesData));
-
-      // Handle different response formats
-      let packages;
-      if (Array.isArray(packagesData)) {
-        packages = packagesData;
-      } else if (packagesData.data && Array.isArray(packagesData.data)) {
-        packages = packagesData.data;
-      } else {
-        packages = [];
-      }
-
-      res.json(packages);
-    } catch (error: any) {
-      console.error("Error fetching packages:", error);
-      res
-        .status(500)
-        .json({ error: error.message || "Failed to fetch packages" });
-    }
-  });
 
   // Get a specific package
   app.get("/api/packages/:id", isAuthenticated, async (req, res) => {

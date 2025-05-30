@@ -1,0 +1,99 @@
+// Client build server endpoint - almost identical to admin version but checks server ownership
+app.post("/api/user/servers/:id/build", isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    
+    const serverId = parseInt(req.params.id);
+    if (isNaN(serverId)) {
+      return res.status(400).json({ error: "Invalid server ID" });
+    }
+    
+    console.log(`User ${userId} building server ID: ${serverId} with data:`, req.body);
+    
+    // Get user details to find VirtFusion ID
+    const user = await storage.getUser(userId);
+    if (!user || !user.virtFusionId) {
+      return res.status(401).json({ 
+        error: "Unauthorized", 
+        message: "No VirtFusion account associated with this user"
+      });
+    }
+    
+    // Initialize VirtFusion API
+    const virtFusionApi = new VirtFusionApi();
+    
+    // Verify server ownership - this is critical for security
+    const server = await virtFusionApi.request("GET", `/servers/${serverId}`);
+    if (!server || server.ownerId !== user.virtFusionId) {
+      return res.status(403).json({ 
+        error: "Forbidden", 
+        message: "You don't have permission to build this server"
+      });
+    }
+    
+    // Validate required fields for build operation
+    if (!req.body.operatingSystemId) {
+      return res.status(400).json({
+        error: "Missing required field",
+        message: "The operatingSystemId field is required to build a server."
+      });
+    }
+    
+    // Build request payload with required fields from request body
+    const buildData = {
+      operatingSystemId: req.body.operatingSystemId,
+      name: req.body.name || "",
+      hostname: req.body.hostname || "",
+      vnc: req.body.vnc !== undefined ? req.body.vnc : false,
+      ipv6: req.body.ipv6 !== undefined ? req.body.ipv6 : false,
+      email: req.body.email !== undefined ? req.body.email : true,
+      swap: req.body.swap || 512
+    };
+    
+    if (req.body.sshKeys && Array.isArray(req.body.sshKeys)) {
+      buildData.sshKeys = req.body.sshKeys;
+    }
+    
+    // Call the VirtFusion API to build the server with the OS
+    console.log(`Calling VirtFusion API to build server ${serverId} with data:`, buildData);
+    const result = await virtFusionApi.buildServer(serverId, buildData);
+    
+    console.log(`Server build initiated successfully for ID ${serverId}:`, result);
+    
+    // Extract queue ID for tracking build progress if available
+    let queueId = null;
+    if (result && result.data && result.data.queueId) {
+      queueId = result.data.queueId;
+      console.log(`Server build queued with ID: ${queueId}`);
+      
+      // Store this queue ID in the database for this server
+      await storage.updateServerPowerStatus(serverId, {
+        lastQueueId: queueId,
+        lastAction: 'build',
+        lastActionTime: new Date()
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: "Server build initiated",
+      data: result,
+      queueId
+    });
+  } catch (error: any) {
+    console.error(`Error building server ${req.params.id}:`, error.message);
+    
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    
+    res.status(500).json({
+      error: "Failed to build server",
+      message: error.message || "An unexpected error occurred"
+    });
+  }
+});

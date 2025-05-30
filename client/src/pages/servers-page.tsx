@@ -167,13 +167,12 @@ export default function ServersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            {/* TODO: Re-enable when client-side server creation is completed */}
-            {/* <Link href="/servers/create">
+            <Link href="/servers/create">
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Server
               </Button>
-            </Link> */}
+            </Link>
             <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline">
               <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
@@ -340,15 +339,14 @@ export default function ServersPage() {
                   ? 'No servers match your current filters.'
                   : 'You don\'t have any servers yet. Create your first server to get started.'}
               </p>
-              {/* TODO: Re-enable when client-side server creation is completed */}
-              {/* {!searchQuery && statusFilter === 'all' && (
+              {!searchQuery && statusFilter === 'all' && (
                 <Link href="/servers/create">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
                     Create Your First Server
                   </Button>
                 </Link>
-              )} */}
+              )}
             </CardContent>
           </Card>
         )}
