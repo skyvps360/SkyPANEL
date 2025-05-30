@@ -564,171 +564,85 @@ export default function ServerCreatePage() {
 
                 {/* Resource Configuration */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Memory - Read-only for clients */}
-                  <FormField
-                    control={form.control}
-                    name="memory"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Memory (MB)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            disabled={true}
-                            readOnly={true}
-                            className="bg-muted text-muted-foreground cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Set by selected package
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Memory - Display as text */}
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm">Memory</h3>
+                    <div className="p-2 border rounded-md bg-background">
+                      <p className="text-base">
+                        {form.watch("memory") ? `${form.watch("memory")} MB` : "Not selected"}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Set by selected package</p>
+                  </div>
 
-                  {/* CPU Cores - Read-only for clients */}
-                  <FormField
-                    control={form.control}
-                    name="cpuCores"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CPU Cores</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            disabled={true}
-                            readOnly={true}
-                            className="bg-muted text-muted-foreground cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Set by selected package
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* CPU Cores - Display as text */}
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm">CPU Cores</h3>
+                    <div className="p-2 border rounded-md bg-background">
+                      <p className="text-base">
+                        {form.watch("cpuCores") ? `${form.watch("cpuCores")} ${form.watch("cpuCores") > 1 ? 'Cores' : 'Core'}` : "Not selected"}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Set by selected package</p>
+                  </div>
 
-                  {/* Storage - Read-only for clients */}
-                  <FormField
-                    control={form.control}
-                    name="storage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Storage (GB)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            disabled={true}
-                            readOnly={true}
-                            className="bg-muted text-muted-foreground cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Set by selected package
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Storage - Display as text */}
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm">Storage</h3>
+                    <div className="p-2 border rounded-md bg-background">
+                      <p className="text-base">
+                        {form.watch("storage") ? `${form.watch("storage")} GB` : "Not selected"}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Set by selected package</p>
+                  </div>
 
-                  {/* IPv4 Addresses - Read-only for clients */}
-                  <FormField
-                    control={form.control}
-                    name="ipv4"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>IPv4 Addresses</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            disabled={true}
-                            readOnly={true}
-                            className="bg-muted text-muted-foreground cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Set by selected package
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* IPv4 Addresses - Display as text */}
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm">IPv4 Addresses</h3>
+                    <div className="p-2 border rounded-md bg-background">
+                      <p className="text-base">
+                        {form.watch("ipv4") !== undefined ? form.watch("ipv4") : "Not selected"}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Set by selected package</p>
+                  </div>
                 </div>
 
                 {/* Network Configuration */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Traffic */}
-                  <FormField
-                    control={form.control}
-                    name="traffic"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Traffic (GB/month)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            disabled={isSubmitting}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Traffic - Display as text */}
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm">Traffic</h3>
+                    <div className="p-2 border rounded-md bg-background">
+                      <p className="text-base">
+                        {form.watch("traffic") ? `${form.watch("traffic")} GB/month` : "Not selected"}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Set by selected package</p>
+                  </div>
 
-                  {/* Inbound Speed - Read-only for clients */}
-                  <FormField
-                    control={form.control}
-                    name="networkSpeedInbound"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Inbound Speed (KB/s)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            disabled={true}
-                            readOnly={true}
-                            className="bg-muted text-muted-foreground cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Set by selected package
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Inbound Speed - Display as text */}
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm">Inbound Speed</h3>
+                    <div className="p-2 border rounded-md bg-background">
+                      <p className="text-base">
+                        {form.watch("networkSpeedInbound") ? formatNetworkSpeed(form.watch("networkSpeedInbound")) : "Not selected"}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Set by selected package</p>
+                  </div>
 
-                  {/* Outbound Speed - Read-only for clients */}
-                  <FormField
-                    control={form.control}
-                    name="networkSpeedOutbound"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Outbound Speed (KB/s)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            disabled={true}
-                            readOnly={true}
-                            className="bg-muted text-muted-foreground cursor-not-allowed"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Set by selected package
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Outbound Speed - Display as text */}
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm">Outbound Speed</h3>
+                    <div className="p-2 border rounded-md bg-background">
+                      <p className="text-base">
+                        {form.watch("networkSpeedOutbound") ? formatNetworkSpeed(form.watch("networkSpeedOutbound")) : "Not selected"}
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Set by selected package</p>
+                  </div>
                 </div>
 
                 {/* Advanced Options */}

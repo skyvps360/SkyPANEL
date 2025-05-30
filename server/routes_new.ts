@@ -3084,6 +3084,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Server created successfully:`, response);
 
+      // Deduct credits from user account
+      if (estimatedCost > 0) {
+        try {
+          await storage.updateUserCredits(userId, -estimatedCost); // Negative amount to deduct
+          console.log(`Deducted ${estimatedCost.toFixed(2)} credits from user ${userId}`);
+          
+          // Log the transaction
+          const transaction: schema.InsertTransaction = {
+            userId,
+            amount: -estimatedCost,
+            type: 'deduction',
+            description: `Server creation: ${serverData.name || 'New Server'}`,
+            status: 'completed',
+          };
+          await db.insert(schema.transactions).values(transaction);
+        } catch (creditError) {
+          console.error(`Failed to deduct credits from user ${userId}:`, creditError);
+          // We won't fail the request since the server was already created
+        }
+      }
+
       res.status(201).json({
         success: true,
         message: "Server created successfully",
