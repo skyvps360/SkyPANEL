@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -564,7 +564,7 @@ export default function ServerCreatePage() {
 
                 {/* Resource Configuration */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Memory */}
+                  {/* Memory - Read-only for clients */}
                   <FormField
                     control={form.control}
                     name="memory"
@@ -575,15 +575,20 @@ export default function ServerCreatePage() {
                           <Input
                             type="number"
                             {...field}
-                            disabled={isSubmitting}
+                            disabled={true}
+                            readOnly={true}
+                            className="bg-muted text-muted-foreground cursor-not-allowed"
                           />
                         </FormControl>
+                        <FormDescription className="text-xs">
+                          Set by selected package
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  {/* CPU Cores */}
+                  {/* CPU Cores - Read-only for clients */}
                   <FormField
                     control={form.control}
                     name="cpuCores"
@@ -594,15 +599,20 @@ export default function ServerCreatePage() {
                           <Input
                             type="number"
                             {...field}
-                            disabled={isSubmitting}
+                            disabled={true}
+                            readOnly={true}
+                            className="bg-muted text-muted-foreground cursor-not-allowed"
                           />
                         </FormControl>
+                        <FormDescription className="text-xs">
+                          Set by selected package
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  {/* Storage */}
+                  {/* Storage - Read-only for clients */}
                   <FormField
                     control={form.control}
                     name="storage"
@@ -613,15 +623,20 @@ export default function ServerCreatePage() {
                           <Input
                             type="number"
                             {...field}
-                            disabled={isSubmitting}
+                            disabled={true}
+                            readOnly={true}
+                            className="bg-muted text-muted-foreground cursor-not-allowed"
                           />
                         </FormControl>
+                        <FormDescription className="text-xs">
+                          Set by selected package
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  {/* IPv4 Addresses */}
+                  {/* IPv4 Addresses - Read-only for clients */}
                   <FormField
                     control={form.control}
                     name="ipv4"
@@ -632,9 +647,14 @@ export default function ServerCreatePage() {
                           <Input
                             type="number"
                             {...field}
-                            disabled={isSubmitting}
+                            disabled={true}
+                            readOnly={true}
+                            className="bg-muted text-muted-foreground cursor-not-allowed"
                           />
                         </FormControl>
+                        <FormDescription className="text-xs">
+                          Set by selected package
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -662,7 +682,7 @@ export default function ServerCreatePage() {
                     )}
                   />
 
-                  {/* Inbound Speed */}
+                  {/* Inbound Speed - Read-only for clients */}
                   <FormField
                     control={form.control}
                     name="networkSpeedInbound"
@@ -673,15 +693,20 @@ export default function ServerCreatePage() {
                           <Input
                             type="number"
                             {...field}
-                            disabled={isSubmitting}
+                            disabled={true}
+                            readOnly={true}
+                            className="bg-muted text-muted-foreground cursor-not-allowed"
                           />
                         </FormControl>
+                        <FormDescription className="text-xs">
+                          Set by selected package
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  {/* Outbound Speed */}
+                  {/* Outbound Speed - Read-only for clients */}
                   <FormField
                     control={form.control}
                     name="networkSpeedOutbound"
@@ -692,9 +717,14 @@ export default function ServerCreatePage() {
                           <Input
                             type="number"
                             {...field}
-                            disabled={isSubmitting}
+                            disabled={true}
+                            readOnly={true}
+                            className="bg-muted text-muted-foreground cursor-not-allowed"
                           />
                         </FormControl>
+                        <FormDescription className="text-xs">
+                          Set by selected package
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

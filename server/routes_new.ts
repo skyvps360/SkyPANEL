@@ -3040,6 +3040,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Replace the local user ID with the VirtFusion user ID (same as admin endpoint)
       serverData.userId = user.virtFusionId;
 
+      // SECURITY: For clients, override restricted fields with package defaults to prevent tampering
+      if (configurationType === 'package' && selectedPackage) {
+        console.log("Enforcing package specifications for client server creation");
+
+        // Override client-provided values with package specifications
+        if (selectedPackage.cpuCores !== undefined) {
+          serverData.cpuCores = selectedPackage.cpuCores;
+        }
+        if (selectedPackage.memory !== undefined) {
+          serverData.memory = selectedPackage.memory;
+        }
+        if (selectedPackage.primaryStorage !== undefined) {
+          serverData.storage = selectedPackage.primaryStorage;
+        }
+        if (selectedPackage.primaryNetworkSpeedIn !== undefined) {
+          serverData.networkSpeedInbound = selectedPackage.primaryNetworkSpeedIn;
+        }
+        if (selectedPackage.primaryNetworkSpeedOut !== undefined) {
+          serverData.networkSpeedOutbound = selectedPackage.primaryNetworkSpeedOut;
+        }
+        if (selectedPackage.ipv4 !== undefined) {
+          serverData.ipv4 = selectedPackage.ipv4;
+        }
+
+        console.log("Package specifications enforced:", {
+          cpuCores: serverData.cpuCores,
+          memory: serverData.memory,
+          storage: serverData.storage,
+          networkSpeedInbound: serverData.networkSpeedInbound,
+          networkSpeedOutbound: serverData.networkSpeedOutbound,
+          ipv4: serverData.ipv4
+        });
+      }
+
       // Remove templateId from server creation data - this is for the build step only
       delete serverData.templateId;
 
