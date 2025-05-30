@@ -291,41 +291,7 @@ export class VirtFusionApi {
     return this.request("GET", `/users/${extRelationId}/byExtRelation`);
   }
 
-  async checkUserHasServers(extRelationId: number): Promise<boolean> {
-    try {
-      console.log(`Checking if user has servers using getUserServers API for extRelationId: ${extRelationId}`);
 
-      // Use the more reliable getUserServers method
-      const serversResponse = await this.getUserServers(extRelationId);
-
-      // Check if the user has any servers
-      let hasServers = false;
-      let serverCount = 0;
-
-      if (serversResponse && serversResponse.data) {
-        if (Array.isArray(serversResponse.data)) {
-          serverCount = serversResponse.data.length;
-          hasServers = serverCount > 0;
-        } else if (serversResponse.data.servers && Array.isArray(serversResponse.data.servers)) {
-          serverCount = serversResponse.data.servers.length;
-          hasServers = serverCount > 0;
-        }
-      }
-
-      if (hasServers) {
-        console.log(`User with extRelationId ${extRelationId} has ${serverCount} servers`);
-        return true;
-      }
-
-      // No servers found
-      console.log(`User with extRelationId ${extRelationId} has no servers`);
-      return false;
-    } catch (error) {
-      console.error(`Error checking if user has servers:`, error);
-      // If we can't determine, assume they might have servers to be safe
-      return true;
-    }
-  }
 
   async deleteUserByExtRelationId(extRelationId: number) {
     // Using format from VirtFusion API docs for DELETE /users/{extRelationId}/byExtRelation
@@ -569,6 +535,38 @@ export class VirtFusionApi {
 
     const endpoint = `/servers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request("GET", endpoint);
+  }
+
+  // Check if user has any active servers (for deletion prevention)
+  async checkUserHasServers(virtFusionUserId: number): Promise<{ hasServers: boolean; serverCount: number }> {
+    try {
+      console.log(`Checking if user has servers. VirtFusion User ID: ${virtFusionUserId}`);
+
+      // Use the SAME approach that works in the user servers page
+      // This uses the proven selfService endpoint that we know works
+      const response = await this.getUserServers(virtFusionUserId);
+
+      console.log(`checkUserHasServers response:`, JSON.stringify(response, null, 2));
+
+      let hasServers = false;
+      let serverCount = 0;
+
+      if (response && response.data) {
+        if (Array.isArray(response.data)) {
+          serverCount = response.data.length;
+          hasServers = serverCount > 0;
+        } else if (response.data.servers && Array.isArray(response.data.servers)) {
+          serverCount = response.data.servers.length;
+          hasServers = serverCount > 0;
+        }
+      }
+
+      console.log(`User ${virtFusionUserId} has ${serverCount} servers (hasServers: ${hasServers})`);
+      return { hasServers, serverCount };
+    } catch (error) {
+      console.error(`Error checking if user has servers for virtFusionUserId ${virtFusionUserId}:`, error);
+      throw error;
+    }
   }
 
   // Get servers for a specific user by their VirtFusion ID

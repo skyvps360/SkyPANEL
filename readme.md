@@ -1082,6 +1082,38 @@ SkyPANEL provides comprehensive user management with VirtFusion integration.
 - **Account Control**: Enable/disable user accounts
 - **Credit Management**: Manual credit adjustments and tracking
 
+### User Deletion with Server Checking
+
+SkyPANEL implements comprehensive server checking before allowing user deletion to prevent data loss:
+
+#### Server Verification Process
+1. **Admin Initiates Deletion**: Admin clicks delete user from `/admin/users` page
+2. **VirtFusion Server Check**: System checks if user has active servers using VirtFusion API
+3. **Deletion Prevention**: If servers exist, deletion is completely blocked with detailed error message
+4. **Safe Deletion**: Only users with no active servers can be deleted
+
+#### Technical Implementation
+- **API Endpoint**: Uses `/selfService/servers/byUserExtRelationId/{virtFusionUserId}` to check for servers
+- **Error Handling**: Returns HTTP 409 status with server count and user-friendly error message
+- **Data Integrity**: Prevents orphaned servers and maintains VirtFusion/SkyPANEL synchronization
+
+```javascript
+// Example server check before user deletion
+const serversResponse = await virtFusionApi.getUserServers(user.virtFusionId);
+if (serversResponse?.data?.length > 0) {
+  // Block deletion - user has active servers
+  return res.status(409).json({
+    error: "Cannot delete user with active servers",
+    serverCount: serversResponse.data.length
+  });
+}
+```
+
+#### Admin Workflow
+1. **Manage Servers First**: All user servers must be deleted or transferred
+2. **Verify No Servers**: System automatically verifies user has no active servers
+3. **Safe Deletion**: Only then can the user account be safely removed
+
 ---
 
 ## 📝 Content Management
