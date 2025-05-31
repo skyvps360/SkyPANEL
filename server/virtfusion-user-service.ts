@@ -76,6 +76,8 @@ export class VirtFusionUserService {
         extRelationId: user.id, // Relation ID (our user ID)
         selfService: settings.selfService, // From settings (1 = hourly enabled)
         selfServiceHourlyCredit: settings.selfServiceHourlyCredit, // From settings
+        selfServiceHourlyGroupProfiles: [], // Required array field - empty for default
+        selfServiceResourceGroupProfiles: [], // Required array field - empty for default
         selfServiceHourlyResourcePack: settings.selfServiceHourlyResourcePack, // From settings
         sendMail: false // Don't send email notification
       };
