@@ -1186,7 +1186,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
               >
                 <Coins className="h-4 w-4 mr-2" style={{ color: brandColors.primary.full }} />
                 <span className="text-sm font-medium">
-                  ${balanceData?.virtFusionCredits ? balanceData.virtFusionCredits.toFixed(2) : (user?.credits?.toFixed(2) || "0.00")}
+                  {balanceData?.virtFusionTokens 
+                    ? `${balanceData.virtFusionTokens.toFixed(2)} Tokens` 
+                    : (balanceData?.virtFusionCredits 
+                      ? `${balanceData.virtFusionCredits.toFixed(2)} Credits` 
+                      : "0.00 Tokens")}
                 </span>
               </Link>
 

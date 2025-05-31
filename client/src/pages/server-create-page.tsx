@@ -162,32 +162,23 @@ export default function ServerCreatePage() {
     },
   });
 
-  // Check if user has sufficient credits
+  // Check if user has sufficient VirtFusion tokens
   const hasInsufficientCredits = () => {
     if (!balanceData || !selectedPackage) return false;
 
-    // Check VirtFusion tokens/credits first
+    // Only check VirtFusion tokens/credits (removed local credit fallback)
     const virtFusionBalance = balanceData.virtFusionTokens || balanceData.virtFusionCredits || 0;
     const minimumRequired = selectedPackage.pricing?.price || selectedPackage.price || 0;
-
-    // If no VirtFusion balance, check local credits
-    if (virtFusionBalance <= 0) {
-      return balanceData.credits < minimumRequired;
-    }
 
     return virtFusionBalance < minimumRequired;
   };
 
-  // Get current balance display
+  // Get current VirtFusion balance display
   const getCurrentBalance = () => {
     if (!balanceData) return "Loading...";
 
     const virtFusionBalance = balanceData.virtFusionTokens || balanceData.virtFusionCredits || 0;
-    if (virtFusionBalance > 0) {
-      return `${virtFusionBalance.toFixed(2)} VirtFusion ${balanceData.virtFusionTokens ? 'Tokens' : 'Credits'}`;
-    }
-
-    return `$${balanceData.credits.toFixed(2)} Credits`;
+    return `${virtFusionBalance.toFixed(2)} VirtFusion ${balanceData.virtFusionTokens ? 'Tokens' : 'Credits'}`;
   };
 
   // Handler for form submission
@@ -195,17 +186,18 @@ export default function ServerCreatePage() {
     setIsSubmitting(true);
 
     try {
-      // Check credit balance before proceeding
+      // Check if user has sufficient VirtFusion tokens before proceeding
       if (hasInsufficientCredits()) {
         toast({
-          title: "Insufficient Balance",
-          description: "You don't have enough credits to create this server. Please add funds to your account.",
+          title: "Insufficient VirtFusion Tokens",
+          description: "You don't have enough VirtFusion tokens to create this server. Please add funds to your account.",
           variant: "destructive",
         });
         return;
       }
 
       // Submit to client server creation endpoint (will use current user's ID)
+      // Note: VirtFusion tokens will be automatically deducted by VirtFusion when the server is created
       console.log("Submitting server creation request with data:", values);
       const response = await apiRequest("/api/servers", {
         method: "POST",

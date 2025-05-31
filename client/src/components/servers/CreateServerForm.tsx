@@ -113,11 +113,11 @@ export function CreateServerForm({
   
   // Form submission handler
   const handleSubmit = (values: z.infer<typeof serverSchema>) => {
-    // Check if user has enough credits
+    // Check if user has enough VirtFusion tokens
     if (estimatedCost > availableCredits) {
       toast({
-        title: "Insufficient credits",
-        description: "Please add more credits to create this server",
+        title: "Insufficient VirtFusion Tokens",
+        description: "Please add more tokens to create this server",
         variant: "destructive"
       });
       return;

@@ -145,7 +145,8 @@ export default function BillingPage() {
   };
 
   // Calculate billing summary
-  const hasVirtFusionBalance = balanceData?.virtFusionCredits && balanceData.virtFusionCredits > 0;
+  const hasVirtFusionTokens = balanceData?.virtFusionTokens && balanceData.virtFusionTokens > 0;
+  const hasVirtFusionCredits = balanceData?.virtFusionCredits && balanceData.virtFusionCredits > 0;
 
   // Calculate the spent and added amounts for the last 30 days from transactions
   const spentFromTransactions = transactions
@@ -157,13 +158,14 @@ export default function BillingPage() {
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   const summaryData = {
-    // Prioritize VirtFusion balance when available
-    balance: hasVirtFusionBalance ?
-      balanceData?.virtFusionCredits || 0 :
-      (balanceData?.credits || user?.credits || 0),
+    // Only use VirtFusion balance
+    balance: hasVirtFusionTokens 
+      ? balanceData?.virtFusionTokens || 0 
+      : (hasVirtFusionCredits ? balanceData?.virtFusionCredits || 0 : 0),
 
     virtFusionTokens: balanceData?.virtFusionTokens || 0,
-    localBalance: balanceData?.credits || user?.credits || 0,
+    // Set local balance to 0 as we're moving away from it
+    localBalance: 0,
 
     // Use VirtFusion API data if available, otherwise fall back to transaction calculation
     spent30Days: (usageData && 'usage' in usageData) ? usageData.usage : spentFromTransactions,
@@ -300,32 +302,18 @@ export default function BillingPage() {
           <CardContent className="px-6 py-5">
             <div className="mb-2">
               <div className="flex items-center gap-1">
-                <span className="text-3xl font-bold">${summaryData.balance.toFixed(2)}</span>
-                <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
+                <span className="text-3xl font-bold">{summaryData.virtFusionTokens.toLocaleString()}</span>
+                <span className="text-sm text-muted-foreground self-end mb-1">Tokens</span>
               </div>
             </div>
 
-            {/* Show VirtFusion tokens section when available */}
-            {hasVirtFusionBalance ? (
-              <div className="mt-3 pt-3 border-t border-border/60">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">VirtFusion Tokens:</span>
-                  <span className="font-medium" style={{ color: brandColors.primary.full }}>{summaryData.virtFusionTokens.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-                  <span>100 tokens = $1.00 USD</span>
-                  <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </div>
+            {/* Always show VirtFusion tokens conversion */}
+            <div className="mt-3 pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                <span>100 tokens = $1.00 USD</span>
+                <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
-            ) : (
-              /* Show local balance only if no VirtFusion balance */
-              <div className="mt-3 pt-3 border-t border-border/60">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Local Balance:</span>
-                  <span className="font-medium">${summaryData.localBalance.toFixed(2)}</span>
-                </div>
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 

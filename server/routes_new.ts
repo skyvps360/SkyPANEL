@@ -3024,13 +3024,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Check if user has sufficient credits
-      if (estimatedCost > 0 && user.credits < estimatedCost) {
+      // Get user's VirtFusion token balance
+      let virtFusionBalance = 0;
+      try {
+        if (user.virtFusionId) {
+          const userHourlyStats = await virtFusionApi.getUserHourlyStats(user.id);
+          if (userHourlyStats?.data?.credit?.tokens) {
+            virtFusionBalance = parseFloat(userHourlyStats.data.credit.tokens);
+          }
+        }
+      } catch (virtFusionError) {
+        console.error("Error fetching VirtFusion tokens:", virtFusionError);
+      }
+
+      // Check if user has sufficient VirtFusion tokens (convert to dollars if needed for comparison)
+      const minimumTokensRequired = estimatedCost * 100; // $1 = 100 tokens
+      if (estimatedCost > 0 && virtFusionBalance < minimumTokensRequired) {
         return res.status(400).json({
-          error: "Insufficient credits",
-          message: `You need at least $${estimatedCost.toFixed(2)} to create this server. Current balance: $${user.credits.toFixed(2)}`,
-          requiredCredits: estimatedCost,
-          currentCredits: user.credits
+          error: "Insufficient VirtFusion tokens",
+          message: `You need at least ${minimumTokensRequired.toFixed(2)} VirtFusion tokens to create this server. Current balance: ${virtFusionBalance.toFixed(2)} tokens`,
+          requiredTokens: minimumTokensRequired,
+          currentTokens: virtFusionBalance
         });
       }
 
@@ -3084,23 +3098,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Server created successfully:`, response);
 
-      // Deduct credits from user account
+      // No need to deduct local credits - VirtFusion automatically handles billing through its token system
+      // Log the transaction for record-keeping
       if (estimatedCost > 0) {
         try {
-          await storage.updateUserCredits(userId, -estimatedCost); // Negative amount to deduct
-          console.log(`Deducted ${estimatedCost.toFixed(2)} credits from user ${userId}`);
-          
-          // Log the transaction
           const transaction: schema.InsertTransaction = {
             userId,
             amount: -estimatedCost,
-            type: 'deduction',
-            description: `Server creation: ${serverData.name || 'New Server'}`,
+            type: 'virtfusion_deduction',
+            description: `Server creation: ${serverData.name || 'New Server'} (VirtFusion tokens used)`,
             status: 'completed',
           };
           await db.insert(schema.transactions).values(transaction);
-        } catch (creditError) {
-          console.error(`Failed to deduct credits from user ${userId}:`, creditError);
+          console.log(`Logged VirtFusion token usage of ${estimatedCost.toFixed(2)} for user ${userId}`);
+        } catch (logError) {
+          console.error(`Failed to log VirtFusion token usage for user ${userId}:`, logError);
           // We won't fail the request since the server was already created
         }
       }
@@ -4704,9 +4716,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Initialize response with local credits
+      // Initialize response with VirtFusion tokens as the primary balance display
       const response = {
-        credits: user.credits,
+        credits: 0, // Keeping this for backward compatibility but setting to 0
         virtFusionCredits: 0,
         virtFusionTokens: 0
       };
@@ -4729,7 +4741,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (virtFusionError) {
           console.error("Error fetching VirtFusion credits:", virtFusionError);
-          // We'll still return the local credits if VirtFusion API call fails
+          // No fallback to local credits anymore
         }
       }
 
