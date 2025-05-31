@@ -301,12 +301,6 @@ export default function ServersListPage() {
                 </div>
               </div>
             </div>
-            <Link href="/admin/servers/create">
-              <Button className="flex items-center gap-1">
-                <Server className="h-4 w-4" />
-                Create Server
-              </Button>
-            </Link>
           </CardHeader>
           <CardContent>
             {isLoading ? (

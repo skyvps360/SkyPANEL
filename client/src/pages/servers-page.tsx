@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Plus } from "lucide-react";
+import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin } from "lucide-react";
+import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 
 function getStatusBadgeVariant(status: string) {
   const normalizedStatus = status.toLowerCase();
@@ -167,12 +168,10 @@ export default function ServersPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/servers/create">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Server
-              </Button>
-            </Link>
+            <VirtFusionSsoButton 
+              text="Create Server"
+              className="inline-flex gap-2"
+            />
             <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline">
               <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
@@ -340,12 +339,10 @@ export default function ServersPage() {
                   : 'You don\'t have any servers yet. Create your first server to get started.'}
               </p>
               {!searchQuery && statusFilter === 'all' && (
-                <Link href="/servers/create">
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Your First Server
-                  </Button>
-                </Link>
+                <VirtFusionSsoButton 
+                  text="Create Your First Server"
+                  className="inline-flex"
+                />
               )}
             </CardContent>
           </Card>

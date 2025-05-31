@@ -12,8 +12,6 @@ import VerifyPage from "@/pages/auth/verify-page";
 import PackagesPage from "@/pages/packages-page";
 import UserServersPage from "@/pages/servers-page";
 import UserServerDetailPage from "@/pages/server-detail-page";
-import UserServerCreatePage from "@/pages/server-create-page";
-
 import BillingPage from "@/pages/billing-page";
 import TransactionDetailPage from "@/pages/transaction-detail-page";
 // Invoice-related pages have been removed
@@ -56,7 +54,6 @@ import FaqManagementPage from "@/pages/admin/faq-management";
 import PackagePricingPage from "@/pages/admin/package-pricing";
 import LegalEditorPage from "@/pages/admin/legal-editor";
 import ServerDetailPage from "@/pages/admin/server-detail-page";
-import ServerCreatePage from "@/pages/admin/server-create-page";
 import ServersListPage from "@/pages/admin/servers-page";
 import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
 import VNCConsole from "@/pages/vnc-console";
@@ -269,7 +266,14 @@ function Router() {
         <Route path="/auth/reset-password" component={ResetPasswordPage} />
         <ProtectedRoute path="/packages" component={PackagesPage} />
         <ProtectedRoute path="/servers" component={UserServersPage} />
-        <ProtectedRoute path="/servers/create" component={UserServerCreatePage} />
+        <Route path="/servers/create">
+          {() => {
+            // Redirect from /servers/create to /servers
+            const [, navigate] = useLocation();
+            useEffect(() => { navigate('/servers'); }, [navigate]);
+            return null;
+          }}
+        </Route>
         <ProtectedRoute path="/servers/:id" component={UserServerDetailPage} />
         <ProtectedRoute path="/billing" component={BillingPage} allowSuspended={true} />
         <ProtectedRoute path="/billing/transactions/:id" component={TransactionDetailPage} allowSuspended={true} />
@@ -309,7 +313,14 @@ function Router() {
         <AdminProtectedRoute path="/admin/faq-management" component={FaqManagementPage} />
         <AdminProtectedRoute path="/admin/legal" component={LegalEditorPage} />
         <AdminProtectedRoute path="/admin/servers" component={ServersListPage} />
-        <AdminProtectedRoute path="/admin/servers/create" component={ServerCreatePage} />
+        <Route path="/admin/servers/create">
+          {() => {
+            // Redirect from /admin/servers/create to /admin/servers
+            const [, navigate] = useLocation();
+            useEffect(() => { navigate('/admin/servers'); }, [navigate]);
+            return null;
+          }}
+        </Route>
         <AdminProtectedRoute path="/admin/servers/:id" component={ServerDetailPage} />
         <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage} />
         <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage} />
