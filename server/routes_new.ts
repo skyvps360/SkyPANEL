@@ -4095,13 +4095,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? "https://api-m.sandbox.paypal.com"
         : "https://api-m.paypal.com";
 
-      // Get credentials
+      // Get credentials with debug logging
+      console.log(`PayPal Mode: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
+      
       const clientId = isSandbox
         ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
-        : process.env.VITE_PAYPAL_CLIENT_ID;
+        : (process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID);
       const clientSecret = isSandbox
         ? process.env.VITE_PAYPAL_SANDBOX_SECRET
-        : process.env.VITE_PAYPAL_SECRET;
+        : (process.env.VITE_PAYPAL_SECRET || process.env.PAYPAL_SECRET);
+      
+      console.log(`PayPal Client ID exists: ${!!clientId}`);
+      console.log(`PayPal Client Secret exists: ${!!clientSecret}`);
 
       if (!clientId || !clientSecret) {
         console.error("PayPal credentials are not configured");
@@ -4110,8 +4115,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: "Missing API credentials"
         });
       }
-
-      console.log(`Using PayPal in ${isSandbox ? 'SANDBOX' : 'PRODUCTION'} mode`);
 
       // First, get an access token
       let accessToken;
@@ -4282,13 +4285,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ? "https://api-m.sandbox.paypal.com"
         : "https://api-m.paypal.com";
 
-      // Get credentials
+      // Get credentials with debug logging
+      console.log(`PayPal Mode: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
+      
       const clientId = isSandbox
         ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
-        : process.env.VITE_PAYPAL_CLIENT_ID;
+        : (process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID);
       const clientSecret = isSandbox
         ? process.env.VITE_PAYPAL_SANDBOX_SECRET
-        : process.env.VITE_PAYPAL_SECRET;
+        : (process.env.VITE_PAYPAL_SECRET || process.env.PAYPAL_SECRET);
+      
+      console.log(`PayPal Client ID exists: ${!!clientId}`);
+      console.log(`PayPal Client Secret exists: ${!!clientSecret}`);
 
       if (!clientId || !clientSecret) {
         console.error("PayPal credentials are not configured");
@@ -4297,8 +4305,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: "Missing API credentials"
         });
       }
-
-      console.log(`Using PayPal in ${isSandbox ? 'SANDBOX' : 'PRODUCTION'} mode`);
 
       // First, get an access token
       let accessToken;
@@ -9504,22 +9510,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if we're in sandbox mode
       const isSandbox = process.env.VITE_PAYPAL_SANDBOX === "true";
+      const paypalBaseUrl = isSandbox
+        ? "https://api-m.sandbox.paypal.com"
+        : "https://api-m.paypal.com";
 
-      if (!isSandbox) {
-        return res.status(400).json({
-          error: "This test endpoint only works in sandbox mode",
-          details: "Set VITE_PAYPAL_SANDBOX=true to use this endpoint"
-        });
-      }
-
-      const paypalBaseUrl = "https://api-m.sandbox.paypal.com";
-      const clientId = process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID;
-      const clientSecret = process.env.VITE_PAYPAL_SANDBOX_SECRET;
+      // Get credentials with debug logging
+      console.log(`PayPal Mode: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
+      
+      const clientId = isSandbox
+        ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
+        : (process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID);
+      const clientSecret = isSandbox
+        ? process.env.VITE_PAYPAL_SANDBOX_SECRET
+        : (process.env.VITE_PAYPAL_SECRET || process.env.PAYPAL_SECRET);
+      
+      console.log(`PayPal Client ID exists: ${!!clientId}`);
+      console.log(`PayPal Client Secret exists: ${!!clientSecret}`);
 
       if (!clientId || !clientSecret) {
         return res.status(500).json({
-          error: "PayPal sandbox credentials not configured",
-          details: "Missing VITE_PAYPAL_SANDBOX_CLIENT_ID or VITE_PAYPAL_SANDBOX_SECRET"
+          error: "PayPal credentials are not configured",
+          details: "Missing API credentials"
         });
       }
 
@@ -9577,7 +9588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         paypal: {
-          sandbox: true,
+          sandbox: isSandbox,
           order: orderData
         }
       });

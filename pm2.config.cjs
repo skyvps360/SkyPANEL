@@ -4,7 +4,7 @@ module.exports = {
       name: "skypanel",
       script: "dist/index.js",
       env: {
-        NODE_ENV: "production"
+        NODE_ENV: "dev"
       },
       exec_mode: "cluster",
       instances: "max",
