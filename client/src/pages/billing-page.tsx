@@ -4,11 +4,13 @@ import { queryClient } from "@/lib/queryClient";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, ExternalLink, Eye, Receipt, FileText } from "lucide-react";
+import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, ExternalLink, Eye, Receipt, FileText, Edit3 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PayPalCheckout } from "@/components/billing/PayPalCheckout";
 import { useAuth } from "@/hooks/use-auth";
@@ -31,6 +33,9 @@ interface Transaction {
 export default function BillingPage() {
   const { user } = useAuth();
   const [creditAmount, setCreditAmount] = useState(50);
+  const [customAmount, setCustomAmount] = useState("");
+  const [isCustomAmount, setIsCustomAmount] = useState(false);
+  const [customAmountError, setCustomAmountError] = useState("");
   const [activeTab, setActiveTab] = useState("transactions");
 
 
@@ -260,6 +265,57 @@ export default function BillingPage() {
 
   // Credit amount options
   const creditOptions = [1, 2, 5, 10, 25, 50, 100, 250, 500];
+
+  // Handle predefined amount selection
+  const handlePredefinedAmountSelect = (amount: number) => {
+    setCreditAmount(amount);
+    setIsCustomAmount(false);
+    setCustomAmount("");
+    setCustomAmountError("");
+  };
+
+  // Handle custom amount input
+  const handleCustomAmountChange = (value: string) => {
+    // Only allow numbers and decimal point
+    const sanitizedValue = value.replace(/[^0-9.]/g, '');
+    
+    // Prevent multiple decimal points
+    const decimalCount = (sanitizedValue.match(/\./g) || []).length;
+    if (decimalCount > 1) return;
+    
+    setCustomAmount(sanitizedValue);
+    
+    if (sanitizedValue) {
+      const numValue = parseFloat(sanitizedValue);
+      
+      // Validate amount
+      if (isNaN(numValue)) {
+        setCustomAmountError("Please enter a valid amount");
+      } else if (numValue < 1) {
+        setCustomAmountError("Minimum amount is $1.00");
+      } else if (numValue > 1000) {
+        setCustomAmountError("Maximum amount is $1000.00");
+      } else {
+        setCustomAmountError("");
+        setCreditAmount(numValue);
+        setIsCustomAmount(true);
+      }
+    } else {
+      setCustomAmountError("");
+      setIsCustomAmount(false);
+    }
+  };
+
+  // Get the final amount to use for payment
+  const getFinalAmount = () => {
+    if (isCustomAmount && customAmount) {
+      const numValue = parseFloat(customAmount);
+      if (!isNaN(numValue) && numValue >= 1 && numValue <= 1000) {
+        return numValue;
+      }
+    }
+    return creditAmount;
+  };
 
   return (
     <DashboardLayout>
@@ -566,14 +622,14 @@ export default function BillingPage() {
                     <DollarSign className="h-4 w-4 mr-1" style={{ color: brandColors.primary.full }} />
                     Select Amount
                   </h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-3 gap-4 mb-6">
                     {creditOptions.map((amount) => (
                       <Button
                         key={amount}
-                        variant={creditAmount === amount ? "default" : "outline"}
-                        onClick={() => setCreditAmount(amount)}
-                        className={`font-medium transition-all ${creditAmount === amount ? 'shadow-md hover:shadow-lg' : 'hover:bg-primary/5'}`}
-                        style={creditAmount === amount ? {
+                        variant={!isCustomAmount && creditAmount === amount ? "default" : "outline"}
+                        onClick={() => handlePredefinedAmountSelect(amount)}
+                        className={`font-medium transition-all ${!isCustomAmount && creditAmount === amount ? 'shadow-md hover:shadow-lg' : 'hover:bg-primary/5'}`}
+                        style={!isCustomAmount && creditAmount === amount ? {
                           backgroundColor: brandColors.primary.full,
                           color: 'white'
                         } : {
@@ -586,13 +642,54 @@ export default function BillingPage() {
                       </Button>
                     ))}
                   </div>
+
+                  {/* Custom Amount Input */}
+                  <div className="border-t pt-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Edit3 className="h-4 w-4" style={{ color: brandColors.primary.full }} />
+                      <Label htmlFor="customAmount" className="text-sm font-medium">
+                        Or enter a custom amount ($1 - $1000)
+                      </Label>
+                    </div>
+                    <div className="max-w-sm">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="customAmount"
+                          type="text"
+                          placeholder="0.00"
+                          value={customAmount}
+                          onChange={(e) => handleCustomAmountChange(e.target.value)}
+                          className={`pl-8 ${customAmountError ? 'border-red-500' : ''} ${isCustomAmount ? 'ring-2 ring-primary/20' : ''}`}
+                          style={isCustomAmount ? {
+                            borderColor: brandColors.primary.medium
+                          } : undefined}
+                        />
+                      </div>
+                      {customAmountError && (
+                        <p className="text-sm text-red-500 mt-1">{customAmountError}</p>
+                      )}
+                      {isCustomAmount && !customAmountError && customAmount && (
+                        <p className="text-sm text-green-600 mt-1">
+                          Custom amount: ${parseFloat(customAmount).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="rounded-lg border border-border/60 p-4 mb-8 bg-card/30 shadow-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Selected Amount:</span>
-                    <span className="text-xl font-bold" style={{ color: brandColors.primary.full }}>${creditAmount.toFixed(2)}</span>
+                    <span className="text-xl font-bold" style={{ color: brandColors.primary.full }}>
+                      ${getFinalAmount().toFixed(2)}
+                    </span>
                   </div>
+                  {isCustomAmount && (
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      Custom amount selected
+                    </div>
+                  )}
                 </div>
 
                 <div className="mb-8">
@@ -621,7 +718,17 @@ export default function BillingPage() {
                   </div>
                 )}
 
-                <PayPalCheckout amount={creditAmount} />
+                {/* Only show PayPal checkout if amount is valid */}
+                {(!isCustomAmount || (isCustomAmount && !customAmountError && customAmount)) && (
+                  <PayPalCheckout amount={getFinalAmount()} />
+                )}
+
+                {/* Show error message if custom amount is invalid */}
+                {isCustomAmount && customAmountError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
+                    <p className="text-red-600 font-medium">Please enter a valid amount between $1.00 and $1000.00</p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 

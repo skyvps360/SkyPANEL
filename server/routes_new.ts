@@ -4458,6 +4458,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid amount or payment ID" });
       }
 
+      // Validate amount limits (minimum $1, maximum $1000)
+      if (amount < 1) {
+        console.log(`Amount too low: ${amount}`);
+        return res.status(400).json({ error: "Minimum amount is $1.00" });
+      }
+
+      if (amount > 1000) {
+        console.log(`Amount too high: ${amount}`);
+        return res.status(400).json({ error: "Maximum amount is $1000.00" });
+      }
+
       // Verify we have verification data
       if (!verificationData || !verificationData.verified) {
         console.error("Payment not verified through server-side validation");
