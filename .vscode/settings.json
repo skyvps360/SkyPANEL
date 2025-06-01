@@ -2,5 +2,10 @@
     "debug.javascript.defaultRuntimeExecutable": {
         
         "pwa-node": "node"
-    }
+    },
+    "terminal.integrated.tabs.defaultColor": "terminal.ansiBlue",
+    "github.copilot.chat.completionContext.typescript.mode": "on",
+    "github.copilot.chat.languageContext.fix.typescript.enabled": true,
+    "github.copilot.chat.languageContext.inline.typescript.enabled": true,
+    "github.copilot.chat.languageContext.typescript.enabled": true
 }
