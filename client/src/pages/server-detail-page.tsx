@@ -2036,67 +2036,71 @@ export default function ServerDetailPage() {
           {/* Quick Actions Bar */}
           {!isLoading && !error && server && (
             <Card className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col space-y-3">
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                   <Zap className="h-5 w-5 text-primary" />
                   Quick Actions
                 </h3>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
                   {/* Power Control Actions */}
-                  <div className="flex items-center gap-1 border rounded-lg p-1">
+                  <div className="flex flex-wrap items-center gap-1 border rounded-lg p-1 w-full sm:w-auto overflow-x-auto">
                     <Button
                       variant={isServerStopped ? "default" : "ghost"}
                       size="sm"
                       onClick={() => handlePowerAction('boot')}
                       disabled={!isServerStopped || isLoading}
-                      className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary"
+                      className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary whitespace-nowrap"
                     >
                       <Power className="h-4 w-4" />
-                      Boot
+                      <span className="sm:inline">Boot</span>
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handlePowerAction('restart')}
                       disabled={isServerStopped || isLoading}
-                      className="flex items-center gap-2 hover:bg-blue-500/10 hover:text-blue-700"
+                      className="flex items-center gap-2 hover:bg-blue-500/10 hover:text-blue-700 whitespace-nowrap"
                     >
                       <RotateCcw className="h-4 w-4" />
-                      Restart
+                      <span className="hidden sm:inline">Restart</span>
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handlePowerAction('shutdown')}
                       disabled={isServerStopped || isLoading}
-                      className="flex items-center gap-2 hover:bg-yellow-500/10 hover:text-yellow-700"
+                      className="flex items-center gap-2 hover:bg-yellow-500/10 hover:text-yellow-700 whitespace-nowrap"
                     >
                       <Square className="h-4 w-4" />
-                      Shutdown
+                      <span className="sm:inline">Shutdown</span>
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handlePowerAction('poweroff')}
                       disabled={isServerStopped || isLoading}
-                      className="flex items-center gap-2 hover:bg-red-500/10 hover:text-red-700"
+                      className="flex items-center gap-2 hover:bg-red-500/10 hover:text-red-700 whitespace-nowrap"
                     >
                       <PowerOff className="h-4 w-4" />
-                      Power Off
+                      <span className="sm:inline">Power Off</span>
                     </Button>
+                  </div>
 
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
                     {/* Tab Navigation Dropdown */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary">
+                        <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary w-1/2 sm:w-auto">
                           <FileText className="h-4 w-4" />
-                          {activeTab === "overview" ? "Overview" :
-                           activeTab === "specs" ? "Specifications" :
-                           activeTab === "network" ? "Network" :
-                           activeTab === "traffic" ? "Traffic" :
-                           activeTab === "storage" ? "Storage" :
-                           activeTab === "vnc" ? "VNC" : "Overview"}
-                          <ChevronDown className="h-3 w-3" />
+                          <span className="truncate">
+                            {activeTab === "overview" ? "Overview" :
+                             activeTab === "specs" ? "Specifications" :
+                             activeTab === "network" ? "Network" :
+                             activeTab === "traffic" ? "Traffic" :
+                             activeTab === "storage" ? "Storage" :
+                             activeTab === "vnc" ? "VNC" : "Overview"}
+                          </span>
+                          <ChevronDown className="h-3 w-3 ml-auto sm:ml-0" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
@@ -2130,10 +2134,10 @@ export default function ServerDetailPage() {
                     {/* Settings Dropdown - moved into Quick Actions */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary">
+                        <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary w-1/2 sm:w-auto">
                           <Settings className="h-4 w-4" />
-                          More
-                          <ChevronDown className="h-3 w-3" />
+                          <span className="truncate">More</span>
+                          <ChevronDown className="h-3 w-3 ml-auto sm:ml-0" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
