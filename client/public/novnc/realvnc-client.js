@@ -876,7 +876,7 @@
       // Request next update
       setTimeout(() => {
         this.requestFramebufferUpdate();
-      }, 100); // More frequent updates for smoother display
+      }, 16); // More frequent updates for smoother display
     }
 
     ensureCryptoJSAndEncrypt() {
