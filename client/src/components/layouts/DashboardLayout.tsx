@@ -30,7 +30,7 @@ import {
   Zap,
   MessageSquare,
 } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { getBrandColors, getButtonStyles } from "@/lib/brand-theme";
+import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
 
 type NavigationItem = {
   name: string;
@@ -725,16 +726,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     }
   };
 
-  const getUserInitials = () => {
-    if (!user?.fullName) return "U";
-    return user.fullName
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
   return (
     <div className="flex h-screen overflow-hidden text-textColor">
       {/* Sidebar Navigation */}
@@ -807,8 +798,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         <div className="p-4 border-t border-gray-700">
           <div className="flex items-center text-sm text-gray-300">
             <Avatar className="w-8 h-8 mr-3">
+              <AvatarImage src={getGravatarUrl(user?.email)} alt={user?.fullName || "User"} />
               <AvatarFallback style={{ backgroundColor: brandColors.primary.full }}>
-                {getUserInitials()}
+                {getUserInitials(user?.fullName)}
               </AvatarFallback>
             </Avatar>
             <div className="overflow-hidden">
@@ -1195,8 +1187,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="ml-2">
                     <Avatar className="w-8 h-8">
+                      <AvatarImage src={getGravatarUrl(user?.email)} alt={user?.fullName || "User"} />
                       <AvatarFallback style={{ backgroundColor: brandColors.primary.full, color: 'white' }}>
-                        {getUserInitials()}
+                        {getUserInitials(user?.fullName)}
                       </AvatarFallback>
                     </Avatar>
                   </Button>

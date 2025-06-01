@@ -1,8 +1,9 @@
 import { format } from "date-fns";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef } from "react";
 import { getBrandColors } from "@/lib/brand-theme";
+import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
 import axios from "axios";
 
 interface TicketMessage {
@@ -80,17 +81,6 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
     new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
 
-  // Get the initials for the avatar
-  const getInitials = (fullName: string | undefined) => {
-    if (!fullName) return "U";
-    return fullName
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2);
-  };
-  
   // Function to format basic markdown
   const formatMarkdown = (text: string) => {
     // Format bold text (**text**)
@@ -161,10 +151,14 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
             )}>
               {!isCurrentUser && (
                 <Avatar className="h-8 w-8 mr-2">
+                  <AvatarImage 
+                    src={getGravatarUrl(group[0].user?.email)} 
+                    alt={group[0].user?.fullName || `User #${group[0].userId}`} 
+                  />
                   <AvatarFallback style={{ 
                     backgroundColor: isAdmin ? brandColors.primary.full : '#6b7280'
                   }}>
-                    {getInitials(group[0].user?.fullName)}
+                    {getUserInitials(group[0].user?.fullName)}
                   </AvatarFallback>
                 </Avatar>
               )}
@@ -189,10 +183,14 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
               
               {isCurrentUser && (
                 <Avatar className="h-8 w-8 ml-2">
+                  <AvatarImage 
+                    src={getGravatarUrl(group[0].user?.email)} 
+                    alt={group[0].user?.fullName || `User #${group[0].userId}`} 
+                  />
                   <AvatarFallback style={{ 
                     backgroundColor: isAdmin ? brandColors.primary.full : '#6b7280'
                   }}>
-                    {getInitials(group[0].user?.fullName)}
+                    {getUserInitials(group[0].user?.fullName)}
                   </AvatarFallback>
                 </Avatar>
               )}

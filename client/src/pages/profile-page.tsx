@@ -12,9 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { User, Lock, Mail, UserCheck, Copy, Check, KeyRound, RefreshCw } from "lucide-react";
+import { User, Lock, Mail, UserCheck, Copy, Check, KeyRound, RefreshCw, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
+import { getBrandColors } from "@/lib/brand-theme";
 
 // Profile schema
 const profileSchema = z.object({
@@ -37,6 +40,13 @@ export default function ProfilePage() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [copied, setCopied] = useState(false);
+  
+  // Brand colors for styling
+  const brandColors = getBrandColors({
+    primaryColor: '2563eb',
+    secondaryColor: '10b981',
+    accentColor: 'f59e0b'
+  });
 
   // Profile form
   const profileForm = useForm<ProfileFormData>({
@@ -183,6 +193,29 @@ export default function ProfilePage() {
 
           <TabsContent value="profile" className="m-0">
             <CardContent className="p-6">
+              {/* User Avatar with Gravatar */}
+              <div className="flex flex-col items-center mb-6">
+                <Avatar className="h-24 w-24 mb-3">
+                  <AvatarImage src={getGravatarUrl(user?.email, 192)} alt={user?.fullName || "User"} />
+                  <AvatarFallback 
+                    style={{ backgroundColor: brandColors.primary.full, color: 'white', fontSize: '1.5rem' }}
+                  >
+                    {getUserInitials(user?.fullName)}
+                  </AvatarFallback>
+                </Avatar>
+                <p className="text-sm text-gray-500 mb-2">
+                  Profile picture provided by Gravatar
+                </p>
+                <a 
+                  href="https://gravatar.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs flex items-center text-blue-600 hover:underline"
+                >
+                  Change at Gravatar.com <ExternalLink className="h-3 w-3 ml-1" />
+                </a>
+              </div>
+
               <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
                 <div className="space-y-6">
                   <div className="space-y-2">
