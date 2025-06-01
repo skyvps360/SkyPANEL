@@ -7949,7 +7949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         data: {
           user: 'root',
-          sendMail: false
+          sendMail: true
         },
         // Apply SSL verification setting
         httpsAgent: new https.Agent({ rejectUnauthorized: true }),
