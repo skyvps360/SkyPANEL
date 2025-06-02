@@ -371,11 +371,11 @@ export default function HomePage() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
-                        style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
+                        style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
                       >
                         <MessageSquare
                           className="w-4 h-4 transition-colors duration-200"
-                          style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
+                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
                         />
                       </div>
                       <span className="text-sm font-medium">Live Chat</span>

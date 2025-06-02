@@ -174,6 +174,8 @@ const VNCConsole: React.FC = () => {
       setConnectionError(null);
 
       // Construct WebSocket URL for VNC proxy
+      // In development, use the current host (Vite will proxy to backend)
+      // In production, use the current host (same server serves both frontend and backend)
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/vnc-proxy?host=${encodeURIComponent(host!)}&port=${port}`;
 
@@ -181,7 +183,8 @@ const VNCConsole: React.FC = () => {
         windowProtocol: window.location.protocol,
         windowHost: window.location.host,
         protocol,
-        finalUrl: wsUrl
+        finalUrl: wsUrl,
+        isDevelopment: import.meta.env.DEV
       });
 
       console.log('VNC Connection Details:', {

@@ -633,10 +633,13 @@ export const chatSessions = pgTable("chat_sessions", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   assignedAdminId: integer("assigned_admin_id").references(() => users.id, { onDelete: 'set null' }),
   departmentId: integer("department_id").references(() => chatDepartments.id, { onDelete: 'set null' }),
-  status: text("status").notNull().default("waiting"), // waiting, active, closed
+  status: text("status").notNull().default("waiting"), // waiting, active, closed, converted_to_ticket
   priority: text("priority").notNull().default("normal"), // low, normal, high
   subject: text("subject"), // Optional subject for the chat
   department: text("department").default("general"), // Legacy field - will be replaced by departmentId
+  convertedToTicketId: integer("converted_to_ticket_id").references(() => tickets.id, { onDelete: 'set null' }), // Track ticket conversion
+  convertedAt: timestamp("converted_at"), // When the chat was converted to a ticket
+  convertedByAdminId: integer("converted_by_admin_id").references(() => users.id, { onDelete: 'set null' }), // Admin who performed the conversion
   metadata: json("metadata").default({}), // Additional data like browser info, page URL, etc.
   startedAt: timestamp("started_at").defaultNow().notNull(),
   endedAt: timestamp("ended_at"),

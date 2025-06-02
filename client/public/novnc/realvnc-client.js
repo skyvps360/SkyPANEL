@@ -434,10 +434,13 @@
       console.log('RealVNC: Connecting to real VNC server');
 
       // Construct WebSocket URL for VNC proxy
+      // In development, Vite will proxy to the backend server
+      // In production, frontend and backend are on the same server
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/vnc-proxy?host=${encodeURIComponent(this.host)}&port=${this.port}`;
 
       console.log('RealVNC: WebSocket URL:', wsUrl);
+      console.log('RealVNC: Current host:', window.location.host);
 
       try {
         // Create WebSocket connection to VNC proxy

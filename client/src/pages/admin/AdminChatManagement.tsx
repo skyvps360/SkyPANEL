@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import {
   MessageCircle,
   Users,
@@ -31,7 +33,9 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal
+  MoreHorizontal,
+  Ticket,
+  ArrowRight
 } from 'lucide-react';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { useAuth } from '@/hooks/use-auth';
@@ -118,6 +122,13 @@ export default function AdminChatManagement() {
   const [showSessionsList, setShowSessionsList] = useState(true);
   const [tabScrollPosition, setTabScrollPosition] = useState(0);
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState<number | null>(null);
+
+  // Convert to ticket state (ENHANCED: Chat-to-ticket conversion feature)
+  const [convertDialogOpen, setConvertDialogOpen] = useState(false);
+  const [convertingSessionId, setConvertingSessionId] = useState<number | null>(null);
+  const [convertSubject, setConvertSubject] = useState('');
+  const [convertPriority, setConvertPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [convertDepartmentId, setConvertDepartmentId] = useState<number | null>(null);
 
   // Refs
   const messagesEndRefs = useRef<{ [sessionId: number]: HTMLDivElement | null }>({});
@@ -228,6 +239,59 @@ export default function AdminChatManagement() {
       toast({
         title: 'Failed to end session',
         description: 'Could not terminate the chat session. Please try again.',
+        variant: 'destructive'
+      });
+    },
+  });
+
+  // Convert chat to ticket mutation (ENHANCED: Chat-to-ticket conversion feature)
+  const convertToTicketMutation = useMutation({
+    mutationFn: async ({ sessionId, subject, priority, departmentId }: {
+      sessionId: number;
+      subject: string;
+      priority: 'low' | 'medium' | 'high';
+      departmentId?: number;
+    }) => {
+      const response = await fetch(`/api/admin/chat/${sessionId}/convert-to-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ subject, priority, departmentId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to convert chat to ticket');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Chat converted to ticket',
+        description: `Successfully created ticket #${data.ticketId}. The client has been notified.`,
+      });
+
+      // Close the conversion dialog
+      setConvertDialogOpen(false);
+      setConvertingSessionId(null);
+      setConvertSubject('');
+      setConvertPriority('medium');
+      setConvertDepartmentId(null);
+
+      // Close the chat tab since it's now converted
+      if (convertingSessionId) {
+        closeTab(convertingSessionId, false);
+      }
+
+      // Refresh sessions to update status
+      refetchSessions();
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Failed to convert chat',
+        description: error.message || 'Could not convert the chat to a ticket. Please try again.',
         variant: 'destructive'
       });
     },
@@ -482,6 +546,54 @@ export default function AdminChatManagement() {
         messagesEnd.scrollIntoView({ behavior: 'smooth' });
       }
     }, 100);
+  }, []);
+
+  // Convert to ticket handlers (ENHANCED: Chat-to-ticket conversion feature)
+  const handleConvertToTicket = useCallback((sessionId: number) => {
+    const session = activeTabs.find(tab => tab.sessionId === sessionId)?.session;
+    if (!session) {
+      toast({
+        title: 'Session not found',
+        description: 'Could not find the chat session to convert.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Pre-fill the subject with session info
+    const defaultSubject = session.subject || `Chat Support - ${session.user?.fullName || 'User'}`;
+
+    setConvertingSessionId(sessionId);
+    setConvertSubject(defaultSubject);
+    setConvertPriority('medium');
+    setConvertDepartmentId(session.departmentId || null);
+    setConvertDialogOpen(true);
+  }, [activeTabs, toast]);
+
+  const handleConfirmConvert = useCallback(() => {
+    if (!convertingSessionId || !convertSubject.trim()) {
+      toast({
+        title: 'Missing information',
+        description: 'Please provide a subject for the ticket.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    convertToTicketMutation.mutate({
+      sessionId: convertingSessionId,
+      subject: convertSubject.trim(),
+      priority: convertPriority,
+      departmentId: convertDepartmentId || undefined,
+    });
+  }, [convertingSessionId, convertSubject, convertPriority, convertDepartmentId, convertToTicketMutation, toast]);
+
+  const handleCancelConvert = useCallback(() => {
+    setConvertDialogOpen(false);
+    setConvertingSessionId(null);
+    setConvertSubject('');
+    setConvertPriority('medium');
+    setConvertDepartmentId(null);
   }, []);
 
   useEffect(() => {
@@ -1137,6 +1249,20 @@ export default function AdminChatManagement() {
                             <Badge variant={getStatusBadgeVariant(activeTab.session.status)} className="text-xs">
                               {activeTab.session.status}
                             </Badge>
+
+                            {/* Convert to Ticket Button (ENHANCED: Chat-to-ticket conversion feature) */}
+                            {activeTab.session.status === 'active' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleConvertToTicket(activeTab.sessionId)}
+                                className="text-xs px-3 py-1 h-7 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                                disabled={convertToTicketMutation.isPending}
+                              >
+                                <Ticket className="h-3 w-3 mr-1" />
+                                Convert to Ticket
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1389,6 +1515,134 @@ export default function AdminChatManagement() {
           </TabsContent>
       </Tabs>
       </div>
+
+      {/* Convert to Ticket Dialog (ENHANCED: Chat-to-ticket conversion feature) */}
+      <Dialog open={convertDialogOpen} onOpenChange={setConvertDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Ticket className="h-5 w-5 text-blue-600" />
+              <span>Convert Chat to Ticket</span>
+            </DialogTitle>
+            <DialogDescription>
+              This will convert the current chat session into a support ticket. The entire conversation history will be preserved, and the client will be notified via email.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="ticket-subject">Ticket Subject *</Label>
+              <Input
+                id="ticket-subject"
+                value={convertSubject}
+                onChange={(e) => setConvertSubject(e.target.value)}
+                placeholder="Enter a descriptive subject for the ticket"
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500">
+                This will be the main subject line for the support ticket
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ticket-priority">Priority</Label>
+                <Select value={convertPriority} onValueChange={(value: 'low' | 'medium' | 'high') => setConvertPriority(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full" />
+                        <span>Low</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                        <span>Medium</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="high">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-red-500 rounded-full" />
+                        <span>High</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ticket-department">Department</Label>
+                <Select
+                  value={convertDepartmentId?.toString() || 'none'}
+                  onValueChange={(value) => setConvertDepartmentId(value === 'none' ? null : parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      <span className="text-gray-500">No department</span>
+                    </SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id.toString()}>
+                        <div className="flex items-center space-x-2">
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: dept.color }}
+                          />
+                          <span>{dept.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <ArrowRight className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="text-sm font-medium text-blue-900">What happens next?</h4>
+                  <ul className="text-xs text-blue-700 space-y-1">
+                    <li>• The entire chat history will be imported into the ticket</li>
+                    <li>• The client will receive an email notification with the ticket details</li>
+                    <li>• The chat session will be marked as converted and closed</li>
+                    <li>• You can continue the conversation through the ticket system</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelConvert}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmConvert}
+              disabled={!convertSubject.trim() || convertToTicketMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {convertToTicketMutation.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Converting...
+                </>
+              ) : (
+                <>
+                  <Ticket className="h-4 w-4 mr-2" />
+                  Convert to Ticket
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

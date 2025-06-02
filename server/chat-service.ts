@@ -51,22 +51,22 @@ export class ChatService {
   }
 
   /**
-   * Initialize the WebSocket server for chat
+   * Initialize the WebSocket server for chat (deprecated - using manual routing now)
    */
   public initialize(server: Server): void {
-    this.wss = new WebSocketServer({ 
-      server,
-      path: '/chat-ws'
-    });
+    // No longer creating a WebSocketServer here to avoid conflicts with VNC
+    // WebSocket connections are now handled manually in routes_new.ts
+    console.log('Chat service initialized (manual WebSocket routing)');
+  }
 
-    this.wss.on('connection', (ws: WebSocketWithUser, request) => {
-      console.log('New chat WebSocket connection');
-      
-      // Handle authentication and setup
-      this.handleConnection(ws, request);
-    });
+  /**
+   * Handle a manually passed WebSocket connection
+   */
+  public handleWebSocketConnection(ws: WebSocketWithUser, request: any): void {
+    console.log('New chat WebSocket connection (manual routing)');
 
-    console.log('Chat WebSocket server initialized on /chat-ws');
+    // Handle authentication and setup
+    this.handleConnection(ws, request);
   }
 
   /**

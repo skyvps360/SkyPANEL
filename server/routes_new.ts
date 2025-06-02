@@ -7894,6 +7894,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enable VNC for a server
+  app.post("/api/servers/:serverId/vnc/enable", isAuthenticated, async (req, res) => {
+    try {
+      const serverId = parseInt(req.params.serverId);
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`Enabling VNC for server ${serverId}`);
+      const vncResponse = await virtFusionApi.toggleVnc(serverId);
+
+      console.log('VNC enable response:', JSON.stringify(vncResponse));
+      res.json(vncResponse);
+    } catch (error: any) {
+      console.error(`Error enabling VNC for server ${req.params.serverId}:`, error);
+      res.status(500).json({
+        error: error.message || "Failed to enable VNC",
+        details: error.response?.data || "Unknown error"
+      });
+    }
+  });
+
+  // Get VNC status for a server
+  app.get("/api/servers/:serverId/vnc", isAuthenticated, async (req, res) => {
+    try {
+      const serverId = parseInt(req.params.serverId);
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`Getting VNC status for server ${serverId}`);
+      const vncStatus = await virtFusionApi.getVncStatus(serverId);
+
+      console.log('VNC status response:', JSON.stringify(vncStatus));
+      res.json(vncStatus);
+    } catch (error: any) {
+      console.error(`Error getting VNC status for server ${req.params.serverId}:`, error);
+      res.status(500).json({
+        error: error.message || "Failed to get VNC status",
+        details: error.response?.data || "Unknown error"
+      });
+    }
+  });
+
   // WebSocket handler for VNC proxy
   const handleWebSocketUpgrade = (request: any, socket: any, head: any) => {
     console.log('WebSocket upgrade request received:', {
@@ -7933,7 +7977,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create WebSocket server for this connection
         const wss = new WebSocketServer({ noServer: true });
 
+        console.log('WebSocket server created, attempting upgrade...');
+
+        // Add error handling for the WebSocket server
+        wss.on('error', (error) => {
+          console.error('WebSocket server error during upgrade:', error);
+          socket.destroy();
+        });
+
+        // Handle the upgrade with proper error handling
         wss.handleUpgrade(request, socket, head, (ws) => {
+          console.log('WebSocket upgrade successful');
+          console.log(`VNC WebSocket proxy: Successfully upgraded WebSocket connection`);
           console.log(`VNC WebSocket proxy: Attempting to connect to ${host}:${portNum}`);
 
           // Create TCP connection to VNC server with timeout
@@ -7942,6 +7997,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             port: portNum,
             timeout: 10000 // 10 second timeout
           });
+
+          console.log(`VNC TCP connection created for ${host}:${portNum}`);
 
           // Track connection state
           let isConnected = false;
@@ -7954,7 +8011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           vncSocket.on('timeout', () => {
             console.error(`VNC TCP connection timeout to ${host}:${portNum}`);
             vncSocket.destroy();
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws.readyState === ws.OPEN) {
               ws.close(1011, 'VNC server connection timeout');
             }
           });
@@ -7975,7 +8032,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           vncSocket.on('data', (data) => {
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws.readyState === ws.OPEN) {
               try {
                 ws.send(data);
               } catch (error) {
@@ -7994,7 +8051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           vncSocket.on('close', (hadError) => {
             console.log(`VNC TCP socket closed, hadError: ${hadError}`);
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws.readyState === 1) {
               ws.close(1000, 'VNC connection closed');
             }
           });
@@ -8009,23 +8066,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           vncSocket.on('error', (err) => {
             console.error(`VNC TCP socket error connecting to ${host}:${portNum}:`, err);
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws.readyState === ws.OPEN) {
               ws.close(1011, `VNC server error: ${err.message}`);
             }
           });
         });
+
       } catch (error) {
         console.error('Error setting up VNC WebSocket proxy:', error);
         socket.destroy();
       }
-    } else if (url.pathname === '/chat-ws') {
-      // Don't handle chat WebSocket connections here - let the ChatService handle them
-      console.log('Chat WebSocket request, ignoring in handleWebSocketUpgrade:', url.pathname);
-      // Don't handle this upgrade request - let it pass through to the ChatService
-      return;
     } else {
-      console.log('Non-VNC/Chat WebSocket request, closing connection:', url.pathname);
-      // Close any other WebSocket connection attempts
+      console.log('Non-VNC WebSocket request in VNC handler, closing connection:', url.pathname);
+      // This should not happen since we're routing at the server level now
       socket.destroy();
     }
   };
@@ -11409,6 +11462,155 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register Chat Departments routes
   app.use("/api/chat", chatDepartmentsRoutes);
 
+  // Convert chat to ticket (ENHANCED: Chat-to-ticket conversion feature)
+  app.post("/api/admin/chat/:sessionId/convert-to-ticket", isAdmin, async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const { subject, priority = "medium", departmentId } = req.body;
+
+      if (isNaN(sessionId)) {
+        return res.status(400).json({ error: "Invalid session ID" });
+      }
+
+      if (!subject || subject.trim().length === 0) {
+        return res.status(400).json({ error: "Subject is required for ticket conversion" });
+      }
+
+      // Get the chat session
+      const session = await storage.getChatSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Chat session not found" });
+      }
+
+      // Check if already converted
+      if (session.convertedToTicketId) {
+        return res.status(400).json({
+          error: "Chat session has already been converted to a ticket",
+          ticketId: session.convertedToTicketId
+        });
+      }
+
+      // Get all chat messages for this session
+      const chatMessages = await storage.getChatMessagesWithUsers(sessionId);
+
+      // Get user information
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Determine department - use provided departmentId or session's departmentId
+      let finalDepartmentId = departmentId || session.departmentId;
+
+      // If no department specified, try to get default ticket department
+      if (!finalDepartmentId) {
+        const ticketDepartments = await storage.getTicketDepartments();
+        const defaultDept = ticketDepartments.find(d => d.isDefault);
+        if (defaultDept) {
+          finalDepartmentId = defaultDept.id;
+        }
+      }
+
+      // Create the ticket
+      const ticketData = {
+        userId: session.userId,
+        departmentId: finalDepartmentId,
+        subject: subject.trim(),
+        status: "in-progress" as const,
+        priority: priority as "low" | "medium" | "high",
+      };
+
+      const ticket = await storage.createTicket(ticketData);
+      console.log(`Created ticket ${ticket.id} from chat session ${sessionId}`);
+
+      // Convert chat messages to ticket messages
+      const ticketMessages = [];
+      for (const chatMsg of chatMessages) {
+        // Create a formatted message that preserves chat context
+        const messageContent = `[${chatMsg.isFromAdmin ? 'Admin' : 'Client'}] ${chatMsg.user?.fullName || 'Unknown'} (${new Date(chatMsg.createdAt).toLocaleString()}):
+${chatMsg.message}`;
+
+        const ticketMessage = await storage.createTicketMessage({
+          ticketId: ticket.id,
+          userId: chatMsg.userId,
+          message: messageContent,
+        });
+        ticketMessages.push(ticketMessage);
+      }
+
+      // Add a system message indicating the conversion
+      const conversionMessage = `--- Chat Converted to Ticket ---
+This ticket was created from live chat session #${sessionId}.
+Original chat started: ${new Date(session.startedAt).toLocaleString()}
+Converted by: ${req.user!.fullName || `Admin #${req.user!.id}`}
+Conversion time: ${new Date().toLocaleString()}
+
+The conversation history above has been imported from the live chat session.`;
+
+      await storage.createTicketMessage({
+        ticketId: ticket.id,
+        userId: req.user!.id,
+        message: conversionMessage,
+      });
+
+      // Update chat session to mark as converted
+      await storage.updateChatSession(sessionId, {
+        status: "converted_to_ticket",
+        convertedToTicketId: ticket.id,
+        convertedAt: new Date(),
+        convertedByAdminId: req.user!.id,
+        endedAt: new Date(),
+      });
+
+      // Send email notification to client
+      try {
+        const emailService = req.app.get('emailService');
+        if (emailService && user.email) {
+          await emailService.sendChatToTicketNotification(
+            user.email,
+            user.fullName || user.username,
+            ticket.id,
+            subject,
+            session.id
+          );
+          console.log(`Sent chat-to-ticket notification email to ${user.email}`);
+        }
+      } catch (emailError) {
+        console.error('Failed to send chat-to-ticket notification email:', emailError);
+        // Don't fail the conversion if email fails
+      }
+
+      // Broadcast the conversion to connected WebSocket clients
+      try {
+        chatService.broadcastToSession(sessionId, {
+          type: 'session_converted_to_ticket',
+          data: {
+            sessionId,
+            ticketId: ticket.id,
+            ticketSubject: subject,
+            convertedBy: req.user!.fullName || `Admin #${req.user!.id}`,
+            convertedAt: new Date().toISOString(),
+          }
+        });
+      } catch (wsError) {
+        console.error('Failed to broadcast chat conversion via WebSocket:', wsError);
+      }
+
+      res.status(201).json({
+        success: true,
+        ticket: ticket,
+        ticketId: ticket.id,
+        sessionId: sessionId,
+        messagesConverted: chatMessages.length,
+        message: "Chat session successfully converted to ticket"
+      });
+
+    } catch (error) {
+      console.error('Error converting chat to ticket:', error);
+      res.status(500).json({ error: "Failed to convert chat to ticket" });
+    }
+  });
+
   // Admin settings routes are defined directly in this file instead of using the separate router
 
   // Register API-only routes (authenticated via API keys)
@@ -11822,18 +12024,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
 
-  // Initialize chat service with WebSocket server
+  // Initialize chat service (no longer creates its own WebSocket server)
   chatService.initialize(httpServer);
 
-  // Attach WebSocket handlers to HTTP server for VNC only
+  // Create a manual WebSocket server for VNC to avoid conflicts with chat WebSocket
+  const vncWebSocketServer = new WebSocketServer({ noServer: true });
+
+  // Attach WebSocket handlers to HTTP server - Handle routing manually
   httpServer.on('upgrade', (request: any, socket: any, head: any) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
 
-    // Only handle VNC WebSocket requests, let ChatService handle chat-ws
+    console.log(`WebSocket upgrade request: ${url.pathname}`);
+    console.log(`Full WebSocket upgrade URL: ${request.url}`);
+    console.log(`WebSocket upgrade headers:`, request.headers);
+
+    // Handle VNC WebSocket requests
     if (url.pathname === '/vnc-proxy') {
+      console.log('Handling VNC WebSocket upgrade directly');
       handleWebSocketUpgrade(request, socket, head);
+    } else if (url.pathname === '/chat-ws') {
+      // Handle chat WebSocket requests manually to avoid conflicts
+      console.log('Handling chat WebSocket upgrade manually');
+      const chatWss = new WebSocketServer({ noServer: true });
+      chatWss.handleUpgrade(request, socket, head, (ws) => {
+        // Pass the WebSocket to the chat service
+        chatService.handleWebSocketConnection(ws, request);
+      });
+    } else if (url.pathname === '/' && process.env.NODE_ENV === 'development') {
+      // Allow Vite HMR WebSocket connections in development
+      console.log('Vite HMR WebSocket request - allowing passthrough');
+      // Don't handle this - let Vite handle its own HMR WebSocket
+    } else {
+      // Close any other WebSocket connection attempts
+      console.log(`Unknown WebSocket path: ${url.pathname}, closing connection`);
+      socket.destroy();
     }
-    // For all other paths (including /chat-ws), let the respective services handle them
   });
 
   return httpServer;

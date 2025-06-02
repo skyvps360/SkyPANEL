@@ -801,6 +801,123 @@ export class EmailService {
       return false;
     }
   }
+
+  // Send chat-to-ticket conversion notification (ENHANCED: Chat-to-ticket conversion feature)
+  async sendChatToTicketNotification(
+    email: string,
+    userName: string,
+    ticketId: number,
+    ticketSubject: string,
+    chatSessionId: number
+  ): Promise<boolean> {
+    console.log(`Sending chat-to-ticket notification to ${email} for ticket #${ticketId}`);
+
+    const companyName = this.settings.companyName || 'SkyPANEL';
+    const supportEmail = this.settings.supportEmail || 'support@skyvps360.xyz';
+
+    const textContent =
+      `Hello ${userName},\n\n` +
+      `Your live chat conversation has been converted to a support ticket for better assistance.\n\n` +
+      `Ticket Details:\n` +
+      `- Ticket ID: #${ticketId}\n` +
+      `- Subject: ${ticketSubject}\n` +
+      `- Original Chat Session: #${chatSessionId}\n\n` +
+      `Your entire chat history has been preserved in the ticket. You can now:\n` +
+      `- Reply to this email to add messages to the ticket\n` +
+      `- Log into your account to view and manage the ticket\n` +
+      `- Continue the conversation through our ticket system\n\n` +
+      `Our support team will respond to your ticket as soon as possible.\n\n` +
+      `If you have any questions, please contact us at ${supportEmail}.\n\n` +
+      `Thank you,\n${companyName} Support Team`;
+
+    const htmlContent =
+      `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">` +
+      `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">` +
+      `<h1 style="margin: 0; font-size: 28px;">Chat Converted to Ticket</h1>` +
+      `<p style="margin: 10px 0 0 0; opacity: 0.9;">Your conversation has been transferred</p>` +
+      `</div>` +
+      `<div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">` +
+      `<p style="color: #333; font-size: 16px; line-height: 1.6;">Hello <strong>${userName}</strong>,</p>` +
+      `<p style="color: #333; font-size: 16px; line-height: 1.6;">Your live chat conversation has been converted to a support ticket for better assistance and tracking.</p>` +
+      `<div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">` +
+      `<h3 style="color: #333; margin: 0 0 15px 0;">Ticket Details</h3>` +
+      `<p style="margin: 5px 0; color: #555;"><strong>Ticket ID:</strong> #${ticketId}</p>` +
+      `<p style="margin: 5px 0; color: #555;"><strong>Subject:</strong> ${ticketSubject}</p>` +
+      `<p style="margin: 5px 0; color: #555;"><strong>Original Chat Session:</strong> #${chatSessionId}</p>` +
+      `</div>` +
+      `<h3 style="color: #333; margin: 25px 0 15px 0;">What happens next?</h3>` +
+      `<ul style="color: #555; line-height: 1.8; padding-left: 20px;">` +
+      `<li>Your entire chat history has been preserved in the ticket</li>` +
+      `<li>You can reply to this email to add messages to the ticket</li>` +
+      `<li>Log into your account to view and manage the ticket</li>` +
+      `<li>Continue the conversation through our ticket system</li>` +
+      `</ul>` +
+      `<p style="color: #333; font-size: 16px; line-height: 1.6; margin-top: 25px;">Our support team will respond to your ticket as soon as possible.</p>` +
+      `<div style="text-align: center; margin: 30px 0;">` +
+      `<a href="${process.env.FRONTEND_URL || 'https://panel.skyvps360.xyz'}/tickets/${ticketId}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">View Ticket</a>` +
+      `</div>` +
+      `<p style="color: #666; font-size: 14px; margin-top: 30px;">If you have any questions, please contact us at <a href="mailto:${supportEmail}" style="color: #667eea;">${supportEmail}</a>.</p>` +
+      `<p style="color: #333; margin-top: 25px;">Thank you,<br><strong>${companyName} Support Team</strong></p>` +
+      `</div>` +
+      `</div>`;
+
+    // Prepare email data using nodemailer format
+    const fromEmail = this.settings.fromEmail || 'noreply@skyvps360.xyz';
+    const fromName = this.settings.fromName || companyName;
+
+    const mailOptions = {
+      from: `"${fromName}" <${fromEmail}>`,
+      to: email,
+      subject: `${companyName} - Chat Converted to Ticket #${ticketId}`,
+      text: textContent,
+      html: htmlContent
+    };
+
+    // Send the email
+    if (this.transporter) {
+      try {
+        const info = await this.transporter.sendMail(mailOptions);
+        console.log('Chat-to-ticket notification email sent:', info.messageId);
+
+        // Log preview URL in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+        }
+
+        // Log the email to the database
+        await this.logEmailToDatabase(
+          'chat_to_ticket_notification',
+          email,
+          mailOptions.subject,
+          'sent',
+          info.messageId,
+          undefined,
+          undefined,
+          { ticketId, chatSessionId, ticketSubject }
+        );
+
+        return true;
+      } catch (error) {
+        console.error('Error sending chat-to-ticket notification email:', error);
+
+        // Log the failure to the database
+        await this.logEmailToDatabase(
+          'chat_to_ticket_notification',
+          email,
+          mailOptions.subject,
+          'failed',
+          null,
+          error.message || 'Unknown error',
+          null,
+          { ticketId, chatSessionId, ticketSubject, error: error.message }
+        );
+
+        return false;
+      }
+    }
+
+    return false;
+  }
 }
 
 export const emailService = EmailService.getInstance();

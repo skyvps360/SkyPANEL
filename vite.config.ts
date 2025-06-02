@@ -16,6 +16,27 @@ export default defineConfig({
         ]
       : []),
   ],
+  server: {
+    proxy: {
+      // Proxy WebSocket requests for VNC to the backend server
+      '/vnc-proxy': {
+        target: 'ws://localhost:3000',
+        ws: true,
+        changeOrigin: true,
+      },
+      // Proxy API requests to the backend server
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      // Proxy chat WebSocket requests to the backend server
+      '/chat-ws': {
+        target: 'ws://localhost:3000',
+        ws: true,
+        changeOrigin: true,
+      },
+    },
+  },
   define: {
     // Explicitly define PayPal environment variables for client-side access
     'import.meta.env.VITE_PAYPAL_SANDBOX': JSON.stringify(process.env.VITE_PAYPAL_SANDBOX),
