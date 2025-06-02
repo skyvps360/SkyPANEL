@@ -43,6 +43,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getBrandColors } from "@/lib/brand-theme";
 import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 type NavigationItem = {
   name: string;
@@ -1195,6 +1196,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           </div>
         </div>
       )}
+
+      {/* Chat Widget */}
+      <ChatWidget />
     </div>
   );
 }

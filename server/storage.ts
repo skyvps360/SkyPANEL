@@ -24,6 +24,10 @@ import {
   legalContent,
   ticketDepartments,
   teamMembers,
+  chatSessions,
+  chatMessages,
+  adminChatStatus,
+  chatTypingIndicators,
   type User,
   type InsertUser,
   type Transaction,
@@ -70,7 +74,15 @@ import {
   type ServerPowerStatus,
   type InsertServerPowerStatus,
   type ServerLog,
-  type InsertServerLog
+  type InsertServerLog,
+  type ChatSession,
+  type InsertChatSession,
+  type ChatMessage,
+  type InsertChatMessage,
+  type AdminChatStatus,
+  type InsertAdminChatStatus,
+  type ChatTypingIndicator,
+  type InsertChatTypingIndicator
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, gte, lte, count, inArray, or, ilike, lt, sql, not } from "drizzle-orm";
@@ -304,6 +316,32 @@ export interface IStorage {
   createTeamMember(member: InsertTeamMember): Promise<TeamMember>;
   updateTeamMember(id: number, updates: Partial<TeamMember>): Promise<void>;
   deleteTeamMember(id: number): Promise<void>;
+
+  // Chat session operations
+  createChatSession(session: InsertChatSession): Promise<ChatSession>;
+  getChatSession(id: number): Promise<ChatSession | undefined>;
+  updateChatSession(id: number, updates: Partial<ChatSession>): Promise<void>;
+  getActiveChatSessions(): Promise<ChatSession[]>;
+  getUserActiveChatSession(userId: number): Promise<ChatSession | undefined>;
+  getAdminChatSessions(adminId: number): Promise<ChatSession[]>;
+  getChatSessionsWithUsers(): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]>;
+
+  // Chat message operations
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getChatMessages(sessionId: number): Promise<ChatMessage[]>;
+  getChatMessagesWithUsers(sessionId: number): Promise<(ChatMessage & { user: User })[]>;
+  markChatMessageAsRead(messageId: number): Promise<void>;
+
+  // Admin chat status operations
+  getAdminChatStatus(userId: number): Promise<AdminChatStatus | undefined>;
+  upsertAdminChatStatus(userId: number, status: InsertAdminChatStatus): Promise<AdminChatStatus>;
+  getAvailableAdmins(): Promise<AdminChatStatus[]>;
+  updateAdminLastSeen(userId: number): Promise<void>;
+
+  // Chat typing indicator operations
+  upsertChatTypingIndicator(indicator: InsertChatTypingIndicator): Promise<ChatTypingIndicator>;
+  getChatTypingIndicators(sessionId: number): Promise<ChatTypingIndicator[]>;
+  clearChatTypingIndicator(sessionId: number, userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1761,6 +1799,236 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTeamMember(id: number): Promise<void> {
     await db.delete(teamMembers).where(eq(teamMembers.id, id));
+  }
+
+  // Chat session operations
+  async createChatSession(session: InsertChatSession): Promise<ChatSession> {
+    const [createdSession] = await db.insert(chatSessions).values(session).returning();
+    return createdSession;
+  }
+
+  async getChatSession(id: number): Promise<ChatSession | undefined> {
+    const [session] = await db.select().from(chatSessions).where(eq(chatSessions.id, id));
+    return session;
+  }
+
+  async updateChatSession(id: number, updates: Partial<ChatSession>): Promise<void> {
+    await db.update(chatSessions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(chatSessions.id, id));
+  }
+
+  async getActiveChatSessions(): Promise<ChatSession[]> {
+    return await db.select()
+      .from(chatSessions)
+      .where(inArray(chatSessions.status, ['waiting', 'active']))
+      .orderBy(desc(chatSessions.lastActivityAt));
+  }
+
+  async getUserActiveChatSession(userId: number): Promise<ChatSession | undefined> {
+    const [session] = await db.select()
+      .from(chatSessions)
+      .where(and(
+        eq(chatSessions.userId, userId),
+        inArray(chatSessions.status, ['waiting', 'active'])
+      ))
+      .orderBy(desc(chatSessions.lastActivityAt))
+      .limit(1);
+    return session;
+  }
+
+  async getAdminChatSessions(adminId: number): Promise<ChatSession[]> {
+    return await db.select()
+      .from(chatSessions)
+      .where(eq(chatSessions.assignedAdminId, adminId))
+      .orderBy(desc(chatSessions.lastActivityAt));
+  }
+
+  async getChatSessionsWithUsers(): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]> {
+    const sessions = await db.select({
+      id: chatSessions.id,
+      userId: chatSessions.userId,
+      assignedAdminId: chatSessions.assignedAdminId,
+      status: chatSessions.status,
+      priority: chatSessions.priority,
+      subject: chatSessions.subject,
+      department: chatSessions.department,
+      metadata: chatSessions.metadata,
+      startedAt: chatSessions.startedAt,
+      endedAt: chatSessions.endedAt,
+      lastActivityAt: chatSessions.lastActivityAt,
+      createdAt: chatSessions.createdAt,
+      updatedAt: chatSessions.updatedAt,
+      user: {
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        password: users.password,
+        fullName: users.fullName,
+        role: users.role,
+        virtFusionId: users.virtFusionId,
+        isVerified: users.isVerified,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      }
+    })
+    .from(chatSessions)
+    .leftJoin(users, eq(chatSessions.userId, users.id))
+    .orderBy(desc(chatSessions.lastActivityAt));
+
+    // Get assigned admins separately to avoid complex joins
+    const result = [];
+    for (const session of sessions) {
+      let assignedAdmin = undefined;
+      if (session.assignedAdminId) {
+        assignedAdmin = await this.getUser(session.assignedAdminId);
+      }
+      result.push({
+        ...session,
+        assignedAdmin
+      });
+    }
+
+    return result;
+  }
+
+  // Chat message operations
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [createdMessage] = await db.insert(chatMessages).values(message).returning();
+    return createdMessage;
+  }
+
+  async getChatMessages(sessionId: number): Promise<ChatMessage[]> {
+    return await db.select()
+      .from(chatMessages)
+      .where(eq(chatMessages.sessionId, sessionId))
+      .orderBy(chatMessages.createdAt);
+  }
+
+  async getChatMessagesWithUsers(sessionId: number): Promise<(ChatMessage & { user: User })[]> {
+    return await db.select({
+      id: chatMessages.id,
+      sessionId: chatMessages.sessionId,
+      userId: chatMessages.userId,
+      message: chatMessages.message,
+      messageType: chatMessages.messageType,
+      isFromAdmin: chatMessages.isFromAdmin,
+      readAt: chatMessages.readAt,
+      metadata: chatMessages.metadata,
+      createdAt: chatMessages.createdAt,
+      user: {
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        password: users.password,
+        fullName: users.fullName,
+        role: users.role,
+        virtFusionId: users.virtFusionId,
+        isVerified: users.isVerified,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      }
+    })
+    .from(chatMessages)
+    .leftJoin(users, eq(chatMessages.userId, users.id))
+    .where(eq(chatMessages.sessionId, sessionId))
+    .orderBy(chatMessages.createdAt);
+  }
+
+  async markChatMessageAsRead(messageId: number): Promise<void> {
+    await db.update(chatMessages)
+      .set({ readAt: new Date() })
+      .where(eq(chatMessages.id, messageId));
+  }
+
+  // Admin chat status operations
+  async getAdminChatStatus(userId: number): Promise<AdminChatStatus | undefined> {
+    const [status] = await db.select()
+      .from(adminChatStatus)
+      .where(eq(adminChatStatus.userId, userId));
+    return status;
+  }
+
+  async upsertAdminChatStatus(userId: number, statusData: InsertAdminChatStatus): Promise<AdminChatStatus> {
+    const existingStatus = await this.getAdminChatStatus(userId);
+
+    if (existingStatus) {
+      await db.update(adminChatStatus)
+        .set({ ...statusData, updatedAt: new Date() })
+        .where(eq(adminChatStatus.userId, userId));
+      return { ...existingStatus, ...statusData };
+    } else {
+      const [newStatus] = await db.insert(adminChatStatus)
+        .values({ ...statusData, userId })
+        .returning();
+      return newStatus;
+    }
+  }
+
+  async getAvailableAdmins(): Promise<AdminChatStatus[]> {
+    return await db.select()
+      .from(adminChatStatus)
+      .where(and(
+        inArray(adminChatStatus.status, ['online', 'away']),
+        eq(adminChatStatus.autoAssign, true)
+      ))
+      .orderBy(adminChatStatus.lastSeenAt);
+  }
+
+  async updateAdminLastSeen(userId: number): Promise<void> {
+    await db.update(adminChatStatus)
+      .set({ lastSeenAt: new Date(), updatedAt: new Date() })
+      .where(eq(adminChatStatus.userId, userId));
+  }
+
+  // Chat typing indicator operations
+  async upsertChatTypingIndicator(indicator: InsertChatTypingIndicator): Promise<ChatTypingIndicator> {
+    const existing = await db.select()
+      .from(chatTypingIndicators)
+      .where(and(
+        eq(chatTypingIndicators.sessionId, indicator.sessionId),
+        eq(chatTypingIndicators.userId, indicator.userId)
+      ))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db.update(chatTypingIndicators)
+        .set({
+          isTyping: indicator.isTyping,
+          lastTypingAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(chatTypingIndicators.sessionId, indicator.sessionId),
+          eq(chatTypingIndicators.userId, indicator.userId)
+        ));
+      return { ...existing[0], ...indicator };
+    } else {
+      const [newIndicator] = await db.insert(chatTypingIndicators)
+        .values(indicator)
+        .returning();
+      return newIndicator;
+    }
+  }
+
+  async getChatTypingIndicators(sessionId: number): Promise<ChatTypingIndicator[]> {
+    return await db.select()
+      .from(chatTypingIndicators)
+      .where(and(
+        eq(chatTypingIndicators.sessionId, sessionId),
+        eq(chatTypingIndicators.isTyping, true)
+      ));
+  }
+
+  async clearChatTypingIndicator(sessionId: number, userId: number): Promise<void> {
+    await db.update(chatTypingIndicators)
+      .set({ isTyping: false, updatedAt: new Date() })
+      .where(and(
+        eq(chatTypingIndicators.sessionId, sessionId),
+        eq(chatTypingIndicators.userId, userId)
+      ));
   }
 }
 

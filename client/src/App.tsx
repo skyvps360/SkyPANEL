@@ -55,6 +55,7 @@ import PlanFeaturesPage from "@/pages/admin/plan-features";
 import FaqManagementPage from "@/pages/admin/faq-management";
 import PackagePricingPage from "@/pages/admin/package-pricing";
 import LegalEditorPage from "@/pages/admin/legal-editor";
+import AdminChatManagement from "@/pages/admin/AdminChatManagement";
 import ServerDetailPage from "@/pages/admin/server-detail-page";
 import ServersListPage from "@/pages/admin/servers-page";
 import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
@@ -328,6 +329,7 @@ function Router() {
         <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage} />
         <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage} />
         <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage} />
+        <AdminProtectedRoute path="/admin/chat" component={AdminChatManagement} />
 
         {/* Catch-all route for 404 pages */}
         <Route path="*" component={NotFound} />

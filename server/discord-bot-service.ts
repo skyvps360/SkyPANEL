@@ -21,7 +21,8 @@ import {
   ChannelType,
   Message,
   Partials,
-  MessageFlags
+  MessageFlags,
+  ActivityType
 } from 'discord.js';
 import { storage } from './storage';
 import { InsertTicketMessage, InsertDiscordTicketThread } from '../shared/schema';
@@ -107,6 +108,17 @@ export class DiscordBotService {
       // Set up event handlers
       this.client.once(Events.ClientReady, async (readyClient) => {
         console.log(`Discord bot ready! Logged in as ${readyClient.user.tag}`);
+
+        // Set bot status to "watching skyvps360.xyz"
+        readyClient.user.setPresence({
+          activities: [{
+            name: 'skyvps360.xyz',
+            type: ActivityType.Watching
+          }],
+          status: 'online'
+        });
+        console.log('Discord bot status set to: watching skyvps360.xyz');
+
         this.ready = true;
         await this.loadExistingTicketThreads();
         await this.registerCommands();

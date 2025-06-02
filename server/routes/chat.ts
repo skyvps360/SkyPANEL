@@ -1,0 +1,233 @@
+import { Router } from 'express';
+import { chatService } from '../chat-service';
+import { storage } from '../storage';
+import { requireAuth, requireAdmin } from '../middleware/auth';
+
+const router = Router();
+
+/**
+ * Client Chat Routes
+ */
+
+// Get current user's active chat session
+router.get('/session', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const session = await storage.getUserActiveChatSession(userId);
+    
+    if (session) {
+      const messages = await storage.getChatMessagesWithUsers(session.id);
+      res.json({
+        session,
+        messages
+      });
+    } else {
+      res.json({ session: null, messages: [] });
+    }
+  } catch (error) {
+    console.error('Error getting chat session:', error);
+    res.status(500).json({ error: 'Failed to get chat session' });
+  }
+});
+
+// Start a new chat session
+router.post('/session', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const { subject, department } = req.body;
+
+    // Check if user already has an active session
+    const existingSession = await storage.getUserActiveChatSession(userId);
+    if (existingSession) {
+      return res.status(400).json({ error: 'You already have an active chat session' });
+    }
+
+    // Create new session
+    const session = await storage.createChatSession({
+      userId,
+      subject: subject || 'General Support',
+      department: department || 'general',
+      status: 'waiting',
+      metadata: {
+        userAgent: req.headers['user-agent'] || 'Unknown',
+        startedFrom: 'dashboard'
+      }
+    });
+
+    res.json({ session });
+  } catch (error) {
+    console.error('Error starting chat session:', error);
+    res.status(500).json({ error: 'Failed to start chat session' });
+  }
+});
+
+// End current chat session
+router.delete('/session', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const session = await storage.getUserActiveChatSession(userId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'No active chat session found' });
+    }
+
+    await chatService.endChatSession(session.id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error ending chat session:', error);
+    res.status(500).json({ error: 'Failed to end chat session' });
+  }
+});
+
+// Get messages for current session
+router.get('/messages', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const session = await storage.getUserActiveChatSession(userId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'No active chat session found' });
+    }
+
+    const messages = await storage.getChatMessagesWithUsers(session.id);
+    res.json({ messages });
+  } catch (error) {
+    console.error('Error getting chat messages:', error);
+    res.status(500).json({ error: 'Failed to get chat messages' });
+  }
+});
+
+/**
+ * Admin Chat Routes
+ */
+
+// Get all chat sessions with user details
+router.get('/admin/sessions', requireAdmin, async (req, res) => {
+  try {
+    const sessions = await chatService.getChatSessionsWithUsers();
+    res.json({ sessions });
+  } catch (error) {
+    console.error('Error getting admin chat sessions:', error);
+    res.status(500).json({ error: 'Failed to get chat sessions' });
+  }
+});
+
+// Get active chat sessions only
+router.get('/admin/sessions/active', requireAdmin, async (req, res) => {
+  try {
+    const sessions = await chatService.getActiveSessions();
+    res.json({ sessions });
+  } catch (error) {
+    console.error('Error getting active chat sessions:', error);
+    res.status(500).json({ error: 'Failed to get active chat sessions' });
+  }
+});
+
+// Get specific session with messages
+router.get('/admin/sessions/:sessionId', requireAdmin, async (req, res) => {
+  try {
+    const sessionId = parseInt(req.params.sessionId);
+    const session = await storage.getChatSession(sessionId);
+    
+    if (!session) {
+      return res.status(404).json({ error: 'Chat session not found' });
+    }
+
+    const messages = await storage.getChatMessagesWithUsers(sessionId);
+    const user = await storage.getUser(session.userId);
+    
+    res.json({
+      session: {
+        ...session,
+        user
+      },
+      messages
+    });
+  } catch (error) {
+    console.error('Error getting chat session:', error);
+    res.status(500).json({ error: 'Failed to get chat session' });
+  }
+});
+
+// Assign session to admin
+router.post('/admin/sessions/:sessionId/assign', requireAdmin, async (req, res) => {
+  try {
+    const sessionId = parseInt(req.params.sessionId);
+    const adminId = req.user!.id;
+
+    await chatService.assignSessionToAdmin(sessionId, adminId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error assigning chat session:', error);
+    res.status(500).json({ error: 'Failed to assign chat session' });
+  }
+});
+
+// End chat session (admin)
+router.delete('/admin/sessions/:sessionId', requireAdmin, async (req, res) => {
+  try {
+    const sessionId = parseInt(req.params.sessionId);
+    await chatService.endChatSession(sessionId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error ending chat session:', error);
+    res.status(500).json({ error: 'Failed to end chat session' });
+  }
+});
+
+// Get admin chat statistics
+router.get('/admin/stats', requireAdmin, async (req, res) => {
+  try {
+    const adminId = req.user!.id;
+    const stats = await chatService.getAdminChatStats(adminId);
+    res.json({ stats });
+  } catch (error) {
+    console.error('Error getting admin chat stats:', error);
+    res.status(500).json({ error: 'Failed to get chat statistics' });
+  }
+});
+
+// Update admin chat status
+router.post('/admin/status', requireAdmin, async (req, res) => {
+  try {
+    const adminId = req.user!.id;
+    const { status, statusMessage, maxConcurrentChats, autoAssign } = req.body;
+
+    await storage.upsertAdminChatStatus(adminId, {
+      status: status || 'online',
+      statusMessage,
+      maxConcurrentChats: maxConcurrentChats || 5,
+      autoAssign: autoAssign !== undefined ? autoAssign : true
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating admin status:', error);
+    res.status(500).json({ error: 'Failed to update admin status' });
+  }
+});
+
+// Get admin chat status
+router.get('/admin/status', requireAdmin, async (req, res) => {
+  try {
+    const adminId = req.user!.id;
+    const status = await storage.getAdminChatStatus(adminId);
+    res.json({ status });
+  } catch (error) {
+    console.error('Error getting admin status:', error);
+    res.status(500).json({ error: 'Failed to get admin status' });
+  }
+});
+
+// Get all available admins
+router.get('/admin/available', requireAdmin, async (req, res) => {
+  try {
+    const admins = await storage.getAvailableAdmins();
+    res.json({ admins });
+  } catch (error) {
+    console.error('Error getting available admins:', error);
+    res.status(500).json({ error: 'Failed to get available admins' });
+  }
+});
+
+export default router;

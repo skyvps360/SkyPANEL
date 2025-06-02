@@ -24,6 +24,8 @@ import { apiKeyAuth, requireScope } from "./middleware/auth-middleware";
 import apiKeysRoutes from "./routes/api-keys";
 import apiOnlyRoutes from "./routes/api-only-routes";
 import adminSettingsRoutes from "./routes/admin-settings";
+import chatRoutes from "./routes/chat";
+import { chatService } from "./chat-service";
 import { eq, and, desc, isNull, gte, lte } from "drizzle-orm";
 import PDFDocument from "pdfkit";
 import { formatTicketPdf } from "./ticket-download";
@@ -7977,8 +7979,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Error setting up VNC WebSocket proxy:', error);
         socket.destroy();
       }
+    } else if (url.pathname === '/chat-ws') {
+      // Don't handle chat WebSocket connections here - let the ChatService handle them
+      console.log('Chat WebSocket request, ignoring in handleWebSocketUpgrade:', url.pathname);
+      // Don't handle this upgrade request - let it pass through to the ChatService
+      return;
     } else {
-      console.log('Non-VNC WebSocket request, closing connection:', url.pathname);
+      console.log('Non-VNC/Chat WebSocket request, closing connection:', url.pathname);
       // Close any other WebSocket connection attempts
       socket.destroy();
     }
@@ -11357,6 +11364,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register API Keys routes
   app.use("/api/user/api-keys", isAuthenticated, apiKeysRoutes);
 
+  // Register Chat routes
+  app.use("/api/chat", chatRoutes);
+
   // Admin settings routes are defined directly in this file instead of using the separate router
 
   // Register API-only routes (authenticated via API keys)
@@ -11641,8 +11651,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
 
-  // Attach WebSocket handlers to HTTP server
-  httpServer.on('upgrade', handleWebSocketUpgrade);
+  // Initialize chat service with WebSocket server
+  chatService.initialize(httpServer);
+
+  // Attach WebSocket handlers to HTTP server for VNC only
+  httpServer.on('upgrade', (request: any, socket: any, head: any) => {
+    const url = new URL(request.url, `http://${request.headers.host}`);
+
+    // Only handle VNC WebSocket requests, let ChatService handle chat-ws
+    if (url.pathname === '/vnc-proxy') {
+      handleWebSocketUpgrade(request, socket, head);
+    }
+    // For all other paths (including /chat-ws), let the respective services handle them
+  });
 
   return httpServer;
 }

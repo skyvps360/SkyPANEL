@@ -562,3 +562,96 @@ export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
 
 export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
 export type TeamMember = typeof teamMembers.$inferSelect;
+
+// Live Chat Sessions
+export const chatSessions = pgTable("chat_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  assignedAdminId: integer("assigned_admin_id").references(() => users.id, { onDelete: 'set null' }),
+  status: text("status").notNull().default("waiting"), // waiting, active, closed
+  priority: text("priority").notNull().default("normal"), // low, normal, high
+  subject: text("subject"), // Optional subject for the chat
+  department: text("department").default("general"), // general, technical, billing, etc.
+  metadata: json("metadata").default({}), // Additional data like browser info, page URL, etc.
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  endedAt: timestamp("ended_at"),
+  lastActivityAt: timestamp("last_activity_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  startedAt: true,
+  lastActivityAt: true,
+});
+
+export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
+export type ChatSession = typeof chatSessions.$inferSelect;
+
+// Live Chat Messages
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull().references(() => chatSessions.id, { onDelete: 'cascade' }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  message: text("message").notNull(),
+  messageType: text("message_type").notNull().default("text"), // text, system, file, image
+  isFromAdmin: boolean("is_from_admin").notNull().default(false),
+  readAt: timestamp("read_at"), // When the message was read by the recipient
+  metadata: json("metadata").default({}), // Additional data like file info, system message details
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+
+// Admin Chat Status
+export const adminChatStatus = pgTable("admin_chat_status", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  status: text("status").notNull().default("offline"), // online, offline, away, busy
+  statusMessage: text("status_message"), // Custom status message
+  maxConcurrentChats: integer("max_concurrent_chats").default(5),
+  autoAssign: boolean("auto_assign").default(true), // Whether to auto-assign new chats to this admin
+  lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAdminChatStatusSchema = createInsertSchema(adminChatStatus).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastSeenAt: true,
+});
+
+export type InsertAdminChatStatus = z.infer<typeof insertAdminChatStatusSchema>;
+export type AdminChatStatus = typeof adminChatStatus.$inferSelect;
+
+// Chat Typing Indicators
+export const chatTypingIndicators = pgTable("chat_typing_indicators", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull().references(() => chatSessions.id, { onDelete: 'cascade' }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  isTyping: boolean("is_typing").notNull().default(false),
+  lastTypingAt: timestamp("last_typing_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertChatTypingIndicatorSchema = createInsertSchema(chatTypingIndicators).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastTypingAt: true,
+});
+
+export type InsertChatTypingIndicator = z.infer<typeof insertChatTypingIndicatorSchema>;
+export type ChatTypingIndicator = typeof chatTypingIndicators.$inferSelect;
