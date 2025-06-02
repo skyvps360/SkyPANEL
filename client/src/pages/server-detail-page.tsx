@@ -543,8 +543,10 @@ const VNCTab = ({ serverId }: { serverId: number }) => {
                     <h3 className="text-sm font-medium text-muted-foreground mb-2">VNC STATUS</h3>
                     <div className="flex items-center gap-2 justify-center mb-2">
                       <div className={`w-3 h-3 rounded-full ${
-                        isVNCEnabled ? "bg-green-500 animate-pulse" : "bg-red-500"
-                      }`}></div>
+                        isVNCEnabled ? "animate-pulse" : ""
+                      }`} style={{
+                        backgroundColor: isVNCEnabled ? brandColors.secondary.full : '#ef4444'
+                      }}></div>
                       <span className="text-xl font-bold">
                         {isVNCEnabled ? "ENABLED" : "DISABLED"}
                       </span>
@@ -578,9 +580,14 @@ const VNCTab = ({ serverId }: { serverId: number }) => {
                       {isVNCEnabled ? (
                         <Button
                           variant="outline"
-                          className="bg-blue-50 border-blue-200 hover:bg-blue-200 text-blue-700 hover:text-blue-900 font-medium"
+                          className="font-medium transition-all duration-200"
                           onClick={openVNCConsole}
                           size="lg"
+                          style={{
+                            backgroundColor: brandColors.primary.light,
+                            borderColor: brandColors.primary.medium,
+                            color: brandColors.primary.dark,
+                          }}
                         >
                           <ExternalLink className="mr-2 h-4 w-4" />
                           Connect to VNC Console
@@ -681,6 +688,21 @@ const PowerStatusBadge = ({ server }: { server: any }) => {
   const powerState = server?.remoteState?.state || server.state;
   const isRunning = server?.remoteState?.running || powerState === "running";
 
+  // Get brand colors for styling
+  const { data: brandingData } = useQuery<{
+    primary_color?: string;
+    secondary_color?: string;
+    accent_color?: string;
+  }>({
+    queryKey: ["/api/settings/branding"],
+  });
+
+  const brandColors = getBrandColors({
+    primaryColor: brandingData?.primary_color,
+    secondaryColor: brandingData?.secondary_color,
+    accentColor: brandingData?.accent_color,
+  });
+
   // For debugging
   console.log("Power Status Debug:", server.remoteState);
 
@@ -689,10 +711,18 @@ const PowerStatusBadge = ({ server }: { server: any }) => {
       className={`${
         isRunning ? "bg-primary text-primary-foreground hover:bg-primary/90" :
         powerState === "stopped" ? "bg-muted text-muted-foreground" :
-        powerState === "shutdown" ? "bg-orange-300 text-orange-800" :
-        powerState === "paused" ? "bg-yellow-300 text-yellow-800" :
         ""
       }`}
+      style={
+        powerState === "shutdown" ? {
+          backgroundColor: brandColors.accent.light,
+          color: brandColors.accent.dark,
+        } :
+        powerState === "paused" ? {
+          backgroundColor: '#fef3c7',
+          color: '#92400e',
+        } : {}
+      }
       variant={
         isRunning ? "default" :
         powerState === "stopped" ? "outline" :
@@ -1882,496 +1912,737 @@ export default function ServerDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Enhanced Header Section */}
-        <div className="space-y-4">
-          {/* Navigation & Title */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/servers">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 border-primary text-primary hover:bg-primary/10 hover:text-primary hover:border-primary"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Servers
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-                  {isLoading ? (
-                    <Skeleton className="h-9 w-64" />
-                  ) : error ? (
-                    "Error Loading Server"
-                  ) : (
-                    <>
-                      {server?.name || "Server Details"}
-                      {/* OS Icon and Name */}
-                      {(() => {
-                        const osInfo = getServerOSInfo(server);
-                        if (osInfo && osInfo.name !== "Unknown OS") {
-                          const OSIcon = osInfo.icon;
-                          return (
-                            <div className="flex items-center gap-2 ml-2">
-                              <div className="w-px h-6 bg-border"></div>
-                              <div className="flex items-center gap-2">
-                                <OSIcon className="w-6 h-6" />
-                                <span className="text-lg font-medium text-muted-foreground">
-                                  {osInfo.name}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </>
-                  )}
-                </h1>
-                {!isLoading && !error && server?.uuid && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-sm text-muted-foreground font-mono">
-                      UUID: {server.uuid}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(server.uuid, "uuid")}
-                      className="h-6 w-6 p-0 hover:bg-primary/10"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Refresh button removed - now available in More dropdown */}
-            </div>
-          </div>
+      <div className="min-h-screen" style={{
+        background: `linear-gradient(135deg, ${brandColors.primary.extraLight} 0%, ${brandColors.secondary.extraLight} 50%, ${brandColors.accent.extraLight} 100%)`
+      }}>
+        <div className="container mx-auto px-4 py-8 space-y-8">
+          {/* Redesigned Header Section */}
+          <div className="space-y-6">
+            {/* Clean Navigation Bar */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Link href="/servers">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary/40 transition-all duration-200"
+                    style={{
+                      borderColor: brandColors.primary.medium,
+                      color: brandColors.primary.full
+                    }}
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Servers
+                  </Button>
+                </Link>
 
-          {/* Status Cards Row */}
-          {!isLoading && !error && server && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Server Status Card */}
-              <Card className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-primary">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground font-medium">Status</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="relative">
-                        <div className={`w-3 h-3 rounded-full ${
-                          getDisplayStatus() === 'RUNNING'
-                            ? 'bg-green-500 animate-pulse'
-                            : getDisplayStatus() === 'STOPPED'
-                            ? 'bg-red-500'
-                            : 'bg-yellow-500 animate-pulse'
-                        }`} />
-                        {getDisplayStatus() === 'RUNNING' && (
-                          <div className="absolute inset-0 w-3 h-3 bg-green-500 rounded-full animate-ping opacity-75" />
-                        )}
-                      </div>
-                      <span className={`font-bold text-sm ${
-                        getDisplayStatus() === 'RUNNING'
-                          ? 'text-green-700'
-                          : getDisplayStatus() === 'STOPPED'
-                          ? 'text-red-700'
-                          : 'text-yellow-700'
-                      }`}>
-                        {getDisplayStatus()}
-                      </span>
-                    </div>
-                  </div>
-                  <Server className="h-8 w-8 text-primary opacity-60" />
-                </div>
-              </Card>
-
-              {/* Memory Card */}
-              <Card className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-blue-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground font-medium">Memory</p>
-                    <p className="text-2xl font-bold text-blue-700">
-                      {server?.settings?.resources?.memory ?
-                        `${server.settings.resources.memory} MB` : 'N/A'}
-                    </p>
-                  </div>
-                  <MemoryStick className="h-8 w-8 text-blue-500 opacity-60" />
-                </div>
-              </Card>
-
-              {/* CPU Card */}
-              <Card className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-purple-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground font-medium">CPU Cores</p>
-                    <p className="text-2xl font-bold text-purple-700">
-                      {server?.cpu?.cores || server?.settings?.resources?.cpuCores || 'N/A'}
-                    </p>
-                  </div>
-                  <Cpu className="h-8 w-8 text-purple-500 opacity-60" />
-                </div>
-              </Card>
-
-              {/* Storage Card */}
-              <Card className="p-4 hover:shadow-md transition-all duration-200 border-l-4 border-l-orange-500">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground font-medium">Storage</p>
-                    <p className="text-2xl font-bold text-orange-700">
-                      {server?.settings?.resources?.storage ?
-                        `${server.settings.resources.storage} GB` :
-                        server?.storage && server.storage.length > 0 ?
-                          `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB` :
-                          'N/A'}
-                    </p>
-                  </div>
-                  <HardDrive className="h-8 w-8 text-orange-500 opacity-60" />
-                </div>
-              </Card>
-            </div>
-          )}
-
-          {/* Quick Actions Bar */}
-          {!isLoading && !error && server && (
-            <Card className="p-4">
-              <div className="flex flex-col space-y-3">
-                <h3 className="font-semibold text-lg flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  Quick Actions
-                </h3>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
-                  {/* Power Control Actions */}
-                  <div className="flex flex-wrap items-center gap-1 border rounded-lg p-1 w-full sm:w-auto overflow-x-auto">
-                    <Button
-                      variant={isServerStopped ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => handlePowerAction('boot')}
-                      disabled={!isServerStopped || isLoading}
-                      className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary whitespace-nowrap"
-                    >
-                      <Power className="h-4 w-4" />
-                      <span className="sm:inline">Boot</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handlePowerAction('restart')}
-                      disabled={isServerStopped || isLoading}
-                      className="flex items-center gap-2 hover:bg-blue-500/10 hover:text-blue-700 whitespace-nowrap"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      <span className="hidden sm:inline">Restart</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handlePowerAction('shutdown')}
-                      disabled={isServerStopped || isLoading}
-                      className="flex items-center gap-2 hover:bg-yellow-500/10 hover:text-yellow-700 whitespace-nowrap"
-                    >
-                      <Square className="h-4 w-4" />
-                      <span className="sm:inline">Shutdown</span>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handlePowerAction('poweroff')}
-                      disabled={isServerStopped || isLoading}
-                      className="flex items-center gap-2 hover:bg-red-500/10 hover:text-red-700 whitespace-nowrap"
-                    >
-                      <PowerOff className="h-4 w-4" />
-                      <span className="sm:inline">Power Off</span>
-                    </Button>
-                  </div>
-
-                  <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-                    {/* Tab Navigation Dropdown */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary w-1/2 sm:w-auto">
-                          <FileText className="h-4 w-4" />
-                          <span className="truncate">
-                            {activeTab === "overview" ? "Overview" :
-                             activeTab === "specs" ? "Specifications" :
-                             activeTab === "network" ? "Network" :
-                             activeTab === "traffic" ? "Traffic" :
-                             activeTab === "storage" ? "Storage" :
-                             activeTab === "vnc" ? "VNC" : "Overview"}
-                          </span>
-                          <ChevronDown className="h-3 w-3 ml-auto sm:ml-0" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => setActiveTab("overview")}>
-                          <Server className="h-4 w-4 mr-2" />
-                          Overview
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setActiveTab("specs")}>
-                          <Cpu className="h-4 w-4 mr-2" />
-                          Specifications
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setActiveTab("network")}>
-                          <Network className="h-4 w-4 mr-2" />
-                          Network
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setActiveTab("traffic")}>
-                          <Activity className="h-4 w-4 mr-2" />
-                          Traffic
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setActiveTab("storage")}>
-                          <HardDrive className="h-4 w-4 mr-2" />
-                          Storage
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setActiveTab("vnc")}>
-                          <Monitor className="h-4 w-4 mr-2" />
-                          VNC
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {/* Settings Dropdown - moved into Quick Actions */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex items-center gap-2 hover:bg-primary/10 hover:text-primary w-1/2 sm:w-auto">
-                          <Settings className="h-4 w-4" />
-                          <span className="truncate">More</span>
-                          <ChevronDown className="h-3 w-3 ml-auto sm:ml-0" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => {
-                          refetch();
-                          refetchVNC();
-                          toast({
-                            title: "Data Refreshed",
-                            description: "Server data has been updated.",
-                          });
-                        }}>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Refresh Data
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => copyToClipboard(server?.uuid || '', 'uuid')}>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy UUID
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => resetPasswordMutation.mutate()}>
-                          <Key className="h-4 w-4 mr-2" />
-                          Reset Password
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={openVNCConsole}>
-                          <Monitor className="h-4 w-4 mr-2" />
-                          Open VNC Console
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsLogsModalOpen(true)}>
-                          <ScrollText className="h-4 w-4 mr-2" />
-                          Activity Logs
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                {/* Breadcrumb Navigation */}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Link href="/servers" className="hover:text-primary transition-colors">
+                    Servers
+                  </Link>
+                  <span>/</span>
+                  <span className="text-foreground font-medium">
+                    {isLoading ? "Loading..." : server?.name || "Server Details"}
+                  </span>
                 </div>
               </div>
-            </Card>
-          )}
-        </div>
-
-        {/* Loading state */}
-        {isLoading && (
-          <div className="space-y-4">
-            <Skeleton className="h-[200px] w-full" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Skeleton className="h-[120px] w-full" />
-              <Skeleton className="h-[120px] w-full" />
-              <Skeleton className="h-[120px] w-full" />
             </div>
-          </div>
-        )}
 
-        {/* Error state */}
-        {error && (
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-destructive">Error Loading Server</CardTitle>
-              <CardDescription>
-                There was a problem loading the server details.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Please try refreshing the page or contact support if the problem persists.</p>
-              <Button onClick={() => window.location.reload()} className="mt-4">
-                Refresh Page
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Server details */}
-        {!isLoading && !error && server && (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            {/* Tab navigation is now handled by the dropdown in Quick Actions */}
-
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* General Information */}
-                <Card className="md:col-span-2">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Server className="h-5 w-5" />
-                      General Information
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <table className="w-full text-sm">
-                      <tbody>
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground w-1/3">Name:</td>
-                          <td className="py-1 font-medium">{server.name}</td>
-                        </tr>
-
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">ID:</td>
-                          <td className="py-1 font-medium">{server.id}</td>
-                        </tr>
-
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">UUID:</td>
-                          <td className="py-1 font-medium">{server.uuid}</td>
-                        </tr>
-
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">Hypervisor ID:</td>
-                          <td className="py-1 font-medium">{server.hypervisorId}</td>
-                        </tr>
-
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">Operating System:</td>
-                          <td className="py-1 font-medium">
-                            {(() => {
-                              const osInfo = getServerOSInfo(server);
+            {/* Server Information Card */}
+            {!isLoading && !error && server && (
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+                <CardContent className="p-8">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    {/* Server Name and OS */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 rounded-xl" style={{ backgroundColor: brandColors.primary.light }}>
+                          <Server className="h-8 w-8" style={{ color: brandColors.primary.full }} />
+                        </div>
+                        <div>
+                          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+                            {server.name}
+                          </h1>
+                          {(() => {
+                            const osInfo = getServerOSInfo(server);
+                            if (osInfo && osInfo.name !== "Unknown OS") {
                               const OSIcon = osInfo.icon;
                               return (
-                                <div className="flex items-center gap-2">
-                                  <OSIcon className="w-4 h-4" />
-                                  <span>{osInfo.name}</span>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <OSIcon className="w-5 h-5" />
+                                  <span className="text-lg font-medium text-muted-foreground">
+                                    {osInfo.name}
+                                  </span>
                                 </div>
                               );
-                            })()}
-                          </td>
-                        </tr>
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      </div>
+                    </div>
 
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">Owner ID:</td>
-                          <td className="py-1 font-medium">
-                            {/* This should always show the extRelationID (never VirtFusion owner ID) */}
-                            {typeof server.owner === 'object'
-                              ? (server.owner.extRelationID || server.owner.id)
-                              : (server.extRelationID || server.ownerId || server.owner)}
-                          </td>
-                        </tr>
+                    {/* Server Metadata */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-lg border" style={{ borderColor: brandColors.primary.border }}>
+                        <span className="text-sm font-medium text-muted-foreground">Server ID:</span>
+                        <span className="font-semibold">{server.id}</span>
+                      </div>
 
-                        {/* Always include the Root Password row, but conditionally show password or message */}
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">Root Password:</td>
-                          <td className="py-1 font-medium flex items-center gap-2">
-                            {generatedPassword ? (
-                              <>
-                                <code className="bg-muted px-2 py-0.5 rounded text-sm font-mono">
-                                  {generatedPassword}
-                                </code>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => copyToClipboard(generatedPassword, 'password')}
-                                  className="h-6 w-6"
-                                  title="Copy to clipboard"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-copy">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                  </svg>
-                                </Button>
-                              </>
-                            ) : (
-                              <span className="text-muted-foreground text-sm flex items-center">
-                                <InfoIcon className="h-4 w-4 mr-1" />
-                                Use the Reset Password option in More tab
-                              </span>
+                      {server.uuid && (
+                        <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-lg border" style={{ borderColor: brandColors.primary.border }}>
+                          <span className="text-sm font-medium text-muted-foreground">UUID:</span>
+                          <code className="text-sm font-mono bg-white/80 px-2 py-1 rounded text-slate-700">
+                            {server.uuid.slice(0, 8)}...{server.uuid.slice(-8)}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(server.uuid, "uuid")}
+                            className="h-6 w-6 p-0 hover:bg-primary/10 transition-colors"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Loading Header */}
+            {isLoading && (
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+                <CardContent className="p-8">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-14 w-14 rounded-xl" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-8 w-64" />
+                      <Skeleton className="h-5 w-32" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Error Header */}
+            {error && (
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl border-l-4 border-l-destructive">
+                <CardContent className="p-8">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-destructive/10 rounded-xl">
+                      <Server className="h-8 w-8 text-destructive" />
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-bold tracking-tight text-destructive">
+                        Error Loading Server
+                      </h1>
+                      <p className="text-muted-foreground mt-1">
+                        Unable to load server details
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Enhanced Status Cards */}
+            {!isLoading && !error && server && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Server Status Card */}
+                <Card className="group relative overflow-hidden bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="absolute inset-0" style={{
+                    background: `linear-gradient(135deg, ${brandColors.primary.extraLight} 0%, transparent 50%, ${brandColors.primary.extraLight} 100%)`
+                  }}></div>
+                  <CardContent className="p-6 relative">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <div className={`w-3 h-3 rounded-full shadow-lg`} style={{
+                              backgroundColor: getDisplayStatus() === 'RUNNING'
+                                ? brandColors.secondary.full
+                                : getDisplayStatus() === 'STOPPED'
+                                ? '#ef4444'
+                                : brandColors.accent.full,
+                              boxShadow: `0 0 10px ${getDisplayStatus() === 'RUNNING'
+                                ? brandColors.secondary.medium
+                                : getDisplayStatus() === 'STOPPED'
+                                ? '#ef444450'
+                                : brandColors.accent.medium}`
+                            }} />
+                            {getDisplayStatus() === 'RUNNING' && (
+                              <div className="absolute inset-0 w-3 h-3 rounded-full animate-ping opacity-75" style={{ backgroundColor: brandColors.secondary.full }} />
                             )}
-                          </td>
-                        </tr>
-
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">Suspended Status:</td>
-                          <td className="py-1">
-                            <UIBadge
-                              variant={server.suspended ? "destructive" : "default"}
-                              className={`${!server.suspended ? "bg-green-500 hover:bg-green-600" : ""}`}
-                            >
-                              {server.suspended ? "Suspended" : "Active"}
-                            </UIBadge>
-                          </td>
-                        </tr>
-
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">Power State:</td>
-                          <td className="py-1">
-                            <PowerStatusBadge server={server} />
-                          </td>
-                        </tr>
-
-                        {server.protected !== undefined && (
-                          <tr>
-                            <td className="py-1 pr-2 text-muted-foreground">Protected:</td>
-                            <td className="py-1">
-                              <UIBadge variant={server.protected ? "default" : "outline"}>
-                                {server.protected ? "Yes" : "No"}
-                              </UIBadge>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                          </div>
+                          <span className="text-sm font-medium text-slate-600">Status</span>
+                        </div>
+                        <div className={`text-xl font-bold`} style={{
+                          color: getDisplayStatus() === 'RUNNING'
+                            ? brandColors.secondary.dark
+                            : getDisplayStatus() === 'STOPPED'
+                            ? '#dc2626'
+                            : brandColors.accent.dark
+                        }}>
+                          {getDisplayStatus()}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl transition-colors" style={{
+                        backgroundColor: brandColors.primary.light,
+                      }}>
+                        <Server className="h-6 w-6" style={{ color: brandColors.primary.full }} />
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Timeline Card */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      Timeline
+                {/* Memory Card */}
+                <Card className="group relative overflow-hidden bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="absolute inset-0" style={{
+                    background: `linear-gradient(135deg, ${brandColors.secondary.extraLight} 0%, transparent 50%, ${brandColors.secondary.extraLight} 100%)`
+                  }}></div>
+                  <CardContent className="p-6 relative">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <span className="text-sm font-medium text-slate-600">Memory</span>
+                        <div className="text-xl font-bold" style={{ color: brandColors.secondary.dark }}>
+                          {server?.settings?.resources?.memory ?
+                            `${(server.settings.resources.memory / 1024).toFixed(1)} GB` : 'N/A'}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {server?.settings?.resources?.memory ? `${server.settings.resources.memory} MB` : ''}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl transition-colors" style={{
+                        backgroundColor: brandColors.secondary.light,
+                      }}>
+                        <MemoryStick className="h-6 w-6" style={{ color: brandColors.secondary.full }} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* CPU Card */}
+                <Card className="group relative overflow-hidden bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="absolute inset-0" style={{
+                    background: `linear-gradient(135deg, ${brandColors.accent.extraLight} 0%, transparent 50%, ${brandColors.accent.extraLight} 100%)`
+                  }}></div>
+                  <CardContent className="p-6 relative">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <span className="text-sm font-medium text-slate-600">CPU Cores</span>
+                        <div className="text-xl font-bold" style={{ color: brandColors.accent.dark }}>
+                          {server?.cpu?.cores || server?.settings?.resources?.cpuCores || 'N/A'}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {server?.cpu?.type || 'Virtual CPU'}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl transition-colors" style={{
+                        backgroundColor: brandColors.accent.light,
+                      }}>
+                        <Cpu className="h-6 w-6" style={{ color: brandColors.accent.full }} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Storage Card */}
+                <Card className="group relative overflow-hidden bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                  <div className="absolute inset-0" style={{
+                    background: `linear-gradient(135deg, ${brandColors.primary.extraLight} 0%, transparent 50%, ${brandColors.primary.extraLight} 100%)`
+                  }}></div>
+                  <CardContent className="p-6 relative">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <span className="text-sm font-medium text-slate-600">Storage</span>
+                        <div className="text-xl font-bold" style={{ color: brandColors.primary.dark }}>
+                          {server?.settings?.resources?.storage ?
+                            `${server.settings.resources.storage} GB` :
+                            server?.storage && server.storage.length > 0 ?
+                              `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB` :
+                              'N/A'}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {server?.storage?.length ? `${server.storage.length} drive(s)` : 'Virtual disk'}
+                        </div>
+                      </div>
+                      <div className="p-3 rounded-xl transition-colors" style={{
+                        backgroundColor: brandColors.primary.light,
+                      }}>
+                        <HardDrive className="h-6 w-6" style={{ color: brandColors.primary.full }} />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Enhanced Quick Actions */}
+            {!isLoading && !error && server && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Power Controls */}
+                <Card className="lg:col-span-2 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
+                      <Zap className="h-5 w-5 text-primary" />
+                      Power Controls
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <table className="w-full text-sm">
-                      <tbody>
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">Created:</td>
-                          <td className="py-1 font-medium">{formatDate(server.created)}</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">Built:</td>
-                          <td className="py-1 font-medium">{formatDate(server.built)}</td>
-                        </tr>
-                        <tr>
-                          <td className="py-1 pr-2 text-muted-foreground">Last Updated:</td>
-                          <td className="py-1 font-medium">{formatDate(server.updated)}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <Button
+                        variant={isServerStopped ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePowerAction('boot')}
+                        disabled={!isServerStopped || isLoading}
+                        className="flex items-center gap-2 h-12 disabled:opacity-50 transition-all duration-200"
+                        style={{
+                          backgroundColor: brandColors.secondary.light,
+                          borderColor: brandColors.secondary.medium,
+                          color: brandColors.secondary.dark,
+                        }}
+                      >
+                        <Power className="h-4 w-4" />
+                        <span>Boot</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePowerAction('restart')}
+                        disabled={isServerStopped || isLoading}
+                        className="flex items-center gap-2 h-12 disabled:opacity-50 transition-all duration-200"
+                        style={{
+                          backgroundColor: brandColors.primary.light,
+                          borderColor: brandColors.primary.medium,
+                          color: brandColors.primary.dark,
+                        }}
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        <span>Restart</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePowerAction('shutdown')}
+                        disabled={isServerStopped || isLoading}
+                        className="flex items-center gap-2 h-12 disabled:opacity-50 transition-all duration-200"
+                        style={{
+                          backgroundColor: brandColors.accent.light,
+                          borderColor: brandColors.accent.medium,
+                          color: brandColors.accent.dark,
+                        }}
+                      >
+                        <Square className="h-4 w-4" />
+                        <span>Shutdown</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePowerAction('poweroff')}
+                        disabled={isServerStopped || isLoading}
+                        className="flex items-center gap-2 h-12 bg-red-50 border-red-200 text-red-700 hover:bg-red-100 hover:border-red-300 disabled:opacity-50 transition-all duration-200"
+                      >
+                        <PowerOff className="h-4 w-4" />
+                        <span>Force Off</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Quick Navigation */}
+                <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
+                      <Settings className="h-5 w-5 text-primary" />
+                      Quick Access
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+
+                    {/* Quick Actions */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={openVNCConsole}
+                      className="w-full justify-start gap-2 h-10 transition-all duration-200"
+                      style={{
+                        backgroundColor: brandColors.primary.extraLight,
+                        borderColor: brandColors.primary.border,
+                        color: brandColors.primary.dark,
+                      }}
+                    >
+                      <Monitor className="h-4 w-4" />
+                      VNC Console
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resetPasswordMutation.mutate()}
+                      className="w-full justify-start gap-2 h-10 transition-all duration-200"
+                      style={{
+                        backgroundColor: brandColors.secondary.extraLight,
+                        borderColor: brandColors.secondary.border,
+                        color: brandColors.secondary.dark,
+                      }}
+                    >
+                      <Key className="h-4 w-4" />
+                      Reset Password
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        refetch();
+                        refetchVNC();
+                        toast({
+                          title: "Data Refreshed",
+                          description: "Server data has been updated.",
+                        });
+                      }}
+                      className="w-full justify-start gap-2 h-10 transition-all duration-200"
+                      style={{
+                        backgroundColor: brandColors.accent.extraLight,
+                        borderColor: brandColors.accent.border,
+                        color: brandColors.accent.dark,
+                      }}
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Refresh Data
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsLogsModalOpen(true)}
+                      className="w-full justify-start gap-2 h-10 transition-all duration-200"
+                      style={{
+                        backgroundColor: brandColors.primary.extraLight,
+                        borderColor: brandColors.primary.border,
+                        color: brandColors.primary.dark,
+                      }}
+                    >
+                      <ScrollText className="h-4 w-4" />
+                      Activity Logs
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
+            )}
 
+            {/* Enhanced Tab Navigation */}
+            {!isLoading && !error && server && (
+              <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: "overview", label: "Overview", icon: Server },
+                      { id: "specs", label: "Specifications", icon: Cpu },
+                      { id: "network", label: "Network", icon: Network },
+                      { id: "traffic", label: "Traffic", icon: Activity },
+                      { id: "storage", label: "Storage", icon: HardDrive },
+                      { id: "vnc", label: "VNC", icon: Monitor },
+                    ].map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <Button
+                          key={tab.id}
+                          variant={isActive ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`flex items-center gap-2 h-10 transition-all duration-200`}
+                          style={isActive ? {
+                            backgroundColor: brandColors.primary.full,
+                            color: 'white',
+                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                          } : {
+                            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                            borderColor: brandColors.primary.border,
+                            color: brandColors.primary.dark,
+                          }}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span className="hidden sm:inline">{tab.label}</span>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+        </div>
 
+          {/* Enhanced Loading state */}
+          {isLoading && (
+            <div className="space-y-8">
+              {/* Loading Header */}
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-12 w-96" />
+              </div>
 
+              {/* Loading Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[...Array(4)].map((_, i) => (
+                  <Card key={i} className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-6 w-20" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                        <Skeleton className="h-12 w-12 rounded-xl" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-            </TabsContent>
+              {/* Loading Actions */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card className="lg:col-span-2 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                  <CardContent className="p-6">
+                    <Skeleton className="h-6 w-32 mb-4" />
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[...Array(4)].map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                  <CardContent className="p-6">
+                    <Skeleton className="h-6 w-24 mb-4" />
+                    <div className="space-y-3">
+                      {[...Array(4)].map((_, i) => (
+                        <Skeleton key={i} className="h-10 w-full" />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Enhanced Error state */}
+          {error && (
+            <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg border-l-4 border-l-red-500">
+              <CardHeader>
+                <CardTitle className="text-red-700 flex items-center gap-2">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <Server className="h-5 w-5 text-red-600" />
+                  </div>
+                  Error Loading Server
+                </CardTitle>
+                <CardDescription className="text-slate-600">
+                  There was a problem loading the server details. This could be due to network issues or server unavailability.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-slate-700">Please try refreshing the page or contact support if the problem persists.</p>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => window.location.reload()}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh Page
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => window.history.back()}
+                      className="border-slate-200 text-slate-700 hover:bg-slate-50"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Go Back
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Enhanced Server Details */}
+          {!isLoading && !error && server && (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* General Information */}
+                  <Card className="lg:col-span-2 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-xl flex items-center gap-3 text-slate-800">
+                        <div className="p-2 rounded-lg" style={{ backgroundColor: brandColors.primary.light }}>
+                          <Server className="h-5 w-5" style={{ color: brandColors.primary.full }} />
+                        </div>
+                        General Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">Server Name</span>
+                            <span className="font-semibold text-slate-800">{server.name}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">Server ID</span>
+                            <span className="font-semibold text-slate-800">{server.id}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">UUID</span>
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs font-mono px-2 py-1 rounded text-slate-700" style={{ backgroundColor: brandColors.primary.extraLight }}>
+                                {server.uuid?.slice(0, 8)}...
+                              </code>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(server.uuid, "uuid")}
+                                className="h-6 w-6 p-0 transition-colors"
+                                style={{
+                                  '--hover-bg': brandColors.primary.extraLight,
+                                } as React.CSSProperties}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = brandColors.primary.extraLight}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                <Copy className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">Hypervisor</span>
+                            <span className="font-semibold text-slate-800">{server.hypervisorId}</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">Operating System</span>
+                            <div className="flex items-center gap-2">
+                              {(() => {
+                                const osInfo = getServerOSInfo(server);
+                                const OSIcon = osInfo.icon;
+                                return (
+                                  <>
+                                    <OSIcon className="w-4 h-4" />
+                                    <span className="font-semibold text-slate-800">{osInfo.name}</span>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">Owner ID</span>
+                            <span className="font-semibold text-slate-800">
+                              {typeof server.owner === 'object'
+                                ? (server.owner.extRelationID || server.owner.id)
+                                : (server.extRelationID || server.ownerId || server.owner)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">Root Password</span>
+                            <div className="flex items-center gap-2">
+                              {generatedPassword ? (
+                                <>
+                                  <code className="px-2 py-1 rounded text-xs font-mono text-slate-700" style={{ backgroundColor: brandColors.secondary.extraLight }}>
+                                    {generatedPassword}
+                                  </code>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => copyToClipboard(generatedPassword, 'password')}
+                                    className="h-6 w-6 p-0 transition-colors"
+                                    title="Copy to clipboard"
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = brandColors.secondary.extraLight}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
+                                </>
+                              ) : (
+                                <span className="text-xs text-slate-500 flex items-center gap-1">
+                                  <InfoIcon className="h-3 w-3" />
+                                  Use Reset Password
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">Status</span>
+                            <UIBadge
+                              variant={server.suspended ? "destructive" : "default"}
+                              className={`${!server.suspended ? "text-white" : ""}`}
+                              style={!server.suspended ? {
+                                backgroundColor: brandColors.secondary.full,
+                              } : {}}
+                            >
+                              {server.suspended ? "Suspended" : "Active"}
+                            </UIBadge>
+                          </div>
+
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">Power State</span>
+                            <PowerStatusBadge server={server} />
+                          </div>
+
+                          {server.protected !== undefined && (
+                            <div className="flex items-center justify-between py-3">
+                              <span className="text-sm font-medium text-slate-600">Protected</span>
+                              <UIBadge variant={server.protected ? "default" : "outline"}>
+                                {server.protected ? "Yes" : "No"}
+                              </UIBadge>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Timeline Card */}
+                  <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-xl flex items-center gap-3 text-slate-800">
+                        <div className="p-2 rounded-lg" style={{ backgroundColor: brandColors.accent.light }}>
+                          <Calendar className="h-5 w-5" style={{ color: brandColors.accent.full }} />
+                        </div>
+                        Timeline
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex flex-col space-y-2 p-3 rounded-lg" style={{ backgroundColor: brandColors.primary.extraLight }}>
+                          <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Created</span>
+                          <span className="text-sm font-semibold text-slate-800">{formatDate(server.created)}</span>
+                        </div>
+
+                        <div className="flex flex-col space-y-2 p-3 rounded-lg" style={{ backgroundColor: brandColors.secondary.extraLight }}>
+                          <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Built</span>
+                          <span className="text-sm font-semibold text-slate-800">{formatDate(server.built)}</span>
+                        </div>
+
+                        <div className="flex flex-col space-y-2 p-3 rounded-lg" style={{ backgroundColor: brandColors.accent.extraLight }}>
+                          <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Last Updated</span>
+                          <span className="text-sm font-semibold text-slate-800">{formatDate(server.updated)}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
 
             {/* Specifications Tab */}
             <TabsContent value="specs" className="space-y-4">
@@ -3409,13 +3680,14 @@ export default function ServerDetailPage() {
           </Tabs>
         )}
 
-        {/* Server Logs Modal */}
-        <ServerLogsModal
-          isOpen={isLogsModalOpen}
-          onClose={() => setIsLogsModalOpen(false)}
-          serverId={serverId}
-          serverName={server?.name}
-        />
+          {/* Server Logs Modal */}
+          <ServerLogsModal
+            isOpen={isLogsModalOpen}
+            onClose={() => setIsLogsModalOpen(false)}
+            serverId={serverId}
+            serverName={server?.name}
+          />
+        </div>
       </div>
     </DashboardLayout>
   );
