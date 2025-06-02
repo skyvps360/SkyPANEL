@@ -310,165 +310,202 @@ export default function BillingPage() {
 
   return (
     <DashboardLayout>
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Billing & Payments</h1>
-          <p className="text-gray-500 mt-1">Manage your account balance and view transactions</p>
-        </div>
-        <div className="mt-4 md:mt-0">
-          <Button
-            variant="outline"
-            className="flex items-center"
-            onClick={handleExportTransactions}
-            style={{
-              backgroundColor: 'transparent',
-              color: brandColors.primary.full,
-              borderColor: brandColors.primary.medium
-            }}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export Transactions
-          </Button>
-        </div>
-      </div>
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Modern Hero Header */}
+        <div className="rounded-2xl bg-card border border-border shadow-md">
+          <div className="p-8 md:p-12">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
+                    <CreditCard className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                      Billing & Payments
+                    </h1>
+                    <p className="text-muted-foreground text-lg mt-1">
+                      Manage your account balance and view transactions
+                    </p>
+                  </div>
+                </div>
 
-      {/* Billing Summary - Modern Card Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        {/* Current Balance Card */}
-        <Card className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="bg-primary/5 px-6 py-4 flex items-center justify-between border-b">
-            <CardTitle className="text-base font-medium">Current Balance</CardTitle>
-            <div className="h-10 w-10 rounded-full flex items-center justify-center"
-                 style={{ backgroundColor: brandColors.primary.extraLight }}>
-              <DollarSign className="h-5 w-5" style={{ color: brandColors.primary.full }} />
+                {/* Billing Stats Summary */}
+                <div className="flex flex-wrap gap-6 mt-6">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-primary" />
+                    <span className="text-sm font-medium text-foreground">
+                      ${summaryData.balance.toFixed(2)} Available
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-destructive" />
+                    <span className="text-sm font-medium text-foreground">
+                      ${summaryData.spent30Days.toFixed(2)} Spent (30d)
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-secondary" />
+                    <span className="text-sm font-medium text-foreground">
+                      ${summaryData.added30Days.toFixed(2)} Added (30d)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+                <Button
+                  variant="outline"
+                  className="transition-all duration-200"
+                  onClick={handleExportTransactions}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Transactions
+                </Button>
+                {user?.isActive && (
+                  <Button
+                    onClick={() => handleTabChange("addCredits")}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Tokens
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
-          <CardContent className="px-6 py-5">
-            <div className="mb-2">
+        </div>
+
+        {/* Billing Summary - Modern Card Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Current Balance Card */}
+          <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border">
+              <CardTitle className="text-base font-medium text-foreground">Current Balance</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            <CardContent className="px-6 py-5">
+              <div className="mb-2">
+                <div className="flex items-center gap-1">
+                  <span className="text-3xl font-bold text-foreground">${summaryData.balance.toFixed(2)}</span>
+                  <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
+                </div>
+              </div>
+
+              {/* Show VirtFusion tokens section */}
+              <div className="mt-3 pt-3 border-t border-border">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">VirtFusion Tokens:</span>
+                  <span className="font-medium text-primary">{summaryData.virtFusionTokens.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                  <span>100 tokens = $1.00 USD</span>
+                  <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Spent Last 30 Days Card */}
+          <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border">
+              <CardTitle className="text-base font-medium text-foreground">Spent Last 30 Days</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Receipt className="h-5 w-5 text-destructive" />
+              </div>
+            </div>
+            <CardContent className="p-6">
               <div className="flex items-center gap-1">
-                <span className="text-3xl font-bold">${summaryData.balance.toFixed(2)}</span>
+                <span className="text-3xl font-bold text-foreground">${summaryData.spent30Days.toFixed(2)}</span>
                 <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
-            </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Total amount spent in the last 30 days
+              </p>
+            </CardContent>
+          </Card>
 
-            {/* Show VirtFusion tokens section */}
-            <div className="mt-3 pt-3 border-t border-border/60">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">VirtFusion Tokens:</span>
-                <span className="font-medium" style={{ color: brandColors.primary.full }}>{summaryData.virtFusionTokens.toLocaleString()}</span>
+          {/* Added Last 30 Days Card */}
+          <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border">
+              <CardTitle className="text-base font-medium text-foreground">Added Last 30 Days</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
+                <PlusCircle className="h-5 w-5 text-secondary" />
               </div>
-              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-                <span>100 tokens = $1.00 USD</span>
-                <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            </div>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-1">
+                <span className="text-3xl font-bold text-foreground">${summaryData.added30Days.toFixed(2)}</span>
+                <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Spent Last 30 Days Card */}
-        <Card className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="bg-destructive/5 px-6 py-4 flex items-center justify-between border-b">
-            <CardTitle className="text-base font-medium">Spent Last 30 Days</CardTitle>
-            <div className="h-10 w-10 rounded-full flex items-center justify-center bg-red-50">
-              <Receipt className="h-5 w-5 text-red-500" />
-            </div>
-          </div>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-1">
-              <span className="text-3xl font-bold">${summaryData.spent30Days.toFixed(2)}</span>
-              <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Total amount spent in the last 30 days
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Added Last 30 Days Card */}
-        <Card className="overflow-hidden border border-border/40 shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="bg-accent/5 px-6 py-4 flex items-center justify-between border-b">
-            <CardTitle className="text-base font-medium">Added Last 30 Days</CardTitle>
-            <div className="h-10 w-10 rounded-full flex items-center justify-center bg-green-50">
-              <CreditCard className="h-5 w-5 text-green-500" />
-            </div>
-          </div>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-1">
-              <span className="text-3xl font-bold">${summaryData.added30Days.toFixed(2)}</span>
-              <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
-            </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Total credits added in the last 30 days
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Total credits added in the last 30 days
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
       {/* Add Credits Button under the 3 cards has been removed as requested. */}
 
-      {/* Tabs: Transactions, Add Credits, Invoices */}
-      <Card className="border border-border/40 shadow-sm overflow-hidden">
-        <CardHeader className="border-b px-6 bg-card/30">
-          <h2 className="text-lg font-semibold">Billing & Transactions</h2>
-        </CardHeader>
+        {/* Tabs: Transactions, Add Credits, Invoices */}
+        <Card className="bg-card border border-border shadow-sm overflow-hidden">
+          <CardHeader className="border-b border-border px-6 py-4">
+            <h2 className="text-lg font-semibold text-foreground">Billing & Transactions</h2>
+          </CardHeader>
 
-        <CardContent className="p-6">
-          <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="bg-muted/50 mb-6 p-1 rounded-md">
-              <TabsTrigger value="transactions" className="data-[state=active]:bg-background rounded-md">
-                <History className="h-4 w-4 mr-2" />
-                Transactions
-              </TabsTrigger>
-              {/* Add VirtFusion Tokens tab */}
-              {user?.isActive && (
-                <TabsTrigger value="addCredits" className="data-[state=active]:bg-background rounded-md">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add VirtFusion Tokens
+          <CardContent className="p-6">
+            <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
+              <TabsList className="bg-muted mb-6 p-1 rounded-md">
+                <TabsTrigger value="transactions" className="data-[state=active]:bg-background rounded-md">
+                  <History className="h-4 w-4 mr-2" />
+                  Transactions
                 </TabsTrigger>
-              )}
+                {/* Add VirtFusion Tokens tab */}
+                {user?.isActive && (
+                  <TabsTrigger value="addCredits" className="data-[state=active]:bg-background rounded-md">
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add VirtFusion Tokens
+                  </TabsTrigger>
+                )}
+              </TabsList>
 
-            </TabsList>
-
-            <TabsContent value="transactions" className="mt-0">
-              <div className="p-0">
-                {isLoading ? (
-                  <div className="flex justify-center items-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: brandColors.primary.full }}></div>
-                    <p className="ml-2 font-medium text-muted-foreground">Loading transactions...</p>
-                  </div>
-                ) : transactions.length === 0 ? (
-                  <div className="text-center py-12 bg-muted/5 rounded-lg border border-border/40 px-6">
-                    <div className="p-4 rounded-full mx-auto w-16 h-16 mb-4 flex items-center justify-center" style={{ backgroundColor: brandColors.primary.extraLight }}>
-                      <FileText className="h-8 w-8" style={{ color: brandColors.primary.full }} />
+              <TabsContent value="transactions" className="mt-0">
+                <div className="p-0">
+                  {isLoading ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      <p className="ml-2 font-medium text-muted-foreground">Loading transactions...</p>
                     </div>
-                    <h3 className="text-lg font-medium mb-2">No Transactions Found</h3>
-                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      {user?.isActive
-                       ? "You don't have any transactions yet. Add credits to get started with your account."
-                       : "You don't have any transactions yet. Your account is currently suspended."}
-                    </p>
-                    {user?.isActive ? (
-                      <Button
-                        onClick={() => handleTabChange("addCredits")}
-                        className="px-6 py-2 transition-all hover:translate-y-[-1px]"
-                        style={{
-                          backgroundColor: brandColors.primary.full,
-                          color: 'white'
-                        }}
-                      >
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Add VirtFusion Tokens
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        disabled
-                      >
-                        Account Suspended
-                      </Button>
-                    )}
-                  </div>
+                  ) : transactions.length === 0 ? (
+                    <div className="text-center py-12 bg-muted/5 rounded-lg border border-border px-6">
+                      <div className="p-4 rounded-full mx-auto w-16 h-16 mb-4 bg-primary/10 flex items-center justify-center">
+                        <FileText className="h-8 w-8 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-medium mb-2 text-foreground">No Transactions Found</h3>
+                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                        {user?.isActive
+                         ? "You don't have any transactions yet. Add credits to get started with your account."
+                         : "You don't have any transactions yet. Your account is currently suspended."}
+                      </p>
+                      {user?.isActive ? (
+                        <Button
+                          onClick={() => handleTabChange("addCredits")}
+                          className="px-6 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:translate-y-[-1px]"
+                        >
+                          <PlusCircle className="h-4 w-4 mr-2" />
+                          Add VirtFusion Tokens
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          disabled
+                        >
+                          Account Suspended
+                        </Button>
+                      )}
+                    </div>
                 ) : (
                   <DataTable
                     data={transactions}
@@ -480,20 +517,17 @@ export default function BillingPage() {
                           <div className="flex items-center">
                             <Avatar className="h-9 w-9 mr-3 shadow-sm">
                               <AvatarFallback
-                                className="rounded-full flex items-center justify-center"
-                                style={isCredit(transaction) ? {
-                                  background: `linear-gradient(135deg, ${brandColors.primary.lighter}, ${brandColors.primary.light})`,
-                                  color: brandColors.primary.full
-                                } : {
-                                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.2))',
-                                  color: 'rgb(220, 38, 38)'
-                                }}
+                                className={`rounded-full flex items-center justify-center ${
+                                  isCredit(transaction)
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'bg-destructive/10 text-destructive'
+                                }`}
                               >
                                 {isCredit(transaction) ? <PlusCircle className="h-4 w-4" /> : <MinusCircle className="h-4 w-4" />}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <div className="text-sm font-medium">{transaction.description}</div>
+                              <div className="text-sm font-medium text-foreground">{transaction.description}</div>
                               <div className="text-xs text-muted-foreground flex items-center gap-2">
                                 <span>ID: #{transaction.id}</span>
                                 {transaction.paymentMethod && (
@@ -517,7 +551,7 @@ export default function BillingPage() {
                         header: "Date",
                         cell: (transaction) => (
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium">
+                            <span className="text-sm font-medium text-foreground">
                               {format(new Date(transaction.createdAt), 'MMM d, yyyy')}
                             </span>
                             <span className="text-xs text-muted-foreground">
@@ -556,7 +590,7 @@ export default function BillingPage() {
                         accessorKey: "amount" as keyof Transaction,
                         header: "Amount",
                         cell: (transaction) => (
-                          <div className={`font-medium ${isCredit(transaction) ? 'text-green-600' : 'text-red-600'}`}>
+                          <div className={`font-medium ${isCredit(transaction) ? 'text-secondary' : 'text-destructive'}`}>
                             <span className="mr-1">{isCredit(transaction) ? '+' : '-'}</span>
                             ${Math.abs(transaction.amount).toFixed(2)}
                           </div>
@@ -570,8 +604,7 @@ export default function BillingPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => window.location.href = `/billing/transactions/${transaction.id}`}
-                            className="hover:bg-primary/5 transition-colors"
-                            style={{ color: brandColors.primary.full }}
+                            className="hover:bg-primary/5 text-primary transition-colors"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             View
@@ -584,119 +617,113 @@ export default function BillingPage() {
               </div>
             </TabsContent>
 
-            <TabsContent value="addCredits" className="mt-0">
-              <div className="max-w-2xl mx-auto">
-                <div className="mb-8 bg-primary/5 p-6 rounded-lg border border-primary/20">
-                  <h3 className="text-xl font-medium mb-2 flex items-center gap-2">
-                    <div className="p-2 rounded-full" style={{ backgroundColor: brandColors.primary.extraLight }}>
-                      <PlusCircle className="h-5 w-5" style={{ color: brandColors.primary.full }} />
-                    </div>
-                    Add VirtFusion Tokens
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Add tokens to your VirtFusion account via PayPal. Tokens are used to pay for server resources and services.
-                    <br />
-                    <span className="text-sm font-medium">Exchange Rate: 100 tokens = $1.00 USD</span>
-                  </p>
-                </div>
-
-                <div className="mb-8">
-                  <h4 className="text-sm font-medium mb-4 flex items-center">
-                    <DollarSign className="h-4 w-4 mr-1" style={{ color: brandColors.primary.full }} />
-                    Select Amount
-                  </h4>
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    {creditOptions.map((amount) => (
-                      <Button
-                        key={amount}
-                        variant={!isCustomAmount && creditAmount === amount ? "default" : "outline"}
-                        onClick={() => handlePredefinedAmountSelect(amount)}
-                        className={`font-medium transition-all ${!isCustomAmount && creditAmount === amount ? 'shadow-md hover:shadow-lg' : 'hover:bg-primary/5'}`}
-                        style={!isCustomAmount && creditAmount === amount ? {
-                          backgroundColor: brandColors.primary.full,
-                          color: 'white'
-                        } : {
-                          backgroundColor: 'transparent',
-                          color: brandColors.primary.full,
-                          borderColor: brandColors.primary.medium
-                        }}
-                      >
-                        ${amount}
-                      </Button>
-                    ))}
-                  </div>
-
-                  {/* Custom Amount Input */}
-                  <div className="border-t pt-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Edit3 className="h-4 w-4" style={{ color: brandColors.primary.full }} />
-                      <Label htmlFor="customAmount" className="text-sm font-medium">
-                        Or enter a custom amount ($1 - $1000)
-                      </Label>
-                    </div>
-                    <div className="max-w-sm">
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                        <Input
-                          id="customAmount"
-                          type="text"
-                          placeholder="0.00"
-                          value={customAmount}
-                          onChange={(e) => handleCustomAmountChange(e.target.value)}
-                          className={`pl-8 ${customAmountError ? 'border-red-500' : ''} ${isCustomAmount ? 'ring-2 ring-primary/20' : ''}`}
-                          style={isCustomAmount ? {
-                            borderColor: brandColors.primary.medium
-                          } : undefined}
-                        />
+              <TabsContent value="addCredits" className="mt-0">
+                <div className="max-w-2xl mx-auto">
+                  <div className="mb-8 bg-primary/5 p-6 rounded-lg border border-primary/20">
+                    <h3 className="text-xl font-medium mb-2 flex items-center gap-2 text-foreground">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <PlusCircle className="h-5 w-5 text-primary" />
                       </div>
-                      {customAmountError && (
-                        <p className="text-sm text-red-500 mt-1">{customAmountError}</p>
-                      )}
-                      {isCustomAmount && !customAmountError && customAmount && (
-                        <p className="text-sm text-green-600 mt-1">
-                          Custom amount: ${parseFloat(customAmount).toFixed(2)} = {(parseFloat(customAmount) * 100).toLocaleString()} tokens
-                        </p>
-                      )}
+                      Add VirtFusion Tokens
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Add tokens to your VirtFusion account via PayPal. Tokens are used to pay for server resources and services.
+                      <br />
+                      <span className="text-sm font-medium">Exchange Rate: 100 tokens = $1.00 USD</span>
+                    </p>
+                  </div>
+
+                  <div className="mb-8">
+                    <h4 className="text-sm font-medium mb-4 flex items-center text-foreground">
+                      <DollarSign className="h-4 w-4 mr-1 text-primary" />
+                      Select Amount
+                    </h4>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      {creditOptions.map((amount) => (
+                        <Button
+                          key={amount}
+                          variant={!isCustomAmount && creditAmount === amount ? "default" : "outline"}
+                          onClick={() => handlePredefinedAmountSelect(amount)}
+                          className={`font-medium transition-all ${
+                            !isCustomAmount && creditAmount === amount
+                              ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg'
+                              : 'hover:bg-primary/5 text-primary border-primary/30'
+                          }`}
+                        >
+                          ${amount}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Custom Amount Input */}
+                    <div className="border-t border-border pt-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Edit3 className="h-4 w-4 text-primary" />
+                        <Label htmlFor="customAmount" className="text-sm font-medium text-foreground">
+                          Or enter a custom amount ($1 - $1000)
+                        </Label>
+                      </div>
+                      <div className="max-w-sm">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="customAmount"
+                            type="text"
+                            placeholder="0.00"
+                            value={customAmount}
+                            onChange={(e) => handleCustomAmountChange(e.target.value)}
+                            className={`pl-8 ${customAmountError ? 'border-destructive' : ''} ${isCustomAmount ? 'ring-2 ring-primary/20 border-primary' : ''}`}
+                          />
+                        </div>
+                        {customAmountError && (
+                          <p className="text-sm text-destructive mt-1">{customAmountError}</p>
+                        )}
+                        {isCustomAmount && !customAmountError && customAmount && (
+                          <p className="text-sm text-secondary mt-1">
+                            Custom amount: ${parseFloat(customAmount).toFixed(2)} = {(parseFloat(customAmount) * 100).toLocaleString()} tokens
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="rounded-lg border border-border/60 p-4 mb-8 bg-card/30 shadow-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Selected Amount:</span>
-                    <span className="text-xl font-bold" style={{ color: brandColors.primary.full }}>
-                      ${getFinalAmount().toFixed(2)}
-                    </span>
+                  <div className="rounded-lg border border-border p-4 mb-8 bg-muted/30 shadow-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Selected Amount:</span>
+                      <span className="text-xl font-bold text-primary">
+                        ${getFinalAmount().toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
+                      <span>VirtFusion Tokens:</span>
+                      <span className="font-medium">{(getFinalAmount() * 100).toLocaleString()} tokens</span>
+                    </div>
+                    {isCustomAmount && (
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        Custom amount selected
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
-                    <span>VirtFusion Tokens:</span>
-                    <span className="font-medium">{(getFinalAmount() * 100).toLocaleString()} tokens</span>
-                  </div>
-                  {isCustomAmount && (
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      Custom amount selected
+
+                  {/* Only show PayPal checkout if amount is valid */}
+                  {(!isCustomAmount || (isCustomAmount && !customAmountError && customAmount)) && (
+                    <PayPalCheckout amount={getFinalAmount()} />
+                  )}
+
+                  {/* Show error message if custom amount is invalid */}
+                  {isCustomAmount && customAmountError && (
+                    <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-center">
+                      <p className="text-destructive font-medium">Please enter a valid amount between $1.00 and $1000.00</p>
                     </div>
                   )}
                 </div>
-
-                {/* Only show PayPal checkout if amount is valid */}
-                {(!isCustomAmount || (isCustomAmount && !customAmountError && customAmount)) && (
-                  <PayPalCheckout amount={getFinalAmount()} />
-                )}
-
-                {/* Show error message if custom amount is invalid */}
-                {isCustomAmount && customAmountError && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
-                    <p className="text-red-600 font-medium">Please enter a valid amount between $1.00 and $1000.00</p>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
+              </TabsContent>
 
 
-          </Tabs>
-        </CardContent>
-      </Card>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
     </DashboardLayout>
   );
 }
