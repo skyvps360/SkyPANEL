@@ -62,8 +62,8 @@ interface BlogPost {
 }
 
 interface BrandingSettings {
-  company_color?: string;
   company_name?: string;
+  company_color?: string;
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
@@ -82,7 +82,7 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
   const [currentPost, setCurrentPost] = useState<BlogPost | null>(null);
 
   // Fetch branding settings
-  const { data: branding = {} as BrandingSettings } = useQuery<BrandingSettings>({
+  const { data: branding = { company_name: "SkyVPS360" } } = useQuery<BrandingSettings>({
     queryKey: ["/api/settings/branding"],
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -217,19 +217,12 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <Button
-                  variant="ghost"
-                  onClick={onNavigateBack}
-                  className="p-2 hover:bg-muted rounded-xl"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
                 <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
                   <BookOpen className="h-6 w-6" />
                 </div>
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                    {currentPost ? currentPost.title : "Company Blog"}
+                    {currentPost ? currentPost.title : `${branding.company_name} Blog`}
                   </h1>
                   <p className="text-muted-foreground text-lg mt-1">
                     {currentPost ? "Blog Post" : "Latest updates and insights"}
