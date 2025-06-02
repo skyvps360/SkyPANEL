@@ -11462,28 +11462,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register Chat Departments routes
   app.use("/api/chat", chatDepartmentsRoutes);
 
-  // Convert chat to ticket (ENHANCED: Chat-to-ticket conversion feature)
+  // Convert chat to ticket (ENHANCED: Chat-to-ticket conversion feature with comprehensive validation)
   app.post("/api/admin/chat/:sessionId/convert-to-ticket", isAdmin, async (req, res) => {
     try {
       const sessionId = parseInt(req.params.sessionId);
       const { subject, priority = "medium", departmentId } = req.body;
 
+      console.log(`🎫 Starting chat-to-ticket conversion for session ${sessionId}`, {
+        subject: subject?.substring(0, 50) + '...',
+        priority,
+        requestedDepartmentId: departmentId,
+        adminId: req.user!.id
+      });
+
+      // Input validation
       if (isNaN(sessionId)) {
+        console.error('❌ Invalid session ID provided:', req.params.sessionId);
         return res.status(400).json({ error: "Invalid session ID" });
       }
 
       if (!subject || subject.trim().length === 0) {
+        console.error('❌ Subject is required but not provided');
         return res.status(400).json({ error: "Subject is required for ticket conversion" });
       }
 
-      // Get the chat session
+      // Get the chat session with detailed logging
+      console.log(`📋 Fetching chat session ${sessionId}...`);
       const session = await storage.getChatSession(sessionId);
       if (!session) {
+        console.error(`❌ Chat session ${sessionId} not found`);
         return res.status(404).json({ error: "Chat session not found" });
       }
 
+      console.log(`✅ Found chat session ${sessionId}:`, {
+        userId: session.userId,
+        status: session.status,
+        departmentId: session.departmentId,
+        hasConvertedTicket: !!session.convertedToTicketId
+      });
+
       // Check if already converted
       if (session.convertedToTicketId) {
+        console.warn(`⚠️  Session ${sessionId} already converted to ticket ${session.convertedToTicketId}`);
         return res.status(400).json({
           error: "Chat session has already been converted to a ticket",
           ticketId: session.convertedToTicketId
@@ -11499,19 +11519,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Determine department - use provided departmentId or session's departmentId
-      let finalDepartmentId = departmentId || session.departmentId;
+      // ENHANCED DEPARTMENT VALIDATION AND MAPPING
+      console.log(`🏢 Determining department for ticket conversion...`);
 
-      // If no department specified, try to get default ticket department
-      if (!finalDepartmentId) {
-        const ticketDepartments = await storage.getTicketDepartments();
-        const defaultDept = ticketDepartments.find(d => d.isDefault);
-        if (defaultDept) {
-          finalDepartmentId = defaultDept.id;
+      // Get all available ticket departments for validation
+      const ticketDepartments = await storage.getTicketDepartments();
+      console.log(`📋 Available ticket departments:`, ticketDepartments.map(d => `${d.id}:${d.name}`));
+
+      let finalDepartmentId = departmentId || session.departmentId;
+      console.log(`🎯 Initial department selection: ${finalDepartmentId} (from ${departmentId ? 'request' : 'session'})`);
+
+      // Validate that the department exists in ticket_departments
+      if (finalDepartmentId) {
+        const departmentExists = ticketDepartments.find(d => d.id === finalDepartmentId);
+        if (!departmentExists) {
+          console.warn(`⚠️  Department ID ${finalDepartmentId} not found in ticket_departments, falling back to default`);
+          finalDepartmentId = null;
+        } else {
+          console.log(`✅ Department ID ${finalDepartmentId} validated: "${departmentExists.name}"`);
         }
       }
 
-      // Create the ticket
+      // If no valid department, use default ticket department
+      if (!finalDepartmentId) {
+        console.log(`🔍 Looking for default ticket department...`);
+        const defaultDept = ticketDepartments.find(d => d.isDefault);
+        if (defaultDept) {
+          finalDepartmentId = defaultDept.id;
+          console.log(`✅ Using default department: ${finalDepartmentId} ("${defaultDept.name}")`);
+        } else {
+          // Fallback to first available department
+          const fallbackDept = ticketDepartments.find(d => d.isActive);
+          if (fallbackDept) {
+            finalDepartmentId = fallbackDept.id;
+            console.log(`⚠️  No default department found, using fallback: ${finalDepartmentId} ("${fallbackDept.name}")`);
+          } else {
+            console.error(`❌ No valid ticket departments found!`);
+            return res.status(500).json({
+              error: "No valid ticket departments available for conversion",
+              details: "Please ensure at least one ticket department exists and is active"
+            });
+          }
+        }
+      }
+
+      console.log(`🎯 Final department selection: ${finalDepartmentId}`);
+
+      // Pre-conversion validation: Ensure department exists before creating ticket
+      const finalDepartment = ticketDepartments.find(d => d.id === finalDepartmentId);
+      if (!finalDepartment) {
+        console.error(`❌ Critical error: Final department ${finalDepartmentId} not found in ticket_departments`);
+        return res.status(500).json({
+          error: "Department validation failed",
+          details: `Department ID ${finalDepartmentId} does not exist in ticket_departments table`
+        });
+      }
+
+      // Create the ticket with enhanced error handling
+      console.log(`🎫 Creating ticket with validated data...`);
       const ticketData = {
         userId: session.userId,
         departmentId: finalDepartmentId,
@@ -11520,8 +11585,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priority: priority as "low" | "medium" | "high",
       };
 
-      const ticket = await storage.createTicket(ticketData);
-      console.log(`Created ticket ${ticket.id} from chat session ${sessionId}`);
+      console.log(`📝 Ticket data prepared:`, {
+        userId: ticketData.userId,
+        departmentId: ticketData.departmentId,
+        departmentName: finalDepartment.name,
+        subject: ticketData.subject.substring(0, 50) + '...',
+        status: ticketData.status,
+        priority: ticketData.priority
+      });
+
+      let ticket;
+      try {
+        ticket = await storage.createTicket(ticketData);
+        console.log(`✅ Successfully created ticket ${ticket.id} from chat session ${sessionId}`);
+      } catch (ticketError) {
+        console.error(`❌ Failed to create ticket:`, ticketError);
+
+        // Check if it's a foreign key constraint error
+        if (ticketError.code === '23503' && ticketError.detail?.includes('department_id')) {
+          return res.status(500).json({
+            error: "Department validation failed during ticket creation",
+            details: `Department ID ${finalDepartmentId} constraint violation: ${ticketError.detail}`,
+            suggestion: "Please contact system administrator to fix department synchronization"
+          });
+        }
+
+        // Generic ticket creation error
+        return res.status(500).json({
+          error: "Failed to create ticket from chat session",
+          details: ticketError.message,
+          suggestion: "Please try again or contact system administrator"
+        });
+      }
 
       // Convert chat messages to ticket messages
       const ticketMessages = [];

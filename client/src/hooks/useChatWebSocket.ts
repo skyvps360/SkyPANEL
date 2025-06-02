@@ -122,13 +122,13 @@ export function useChatWebSocket(options: ChatWebSocketOptions = {}) {
       removeMessageHandlerRef.current = chatWebSocketManager.addMessageHandler(onMessage);
     }
 
-    // Set up connection handler
-    if (onConnectionChange) {
-      removeConnectionHandlerRef.current = chatWebSocketManager.addConnectionHandler((connected) => {
-        setIsConnected(connected);
+    // Set up connection handler - always set up to sync local state
+    removeConnectionHandlerRef.current = chatWebSocketManager.addConnectionHandler((connected) => {
+      setIsConnected(connected);
+      if (onConnectionChange) {
         onConnectionChange(connected);
-      });
-    }
+      }
+    });
 
     // Set up error handler
     if (onError) {
@@ -149,9 +149,10 @@ export function useChatWebSocket(options: ChatWebSocketOptions = {}) {
       const { isConnected: managerConnected } = chatWebSocketManager.getConnectionState();
       if (!managerConnected) {
         console.log('Auto-connecting to chat WebSocket');
-        // Check if we're on the live chat page to force client mode
+        // Check if we're on the live chat page to force client mode (but only for non-admin users)
         const isLiveChatPage = window.location.pathname === '/live-chat';
-        connect(isLiveChatPage);
+        const shouldForceClientMode = isLiveChatPage && user.role !== 'admin';
+        connect(shouldForceClientMode);
       } else {
         setIsConnected(managerConnected);
       }

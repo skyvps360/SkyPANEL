@@ -1,4 +1,4 @@
-// Singleton WebSocket manager to prevent multiple connections
+// Singleton WebSocket manager to prevent multiple connections with comprehensive debugging
 class ChatWebSocketManager {
   private static instance: ChatWebSocketManager;
   private ws: WebSocket | null = null;
@@ -14,6 +14,22 @@ class ChatWebSocketManager {
   private currentUser: any = null;
   private forceClientMode = false;
   private lastConnectionAttempt = 0;
+
+  // Enhanced debugging properties
+  private connectionHistory: Array<{
+    timestamp: Date;
+    event: 'attempt' | 'success' | 'failure' | 'close' | 'error';
+    details?: any;
+  }> = [];
+  private debugMode = process.env.NODE_ENV === 'development';
+  private connectionMetrics = {
+    totalAttempts: 0,
+    successfulConnections: 0,
+    failedConnections: 0,
+    lastSuccessfulConnection: null as Date | null,
+    lastFailure: null as Date | null,
+    averageConnectionTime: 0
+  };
 
   private constructor() {}
 
@@ -33,14 +49,42 @@ class ChatWebSocketManager {
   }
 
   public connect(user: any, forceClientMode = false): void {
-    console.log('ChatWebSocketManager.connect called with user:', user?.id, 'forceClientMode:', forceClientMode);
-
-    // Don't create multiple connections
-    if (this.isConnecting || this.isConnected || !user) {
-      console.log('Skipping connection - already connecting/connected or no user', {
+    const connectionStartTime = Date.now();
+    this.logDebug('🔌 ChatWebSocketManager.connect called', {
+      userId: user?.id,
+      userEmail: user?.email,
+      forceClientMode,
+      currentState: {
         isConnecting: this.isConnecting,
         isConnected: this.isConnected,
-        hasUser: !!user
+        reconnectAttempts: this.reconnectAttempts
+      },
+      browserInfo: {
+        userAgent: navigator.userAgent,
+        webSocketSupport: 'WebSocket' in window,
+        location: window.location.href
+      }
+    });
+
+    // Enhanced connection validation
+    if (!user) {
+      this.logError('❌ Connection failed: No user provided');
+      this.addConnectionEvent('failure', { reason: 'No user provided' });
+      return;
+    }
+
+    if (!('WebSocket' in window)) {
+      this.logError('❌ Connection failed: WebSocket not supported in this browser');
+      this.addConnectionEvent('failure', { reason: 'WebSocket not supported' });
+      return;
+    }
+
+    // Don't create multiple connections
+    if (this.isConnecting || this.isConnected) {
+      this.logDebug('⏭️ Skipping connection - already connecting/connected', {
+        isConnecting: this.isConnecting,
+        isConnected: this.isConnected,
+        wsReadyState: this.ws?.readyState
       });
       return;
     }
@@ -48,7 +92,10 @@ class ChatWebSocketManager {
     // Debounce connection attempts (prevent rapid successive calls)
     const now = Date.now();
     if (now - this.lastConnectionAttempt < 1000) {
-      console.log('Debouncing connection attempt, last attempt was', now - this.lastConnectionAttempt, 'ms ago');
+      this.logDebug('⏳ Debouncing connection attempt', {
+        timeSinceLastAttempt: now - this.lastConnectionAttempt,
+        debounceThreshold: 1000
+      });
       return;
     }
     this.lastConnectionAttempt = now;
@@ -66,23 +113,39 @@ class ChatWebSocketManager {
       this.ws = null;
     }
 
+    // Record connection attempt
+    this.addConnectionEvent('attempt', {
+      userId: user.id,
+      forceClientMode,
+      reconnectAttempt: this.reconnectAttempts
+    });
+
     try {
       const wsUrl = this.getWebSocketUrl();
-      console.log('Connecting to chat WebSocket:', wsUrl);
-      
+      this.logDebug('🚀 Attempting WebSocket connection', { url: wsUrl });
+
       this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
-        console.log('Chat WebSocket connected');
+        const connectionTime = Date.now() - connectionStartTime;
+        this.logDebug('✅ Chat WebSocket connected successfully', {
+          connectionTime: `${connectionTime}ms`,
+          readyState: this.ws?.readyState
+        });
+
         this.isConnecting = false;
         this.isConnected = true;
         this.reconnectAttempts = 0;
-        
+
+        // Record successful connection
+        this.addConnectionEvent('success', { connectionTime });
+
         // Notify all connection handlers
         this.connectionHandlers.forEach(handler => handler(true));
 
         // Authenticate with the server
         if (this.currentUser) {
+          this.logDebug('🔐 Scheduling authentication...');
           setTimeout(() => {
             this.authenticate();
           }, 200);
@@ -102,30 +165,65 @@ class ChatWebSocketManager {
       };
 
       this.ws.onclose = (event) => {
-        console.log('Chat WebSocket disconnected:', event.code, event.reason);
+        this.logDebug('🔌 Chat WebSocket closed', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean,
+          reconnectAttempts: this.reconnectAttempts
+        });
+
         this.isConnecting = false;
         this.isConnected = false;
         this.ws = null;
-        
+
+        // Record close event
+        this.addConnectionEvent('close', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean
+        });
+
         // Notify all connection handlers
         this.connectionHandlers.forEach(handler => handler(false));
 
-        // Attempt to reconnect if it wasn't a manual close
+        // Attempt to reconnect if it wasn't a manual close and network is available
         if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts && this.currentUser) {
-          const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
-          console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
-          
-          this.reconnectTimeout = setTimeout(() => {
-            this.reconnectAttempts++;
-            this.connect(this.currentUser, this.forceClientMode);
-          }, delay);
+          if (this.checkNetworkConnectivity()) {
+            const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
+            this.logDebug('🔄 Scheduling reconnection attempt', {
+              attempt: this.reconnectAttempts + 1,
+              maxAttempts: this.maxReconnectAttempts,
+              delay: `${delay}ms`
+            });
+
+            this.reconnectTimeout = setTimeout(() => {
+              this.reconnectAttempts++;
+              this.connect(this.currentUser, this.forceClientMode);
+            }, delay);
+          } else {
+            this.logError('❌ Not reconnecting - no network connectivity');
+          }
+        } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+          this.logError('❌ Max reconnection attempts reached, giving up');
         }
       };
 
       this.ws.onerror = (error) => {
-        console.error('Chat WebSocket error:', error);
+        this.logError('❌ Chat WebSocket error occurred', {
+          error,
+          readyState: this.ws?.readyState,
+          url: this.ws?.url,
+          reconnectAttempts: this.reconnectAttempts
+        });
+
         this.isConnecting = false;
-        
+
+        // Record error event
+        this.addConnectionEvent('error', {
+          error: error.toString(),
+          readyState: this.ws?.readyState
+        });
+
         // Notify all error handlers
         this.errorHandlers.forEach(handler => handler(error));
       };
@@ -247,21 +345,132 @@ class ChatWebSocketManager {
     };
   }
 
-  // Health check ping
+  // Health check ping with enhanced monitoring
   public startHealthCheck(): void {
     if (!this.isConnected) return;
+
+    this.logDebug('💓 Starting health check monitoring');
 
     const healthCheck = setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
         try {
           this.ws.send(JSON.stringify({ type: 'ping' }));
+          this.logDebug('💓 Health check ping sent');
         } catch (error) {
-          console.error('Failed to send ping:', error);
+          this.logError('❌ Failed to send health check ping:', error);
+          clearInterval(healthCheck);
         }
       } else {
+        this.logDebug('💓 Health check stopped - WebSocket not open');
         clearInterval(healthCheck);
       }
     }, 30000); // Ping every 30 seconds
+  }
+
+  // Enhanced debugging methods
+  private logDebug(message: string, data?: any): void {
+    if (this.debugMode) {
+      console.log(`[ChatWebSocket] ${message}`, data || '');
+    }
+  }
+
+  private logError(message: string, error?: any): void {
+    console.error(`[ChatWebSocket] ${message}`, error || '');
+  }
+
+  private addConnectionEvent(event: 'attempt' | 'success' | 'failure' | 'close' | 'error', details?: any): void {
+    const eventRecord = {
+      timestamp: new Date(),
+      event,
+      details
+    };
+
+    this.connectionHistory.push(eventRecord);
+
+    // Keep only last 50 events
+    if (this.connectionHistory.length > 50) {
+      this.connectionHistory = this.connectionHistory.slice(-50);
+    }
+
+    // Update metrics
+    if (event === 'attempt') {
+      this.connectionMetrics.totalAttempts++;
+    } else if (event === 'success') {
+      this.connectionMetrics.successfulConnections++;
+      this.connectionMetrics.lastSuccessfulConnection = new Date();
+    } else if (event === 'failure' || event === 'error') {
+      this.connectionMetrics.failedConnections++;
+      this.connectionMetrics.lastFailure = new Date();
+    }
+
+    this.logDebug(`📊 Connection event: ${event}`, details);
+  }
+
+  // Public debugging methods for development
+  public getDebugInfo(): any {
+    return {
+      connectionState: {
+        isConnected: this.isConnected,
+        isConnecting: this.isConnecting,
+        reconnectAttempts: this.reconnectAttempts,
+        wsReadyState: this.ws?.readyState,
+        wsUrl: this.ws?.url
+      },
+      metrics: this.connectionMetrics,
+      recentHistory: this.connectionHistory.slice(-10),
+      currentUser: this.currentUser ? {
+        id: this.currentUser.id,
+        email: this.currentUser.email
+      } : null,
+      browserInfo: {
+        userAgent: navigator.userAgent,
+        webSocketSupport: 'WebSocket' in window,
+        location: window.location.href,
+        online: navigator.onLine
+      }
+    };
+  }
+
+  public printDebugInfo(): void {
+    console.table(this.getDebugInfo());
+  }
+
+  // Network connectivity check
+  private checkNetworkConnectivity(): boolean {
+    const isOnline = navigator.onLine;
+    this.logDebug('🌐 Network connectivity check', { online: isOnline });
+    return isOnline;
+  }
+
+  // Manual connection test for debugging
+  public testConnection(): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (!this.checkNetworkConnectivity()) {
+        this.logError('❌ Connection test failed: No network connectivity');
+        resolve(false);
+        return;
+      }
+
+      const testWs = new WebSocket(this.getWebSocketUrl());
+      const timeout = setTimeout(() => {
+        testWs.close();
+        this.logError('❌ Connection test failed: Timeout');
+        resolve(false);
+      }, 5000);
+
+      testWs.onopen = () => {
+        clearTimeout(timeout);
+        testWs.close();
+        this.logDebug('✅ Connection test successful');
+        resolve(true);
+      };
+
+      testWs.onerror = (error) => {
+        clearTimeout(timeout);
+        this.logError('❌ Connection test failed:', error);
+        resolve(false);
+      };
+    });
   }
 }
 

@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import { WebSocketDebugPanel } from '@/components/WebSocketDebugPanel';
 
 interface ChatMessage {
   id: number;
@@ -75,6 +76,10 @@ export default function LiveChat() {
   const [historySearch, setHistorySearch] = useState('');
   const [selectedHistorySession, setSelectedHistorySession] = useState<ChatHistorySession | null>(null);
   const [historyMessages, setHistoryMessages] = useState<ChatMessage[]>([]);
+
+  // Debug panel state (only show in development)
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   const [adminStatus, setAdminStatus] = useState<{
     available: boolean;
@@ -879,6 +884,14 @@ export default function LiveChat() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* WebSocket Debug Panel (Development Only) */}
+      {isDevelopment && (
+        <WebSocketDebugPanel
+          isVisible={showDebugPanel}
+          onToggle={() => setShowDebugPanel(!showDebugPanel)}
+        />
+      )}
     </div>
   );
 }
