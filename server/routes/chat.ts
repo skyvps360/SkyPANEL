@@ -202,6 +202,10 @@ router.post('/admin/status', requireAdmin, async (req, res) => {
       autoAssign: autoAssign !== undefined ? autoAssign : true
     });
 
+    // Trigger WebSocket broadcast to all clients about admin status change
+    // This will be handled by the chat service's updateAdminStatus method
+    await chatService.broadcastAdminStatusUpdate();
+
     console.log(`Status update successful for admin ${adminId}:`, updatedStatus);
     res.json({ success: true, status: updatedStatus });
   } catch (error) {
@@ -231,6 +235,33 @@ router.get('/admin/available', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error getting available admins:', error);
     res.status(500).json({ error: 'Failed to get available admins' });
+  }
+});
+
+/**
+ * Public Chat Routes (No authentication required)
+ */
+
+// Get admin availability status for clients
+router.get('/availability', async (req, res) => {
+  try {
+    const availableAdmins = await storage.getAvailableAdmins();
+    const isAvailable = availableAdmins.length > 0;
+
+    // Get the most recent status message from available admins
+    const statusMessage = availableAdmins.length > 0 && availableAdmins[0].statusMessage
+      ? availableAdmins[0].statusMessage
+      : '';
+
+    res.json({
+      available: isAvailable,
+      adminCount: availableAdmins.length,
+      statusMessage,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting admin availability:', error);
+    res.status(500).json({ error: 'Failed to get admin availability' });
   }
 });
 

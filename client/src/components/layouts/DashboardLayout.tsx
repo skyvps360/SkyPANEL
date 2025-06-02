@@ -43,7 +43,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getBrandColors } from "@/lib/brand-theme";
 import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
-import { ChatWidget } from "@/components/chat/ChatWidget";
+
 
 type NavigationItem = {
   name: string;
@@ -346,7 +346,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       icon: <Ticket className="h-5 w-5 mr-3" />,
     },
     {
-      name: "Live Chat",
+      name: "Live Support",
       href: "/live-chat",
       icon: <MessageSquare className="h-5 w-5 mr-3" />,
     },
@@ -1202,8 +1202,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         </div>
       )}
 
-      {/* Chat Widget */}
-      <ChatWidget />
+
     </div>
   );
 }

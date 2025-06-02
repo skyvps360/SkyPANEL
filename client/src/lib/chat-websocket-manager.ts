@@ -12,6 +12,7 @@ class ChatWebSocketManager {
   private connectionHandlers = new Set<(connected: boolean) => void>();
   private errorHandlers = new Set<(error: any) => void>();
   private currentUser: any = null;
+  private forceClientMode = false;
   private lastConnectionAttempt = 0;
 
   private constructor() {}
@@ -31,8 +32,8 @@ class ChatWebSocketManager {
     return url;
   }
 
-  public connect(user: any): void {
-    console.log('ChatWebSocketManager.connect called with user:', user?.id);
+  public connect(user: any, forceClientMode = false): void {
+    console.log('ChatWebSocketManager.connect called with user:', user?.id, 'forceClientMode:', forceClientMode);
 
     // Don't create multiple connections
     if (this.isConnecting || this.isConnected || !user) {
@@ -54,6 +55,7 @@ class ChatWebSocketManager {
 
     // Store current user and mark as connecting
     this.currentUser = user;
+    this.forceClientMode = forceClientMode;
     this.isConnecting = true;
     console.log('Starting WebSocket connection...');
 
@@ -115,7 +117,7 @@ class ChatWebSocketManager {
           
           this.reconnectTimeout = setTimeout(() => {
             this.reconnectAttempts++;
-            this.connect(this.currentUser);
+            this.connect(this.currentUser, this.forceClientMode);
           }, delay);
         }
       };
@@ -140,14 +142,15 @@ class ChatWebSocketManager {
     }
 
     try {
+      const isAdmin = this.forceClientMode ? false : (this.currentUser.role === 'admin');
       this.ws.send(JSON.stringify({
         type: 'auth',
         data: {
           userId: this.currentUser.id,
-          isAdmin: this.currentUser.role === 'admin'
+          isAdmin
         }
       }));
-      console.log('Authentication message sent');
+      console.log('Authentication message sent - isAdmin:', isAdmin, 'forceClientMode:', this.forceClientMode);
     } catch (error) {
       console.error('Failed to send authentication:', error);
     }
@@ -167,6 +170,7 @@ class ChatWebSocketManager {
     this.isConnecting = false;
     this.isConnected = false;
     this.currentUser = null;
+    this.forceClientMode = false;
     this.lastConnectionAttempt = 0; // Reset debounce timer
 
     // Notify all connection handlers

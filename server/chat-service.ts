@@ -169,7 +169,9 @@ export class ChatService {
       }
 
       ws.userId = data.userId;
-      ws.isAdmin = data.isAdmin || user.role === 'admin';
+      // Explicitly check the isAdmin flag from client
+      // This allows admin users to connect as regular clients when using live chat
+      ws.isAdmin = data.isAdmin === true;
 
       // Add to appropriate client maps
       if (ws.isAdmin) {
@@ -669,6 +671,46 @@ export class ChatService {
       statusMessage,
       lastSeenAt: new Date()
     });
+
+    // Broadcast admin status change to all connected clients
+    await this.broadcastAdminStatusUpdate();
+  }
+
+  /**
+   * Broadcast admin availability status to all connected clients
+   */
+  public async broadcastAdminStatusUpdate(): Promise<void> {
+    try {
+      const availableAdmins = await storage.getAvailableAdmins();
+      const isAvailable = availableAdmins.length > 0;
+
+      const statusMessage = availableAdmins.length > 0 && availableAdmins[0].statusMessage
+        ? availableAdmins[0].statusMessage
+        : '';
+
+      const statusUpdate = {
+        type: 'admin_status_update',
+        data: {
+          available: isAvailable,
+          adminCount: availableAdmins.length,
+          statusMessage,
+          lastUpdated: new Date().toISOString()
+        }
+      };
+
+      // Broadcast to all connected clients (non-admin users)
+      this.clients.forEach((connections, userId) => {
+        connections.forEach(client => {
+          if (client.readyState === WebSocket.OPEN) {
+            this.sendEvent(client, statusUpdate);
+          }
+        });
+      });
+
+      console.log(`Broadcasted admin status update to ${this.clients.size} client connections`);
+    } catch (error) {
+      console.error('Error broadcasting admin status update:', error);
+    }
   }
 
   private async getActiveSessionForUser(userId: number): Promise<ChatSession | undefined> {

@@ -43,7 +43,7 @@ export function useChatWebSocket(options: ChatWebSocketOptions = {}) {
 
   const { onMessage, onConnectionChange, onError } = options;
 
-  const connect = useCallback(() => {
+  const connect = useCallback((forceClientMode = false) => {
     if (!user) {
       console.log('No user available for WebSocket connection');
       return;
@@ -58,8 +58,8 @@ export function useChatWebSocket(options: ChatWebSocketOptions = {}) {
       return;
     }
 
-    console.log('Connecting via WebSocket manager');
-    chatWebSocketManager.connect(user);
+    console.log('Connecting via WebSocket manager with forceClientMode:', forceClientMode);
+    chatWebSocketManager.connect(user, forceClientMode);
   }, [user]);
 
   const disconnect = useCallback(() => {
@@ -148,7 +148,9 @@ export function useChatWebSocket(options: ChatWebSocketOptions = {}) {
       const { isConnected: managerConnected } = chatWebSocketManager.getConnectionState();
       if (!managerConnected) {
         console.log('Auto-connecting to chat WebSocket');
-        connect();
+        // Check if we're on the live chat page to force client mode
+        const isLiveChatPage = window.location.pathname === '/live-chat';
+        connect(isLiveChatPage);
       } else {
         setIsConnected(managerConnected);
       }

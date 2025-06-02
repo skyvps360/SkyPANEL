@@ -668,7 +668,7 @@ export function DatacenterLeafletMap() {
         open={!!selectedLocation}
         onOpenChange={(open) => !open && setSelectedLocation(null)}
       >
-        <DialogContent className="max-w-md z-[2000]">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-[2000] mx-4 sm:mx-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Globe className={brandColors?.primary?.hex ? `w-5 h-5 text-[#${brandColors.primary.hex}]` : "w-5 h-5 text-primary"} />
@@ -680,7 +680,7 @@ export function DatacenterLeafletMap() {
           </DialogHeader>
 
           {selectedLocation && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-semibold">
@@ -717,96 +717,98 @@ export function DatacenterLeafletMap() {
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">
+                  <div className="text-xs text-muted-foreground mb-1">
                     Region
                   </div>
-                  <div className="font-medium">
+                  <div className="font-medium text-sm">
                     {selectedLocation.regionName} ({selectedLocation.regionCode}
                     )
                   </div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">
+                  <div className="text-xs text-muted-foreground mb-1">
                     Location Code
                   </div>
-                  <div className="font-medium">{selectedLocation.code}</div>
+                  <div className="font-medium text-sm">{selectedLocation.code}</div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">
+                  <div className="text-xs text-muted-foreground mb-1">
                     Uptime
                   </div>
-                  <div className="font-medium">
+                  <div className="font-medium text-sm">
                     {selectedLocation.uptime || "99.9"}%
                   </div>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">
+                  <div className="text-xs text-muted-foreground mb-1">
                     Network Speed
                   </div>
-                  <div className="font-medium">
+                  <div className="font-medium text-sm">
                     {selectedLocation.networkSpeedMbps || 10000} Mbps
                   </div>
                 </div>
                 {selectedLocation.provider && (
                   <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                    <div className="text-sm text-muted-foreground mb-1">
+                    <div className="text-xs text-muted-foreground mb-1">
                       Provider
                     </div>
-                    <div className="font-medium">
+                    <div className="font-medium text-sm">
                       {selectedLocation.provider}
                     </div>
                   </div>
                 )}
                 {selectedLocation.tier && (
                   <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                    <div className="text-sm text-muted-foreground mb-1">
+                    <div className="text-xs text-muted-foreground mb-1">
                       Tier
                     </div>
-                    <div className="font-medium">{selectedLocation.tier}</div>
+                    <div className="font-medium text-sm">{selectedLocation.tier}</div>
                   </div>
                 )}
               </div>
 
-              {selectedLocation.address && (
-                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">
-                    Address
-                  </div>
-                  <div className="text-sm">{selectedLocation.address}</div>
-                </div>
-              )}
-
-              {selectedLocation.description && (
-                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-1">
-                    About this location
-                  </div>
-                  <div className="text-sm">{selectedLocation.description}</div>
-                </div>
-              )}
-
-              {selectedLocation.features &&
-                selectedLocation.features.length > 0 && (
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      Available Features
+              <div className="grid grid-cols-1 gap-3">
+                {selectedLocation.address && (
+                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      Address
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedLocation.features.map((feature, index) => (
-                        <Badge key={index} variant="outline" className="py-1">
-                          {feature}
-                        </Badge>
-                      ))}
-                    </div>
+                    <div className="text-sm">{selectedLocation.address}</div>
                   </div>
                 )}
 
-              <div className="flex justify-end gap-2 pt-2">
+                {selectedLocation.description && (
+                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                    <div className="text-xs text-muted-foreground mb-1">
+                      About this location
+                    </div>
+                    <div className="text-sm max-h-20 overflow-y-auto">{selectedLocation.description}</div>
+                  </div>
+                )}
+
+                {selectedLocation.features &&
+                  selectedLocation.features.length > 0 && (
+                    <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                      <div className="text-xs text-muted-foreground mb-2">
+                        Available Features
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedLocation.features.map((feature, index) => (
+                          <Badge key={index} variant="outline" className="text-xs py-0.5 px-2">
+                            {feature}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={() => setSelectedLocation(null)}
-                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-10 px-4 py-2 text-black hover:text-black hover:bg-gray-100"
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors border h-9 px-3 py-1 text-black hover:text-black hover:bg-gray-100"
                   style={{
                     borderColor: brandColors?.primary?.hex ? `#${brandColors.primary.hex}` : '#e2e8f0'
                   }}
@@ -814,7 +816,8 @@ export function DatacenterLeafletMap() {
                   Close
                 </button>
                 {getLocationStatus(selectedLocation) === "active" && (
-                  <Button 
+                  <Button
+                    size="sm"
                     style={brandColors?.primary?.hex ? { backgroundColor: `#${brandColors.primary.hex}` } : {}}
                   >
                     Deploy to {selectedLocation.code}

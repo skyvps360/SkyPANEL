@@ -45,7 +45,18 @@ export default function LiveChat() {
   const [session, setSession] = useState<ChatSession | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [adminTyping, setAdminTyping] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+
+  const [adminStatus, setAdminStatus] = useState<{
+    available: boolean;
+    adminCount: number;
+    statusMessage: string;
+    lastUpdated: string;
+  }>({
+    available: false,
+    adminCount: 0,
+    statusMessage: '',
+    lastUpdated: ''
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
@@ -94,10 +105,11 @@ export default function LiveChat() {
         if (data.data.sessionId === session?.id) {
           setSession(prev => prev ? { ...prev, status: data.data.status } : prev);
         }
+      } else if (data.type === 'admin_status_update') {
+        // Handle real-time admin availability updates
+        console.log('Received admin status update:', data.data);
+        setAdminStatus(data.data);
       }
-    },
-    onConnectionChange: (connected) => {
-      setConnectionStatus(connected ? 'connected' : 'disconnected');
     }
   });
 
@@ -109,10 +121,44 @@ export default function LiveChat() {
     scrollToBottom();
   }, [messages]);
 
+  // Fetch initial admin status and set up polling
+  useEffect(() => {
+    const fetchAdminStatus = async () => {
+      try {
+        const response = await fetch('/api/chat/availability');
+        if (response.ok) {
+          const data = await response.json();
+          setAdminStatus(data);
+          console.log('Fetched admin status:', data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch admin status:', error);
+      }
+    };
+
+    // Fetch initial status
+    fetchAdminStatus();
+
+    // Set up polling as fallback (every 30 seconds)
+    const pollInterval = setInterval(fetchAdminStatus, 30000);
+
+    return () => clearInterval(pollInterval);
+  }, []);
+
+
+
   const handleStartChat = async () => {
     if (!user) return;
-    
+
     try {
+      // If WebSocket is not connected, show a connecting message
+      if (!isConnected) {
+        toast({
+          title: "Connecting...",
+          description: "Establishing connection to start your chat session.",
+        });
+      }
+
       await startSession({
         subject: 'General Support',
         department: 'general'
@@ -223,9 +269,12 @@ export default function LiveChat() {
                 <p className="text-sm text-gray-500">Get instant help from our support team</p>
               </div>
             </div>
-            <div className="ml-auto">
-              <Badge variant={connectionStatus === 'connected' ? 'default' : 'secondary'}>
-                {connectionStatus === 'connected' ? 'Online' : 'Offline'}
+            <div className="ml-auto flex items-center space-x-2">
+              <Badge variant={isConnected ? 'default' : 'secondary'}>
+                {isConnected ? 'Connected' : 'Connecting...'}
+              </Badge>
+              <Badge variant={adminStatus.available ? 'default' : 'secondary'}>
+                {adminStatus.available ? `${adminStatus.adminCount} Admin${adminStatus.adminCount !== 1 ? 's' : ''} Available` : 'No Admins Available'}
               </Badge>
             </div>
           </div>
@@ -262,16 +311,30 @@ export default function LiveChat() {
                 <div className="text-center max-w-md">
                   <MessageCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Start a Support Chat</h3>
-                  <p className="text-gray-500 mb-6">
+                  <p className="text-gray-500 mb-4">
                     Connect with our support team for immediate assistance with your account, services, or any questions you may have.
                   </p>
-                  <Button 
-                    onClick={handleStartChat} 
-                    disabled={connectionStatus !== 'connected'}
+                  {adminStatus.statusMessage && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <strong>Support Status:</strong> {adminStatus.statusMessage}
+                      </p>
+                    </div>
+                  )}
+                  {!adminStatus.available && (
+                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-sm text-amber-800">
+                        <strong>Notice:</strong> No support agents are currently available. You can still start a chat session and an agent will respond when available.
+                      </p>
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleStartChat}
+                    disabled={!user}
                     size="lg"
                     className="w-full"
                   >
-                    Start Chat Session
+                    {adminStatus.available ? 'Start Chat Session' : 'Start Chat Session (Queue)'}
                   </Button>
                 </div>
               </div>
@@ -336,13 +399,13 @@ export default function LiveChat() {
                       value={message}
                       onChange={handleInputChange}
                       onKeyDown={handleKeyPress}
-                      placeholder="Type your message..."
-                      disabled={connectionStatus !== 'connected'}
+                      placeholder={isConnected ? "Type your message..." : "Connecting..."}
+                      disabled={!isConnected}
                       className="flex-1"
                     />
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!message.trim() || connectionStatus !== 'connected'}
+                      disabled={!message.trim() || !isConnected}
                       size="sm"
                       className="px-6"
                     >
@@ -351,6 +414,9 @@ export default function LiveChat() {
                   </div>
                   {isTyping && (
                     <p className="text-xs text-gray-500 mt-2">You are typing...</p>
+                  )}
+                  {!isConnected && (
+                    <p className="text-xs text-amber-600 mt-2">Establishing connection...</p>
                   )}
                 </div>
               </>

@@ -859,9 +859,7 @@ export default function AdminChatManagement() {
                           {activeTabs.length}/{MAX_TABS}
                         </Badge>
                       </div>
-                      <div className="text-xs text-gray-500">
-                        Ctrl+Tab to switch • Ctrl+W to close
-                      </div>
+
                     </div>
 
                     {/* Tab Navigation */}
@@ -1064,7 +1062,7 @@ export default function AdminChatManagement() {
                       {!showSessionsList && (
                         <Button
                           onClick={() => setShowSessionsList(true)}
-                          className="flex items-center space-x-2"
+                          className="flex items-center justify-center space-x-2 mx-auto"
                           style={{ backgroundColor: brandColors.primary.full }}
                         >
                           <Plus className="h-4 w-4" />
