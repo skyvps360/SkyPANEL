@@ -1633,10 +1633,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         packages = [];
       }
 
-      // Include ALL packages (both enabled and disabled) and sort by memory size
+      // Get pricing records with category information (ENHANCED: Added category support for public endpoint)
+      const pricingRecords = await db
+        .select({
+          pricing: schema.packagePricing,
+          category: schema.packageCategories
+        })
+        .from(schema.packagePricing)
+        .leftJoin(schema.packageCategories, eq(schema.packagePricing.categoryId, schema.packageCategories.id));
+
+      // Create a map of VirtFusion package ID to our pricing records with category info
+      const pricingMap = pricingRecords.reduce((acc, record) => {
+        acc[record.pricing.virtFusionPackageId] = {
+          ...record.pricing,
+          category: record.category || null
+        };
+        return acc;
+      }, {} as Record<number, any>);
+
+      // Include ALL packages (both enabled and disabled) with category information and sort by memory size
       const allPackages = packages
+        .map(pkg => {
+          const pricingRecord = pricingMap[pkg.id];
+          return {
+            ...pkg,
+            pricing: pricingRecord || null,
+            category: pricingRecord?.category || null // Add category directly to package for easier filtering
+          };
+        })
         .sort((a: any, b: any) => a.memory - b.memory);
 
+      console.log(`Returning ${allPackages.length} packages from VirtFusion API with category information`);
       res.json(allPackages);
     } catch (error: any) {
       console.error("Error fetching public packages:", error);
@@ -1915,16 +1942,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get all our package pricing records
-      const pricingRecords = await db.select().from(schema.packagePricing);
+      // Get all our package pricing records with category information (ENHANCED: Added category join)
+      const pricingRecords = await db
+        .select({
+          pricing: schema.packagePricing,
+          category: schema.packageCategories
+        })
+        .from(schema.packagePricing)
+        .leftJoin(schema.packageCategories, eq(schema.packagePricing.categoryId, schema.packageCategories.id));
 
-      // Create a map of VirtFusion package ID to our pricing records
+      // Create a map of VirtFusion package ID to our pricing records with category info
       const pricingMap = pricingRecords.reduce((acc, record) => {
-        acc[record.virtFusionPackageId] = record;
+        acc[record.pricing.virtFusionPackageId] = {
+          ...record.pricing,
+          category: record.category || null
+        };
         return acc;
-      }, {} as Record<number, typeof schema.packagePricing.$inferSelect>);
+      }, {} as Record<number, any>);
 
-      // For each VirtFusion package, add our pricing data if it exists
+      // For each VirtFusion package, add our pricing data and category if it exists
       const packages = packagesArray.map(pkg => {
         const pricingRecord = pricingMap[pkg.id];
         return {
@@ -2009,8 +2045,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid package ID' });
       }
 
-      // Validate the incoming data
-      const { name, description, price, displayOrder, enabled } = req.body;
+      // Validate the incoming data (ENHANCED: Added categoryId support)
+      const { name, description, price, displayOrder, enabled, categoryId } = req.body;
 
       if (typeof price !== 'number' || price < 0) {
         return res.status(400).json({ error: 'Price must be a positive number' });
@@ -2024,7 +2060,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(1);
 
       if (existingRecord.length > 0) {
-        // Update existing record
+        // Update existing record (ENHANCED: Added categoryId support)
         const updated = await db
           .update(schema.packagePricing)
           .set({
@@ -2033,6 +2069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             price,
             displayOrder: displayOrder || existingRecord[0].displayOrder,
             enabled: enabled !== undefined ? enabled : existingRecord[0].enabled,
+            categoryId: categoryId !== undefined ? categoryId : existingRecord[0].categoryId,
             updatedAt: new Date()
           })
           .where(eq(schema.packagePricing.virtFusionPackageId, virtFusionPackageId))
@@ -2040,7 +2077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return res.json(updated[0]);
       } else {
-        // Create new record
+        // Create new record (ENHANCED: Added categoryId support)
         const inserted = await db
           .insert(schema.packagePricing)
           .values({
@@ -2050,6 +2087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             price,
             displayOrder: displayOrder || 0,
             enabled: enabled !== undefined ? enabled : true,
+            categoryId: categoryId || null,
             createdAt: new Date(),
             updatedAt: new Date()
           })
@@ -11649,6 +11687,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to fetch Discord user",
         details: error.message
       });
+    }
+  });
+
+  // ----- Package Categories Routes (NEW - ADDITIVE ONLY) -----
+
+  // Get all package categories (public endpoint for filtering)
+  app.get("/api/public/package-categories", async (req, res) => {
+    try {
+      const categories = await db
+        .select()
+        .from(schema.packageCategories)
+        .where(eq(schema.packageCategories.isActive, true))
+        .orderBy(schema.packageCategories.displayOrder, schema.packageCategories.name);
+
+      res.json(categories);
+    } catch (error: any) {
+      console.error("Error fetching package categories:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Get all package categories
+  app.get("/api/admin/package-categories", isAdmin, async (req, res) => {
+    try {
+      const categories = await db
+        .select()
+        .from(schema.packageCategories)
+        .orderBy(schema.packageCategories.displayOrder, schema.packageCategories.name);
+
+      res.json(categories);
+    } catch (error: any) {
+      console.error("Error fetching package categories:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Create package category
+  app.post("/api/admin/package-categories", isAdmin, async (req, res) => {
+    try {
+      const { name, description, displayOrder, isActive } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "Category name is required" });
+      }
+
+      const newCategory = await db
+        .insert(schema.packageCategories)
+        .values({
+          name,
+          description,
+          displayOrder: displayOrder || 0,
+          isActive: isActive !== undefined ? isActive : true,
+        })
+        .returning();
+
+      res.json(newCategory[0]);
+    } catch (error: any) {
+      console.error("Error creating package category:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Update package category
+  app.put("/api/admin/package-categories/:id", isAdmin, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ error: "Invalid category ID" });
+      }
+
+      const { name, description, displayOrder, isActive } = req.body;
+
+      const updatedCategory = await db
+        .update(schema.packageCategories)
+        .set({
+          name,
+          description,
+          displayOrder,
+          isActive,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.packageCategories.id, categoryId))
+        .returning();
+
+      if (updatedCategory.length === 0) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+
+      res.json(updatedCategory[0]);
+    } catch (error: any) {
+      console.error("Error updating package category:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Delete package category
+  app.delete("/api/admin/package-categories/:id", isAdmin, async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.id);
+      if (isNaN(categoryId)) {
+        return res.status(400).json({ error: "Invalid category ID" });
+      }
+
+      // Check if any packages are using this category
+      const packagesUsingCategory = await db
+        .select()
+        .from(schema.packagePricing)
+        .where(eq(schema.packagePricing.categoryId, categoryId))
+        .limit(1);
+
+      if (packagesUsingCategory.length > 0) {
+        return res.status(400).json({
+          error: "Cannot delete category that is assigned to packages. Please reassign or remove packages first."
+        });
+      }
+
+      const deletedCategory = await db
+        .delete(schema.packageCategories)
+        .where(eq(schema.packageCategories.id, categoryId))
+        .returning();
+
+      if (deletedCategory.length === 0) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+
+      res.json({ success: true, message: "Category deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting package category:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

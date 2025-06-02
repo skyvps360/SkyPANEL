@@ -268,6 +268,26 @@ export const insertEmailVerificationTokenSchema = createInsertSchema(emailVerifi
 export type InsertEmailVerificationToken = z.infer<typeof insertEmailVerificationTokenSchema>;
 export type EmailVerificationToken = typeof emailVerificationTokens.$inferSelect;
 
+// Package Categories for organizing VirtFusion packages
+export const packageCategories = pgTable("package_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertPackageCategorySchema = createInsertSchema(packageCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPackageCategory = z.infer<typeof insertPackageCategorySchema>;
+export type PackageCategory = typeof packageCategories.$inferSelect;
+
 // Package Pricing for VirtFusion packages
 export const packagePricing = pgTable("package_pricing", {
   id: serial("id").primaryKey(),
@@ -277,6 +297,7 @@ export const packagePricing = pgTable("package_pricing", {
   price: integer("price").notNull(), // In dollars (e.g., 250 = $2.50)
   displayOrder: integer("display_order").default(0),
   enabled: boolean("enabled").default(true).notNull(),
+  categoryId: integer("category_id").references(() => packageCategories.id, { onDelete: 'set null' }), // Optional category assignment
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

@@ -39,15 +39,16 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Check, DollarSign, Info, RefreshCw, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,6 +69,16 @@ interface VirtFusionPackage {
   pricing: PricingRecord | null;
 }
 
+interface PackageCategory {
+  id: number;
+  name: string;
+  description: string | null;
+  displayOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface PricingRecord {
   id: number;
   virtFusionPackageId: number;
@@ -76,25 +87,41 @@ interface PricingRecord {
   price: number;
   displayOrder: number;
   enabled: boolean;
+  categoryId: number | null;
+  category: PackageCategory | null;
   createdAt: string;
   updatedAt: string;
 }
 
-// Form schema for adding/editing pricing
+// Form schema for adding/editing pricing (ENHANCED: Added category support)
 const pricingFormSchema = z.object({
   // Removed name and description fields to use VirtFusion API values directly
   price: z.coerce.number().min(0, "Price must be 0 or greater"),
   displayOrder: z.coerce.number().int().min(0, "Display order must be 0 or greater"),
   enabled: z.boolean().default(true),
+  categoryId: z.coerce.number().nullable().optional(),
+});
+
+// Form schema for category management
+const categoryFormSchema = z.object({
+  name: z.string().min(1, "Category name is required"),
+  description: z.string().optional(),
+  displayOrder: z.coerce.number().int().min(0, "Display order must be 0 or greater").default(0),
+  isActive: z.boolean().default(true),
 });
 
 type PricingFormValues = z.infer<typeof pricingFormSchema>;
+
+type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
 export default function PackagePricingPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedPackage, setSelectedPackage] = useState<VirtFusionPackage | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<PackageCategory | null>(null);
+  const [categoryFormMode, setCategoryFormMode] = useState<'create' | 'edit'>('create');
 
   // Fetch packages and pricing data
   const { data: packages, isLoading, error, failureReason: errorInfo } = useQuery<VirtFusionPackage[]>({
@@ -103,21 +130,39 @@ export default function PackagePricingPage() {
     retry: 1, // Only retry once since we expect authentication errors to persist
   });
 
-  // Setup form for pricing
+  // Fetch categories for dropdown (ENHANCED: Added category management)
+  const { data: categories } = useQuery<PackageCategory[]>({
+    queryKey: ['/api/admin/package-categories'],
+    staleTime: 60 * 1000,
+  });
+
+  // Setup form for pricing (ENHANCED: Added categoryId support)
   const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
     defaultValues: {
       price: 0,
       displayOrder: 0,
       enabled: true,
+      categoryId: null,
     },
   });
 
-  // Mutation for updating pricing
+  // Setup form for category management (ENHANCED: Added category management)
+  const categoryForm = useForm<CategoryFormValues>({
+    resolver: zodResolver(categoryFormSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      displayOrder: 0,
+      isActive: true,
+    },
+  });
+
+  // Mutation for updating pricing (ENHANCED: Added categoryId support)
   const updatePricingMutation = useMutation({
     mutationFn: async (data: PricingFormValues) => {
       if (!selectedPackage) return null;
-      
+
       return apiRequest(`/api/admin/packages/${selectedPackage.id}/pricing`, {
         method: 'POST',
         data: {
@@ -127,6 +172,8 @@ export default function PackagePricingPage() {
           description: selectedPackage.description,
           // Store price in cents (100 = $1.00)
           price: data.price * 100,
+          // Include category assignment
+          categoryId: data.categoryId,
         }
       });
     },
@@ -174,6 +221,80 @@ export default function PackagePricingPage() {
     }
   });
 
+  // Category management mutations (ENHANCED: Added category management)
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data: CategoryFormValues) => {
+      return apiRequest('/api/admin/package-categories', {
+        method: 'POST',
+        data,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/package-categories'] });
+      setCategoryDialogOpen(false);
+      categoryForm.reset();
+      toast({
+        title: "Success",
+        description: "Category created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async (data: CategoryFormValues & { id: number }) => {
+      return apiRequest(`/api/admin/package-categories/${data.id}`, {
+        method: 'PUT',
+        data,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/package-categories'] });
+      setCategoryDialogOpen(false);
+      categoryForm.reset();
+      setSelectedCategory(null);
+      toast({
+        title: "Success",
+        description: "Category updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update category",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (categoryId: number) => {
+      return apiRequest(`/api/admin/package-categories/${categoryId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/package-categories'] });
+      toast({
+        title: "Success",
+        description: "Category deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete category",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Format memory size (MB to GB)
   const formatMemory = (memoryMB: number) => {
     return (memoryMB / 1024).toFixed(1) + ' GB';
@@ -199,10 +320,10 @@ export default function PackagePricingPage() {
     }
   };
 
-  // Handle editing a package's pricing
+  // Handle editing a package's pricing (ENHANCED: Added categoryId support)
   const handleEditPackage = (pkg: VirtFusionPackage) => {
     setSelectedPackage(pkg);
-    
+
     // Set form values from existing pricing or defaults
     if (pkg.pricing) {
       form.reset({
@@ -210,6 +331,7 @@ export default function PackagePricingPage() {
         price: pkg.pricing.price / 100,
         displayOrder: pkg.pricing.displayOrder,
         enabled: pkg.pricing.enabled,
+        categoryId: pkg.pricing.categoryId,
       });
     } else {
       // Default values when no pricing exists
@@ -217,9 +339,10 @@ export default function PackagePricingPage() {
         price: 0,
         displayOrder: 0,
         enabled: true,
+        categoryId: null,
       });
     }
-    
+
     setDialogOpen(true);
   };
 
@@ -232,6 +355,45 @@ export default function PackagePricingPage() {
   const handleDeletePricing = (packageId: number) => {
     if (confirm("Are you sure you want to delete this pricing? This will remove it from the plans page.")) {
       deletePricingMutation.mutate(packageId);
+    }
+  };
+
+  // Category management handlers (ENHANCED: Added category management)
+  const handleCreateCategory = () => {
+    setCategoryFormMode('create');
+    setSelectedCategory(null);
+    categoryForm.reset({
+      name: '',
+      description: '',
+      displayOrder: 0,
+      isActive: true,
+    });
+    setCategoryDialogOpen(true);
+  };
+
+  const handleEditCategory = (category: PackageCategory) => {
+    setCategoryFormMode('edit');
+    setSelectedCategory(category);
+    categoryForm.reset({
+      name: category.name,
+      description: category.description || '',
+      displayOrder: category.displayOrder,
+      isActive: category.isActive,
+    });
+    setCategoryDialogOpen(true);
+  };
+
+  const handleDeleteCategory = (categoryId: number) => {
+    if (confirm("Are you sure you want to delete this category? This action cannot be undone.")) {
+      deleteCategoryMutation.mutate(categoryId);
+    }
+  };
+
+  const onCategorySubmit = (data: CategoryFormValues) => {
+    if (categoryFormMode === 'create') {
+      createCategoryMutation.mutate(data);
+    } else if (selectedCategory) {
+      updateCategoryMutation.mutate({ ...data, id: selectedCategory.id });
     }
   };
 
@@ -441,6 +603,89 @@ export default function PackagePricingPage() {
         </CardContent>
       </Card>
 
+      {/* Category Management Section (ENHANCED: Added category management) */}
+      <Card className="mb-6 w-full overflow-hidden">
+        <CardHeader className="px-4 sm:px-6 py-4 border-b">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-xl">Package Categories</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Organize packages into categories for better client navigation
+              </p>
+            </div>
+            <Button onClick={handleCreateCategory} className="mt-4 sm:mt-0">
+              Add Category
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {categories && categories.length > 0 ? (
+            <div className="overflow-x-auto w-full">
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden sm:table-cell">Description</TableHead>
+                    <TableHead className="hidden md:table-cell">Display Order</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {categories.map((category) => (
+                    <TableRow key={category.id}>
+                      <TableCell className="font-medium">
+                        {category.name}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {category.description || (
+                          <span className="text-muted-foreground italic">No description</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {category.displayOrder}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={category.isActive ? "default" : "secondary"}
+                          className={category.isActive ? "bg-green-100 text-green-800" : ""}
+                        >
+                          {category.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditCategory(category)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteCategory(category.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-muted-foreground">
+              <p>No categories created yet.</p>
+              <p className="text-sm mt-1">Create your first category to organize packages.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="w-full overflow-hidden">
         <CardHeader className="px-4 sm:px-6 py-4 border-b">
           <CardTitle className="text-xl">Available Packages</CardTitle>
@@ -504,6 +749,12 @@ export default function PackagePricingPage() {
                           <div className="text-sm">
                             <span className="font-semibold">Order:</span> {pkg.pricing.displayOrder}
                           </div>
+                          {/* Category Display (ENHANCED: Added category info) */}
+                          {pkg.pricing.category && (
+                            <div className="text-sm">
+                              <span className="font-semibold">Category:</span> {pkg.pricing.category.name}
+                            </div>
+                          )}
                           <div className="text-xs text-muted-foreground mt-1">
                             <span>Using VirtFusion name</span>
                           </div>
@@ -679,7 +930,40 @@ export default function PackagePricingPage() {
                   )}
                 />
               </div>
-              
+
+              {/* Category Selection (ENHANCED: Added category support) */}
+              <FormField
+                control={form.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(value === "none" ? null : parseInt(value))}
+                      value={field.value ? field.value.toString() : "none"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No Category</SelectItem>
+                        {categories?.map((category) => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Assign this package to a category for better organization
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="enabled"
@@ -711,6 +995,133 @@ export default function PackagePricingPage() {
                 </Button>
                 <Button type="submit" disabled={updatePricingMutation.isPending}>
                   {updatePricingMutation.isPending ? "Saving..." : "Save Pricing"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Management Dialog (ENHANCED: Added category management) */}
+      <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {categoryFormMode === 'create' ? "Create Package Category" : "Edit Package Category"}
+            </DialogTitle>
+            <DialogDescription>
+              {categoryFormMode === 'create'
+                ? "Create a new category to organize your packages"
+                : "Update the category information"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...categoryForm}>
+            <form onSubmit={categoryForm.handleSubmit(onCategorySubmit)} className="space-y-4">
+              <FormField
+                control={categoryForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., KVM VPS, Storage VPS"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      A descriptive name for this package category
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={categoryForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Brief description of this category"
+                        className="resize-none"
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Optional description to help clients understand this category
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={categoryForm.control}
+                  name="displayOrder"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Display Order</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Order in category list (lowest first)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={categoryForm.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col justify-end">
+                      <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-sm">Active</FormLabel>
+                          <FormDescription className="text-xs">
+                            Show in category filters
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCategoryDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+                >
+                  {createCategoryMutation.isPending || updateCategoryMutation.isPending
+                    ? "Saving..."
+                    : categoryFormMode === 'create' ? "Create Category" : "Update Category"}
                 </Button>
               </DialogFooter>
             </form>

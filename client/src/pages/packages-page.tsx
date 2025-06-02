@@ -12,6 +12,16 @@ import { getBrandColors } from "@/lib/brand-theme";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Define interfaces for package categories (ENHANCED: Added category support)
+interface PackageCategory {
+  id: number;
+  name: string;
+  description: string | null;
+  displayOrder: number;
+  isActive: boolean;
+}
 
 // Define the Package interface based on the VirtFusion API response
 interface Package {
@@ -34,11 +44,13 @@ interface Package {
   primaryStorageProfile: number;
   primaryNetworkProfile: number;
   created: string;
+  category?: PackageCategory | null;
 }
 
 export default function PackagesPage() {
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
+  const [categoryFilter, setCategoryFilter] = useState<number | null>(null); // ENHANCED: Added category filtering
 
   // Fetch packages from our new API endpoint
   const {
@@ -59,6 +71,13 @@ export default function PackagesPage() {
     queryKey: ["/api/public/package-pricing"] as const
   });
 
+  // Fetch package categories (ENHANCED: Added category filtering)
+  const { data: categories } = useQuery<PackageCategory[]>({
+    queryKey: ['/api/public/package-categories'],
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   // Fetch branding data
   const { data: brandingData } = useQuery<{
     company_name: string;
@@ -75,6 +94,11 @@ export default function PackagesPage() {
   // Type assertion for the packages data
   const packages = data as Package[] || [];
   const pricing = pricingData as Record<string, number> || {};
+
+  // Filter packages by category (ENHANCED: Added category filtering)
+  const filteredPackages = packages.filter(pkg =>
+    categoryFilter === null || pkg.category?.id === categoryFilter
+  );
 
   // Log successful data fetching
   React.useEffect(() => {
@@ -131,8 +155,13 @@ export default function PackagesPage() {
     }
   };
 
-  // Format bandwidth display for better readability
+  // Format bandwidth display for better readability (ENHANCED: Handle unlimited bandwidth)
   const formatBandwidth = (gb: number): string => {
+    // Handle unlimited/unmetered bandwidth when traffic is 0
+    if (gb === 0) {
+      return "Unlimited";
+    }
+
     if (gb >= 1000) {
       return `${(gb / 1000).toFixed(1)} TB`;
     }
@@ -190,13 +219,14 @@ export default function PackagesPage() {
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded-full bg-primary" />
                     <span className="text-sm font-medium text-foreground">
-                      {packages.filter(pkg => pkg.enabled).length} Available Plans
+                      {filteredPackages.filter(pkg => pkg.enabled).length} Available Plans
+                      {categoryFilter && ` in ${categories?.find(c => c.id === categoryFilter)?.name}`}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 rounded-full bg-secondary" />
                     <span className="text-sm font-medium text-foreground">
-                      Starting from ${Math.min(...packages.map(pkg => getPackagePrice(pkg)).filter(price => price > 0)).toFixed(2)}/month
+                      Starting from ${Math.min(...filteredPackages.map(pkg => getPackagePrice(pkg)).filter(price => price > 0)).toFixed(2)}/month
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -209,6 +239,28 @@ export default function PackagesPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+                {/* Category Filter (ENHANCED: Added category filtering) */}
+                {categories && categories.length > 0 && (
+                  <div className="min-w-[200px]">
+                    <Select
+                      value={categoryFilter ? categoryFilter.toString() : "all"}
+                      onValueChange={(value) => setCategoryFilter(value === "all" ? null : parseInt(value))}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="flex rounded-lg border border-border bg-muted p-1">
                   <Button
                     variant={viewMode === 'cards' ? 'default' : 'ghost'}
@@ -284,13 +336,28 @@ export default function PackagesPage() {
           </Card>
         )}
 
+        {/* No Filtered Results State (ENHANCED: Added category filtering) */}
+        {!isLoading && !error && packages.length > 0 && filteredPackages.length === 0 && (
+          <Card className="bg-card border border-border">
+            <CardHeader>
+              <CardTitle className="text-foreground">No Packages in Selected Category</CardTitle>
+              <CardDescription>
+                No packages are available in the selected category.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Try selecting a different category or view all packages.</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Packages Display */}
-        {!isLoading && !error && packages.length > 0 && (
+        {!isLoading && !error && filteredPackages.length > 0 && (
           <>
             {viewMode === 'cards' ? (
               /* Card View */
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {packages.map((pkg: Package) => (
+                {filteredPackages.map((pkg: Package) => (
                   <Card key={pkg.id} className="overflow-hidden flex flex-col h-full bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
@@ -431,7 +498,7 @@ export default function PackagesPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {packages.map((pkg: Package) => (
+                        {filteredPackages.map((pkg: Package) => (
                           <TableRow key={pkg.id} className="hover:bg-muted/50">
                             <TableCell>
                               <div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 import { Check, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +17,14 @@ import {
 import { PlanFeature } from '@shared/schema';
 import { getBrandColors } from '@/lib/brand-theme';
 
+interface PackageCategory {
+  id: number;
+  name: string;
+  description: string | null;
+  displayOrder: number;
+  isActive: boolean;
+}
+
 interface Package {
   id: number;
   name: string;
@@ -28,6 +37,7 @@ interface Package {
   primaryNetworkSpeedIn: number;
   primaryNetworkSpeedOut: number;
   primaryDiskType: string;
+  category?: PackageCategory | null;
 }
 
 // Default pricing for packages if no pricing data is available
@@ -45,6 +55,7 @@ export default function PlansPage() {
   const [ramFilter, setRamFilter] = useState<number>(0);
   const [storageFilter, setStorageFilter] = useState<number>(0);
   const [bandwidthFilter, setBandwidthFilter] = useState<number>(0);
+  const [categoryFilter, setCategoryFilter] = useState<number | null>(null); // ENHANCED: Added category filtering
   const [showAllPlans, setShowAllPlans] = useState<boolean>(true);
   
   // Max values for sliders based on available plans
@@ -82,6 +93,13 @@ export default function PlansPage() {
   // Fetch package pricing data
   const { data: pricingData } = useQuery<Record<string, number>>({
     queryKey: ['/api/public/package-pricing'],
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch package categories (ENHANCED: Added category filtering)
+  const { data: categories } = useQuery<PackageCategory[]>({
+    queryKey: ['/api/public/package-categories'],
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -139,8 +157,13 @@ export default function PlansPage() {
   // Calculate package display order (sort by memory size)
   const sortedPackages = packages ? [...packages].sort((a, b) => a.memory - b.memory) : [];
   
-  // Format bandwidth from GB to TB when appropriate
+  // Format bandwidth from GB to TB when appropriate (ENHANCED: Handle unlimited bandwidth)
   const formatBandwidth = (gigabytes: number): string => {
+    // Handle unlimited/unmetered bandwidth when traffic is 0
+    if (gigabytes === 0) {
+      return "Unlimited";
+    }
+
     if (gigabytes >= 1000) {
       // Convert to TB with one decimal place
       return `${(gigabytes / 1000).toFixed(1)} TB/mo`;
@@ -219,7 +242,35 @@ export default function PlansPage() {
         <div className="mb-16 bg-gray-50 p-6 rounded-lg border border-gray-200">
           <h3 className="text-xl font-medium mb-6">Customize Your Requirements</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
+            {/* Category Filter (ENHANCED: Added category filtering) */}
+            {categories && categories.length > 0 && (
+              <div className="lg:col-span-1">
+                <div className="flex justify-between mb-2">
+                  <label className="font-medium">Category</label>
+                  <span className="text-gray-600">{categoryFilter ? categories.find(c => c.id === categoryFilter)?.name : 'All Categories'}</span>
+                </div>
+                <Select
+                  value={categoryFilter ? categoryFilter.toString() : "all"}
+                  onValueChange={(value) => {
+                    setCategoryFilter(value === "all" ? null : parseInt(value));
+                    setShowAllPlans(false);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {/* CPU Slider */}
             <div>
               <div className="flex justify-between mb-2">
@@ -322,13 +373,14 @@ export default function PlansPage() {
           </div>
           
           <div className="mt-6 flex justify-between items-center">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 setCpuFilter(0);
                 setRamFilter(0);
                 setStorageFilter(0);
                 setBandwidthFilter(0);
+                setCategoryFilter(null); // ENHANCED: Reset category filter
                 setShowAllPlans(true);
               }}
               className="text-sm"
@@ -383,11 +435,12 @@ export default function PlansPage() {
               <div className="flex items-center mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm">
                 <LucideIcons.Info className="text-blue-500 mr-2" size={16} />
                 <span>
-                  {sortedPackages.filter(pkg => 
+                  {sortedPackages.filter(pkg =>
                     (cpuFilter === 0 || pkg.cpuCores >= cpuFilter) &&
                     (ramFilter === 0 || pkg.memory/1024 >= ramFilter) &&
                     (storageFilter === 0 || pkg.primaryStorage >= storageFilter) &&
-                    (bandwidthFilter === 0 || pkg.traffic >= bandwidthFilter)
+                    (bandwidthFilter === 0 || pkg.traffic >= bandwidthFilter || pkg.traffic === 0) &&
+                    (categoryFilter === null || pkg.category?.id === categoryFilter)
                   ).length} plans match your criteria
                 </span>
               </div>
@@ -410,12 +463,13 @@ export default function PlansPage() {
                 </thead>
                 <tbody>
                   {sortedPackages
-                    .filter(pkg => 
+                    .filter(pkg =>
                       showAllPlans || (
                         (cpuFilter === 0 || pkg.cpuCores >= cpuFilter) &&
                         (ramFilter === 0 || pkg.memory/1024 >= ramFilter) &&
                         (storageFilter === 0 || pkg.primaryStorage >= storageFilter) &&
-                        (bandwidthFilter === 0 || pkg.traffic >= bandwidthFilter)
+                        (bandwidthFilter === 0 || pkg.traffic >= bandwidthFilter || pkg.traffic === 0) &&
+                        (categoryFilter === null || pkg.category?.id === categoryFilter)
                       )
                     )
                     .map((pkg, index) => (
@@ -470,12 +524,13 @@ export default function PlansPage() {
             {/* Mobile Card View (hidden on desktop) */}
             <div className="md:hidden space-y-4">
               {sortedPackages
-                .filter(pkg => 
+                .filter(pkg =>
                   showAllPlans || (
                     (cpuFilter === 0 || pkg.cpuCores >= cpuFilter) &&
                     (ramFilter === 0 || pkg.memory/1024 >= ramFilter) &&
                     (storageFilter === 0 || pkg.primaryStorage >= storageFilter) &&
-                    (bandwidthFilter === 0 || pkg.traffic >= bandwidthFilter)
+                    (bandwidthFilter === 0 || pkg.traffic >= bandwidthFilter || pkg.traffic === 0) &&
+                    (categoryFilter === null || pkg.category?.id === categoryFilter)
                   )
                 )
                 .map((pkg) => (
@@ -546,7 +601,7 @@ export default function PlansPage() {
                   (cpuFilter === 0 || pkg.cpuCores >= cpuFilter) &&
                   (ramFilter === 0 || pkg.memory/1024 >= ramFilter) &&
                   (storageFilter === 0 || pkg.primaryStorage >= storageFilter) &&
-                  (bandwidthFilter === 0 || pkg.traffic >= bandwidthFilter)
+                  (bandwidthFilter === 0 || pkg.traffic >= bandwidthFilter || pkg.traffic === 0)
                 )
               ) && (
                 <div className="p-6 text-center">
