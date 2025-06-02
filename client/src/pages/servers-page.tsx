@@ -162,24 +162,21 @@ export default function ServersPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Modern Hero Header */}
-        <div className="rounded-2xl bg-white border border-gray-300/60 shadow-md">
+        <div className="rounded-2xl bg-card border border-border shadow-md">
           <div className="p-8 md:p-12">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div
-                    className="flex items-center justify-center h-12 w-12 rounded-xl text-white shadow-lg"
-                    style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
-                  >
+                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
                     <Server className="h-6 w-6" />
                   </div>
                   <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
                       My Servers
                     </h1>
-                    <p className="text-gray-600 text-lg mt-1">
+                    <p className="text-muted-foreground text-lg mt-1">
                       Manage and monitor your virtual servers
                     </p>
                   </div>
@@ -188,23 +185,20 @@ export default function ServersPage() {
                 {/* Server Stats Summary */}
                 <div className="flex flex-wrap gap-6 mt-6">
                   <div className="flex items-center space-x-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
-                    />
-                    <span className="text-sm font-medium text-gray-700">
+                    <div className="w-3 h-3 rounded-full bg-primary" />
+                    <span className="text-sm font-medium text-foreground">
                       {filteredServers.filter(s => getServerStatus(s) === 'RUNNING').length} Running
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-gray-400" />
-                    <span className="text-sm font-medium text-gray-700">
+                    <div className="w-3 h-3 rounded-full bg-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">
                       {filteredServers.filter(s => getServerStatus(s) === 'STOPPED').length} Stopped
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <span className="text-sm font-medium text-gray-700">
+                    <div className="w-3 h-3 rounded-full bg-destructive" />
+                    <span className="text-sm font-medium text-foreground">
                       {filteredServers.filter(s => getServerStatus(s) === 'SUSPENDED').length} Suspended
                     </span>
                   </div>
@@ -220,7 +214,7 @@ export default function ServersPage() {
                   onClick={handleRefresh}
                   disabled={isRefreshing}
                   variant="outline"
-                  className="border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                  className="transition-all duration-200"
                 >
                   <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                   {isRefreshing ? 'Refreshing...' : 'Refresh'}
@@ -231,31 +225,31 @@ export default function ServersPage() {
         </div>
 
         {/* Enhanced Filters Section */}
-        <div className="rounded-xl bg-white border border-gray-300/60 shadow-md">
+        <div className="rounded-xl bg-card border border-border shadow-md">
           <div className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex-1 max-w-md">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Search Servers
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder="Search by name, ID, or location..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 h-11 border-gray-300 focus:border-primary focus:ring-primary/20 transition-all duration-200"
+                    className="pl-10 h-11 transition-all duration-200"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Filter by Status
                   </label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full sm:w-[180px] h-11 border-gray-300 focus:border-primary focus:ring-primary/20">
+                    <SelectTrigger className="w-full sm:w-[180px] h-11">
                       <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -268,7 +262,7 @@ export default function ServersPage() {
                 </div>
 
                 <div className="flex items-end">
-                  <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                  <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-lg border border-border">
                     <span className="font-medium">{filteredServers.length}</span> of{' '}
                     <span className="font-medium">{allServers.length}</span> servers
                   </div>
@@ -387,24 +381,24 @@ export default function ServersPage() {
                         )}
 
                         {/* Resource Info (if available) */}
-                        {(server.cpu || server.memory || server.storage) && (
+                        {(server.cpu?.cores || server.memory || server.storage?.length > 0) && (
                           <div className="flex items-center gap-4 pt-2 border-t border-gray-100">
-                            {server.cpu && (
+                            {server.cpu?.cores && (
                               <div className="flex items-center gap-1 text-xs text-gray-500">
                                 <Cpu className="h-3 w-3" />
-                                <span>{server.cpu} CPU</span>
+                                <span>{server.cpu.cores} CPU</span>
                               </div>
                             )}
                             {server.memory && (
                               <div className="flex items-center gap-1 text-xs text-gray-500">
                                 <MemoryStick className="h-3 w-3" />
-                                <span>{server.memory}GB</span>
+                                <span>{server.memory}MB</span>
                               </div>
                             )}
-                            {server.storage && (
+                            {server.storage?.length > 0 && (
                               <div className="flex items-center gap-1 text-xs text-gray-500">
                                 <HardDrive className="h-3 w-3" />
-                                <span>{server.storage}GB</span>
+                                <span>{server.storage[0]?.capacity || 'Storage'}</span>
                               </div>
                             )}
                           </div>
