@@ -1,16 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Cpu, MemoryStick, HardDrive, Zap, Server, DollarSign, CheckCircle, XCircle } from "lucide-react";
+import { Cpu, MemoryStick, HardDrive, Zap, Server, DollarSign, CheckCircle, XCircle, Grid3X3, List, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBrandColors } from "@/lib/brand-theme";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 // Define the Package interface based on the VirtFusion API response
 interface Package {
@@ -37,6 +38,7 @@ interface Package {
 
 export default function PackagesPage() {
   const { toast } = useToast();
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
 
   // Fetch packages from our new API endpoint
   const {
@@ -163,207 +165,349 @@ export default function PackagesPage() {
 
   return (
     <DashboardLayout>
-      {/* Page Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Available Packages</h1>
-          <p className="text-gray-500 mt-1">View Our Plans</p>
-        </div>
-      </div>
-
-      {/* Loading State */}
-      {isLoading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <Skeleton className="h-7 w-40 mb-2" />
-                <Skeleton className="h-4 w-full" />
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <Skeleton className="h-24 w-full" />
-                  <Skeleton className="h-10 w-full" />
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Modern Hero Header */}
+        <div className="rounded-2xl bg-card border border-border shadow-md">
+          <div className="p-8 md:p-12">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
+                    <Package className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                      Available Packages
+                    </h1>
+                    <p className="text-muted-foreground text-lg mt-1">
+                      Choose the perfect plan for your needs
+                    </p>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                {/* Package Stats Summary */}
+                <div className="flex flex-wrap gap-6 mt-6">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-primary" />
+                    <span className="text-sm font-medium text-foreground">
+                      {packages.filter(pkg => pkg.enabled).length} Available Plans
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-secondary" />
+                    <span className="text-sm font-medium text-foreground">
+                      Starting from ${Math.min(...packages.map(pkg => getPackagePrice(pkg)).filter(price => price > 0)).toFixed(2)}/month
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-accent" />
+                    <span className="text-sm font-medium text-foreground">
+                      VirtFusion Token Billing
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+                <div className="flex rounded-lg border border-border bg-muted p-1">
+                  <Button
+                    variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('cards')}
+                    className="flex items-center gap-2"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                    Cards
+                  </Button>
+                  <Button
+                    variant={viewMode === 'table' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('table')}
+                    className="flex items-center gap-2"
+                  >
+                    <List className="h-4 w-4" />
+                    Table
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Error State */}
-      {error && !isLoading && (
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Could not load packages</CardTitle>
-            <CardDescription>
-              There was an error connecting to the VirtFusion API. Please check your connection settings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>{(error as Error).message}</p>
-          </CardContent>
-        </Card>
-      )}
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="overflow-hidden bg-card border border-border">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-7 w-40 mb-2" />
+                  <Skeleton className="h-4 w-full" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-      {/* No Data State */}
-      {!isLoading && !error && packages.length === 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Packages Available</CardTitle>
-            <CardDescription>
-              There are no packages available from your VirtFusion instance.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Please contact your administrator to add packages to your VirtFusion account.</p>
-          </CardContent>
-        </Card>
-      )}
+        {/* Error State */}
+        {error && !isLoading && (
+          <Card className="border-destructive bg-card">
+            <CardHeader>
+              <CardTitle className="text-destructive">Could not load packages</CardTitle>
+              <CardDescription>
+                There was an error connecting to the VirtFusion API. Please check your connection settings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">{(error as Error).message}</p>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Packages Grid */}
-      {!isLoading && !error && packages.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {packages.map((pkg: Package) => (
-            <Card key={pkg.id} className="overflow-hidden flex flex-col h-full">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg font-semibold">{pkg.name}</CardTitle>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        {pkg.enabled ? (
+        {/* No Data State */}
+        {!isLoading && !error && packages.length === 0 && (
+          <Card className="bg-card border border-border">
+            <CardHeader>
+              <CardTitle className="text-foreground">No Packages Available</CardTitle>
+              <CardDescription>
+                There are no packages available from your VirtFusion instance.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Please contact your administrator to add packages to your VirtFusion account.</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Packages Display */}
+        {!isLoading && !error && packages.length > 0 && (
+          <>
+            {viewMode === 'cards' ? (
+              /* Card View */
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {packages.map((pkg: Package) => (
+                  <Card key={pkg.id} className="overflow-hidden flex flex-col h-full bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg font-semibold text-foreground">{pkg.name}</CardTitle>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {pkg.enabled ? (
+                                <div className="flex items-center">
+                                  <CheckCircle className="h-5 w-5 text-primary" />
+                                </div>
+                              ) : (
+                                <div className="flex items-center">
+                                  <XCircle className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{pkg.enabled ? 'Active and available for ordering' : 'Currently unavailable'}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      {pkg.description && (
+                        <CardDescription className="line-clamp-2 min-h-[2.5rem]">{pkg.description}</CardDescription>
+                      )}
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                      <div className="space-y-4">
+                        {/* Package Specs */}
+                        <div className="grid grid-cols-2 gap-4">
                           <div className="flex items-center">
-                            <CheckCircle
-                              className="h-5 w-5"
-                              style={{ color: brandColors?.primary?.full || '#33be00' }}
-                            />
+                            <Cpu className="h-5 w-5 mr-2 flex-shrink-0 text-primary" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{pkg.cpuCores} Cores</p>
+                              <p className="text-xs text-muted-foreground">CPU</p>
+                            </div>
                           </div>
-                        ) : (
                           <div className="flex items-center">
-                            <XCircle
-                              className="h-5 w-5"
-                              style={{ color: 'rgb(113, 113, 122)' }}
-                            />
+                            <MemoryStick className="h-5 w-5 mr-2 flex-shrink-0 text-primary" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{pkg.memory / 1024} GB</p>
+                              <p className="text-xs text-muted-foreground">Memory</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <HardDrive className="h-5 w-5 mr-2 flex-shrink-0 text-primary" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{pkg.primaryStorage} GB</p>
+                              <p className="text-xs text-muted-foreground">Storage</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Zap className="h-5 w-5 mr-2 flex-shrink-0 text-primary" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">{formatBandwidth(pkg.traffic)}</p>
+                              <p className="text-xs text-muted-foreground">Bandwidth</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* Additional Details */}
+                        <div className="text-sm space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Disk Type:</span>
+                            <span className="font-medium text-foreground">{pkg.primaryDiskType === "inherit" ? "Default" : pkg.primaryDiskType}</span>
+                          </div>
+                          {pkg.primaryNetworkSpeedIn > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Network Speed In:</span>
+                              <span className="font-medium text-foreground">{formatNetworkSpeed(pkg.primaryNetworkSpeedIn)}</span>
+                            </div>
+                          )}
+                          {pkg.primaryNetworkSpeedOut > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Network Speed Out:</span>
+                              <span className="font-medium text-foreground">{formatNetworkSpeed(pkg.primaryNetworkSpeedOut)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                    {/* Card Footer - Fixed at bottom with price and availability */}
+                    <CardFooter className="mt-auto border-t border-border pt-4 flex flex-col gap-2">
+                      {/* Price Information */}
+                      <div className="flex justify-between w-full text-base font-semibold">
+                        <span className="flex items-center text-foreground">
+                          <DollarSign className="h-4 w-4 mr-1 inline text-primary" />
+                          Price:
+                        </span>
+                        <span className="text-primary">
+                          ${getPackagePrice(pkg).toFixed(2)}/month
+                        </span>
+                      </div>
+
+                      {/* Purchase Button */}
+                      <div className="w-full">
+                        {pkg.enabled ? (
+                          <VirtFusionSsoButton
+                            variant="default"
+                            size="default"
+                            className="w-full"
+                            text="Purchase & Create Server"
+                          />
+                        ) : (
+                          <div className="w-full text-center text-sm flex items-center justify-center gap-1.5 py-2">
+                            <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-muted-foreground">Currently Unavailable</span>
                           </div>
                         )}
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{pkg.enabled ? 'Active and available for ordering' : 'Currently unavailable'}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                {pkg.description && (
-                  <CardDescription className="line-clamp-2 min-h-[2.5rem]">{pkg.description}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <div className="space-y-4">
-                  {/* Package Specs */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center">
-                      <Cpu
-                        className="h-5 w-5 mr-2 flex-shrink-0"
-                        style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
-                      />
-                      <div>
-                        <p className="text-sm font-medium">{pkg.cpuCores} Cores</p>
-                        <p className="text-xs text-muted-foreground">CPU</p>
                       </div>
-                    </div>
-                    <div className="flex items-center">
-                      <MemoryStick
-                        className="h-5 w-5 mr-2 flex-shrink-0"
-                        style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
-                      />
-                      <div>
-                        <p className="text-sm font-medium">{pkg.memory / 1024} GB</p>
-                        <p className="text-xs text-muted-foreground">Memory</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <HardDrive
-                        className="h-5 w-5 mr-2 flex-shrink-0"
-                        style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
-                      />
-                      <div>
-                        <p className="text-sm font-medium">{pkg.primaryStorage} GB</p>
-                        <p className="text-xs text-muted-foreground">Storage</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Zap
-                        className="h-5 w-5 mr-2 flex-shrink-0"
-                        style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
-                      />
-                      <div>
-                        <p className="text-sm font-medium">{formatBandwidth(pkg.traffic)}</p>
-                        <p className="text-xs text-muted-foreground">Bandwidth</p>
-                      </div>
-                    </div>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              /* Table View */
+              <Card className="bg-card border border-border shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-foreground">Package Comparison</CardTitle>
+                  <CardDescription>Compare all available packages side by side</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-foreground">Package</TableHead>
+                          <TableHead className="text-foreground">CPU</TableHead>
+                          <TableHead className="text-foreground">Memory</TableHead>
+                          <TableHead className="text-foreground">Storage</TableHead>
+                          <TableHead className="text-foreground">Bandwidth</TableHead>
+                          <TableHead className="text-foreground">Price</TableHead>
+                          <TableHead className="text-foreground">Status</TableHead>
+                          <TableHead className="text-foreground">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {packages.map((pkg: Package) => (
+                          <TableRow key={pkg.id} className="hover:bg-muted/50">
+                            <TableCell>
+                              <div>
+                                <div className="font-medium text-foreground">{pkg.name}</div>
+                                {pkg.description && (
+                                  <div className="text-sm text-muted-foreground line-clamp-1">{pkg.description}</div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Cpu className="h-4 w-4 mr-2 text-primary" />
+                                <span className="text-foreground">{pkg.cpuCores} Cores</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <MemoryStick className="h-4 w-4 mr-2 text-primary" />
+                                <span className="text-foreground">{pkg.memory / 1024} GB</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <HardDrive className="h-4 w-4 mr-2 text-primary" />
+                                <span className="text-foreground">{pkg.primaryStorage} GB</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Zap className="h-4 w-4 mr-2 text-primary" />
+                                <span className="text-foreground">{formatBandwidth(pkg.traffic)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 mr-1 text-primary" />
+                                <span className="font-semibold text-primary">${getPackagePrice(pkg).toFixed(2)}/mo</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {pkg.enabled ? (
+                                <Badge variant="default" className="bg-primary/10 text-primary border-primary/20">
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Available
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Unavailable
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {pkg.enabled ? (
+                                <VirtFusionSsoButton
+                                  variant="default"
+                                  size="sm"
+                                  text="Purchase"
+                                />
+                              ) : (
+                                <Button variant="ghost" size="sm" disabled>
+                                  Unavailable
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
-
-                  <Separator />
-
-                  {/* Additional Details */}
-                  <div className="text-sm">
-                    <div className="flex justify-between">
-                      <span>Disk Type:</span>
-                      <span className="font-medium">{pkg.primaryDiskType === "inherit" ? "Default" : pkg.primaryDiskType}</span>
-                    </div>
-                    {pkg.primaryNetworkSpeedIn > 0 && (
-                      <div className="flex justify-between">
-                        <span>Network Speed In:</span>
-                        <span className="font-medium">{formatNetworkSpeed(pkg.primaryNetworkSpeedIn)}</span>
-                      </div>
-                    )}
-                    {pkg.primaryNetworkSpeedOut > 0 && (
-                      <div className="flex justify-between">
-                        <span>Network Speed Out:</span>
-                        <span className="font-medium">{formatNetworkSpeed(pkg.primaryNetworkSpeedOut)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-              {/* Card Footer - Fixed at bottom with price and availability */}
-              <CardFooter className="mt-auto border-t pt-4 flex flex-col gap-2">
-                {/* Price Information */}
-                <div className="flex justify-between w-full text-base font-semibold">
-                  <span className="flex items-center">
-                    <DollarSign
-                      className="h-4 w-4 mr-1 inline"
-                      style={{ color: brandColors?.primary?.medium || 'rgba(51, 190, 0, 0.25)' }}
-                    />
-                    Price:
-                  </span>
-                  <span style={{ color: brandColors?.primary?.full || '#33be00' }}>
-                    ${getPackagePrice(pkg).toFixed(2)}/month
-                  </span>
-                </div>
-
-                {/* Purchase Button */}
-                <div className="w-full">
-                  {pkg.enabled ? (
-                    <VirtFusionSsoButton
-                      variant="default"
-                      size="default"
-                      className="w-full"
-                      text="Purchase & Create Server"
-                    />
-                  ) : (
-                    <div className="w-full text-center text-sm flex items-center justify-center gap-1.5 py-2">
-                      <XCircle className="h-3.5 w-3.5 text-zinc-400" />
-                      <span className="text-muted-foreground">Currently Unavailable</span>
-                    </div>
-                  )}
-                </div>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      )}
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+      </div>
     </DashboardLayout>
   );
 }
