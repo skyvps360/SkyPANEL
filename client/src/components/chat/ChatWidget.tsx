@@ -69,7 +69,10 @@ export function ChatWidget({ className }: ChatWidgetProps) {
           setAdminTyping(data.data.isTyping);
         }
       } else if (data.type === 'admin_joined') {
-        // Admin joined the session
+        // Admin joined the session - update session status
+        if (session) {
+          setSession(prev => prev ? { ...prev, status: 'active' } : prev);
+        }
         setMessages(prev => [...prev, {
           id: Date.now(),
           message: 'An admin has joined the chat',
@@ -77,6 +80,11 @@ export function ChatWidget({ className }: ChatWidgetProps) {
           createdAt: new Date().toISOString(),
           user: { id: 0, fullName: 'System', role: 'system' }
         }]);
+      } else if (data.type === 'session_update') {
+        // Handle session status updates
+        if (data.data.sessionId === session?.id) {
+          setSession(prev => prev ? { ...prev, status: data.data.status } : prev);
+        }
       }
     },
     onConnectionChange: (connected) => {
@@ -177,7 +185,7 @@ export function ChatWidget({ className }: ChatWidgetProps) {
         </Button>
       ) : (
         <Card className={cn(
-          "w-80 shadow-xl transition-all duration-200",
+          "w-80 shadow-xl transition-all duration-200 flex flex-col overflow-hidden",
           isMinimized ? "h-14" : "h-96"
         )}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -208,7 +216,7 @@ export function ChatWidget({ className }: ChatWidgetProps) {
           </CardHeader>
 
           {!isMinimized && (
-            <CardContent className="p-0">
+            <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
               {!session ? (
                 <div className="p-4 text-center">
                   <p className="text-sm text-muted-foreground mb-4">
@@ -220,7 +228,7 @@ export function ChatWidget({ className }: ChatWidgetProps) {
                 </div>
               ) : (
                 <>
-                  <div className="px-4 py-2 bg-muted/50">
+                  <div className="px-4 py-2 bg-muted/50 flex-shrink-0">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <Badge variant="outline" className="text-xs">
@@ -241,7 +249,8 @@ export function ChatWidget({ className }: ChatWidgetProps) {
                     </div>
                   </div>
 
-                  <ScrollArea className="h-64 p-4">
+                  <div className="flex-1 overflow-hidden">
+                    <ScrollArea className="h-full p-4">
                     <div className="space-y-4">
                       {messages.map((msg) => (
                         <div
@@ -283,18 +292,19 @@ export function ChatWidget({ className }: ChatWidgetProps) {
                           </div>
                         </div>
                       )}
-                    </div>
-                    <div ref={messagesEndRef} />
-                  </ScrollArea>
+                      </div>
+                      <div ref={messagesEndRef} />
+                    </ScrollArea>
+                  </div>
 
-                  <Separator />
+                  <Separator className="flex-shrink-0" />
 
-                  <div className="p-4">
+                  <div className="p-4 flex-shrink-0">
                     <div className="flex space-x-2">
                       <Input
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
+                        onKeyDown={handleKeyPress}
                         placeholder="Type your message..."
                         disabled={connectionStatus !== 'connected'}
                         className="flex-1"

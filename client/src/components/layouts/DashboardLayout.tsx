@@ -345,6 +345,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       href: "/tickets",
       icon: <Ticket className="h-5 w-5 mr-3" />,
     },
+    {
+      name: "Live Chat",
+      href: "/live-chat",
+      icon: <MessageSquare className="h-5 w-5 mr-3" />,
+    },
    // {
    //   name: "API Documentation",
    //   href: "/api-docs",

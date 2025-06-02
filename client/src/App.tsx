@@ -60,6 +60,7 @@ import ServerDetailPage from "@/pages/admin/server-detail-page";
 import ServersListPage from "@/pages/admin/servers-page";
 import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
 import VNCConsole from "@/pages/vnc-console";
+import LiveChat from "@/pages/LiveChat";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { VirtFusionSsoHandler } from "@/components/VirtFusionSsoHandler";
@@ -285,6 +286,7 @@ function Router() {
         <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} allowSuspended={true} />
         <ProtectedRoute path="/notifications" component={NotificationsPage} />
         <ProtectedRoute path="/profile" component={ProfilePage} />
+        <ProtectedRoute path="/live-chat" component={LiveChat} />
 
         {/* Public standalone blog and docs pages */}
         <Route path="/blog" component={BlogListPage} />

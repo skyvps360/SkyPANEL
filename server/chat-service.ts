@@ -385,6 +385,12 @@ export class ChatService {
         data: { adminId: ws.userId }
       }, ws.userId);
 
+      // Broadcast session status update to all clients in the session
+      this.broadcastToSession(data.sessionId, {
+        type: 'session_update',
+        data: { sessionId: data.sessionId, status: 'active' }
+      });
+
       console.log(`Admin ${ws.userId} joined session ${data.sessionId}`);
     } catch (error) {
       console.error('Error joining session:', error);
