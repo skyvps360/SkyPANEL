@@ -764,11 +764,20 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         <nav className="flex-1 py-6 px-4 overflow-y-auto">
           <div className="space-y-2">
             {mainNavigation.map((item) => {
-              // Check if this is the blog item and we're on dashboard with blog section
-              const isBlogActive = item.name === "Blog" && location === "/dashboard" &&
+              // Check if we're in blog section
+              const isInBlogSection = location === "/dashboard" &&
                 new URLSearchParams(window.location.search).get('section') === 'blog';
-              // Check if this is a regular navigation item
-              const isActive = location === item.href || isBlogActive;
+
+              // Check if this is the blog item and we're on dashboard with blog section
+              const isBlogActive = item.name === "Blog" && isInBlogSection;
+
+              // Check if this is the dashboard item - only active if we're on dashboard WITHOUT blog section
+              const isDashboardActive = item.name === "Dashboard" && location === "/dashboard" && !isInBlogSection;
+
+              // Check if this is a regular navigation item (not dashboard or blog)
+              const isRegularActive = item.name !== "Dashboard" && item.name !== "Blog" && location === item.href;
+
+              const isActive = isBlogActive || isDashboardActive || isRegularActive;
 
               return (
                 <Link
