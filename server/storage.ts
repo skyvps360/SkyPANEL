@@ -28,6 +28,8 @@ import {
   chatMessages,
   adminChatStatus,
   chatTypingIndicators,
+  chatDepartments,
+  chatDepartmentAdmins,
   type User,
   type InsertUser,
   type Transaction,
@@ -82,7 +84,11 @@ import {
   type AdminChatStatus,
   type InsertAdminChatStatus,
   type ChatTypingIndicator,
-  type InsertChatTypingIndicator
+  type InsertChatTypingIndicator,
+  type ChatDepartment,
+  type InsertChatDepartment,
+  type ChatDepartmentAdmin,
+  type InsertChatDepartmentAdmin
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, gte, lte, count, inArray, or, ilike, lt, sql, not } from "drizzle-orm";
@@ -342,6 +348,26 @@ export interface IStorage {
   upsertChatTypingIndicator(indicator: InsertChatTypingIndicator): Promise<ChatTypingIndicator>;
   getChatTypingIndicators(sessionId: number): Promise<ChatTypingIndicator[]>;
   clearChatTypingIndicator(sessionId: number, userId: number): Promise<void>;
+
+  // Chat department operations
+  createChatDepartment(department: InsertChatDepartment): Promise<ChatDepartment>;
+  getChatDepartment(id: number): Promise<ChatDepartment | undefined>;
+  getChatDepartments(): Promise<ChatDepartment[]>;
+  getActiveChatDepartments(): Promise<ChatDepartment[]>;
+  updateChatDepartment(id: number, updates: Partial<ChatDepartment>): Promise<void>;
+  deleteChatDepartment(id: number): Promise<void>;
+
+  // Chat department admin operations
+  assignAdminToDepartment(assignment: InsertChatDepartmentAdmin): Promise<ChatDepartmentAdmin>;
+  removeAdminFromDepartment(departmentId: number, adminId: number): Promise<void>;
+  getDepartmentAdmins(departmentId: number): Promise<(ChatDepartmentAdmin & { admin: User })[]>;
+  getAdminDepartments(adminId: number): Promise<(ChatDepartmentAdmin & { department: ChatDepartment })[]>;
+  updateDepartmentAdminPermissions(departmentId: number, adminId: number, updates: Partial<ChatDepartmentAdmin>): Promise<void>;
+
+  // Enhanced chat session operations with departments
+  getChatSessionsWithDepartments(): Promise<(ChatSession & { user: User; assignedAdmin?: User; department?: ChatDepartment })[]>;
+  getChatSessionsByDepartment(departmentId: number): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]>;
+  getUserChatHistory(userId: number, limit?: number, offset?: number): Promise<(ChatSession & { department?: ChatDepartment })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2035,6 +2061,281 @@ export class DatabaseStorage implements IStorage {
         eq(chatTypingIndicators.sessionId, sessionId),
         eq(chatTypingIndicators.userId, userId)
       ));
+  }
+
+  // Chat department operations
+  async createChatDepartment(department: InsertChatDepartment): Promise<ChatDepartment> {
+    const [createdDepartment] = await db.insert(chatDepartments).values(department).returning();
+    return createdDepartment;
+  }
+
+  async getChatDepartment(id: number): Promise<ChatDepartment | undefined> {
+    const [department] = await db.select().from(chatDepartments).where(eq(chatDepartments.id, id));
+    return department;
+  }
+
+  async getChatDepartments(): Promise<ChatDepartment[]> {
+    return await db.select().from(chatDepartments).orderBy(chatDepartments.displayOrder, chatDepartments.name);
+  }
+
+  async getActiveChatDepartments(): Promise<ChatDepartment[]> {
+    return await db.select()
+      .from(chatDepartments)
+      .where(eq(chatDepartments.isActive, true))
+      .orderBy(chatDepartments.displayOrder, chatDepartments.name);
+  }
+
+  async updateChatDepartment(id: number, updates: Partial<ChatDepartment>): Promise<void> {
+    await db.update(chatDepartments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(chatDepartments.id, id));
+  }
+
+  async deleteChatDepartment(id: number): Promise<void> {
+    await db.delete(chatDepartments).where(eq(chatDepartments.id, id));
+  }
+
+  // Chat department admin operations
+  async assignAdminToDepartment(assignment: InsertChatDepartmentAdmin): Promise<ChatDepartmentAdmin> {
+    const [createdAssignment] = await db.insert(chatDepartmentAdmins).values(assignment).returning();
+    return createdAssignment;
+  }
+
+  async removeAdminFromDepartment(departmentId: number, adminId: number): Promise<void> {
+    await db.delete(chatDepartmentAdmins)
+      .where(and(
+        eq(chatDepartmentAdmins.departmentId, departmentId),
+        eq(chatDepartmentAdmins.adminId, adminId)
+      ));
+  }
+
+  async getDepartmentAdmins(departmentId: number): Promise<(ChatDepartmentAdmin & { admin: User })[]> {
+    return await db.select({
+      id: chatDepartmentAdmins.id,
+      departmentId: chatDepartmentAdmins.departmentId,
+      adminId: chatDepartmentAdmins.adminId,
+      canManage: chatDepartmentAdmins.canManage,
+      isActive: chatDepartmentAdmins.isActive,
+      createdAt: chatDepartmentAdmins.createdAt,
+      updatedAt: chatDepartmentAdmins.updatedAt,
+      admin: {
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        password: users.password,
+        fullName: users.fullName,
+        role: users.role,
+        virtFusionId: users.virtFusionId,
+        isVerified: users.isVerified,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      }
+    })
+    .from(chatDepartmentAdmins)
+    .leftJoin(users, eq(chatDepartmentAdmins.adminId, users.id))
+    .where(and(
+      eq(chatDepartmentAdmins.departmentId, departmentId),
+      eq(chatDepartmentAdmins.isActive, true)
+    ));
+  }
+
+  async getAdminDepartments(adminId: number): Promise<(ChatDepartmentAdmin & { department: ChatDepartment })[]> {
+    return await db.select({
+      id: chatDepartmentAdmins.id,
+      departmentId: chatDepartmentAdmins.departmentId,
+      adminId: chatDepartmentAdmins.adminId,
+      canManage: chatDepartmentAdmins.canManage,
+      isActive: chatDepartmentAdmins.isActive,
+      createdAt: chatDepartmentAdmins.createdAt,
+      updatedAt: chatDepartmentAdmins.updatedAt,
+      department: {
+        id: chatDepartments.id,
+        name: chatDepartments.name,
+        description: chatDepartments.description,
+        isDefault: chatDepartments.isDefault,
+        isActive: chatDepartments.isActive,
+        displayOrder: chatDepartments.displayOrder,
+        color: chatDepartments.color,
+        icon: chatDepartments.icon,
+        createdAt: chatDepartments.createdAt,
+        updatedAt: chatDepartments.updatedAt,
+      }
+    })
+    .from(chatDepartmentAdmins)
+    .leftJoin(chatDepartments, eq(chatDepartmentAdmins.departmentId, chatDepartments.id))
+    .where(and(
+      eq(chatDepartmentAdmins.adminId, adminId),
+      eq(chatDepartmentAdmins.isActive, true),
+      eq(chatDepartments.isActive, true)
+    ))
+    .orderBy(chatDepartments.displayOrder, chatDepartments.name);
+  }
+
+  async updateDepartmentAdminPermissions(departmentId: number, adminId: number, updates: Partial<ChatDepartmentAdmin>): Promise<void> {
+    await db.update(chatDepartmentAdmins)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(
+        eq(chatDepartmentAdmins.departmentId, departmentId),
+        eq(chatDepartmentAdmins.adminId, adminId)
+      ));
+  }
+
+  // Enhanced chat session operations with departments
+  async getChatSessionsWithDepartments(): Promise<(ChatSession & { user: User; assignedAdmin?: User; department?: ChatDepartment })[]> {
+    const sessions = await db.select({
+      id: chatSessions.id,
+      userId: chatSessions.userId,
+      assignedAdminId: chatSessions.assignedAdminId,
+      departmentId: chatSessions.departmentId,
+      status: chatSessions.status,
+      priority: chatSessions.priority,
+      subject: chatSessions.subject,
+      department: chatSessions.department,
+      metadata: chatSessions.metadata,
+      startedAt: chatSessions.startedAt,
+      endedAt: chatSessions.endedAt,
+      lastActivityAt: chatSessions.lastActivityAt,
+      createdAt: chatSessions.createdAt,
+      updatedAt: chatSessions.updatedAt,
+      user: {
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        password: users.password,
+        fullName: users.fullName,
+        role: users.role,
+        virtFusionId: users.virtFusionId,
+        isVerified: users.isVerified,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      },
+      chatDepartment: {
+        id: chatDepartments.id,
+        name: chatDepartments.name,
+        description: chatDepartments.description,
+        isDefault: chatDepartments.isDefault,
+        isActive: chatDepartments.isActive,
+        displayOrder: chatDepartments.displayOrder,
+        color: chatDepartments.color,
+        icon: chatDepartments.icon,
+        createdAt: chatDepartments.createdAt,
+        updatedAt: chatDepartments.updatedAt,
+      }
+    })
+    .from(chatSessions)
+    .leftJoin(users, eq(chatSessions.userId, users.id))
+    .leftJoin(chatDepartments, eq(chatSessions.departmentId, chatDepartments.id))
+    .orderBy(desc(chatSessions.lastActivityAt));
+
+    // Get assigned admins separately to avoid complex joins
+    const result = [];
+    for (const session of sessions) {
+      let assignedAdmin = undefined;
+      if (session.assignedAdminId) {
+        assignedAdmin = await this.getUser(session.assignedAdminId);
+      }
+      result.push({
+        ...session,
+        assignedAdmin,
+        department: session.chatDepartment
+      });
+    }
+
+    return result;
+  }
+
+  async getChatSessionsByDepartment(departmentId: number): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]> {
+    const sessions = await db.select({
+      id: chatSessions.id,
+      userId: chatSessions.userId,
+      assignedAdminId: chatSessions.assignedAdminId,
+      departmentId: chatSessions.departmentId,
+      status: chatSessions.status,
+      priority: chatSessions.priority,
+      subject: chatSessions.subject,
+      department: chatSessions.department,
+      metadata: chatSessions.metadata,
+      startedAt: chatSessions.startedAt,
+      endedAt: chatSessions.endedAt,
+      lastActivityAt: chatSessions.lastActivityAt,
+      createdAt: chatSessions.createdAt,
+      updatedAt: chatSessions.updatedAt,
+      user: {
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        password: users.password,
+        fullName: users.fullName,
+        role: users.role,
+        virtFusionId: users.virtFusionId,
+        isVerified: users.isVerified,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
+      }
+    })
+    .from(chatSessions)
+    .leftJoin(users, eq(chatSessions.userId, users.id))
+    .where(eq(chatSessions.departmentId, departmentId))
+    .orderBy(desc(chatSessions.lastActivityAt));
+
+    // Get assigned admins separately
+    const result = [];
+    for (const session of sessions) {
+      let assignedAdmin = undefined;
+      if (session.assignedAdminId) {
+        assignedAdmin = await this.getUser(session.assignedAdminId);
+      }
+      result.push({
+        ...session,
+        assignedAdmin
+      });
+    }
+
+    return result;
+  }
+
+  async getUserChatHistory(userId: number, limit: number = 50, offset: number = 0): Promise<(ChatSession & { department?: ChatDepartment })[]> {
+    return await db.select({
+      id: chatSessions.id,
+      userId: chatSessions.userId,
+      assignedAdminId: chatSessions.assignedAdminId,
+      departmentId: chatSessions.departmentId,
+      status: chatSessions.status,
+      priority: chatSessions.priority,
+      subject: chatSessions.subject,
+      department: chatSessions.department,
+      metadata: chatSessions.metadata,
+      startedAt: chatSessions.startedAt,
+      endedAt: chatSessions.endedAt,
+      lastActivityAt: chatSessions.lastActivityAt,
+      createdAt: chatSessions.createdAt,
+      updatedAt: chatSessions.updatedAt,
+      chatDepartment: {
+        id: chatDepartments.id,
+        name: chatDepartments.name,
+        description: chatDepartments.description,
+        isDefault: chatDepartments.isDefault,
+        isActive: chatDepartments.isActive,
+        displayOrder: chatDepartments.displayOrder,
+        color: chatDepartments.color,
+        icon: chatDepartments.icon,
+        createdAt: chatDepartments.createdAt,
+        updatedAt: chatDepartments.updatedAt,
+      }
+    })
+    .from(chatSessions)
+    .leftJoin(chatDepartments, eq(chatSessions.departmentId, chatDepartments.id))
+    .where(eq(chatSessions.userId, userId))
+    .orderBy(desc(chatSessions.startedAt))
+    .limit(limit)
+    .offset(offset)
+    .then(sessions => sessions.map(session => ({
+      ...session,
+      department: session.chatDepartment
+    })));
   }
 }
 

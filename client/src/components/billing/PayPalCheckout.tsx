@@ -116,7 +116,7 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
             </div>
             <div>
               <h5 className="font-medium">PayPal Payment</h5>
-              <p className="text-sm text-muted-foreground">Add ${amount.toFixed(2)} to your VirtFusion account</p>
+              <p className="text-sm text-muted-foreground">Purchase ${amount.toFixed(2)} in VirtFusion tokens (digital service)</p>
             </div>
           </div>
         </div>
@@ -132,9 +132,12 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
               layout: "vertical",
               color: "blue",
               shape: "rect",
-              label: "paypal",
+              label: "pay", // Use "Pay with PayPal" for digital goods
+              tagline: false, // Remove "Pay in 4" tagline for digital services
+              height: 45, // Consistent button height
             }}
             disabled={isProcessing}
+            forceReRender={[amount]} // Re-render when amount changes
             createOrder={(data, actions) => {
               return actions.order.create({
                 purchase_units: [
@@ -144,9 +147,20 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
                       currency_code: "USD",
                     },
                     description: `VirtFusion Tokens - ${(amount * 100).toLocaleString()} tokens`,
+                    category: "DIGITAL_GOODS", // Specify this is for digital goods
                   },
                 ],
                 intent: "CAPTURE",
+                application_context: {
+                  shipping_preference: "NO_SHIPPING", // Disable shipping address collection
+                  user_action: "PAY_NOW", // Show "Pay Now" instead of "Continue"
+                  brand_name: "SkyPANEL", // Custom brand name in PayPal checkout
+                  locale: "en-US",
+                  landing_page: "BILLING", // Direct to billing page instead of login
+                  payment_method: {
+                    payee_preferred: "IMMEDIATE_PAYMENT_REQUIRED"
+                  }
+                },
               });
             }}
             onApprove={async (data, actions) => {
@@ -192,8 +206,8 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
       </div>
 
       <div className="text-xs text-muted-foreground text-center">
-        <p>Secure payment processing via PayPal</p>
-        <p>Funds will be added as VirtFusion tokens (100 tokens = $1.00 USD)</p>
+        <p>Secure payment processing via PayPal • Digital Service • No Shipping Required</p>
+        <p>VirtFusion tokens will be instantly added to your account (100 tokens = $1.00 USD)</p>
       </div>
     </div>
   );

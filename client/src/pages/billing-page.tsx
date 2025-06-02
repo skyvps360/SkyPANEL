@@ -627,9 +627,9 @@ export default function BillingPage() {
                       Add VirtFusion Tokens
                     </h3>
                     <p className="text-muted-foreground">
-                      Add tokens to your VirtFusion account via PayPal. Tokens are used to pay for server resources and services.
+                      Purchase VirtFusion tokens instantly via PayPal. These digital tokens are used to pay for server resources and services.
                       <br />
-                      <span className="text-sm font-medium">Exchange Rate: 100 tokens = $1.00 USD</span>
+                      <span className="text-sm font-medium">Exchange Rate: 100 tokens = $1.00 USD • Digital Service • No Shipping Required</span>
                     </p>
                   </div>
 

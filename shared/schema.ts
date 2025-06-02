@@ -563,15 +563,59 @@ export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({
 export type InsertTeamMember = z.infer<typeof insertTeamMemberSchema>;
 export type TeamMember = typeof teamMembers.$inferSelect;
 
+// Chat Departments
+export const chatDepartments = pgTable("chat_departments", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  displayOrder: integer("display_order").default(0),
+  color: text("color").default("#3b82f6"), // Brand color for the department
+  icon: text("icon").default("MessageCircle"), // Lucide icon name
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertChatDepartmentSchema = createInsertSchema(chatDepartments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertChatDepartment = z.infer<typeof insertChatDepartmentSchema>;
+export type ChatDepartment = typeof chatDepartments.$inferSelect;
+
+// Chat Department Admin Assignments
+export const chatDepartmentAdmins = pgTable("chat_department_admins", {
+  id: serial("id").primaryKey(),
+  departmentId: integer("department_id").notNull().references(() => chatDepartments.id, { onDelete: 'cascade' }),
+  adminId: integer("admin_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  canManage: boolean("can_manage").default(false), // Can manage department settings
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertChatDepartmentAdminSchema = createInsertSchema(chatDepartmentAdmins).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertChatDepartmentAdmin = z.infer<typeof insertChatDepartmentAdminSchema>;
+export type ChatDepartmentAdmin = typeof chatDepartmentAdmins.$inferSelect;
+
 // Live Chat Sessions
 export const chatSessions = pgTable("chat_sessions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   assignedAdminId: integer("assigned_admin_id").references(() => users.id, { onDelete: 'set null' }),
+  departmentId: integer("department_id").references(() => chatDepartments.id, { onDelete: 'set null' }),
   status: text("status").notNull().default("waiting"), // waiting, active, closed
   priority: text("priority").notNull().default("normal"), // low, normal, high
   subject: text("subject"), // Optional subject for the chat
-  department: text("department").default("general"), // general, technical, billing, etc.
+  department: text("department").default("general"), // Legacy field - will be replaced by departmentId
   metadata: json("metadata").default({}), // Additional data like browser info, page URL, etc.
   startedAt: timestamp("started_at").defaultNow().notNull(),
   endedAt: timestamp("ended_at"),

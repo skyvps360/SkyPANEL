@@ -25,6 +25,7 @@ import apiKeysRoutes from "./routes/api-keys";
 import apiOnlyRoutes from "./routes/api-only-routes";
 import adminSettingsRoutes from "./routes/admin-settings";
 import chatRoutes from "./routes/chat";
+import chatDepartmentsRoutes from "./routes/chat-departments";
 import { chatService } from "./chat-service";
 import { eq, and, desc, isNull, gte, lte } from "drizzle-orm";
 import PDFDocument from "pdfkit";
@@ -11366,6 +11367,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Chat routes
   app.use("/api/chat", chatRoutes);
+
+  // Register Chat Departments routes
+  app.use("/api/chat", chatDepartmentsRoutes);
 
   // Admin settings routes are defined directly in this file instead of using the separate router
 

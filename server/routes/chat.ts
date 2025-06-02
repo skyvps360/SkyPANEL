@@ -34,7 +34,7 @@ router.get('/session', requireAuth, async (req, res) => {
 router.post('/session', requireAuth, async (req, res) => {
   try {
     const userId = req.user!.id;
-    const { subject, department } = req.body;
+    const { subject, department, departmentId } = req.body;
 
     // Check if user already has an active session
     const existingSession = await storage.getUserActiveChatSession(userId);
@@ -42,11 +42,28 @@ router.post('/session', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'You already have an active chat session' });
     }
 
+    // Validate department if provided
+    let validDepartmentId = null;
+    if (departmentId) {
+      const dept = await storage.getChatDepartment(departmentId);
+      if (dept && dept.isActive) {
+        validDepartmentId = departmentId;
+      }
+    } else if (!departmentId) {
+      // Get default department
+      const departments = await storage.getActiveChatDepartments();
+      const defaultDept = departments.find(d => d.isDefault);
+      if (defaultDept) {
+        validDepartmentId = defaultDept.id;
+      }
+    }
+
     // Create new session
     const session = await storage.createChatSession({
       userId,
       subject: subject || 'General Support',
-      department: department || 'general',
+      department: department || 'general', // Legacy field
+      departmentId: validDepartmentId,
       status: 'waiting',
       metadata: {
         userAgent: req.headers['user-agent'] || 'Unknown',
@@ -84,7 +101,7 @@ router.get('/messages', requireAuth, async (req, res) => {
   try {
     const userId = req.user!.id;
     const session = await storage.getUserActiveChatSession(userId);
-    
+
     if (!session) {
       return res.status(404).json({ error: 'No active chat session found' });
     }
@@ -97,14 +114,63 @@ router.get('/messages', requireAuth, async (req, res) => {
   }
 });
 
+// Get user's chat history
+router.get('/history', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const history = await storage.getUserChatHistory(userId, limit, offset);
+    res.json({ history });
+  } catch (error) {
+    console.error('Error getting chat history:', error);
+    res.status(500).json({ error: 'Failed to get chat history' });
+  }
+});
+
+// Get specific chat session from history with messages
+router.get('/history/:sessionId', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const sessionId = parseInt(req.params.sessionId);
+
+    // Get the session and verify it belongs to the user
+    const session = await storage.getChatSession(sessionId);
+    if (!session || session.userId !== userId) {
+      return res.status(404).json({ error: 'Chat session not found' });
+    }
+
+    // Get messages for this session
+    const messages = await storage.getChatMessagesWithUsers(sessionId);
+
+    // Get department info if available
+    let department = null;
+    if (session.departmentId) {
+      department = await storage.getChatDepartment(session.departmentId);
+    }
+
+    res.json({
+      session: {
+        ...session,
+        department
+      },
+      messages
+    });
+  } catch (error) {
+    console.error('Error getting chat session from history:', error);
+    res.status(500).json({ error: 'Failed to get chat session' });
+  }
+});
+
 /**
  * Admin Chat Routes
  */
 
-// Get all chat sessions with user details
+// Get all chat sessions with user details and departments
 router.get('/admin/sessions', requireAdmin, async (req, res) => {
   try {
-    const sessions = await chatService.getChatSessionsWithUsers();
+    const sessions = await storage.getChatSessionsWithDepartments();
     res.json({ sessions });
   } catch (error) {
     console.error('Error getting admin chat sessions:', error);
