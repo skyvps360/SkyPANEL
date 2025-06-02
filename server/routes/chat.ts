@@ -193,14 +193,17 @@ router.post('/admin/status', requireAdmin, async (req, res) => {
     const adminId = req.user!.id;
     const { status, statusMessage, maxConcurrentChats, autoAssign } = req.body;
 
-    await storage.upsertAdminChatStatus(adminId, {
-      status: status || 'online',
+    console.log(`Admin ${adminId} updating status:`, { status, statusMessage, maxConcurrentChats, autoAssign });
+
+    const updatedStatus = await storage.upsertAdminChatStatus(adminId, {
+      status: status || 'offline',
       statusMessage,
       maxConcurrentChats: maxConcurrentChats || 5,
       autoAssign: autoAssign !== undefined ? autoAssign : true
     });
 
-    res.json({ success: true });
+    console.log(`Status update successful for admin ${adminId}:`, updatedStatus);
+    res.json({ success: true, status: updatedStatus });
   } catch (error) {
     console.error('Error updating admin status:', error);
     res.status(500).json({ error: 'Failed to update admin status' });
@@ -212,6 +215,7 @@ router.get('/admin/status', requireAdmin, async (req, res) => {
   try {
     const adminId = req.user!.id;
     const status = await storage.getAdminChatStatus(adminId);
+    console.log(`Retrieved admin status for user ${adminId}:`, status);
     res.json({ status });
   } catch (error) {
     console.error('Error getting admin status:', error);

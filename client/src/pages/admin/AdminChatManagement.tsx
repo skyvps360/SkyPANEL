@@ -265,10 +265,23 @@ export default function AdminChatManagement() {
           }, 100);
         }
       } else if (data.type === 'new_session') {
-        // New session notification with enhanced styling
+        // New session notification with enhanced styling and click handler
         toast({
           title: 'New chat session',
-          description: `${data.data.user?.fullName || 'A user'} started a new chat session`,
+          description: `${data.data.user?.fullName || 'A user'} started a new chat session. Click to view.`,
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Open the new session in a tab
+                openTab(data.data);
+              }}
+              className="ml-auto"
+            >
+              View Chat
+            </Button>
+          ),
         });
         refetchSessions();
         setAvailableSessions(prev => [...prev, data.data]);
@@ -461,10 +474,25 @@ export default function AdminChatManagement() {
 
   useEffect(() => {
     if (currentStatusData?.status) {
-      setAdminStatus(currentStatusData.status.status || 'online');
-      setStatusMessage(currentStatusData.status.statusMessage || '');
-      setMaxConcurrentChats(currentStatusData.status.maxConcurrentChats || 5);
-      setAutoAssign(currentStatusData.status.autoAssign !== false);
+      console.log('Setting admin status from fetched data:', currentStatusData.status);
+
+      // Set the values directly from the fetched data
+      const newStatus = currentStatusData.status.status || 'offline';
+      const newStatusMessage = currentStatusData.status.statusMessage || '';
+      const newMaxConcurrentChats = currentStatusData.status.maxConcurrentChats || 5;
+      const newAutoAssign = currentStatusData.status.autoAssign !== false;
+
+      setAdminStatus(newStatus);
+      setStatusMessage(newStatusMessage);
+      setMaxConcurrentChats(newMaxConcurrentChats);
+      setAutoAssign(newAutoAssign);
+
+      console.log('Form state updated:', {
+        status: newStatus,
+        statusMessage: newStatusMessage,
+        maxConcurrentChats: newMaxConcurrentChats,
+        autoAssign: newAutoAssign
+      });
     }
   }, [currentStatusData]);
 
@@ -545,22 +573,22 @@ export default function AdminChatManagement() {
 
   const handleUpdateStatus = async () => {
     try {
+      // Validate form data before sending
+      const formData = {
+        status: adminStatus || 'offline',
+        statusMessage: statusMessage || '',
+        maxConcurrentChats: maxConcurrentChats || 5,
+        autoAssign: autoAssign !== false
+      };
+
+      console.log('Updating status with validated values:', formData);
+
       // Update via API
-      await updateStatusMutation.mutateAsync({
-        status: adminStatus,
-        statusMessage,
-        maxConcurrentChats,
-        autoAssign
-      });
+      await updateStatusMutation.mutateAsync(formData);
 
       // Also update via WebSocket for real-time status propagation
       if (updateAdminStatus) {
-        await updateAdminStatus({
-          status: adminStatus,
-          statusMessage,
-          maxConcurrentChats,
-          autoAssign
-        });
+        await updateAdminStatus(formData.status, formData.statusMessage);
       }
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -1067,27 +1095,22 @@ export default function AdminChatManagement() {
                     <Label htmlFor="status" className="text-sm font-medium text-gray-700">
                       Availability Status
                     </Label>
-                    <Select value={adminStatus} onValueChange={setAdminStatus}>
+                    <Select
+                      key={`status-${adminStatus}`}
+                      value={adminStatus}
+                      onValueChange={(value) => {
+                        console.log('Status dropdown changed to:', value);
+                        setAdminStatus(value);
+                      }}
+                    >
                       <SelectTrigger className="border-gray-200 focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue />
+                        <SelectValue placeholder="Select availability status" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="online">
                           <div className="flex items-center space-x-2">
                             <div className="w-2 h-2 bg-green-500 rounded-full" />
                             <span>Online</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="away">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-                            <span>Away</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="busy">
-                          <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-red-500 rounded-full" />
-                            <span>Busy</span>
                           </div>
                         </SelectItem>
                         <SelectItem value="offline">
@@ -1126,7 +1149,10 @@ export default function AdminChatManagement() {
                   <Input
                     id="statusMessage"
                     value={statusMessage}
-                    onChange={(e) => setStatusMessage(e.target.value)}
+                    onChange={(e) => {
+                      console.log('Status message changed to:', e.target.value);
+                      setStatusMessage(e.target.value);
+                    }}
                     placeholder="Optional status message for customers"
                     className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   />

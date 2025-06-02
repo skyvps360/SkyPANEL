@@ -1952,17 +1952,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertAdminChatStatus(userId: number, statusData: InsertAdminChatStatus): Promise<AdminChatStatus> {
+    console.log(`Upserting admin chat status for user ${userId}:`, statusData);
     const existingStatus = await this.getAdminChatStatus(userId);
 
     if (existingStatus) {
-      await db.update(adminChatStatus)
+      console.log(`Updating existing status for user ${userId}`);
+      const [updatedStatus] = await db.update(adminChatStatus)
         .set({ ...statusData, updatedAt: new Date() })
-        .where(eq(adminChatStatus.userId, userId));
-      return { ...existingStatus, ...statusData };
+        .where(eq(adminChatStatus.userId, userId))
+        .returning();
+      console.log(`Updated status:`, updatedStatus);
+      return updatedStatus;
     } else {
+      console.log(`Creating new status for user ${userId}`);
       const [newStatus] = await db.insert(adminChatStatus)
         .values({ ...statusData, userId })
         .returning();
+      console.log(`Created status:`, newStatus);
       return newStatus;
     }
   }
