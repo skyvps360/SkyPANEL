@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin } from "lucide-react";
+import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Activity, Cpu, HardDrive, MemoryStick, Zap, Settings } from "lucide-react";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
+import { getBrandColors } from "@/lib/brand-theme";
 
 function getStatusBadgeVariant(status: string) {
   const normalizedStatus = status.toLowerCase();
@@ -71,6 +72,9 @@ export default function ServersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Get brand colors for consistent theming
+  const brandColors = getBrandColors();
 
   // Fetch servers from API
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
@@ -158,140 +162,282 @@ export default function ServersPage() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Servers</h1>
-            <p className="text-muted-foreground">
-              Manage and monitor your virtual servers
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <VirtFusionSsoButton 
-              text="Create Server"
-              className="inline-flex gap-2"
-            />
-            <Button onClick={handleRefresh} disabled={isRefreshing} variant="outline">
-              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
+      <div className="space-y-8 animate-in fade-in duration-500">
+        {/* Modern Hero Header */}
+        <div className="rounded-2xl bg-white border border-gray-300/60 shadow-md">
+          <div className="p-8 md:p-12">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div
+                    className="flex items-center justify-center h-12 w-12 rounded-xl text-white shadow-lg"
+                    style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
+                  >
+                    <Server className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">
+                      My Servers
+                    </h1>
+                    <p className="text-gray-600 text-lg mt-1">
+                      Manage and monitor your virtual servers
+                    </p>
+                  </div>
+                </div>
+
+                {/* Server Stats Summary */}
+                <div className="flex flex-wrap gap-6 mt-6">
+                  <div className="flex items-center space-x-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      {filteredServers.filter(s => getServerStatus(s) === 'RUNNING').length} Running
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-gray-400" />
+                    <span className="text-sm font-medium text-gray-700">
+                      {filteredServers.filter(s => getServerStatus(s) === 'STOPPED').length} Stopped
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                    <span className="text-sm font-medium text-gray-700">
+                      {filteredServers.filter(s => getServerStatus(s) === 'SUSPENDED').length} Suspended
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+                <VirtFusionSsoButton
+                  text="Create Server"
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+                />
+                <Button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  variant="outline"
+                  className="border-gray-300 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
+        {/* Enhanced Filters Section */}
+        <div className="rounded-xl bg-white border border-gray-300/60 shadow-md">
+          <div className="p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex-1 max-w-md">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Search Servers
+                </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    placeholder="Search servers..."
+                    placeholder="Search by name, ID, or location..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 h-11 border-gray-300 focus:border-primary focus:ring-primary/20 transition-all duration-200"
                   />
                 </div>
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Servers</SelectItem>
-                  <SelectItem value="running">Running</SelectItem>
-                  <SelectItem value="stopped">Stopped</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Loading State */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader>
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-8 w-full" />
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Filter by Status
+                  </label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px] h-11 border-gray-300 focus:border-primary focus:ring-primary/20">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Servers</SelectItem>
+                      <SelectItem value="running">Running</SelectItem>
+                      <SelectItem value="stopped">Stopped</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-end">
+                  <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                    <span className="font-medium">{filteredServers.length}</span> of{' '}
+                    <span className="font-medium">{allServers.length}</span> servers
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Enhanced Loading State */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="rounded-xl bg-white border border-gray-300/60 shadow-md">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-lg" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-20" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                  </div>
+
+                  <Skeleton className="h-10 w-full rounded-lg" />
+                </div>
+              </div>
             ))}
           </div>
         ) : servers?.length ? (
           <>
-            {/* Server Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Modern Server Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {servers.map((server: any) => {
                 const status = getServerStatus(server);
+                const isRunning = status === 'RUNNING';
+                const isStopped = status === 'STOPPED';
+                const isSuspended = status === 'SUSPENDED';
 
                 return (
-                  <Card key={server.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          <Server className="h-5 w-5 text-muted-foreground" />
+                  <div
+                    key={server.id}
+                    className="group rounded-xl bg-white border border-gray-300/60 shadow-md hover:shadow-xl hover:border-gray-400/60 transition-all duration-300"
+                  >
+                    <div className="p-6">
+                      {/* Header with Status */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`flex items-center justify-center h-10 w-10 rounded-lg text-white shadow-sm transition-all duration-200 ${
+                              isRunning ? 'shadow-lg' : ''
+                            }`}
+                            style={{
+                              backgroundColor: isRunning
+                                ? `var(--brand-primary, ${brandColors.primary.full})`
+                                : isSuspended
+                                ? '#ef4444'
+                                : '#6b7280'
+                            }}
+                          >
+                            <Server className="h-5 w-5" />
+                          </div>
                           <div>
-                            <CardTitle className="text-lg">{server.name}</CardTitle>
-                            <p className="text-sm text-muted-foreground font-mono">
+                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-gray-700 transition-colors">
+                              {server.name}
+                            </h3>
+                            <p className="text-sm text-gray-500 font-mono">
                               ID: {server.id}
                             </p>
                           </div>
                         </div>
-                        <Badge variant={getStatusBadgeVariant(status)}>
+
+                        <Badge
+                          variant={getStatusBadgeVariant(status)}
+                          className={`${
+                            isRunning
+                              ? 'bg-green-100 text-green-800 border-green-200'
+                              : isSuspended
+                              ? 'bg-red-100 text-red-800 border-red-200'
+                              : 'bg-gray-100 text-gray-800 border-gray-200'
+                          } font-medium`}
+                        >
+                          <div className={`w-2 h-2 rounded-full mr-1.5 ${
+                            isRunning ? 'bg-green-500' : isSuspended ? 'bg-red-500' : 'bg-gray-500'
+                          }`} />
                           {status}
                         </Badge>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Server Info */}
-                      <div className="space-y-2">
+
+                      {/* Server Details */}
+                      <div className="space-y-3 mb-6">
                         {server.hypervisor?.name && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin className="h-4 w-4" />
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <MapPin className="h-4 w-4 text-gray-400" />
                             <span>{server.hypervisor.name}</span>
                           </div>
                         )}
                         {server.created && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Calendar className="h-4 w-4 text-gray-400" />
                             <span>Created {new Date(server.created).toLocaleDateString()}</span>
+                          </div>
+                        )}
+
+                        {/* Resource Info (if available) */}
+                        {(server.cpu || server.memory || server.storage) && (
+                          <div className="flex items-center gap-4 pt-2 border-t border-gray-100">
+                            {server.cpu && (
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <Cpu className="h-3 w-3" />
+                                <span>{server.cpu} CPU</span>
+                              </div>
+                            )}
+                            {server.memory && (
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <MemoryStick className="h-3 w-3" />
+                                <span>{server.memory}GB</span>
+                              </div>
+                            )}
+                            {server.storage && (
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <HardDrive className="h-3 w-3" />
+                                <span>{server.storage}GB</span>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
 
                       {/* Action Button */}
                       <Link href={`/servers/${server.id}`}>
-                        <Button className="w-full" variant="outline">
-                          <ArrowRight className="mr-2 h-4 w-4" />
+                        <Button
+                          className="w-full hover:bg-primary hover:text-primary-foreground transition-all duration-200 group-hover:shadow-md"
+                          variant="outline"
+                        >
+                          <Settings className="mr-2 h-4 w-4" />
                           Manage Server
+                          <ArrowRight className="ml-auto h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
                         </Button>
                       </Link>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 );
               })}
             </div>
 
-            {/* Pagination */}
+            {/* Enhanced Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-8">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-300/60 shadow-sm p-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage <= 1}
+                    className="border-gray-300 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Previous
                   </Button>
@@ -306,6 +452,10 @@ export default function ServersPage() {
                             variant={pageNum === currentPage ? "default" : "outline"}
                             size="sm"
                             onClick={() => setPage(pageNum)}
+                            className={pageNum === currentPage
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "border-gray-300 hover:bg-gray-50"
+                            }
                           >
                             {pageNum}
                           </Button>
@@ -320,6 +470,7 @@ export default function ServersPage() {
                     size="sm"
                     onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage >= totalPages}
+                    className="border-gray-300 hover:bg-gray-50 disabled:opacity-50"
                   >
                     Next
                   </Button>
@@ -328,24 +479,54 @@ export default function ServersPage() {
             )}
           </>
         ) : (
-          /* Empty State */
-          <Card>
-            <CardContent className="text-center py-12">
-              <Server className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No servers found</h3>
-              <p className="text-muted-foreground mb-6">
+          /* Enhanced Empty State */
+          <div className="rounded-xl bg-white border border-gray-300/60 shadow-md">
+            <div className="text-center py-16 px-8">
+              <div
+                className="mx-auto h-16 w-16 rounded-xl flex items-center justify-center mb-6 shadow-lg"
+                style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
+              >
+                <Server
+                  className="h-8 w-8"
+                  style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
+                />
+              </div>
+
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                {searchQuery || statusFilter !== 'all' ? 'No servers found' : 'No servers yet'}
+              </h3>
+
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
                 {searchQuery || statusFilter !== 'all'
-                  ? 'No servers match your current filters.'
-                  : 'You don\'t have any servers yet. Create your first server to get started.'}
+                  ? 'No servers match your current search criteria. Try adjusting your filters or search terms.'
+                  : 'You don\'t have any servers yet. Create your first server to get started with your virtual infrastructure.'}
               </p>
-              {!searchQuery && statusFilter === 'all' && (
-                <VirtFusionSsoButton 
+
+              {searchQuery || statusFilter !== 'all' ? (
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                    }}
+                    variant="outline"
+                    className="border-gray-300 hover:bg-gray-50"
+                  >
+                    Clear Filters
+                  </Button>
+                  <VirtFusionSsoButton
+                    text="Create New Server"
+                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+                  />
+                </div>
+              ) : (
+                <VirtFusionSsoButton
                   text="Create Your First Server"
-                  className="inline-flex"
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                 />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
     </DashboardLayout>
