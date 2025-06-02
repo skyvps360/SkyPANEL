@@ -4,6 +4,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom scrollbar styles for tabbed chat interface */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
 /* Global override for Input focus styles using brand colors */
 .input-brand-focus {
   @apply focus-visible:ring-2 focus-visible:ring-offset-2;
