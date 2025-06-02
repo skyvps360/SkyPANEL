@@ -18,6 +18,7 @@ interface ChatWebSocketOptions {
 interface StartSessionData {
   subject?: string;
   department?: string;
+  departmentId?: number;
 }
 
 interface SendMessageData {

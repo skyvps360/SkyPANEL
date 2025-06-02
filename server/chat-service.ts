@@ -214,7 +214,7 @@ export class ChatService {
   /**
    * Handle starting a new chat session
    */
-  private async handleStartSession(ws: WebSocketWithUser, data: { subject?: string; department?: string }): Promise<void> {
+  private async handleStartSession(ws: WebSocketWithUser, data: { subject?: string; department?: string; departmentId?: number }): Promise<void> {
     if (!ws.userId) {
       this.sendError(ws, 'Not authenticated');
       return;
@@ -226,7 +226,7 @@ export class ChatService {
       if (existingSession) {
         ws.sessionId = existingSession.id;
         this.addToSessionClients(existingSession.id, ws);
-        
+
         this.sendEvent(ws, {
           type: 'session_resumed',
           data: existingSession
@@ -234,11 +234,39 @@ export class ChatService {
         return;
       }
 
+      // Validate department if provided
+      let validDepartmentId = null;
+      console.log('WebSocket session creation - received departmentId:', data.departmentId);
+
+      if (data.departmentId) {
+        const dept = await storage.getChatDepartment(data.departmentId);
+        console.log('Found department:', dept);
+        if (dept && dept.isActive) {
+          validDepartmentId = data.departmentId;
+          console.log('Using provided department:', validDepartmentId);
+        } else {
+          console.log('Department not found or inactive');
+        }
+      } else {
+        // Get default department
+        const departments = await storage.getActiveChatDepartments();
+        const defaultDept = departments.find(d => d.isDefault);
+        if (defaultDept) {
+          validDepartmentId = defaultDept.id;
+          console.log('Using default department:', validDepartmentId);
+        } else {
+          console.log('No default department found');
+        }
+      }
+
+      console.log('Final departmentId for WebSocket session:', validDepartmentId);
+
       // Create new session
       const sessionData: InsertChatSession = {
         userId: ws.userId,
         subject: data.subject,
         department: data.department || 'general',
+        departmentId: validDepartmentId,
         status: 'waiting',
         metadata: {
           userAgent: 'WebSocket Client', // Could be extracted from headers
@@ -258,7 +286,7 @@ export class ChatService {
       // Notify available admins about new session
       await this.notifyAdminsOfNewSession(session);
 
-      console.log(`New chat session started: ${session.id} for user ${ws.userId}`);
+      console.log(`New chat session started: ${session.id} for user ${ws.userId} with department ${validDepartmentId}`);
     } catch (error) {
       console.error('Error starting chat session:', error);
       this.sendError(ws, 'Failed to start chat session');

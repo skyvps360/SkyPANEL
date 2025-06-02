@@ -44,12 +44,13 @@ router.post('/session', requireAuth, async (req, res) => {
 
     // Validate department if provided
     let validDepartmentId = null;
+
     if (departmentId) {
       const dept = await storage.getChatDepartment(departmentId);
       if (dept && dept.isActive) {
         validDepartmentId = departmentId;
       }
-    } else if (!departmentId) {
+    } else {
       // Get default department
       const departments = await storage.getActiveChatDepartments();
       const defaultDept = departments.find(d => d.isDefault);

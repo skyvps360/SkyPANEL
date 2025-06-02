@@ -38,6 +38,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getBrandColors } from '@/lib/brand-theme';
+import DepartmentManagement from '@/components/admin/DepartmentManagement';
 
 interface ChatSession {
   id: number;
@@ -116,6 +117,7 @@ export default function AdminChatManagement() {
   // UI state
   const [showSessionsList, setShowSessionsList] = useState(true);
   const [tabScrollPosition, setTabScrollPosition] = useState(0);
+  const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState<number | null>(null);
 
   // Refs
   const messagesEndRefs = useRef<{ [sessionId: number]: HTMLDivElement | null }>({});
@@ -146,6 +148,16 @@ export default function AdminChatManagement() {
     queryFn: async () => {
       const response = await fetch('/api/chat/admin/status');
       if (!response.ok) throw new Error('Failed to fetch admin status');
+      return response.json();
+    },
+  });
+
+  // Fetch departments for filtering
+  const { data: departments = [] } = useQuery<any[]>({
+    queryKey: ['/api/chat/admin/departments'],
+    queryFn: async () => {
+      const response = await fetch('/api/chat/admin/departments');
+      if (!response.ok) throw new Error('Failed to fetch departments');
       return response.json();
     },
   });
@@ -741,13 +753,20 @@ export default function AdminChatManagement() {
         </div>
 
         <Tabs defaultValue="sessions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-100">
             <TabsTrigger
               value="sessions"
               className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Chat Sessions
+            </TabsTrigger>
+            <TabsTrigger
+              value="departments"
+              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Departments
             </TabsTrigger>
             <TabsTrigger
               value="settings"
@@ -759,95 +778,197 @@ export default function AdminChatManagement() {
           </TabsList>
 
           <TabsContent value="sessions" className="space-y-6">
-            {/* Tabbed Chat Interface */}
-            <div className="space-y-4">
-              {/* Available Sessions Panel */}
-              {showSessionsList && (
-                <Card className="border-0 shadow-lg bg-white">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg font-semibold text-gray-900 flex items-center">
-                        <Users className="h-5 w-5 mr-2" style={{ color: brandColors.primary.full }} />
-                        Available Sessions
-                      </CardTitle>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary" className="px-3 py-1">
-                          {availableSessions.length} available
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowSessionsList(false)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+            {/* Sidebar Layout Chat Interface */}
+            <div className="flex h-[calc(100vh-200px)] bg-gray-50 rounded-lg overflow-hidden">
+              {/* Sidebar - Available Sessions */}
+              <div className={cn(
+                "flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
+                showSessionsList ? "w-80" : "w-16"
+              )}>
+                {/* Sidebar Header */}
+                <div className="flex-shrink-0 p-4 border-b border-gray-100 bg-white">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      {showSessionsList && (
+                        <h3 className="text-sm font-semibold text-gray-900">Available Sessions</h3>
+                      )}
+                      <Badge variant="secondary" className="text-xs">
+                        {availableSessions.filter(session =>
+                          !activeTabs.some(tab => tab.sessionId === session.id) &&
+                          (!selectedDepartmentFilter || session.departmentId === selectedDepartmentFilter)
+                        ).length}
+                      </Badge>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <ScrollArea className="h-48">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-6 pt-0">
-                        {availableSessions.length === 0 ? (
-                          <div className="col-span-full text-center py-8">
-                            <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                            <p className="text-gray-500 text-sm">No available chat sessions</p>
-                          </div>
-                        ) : (
-                          availableSessions
-                            .filter(session => !activeTabs.some(tab => tab.sessionId === session.id))
-                            .map((session) => (
-                              <div
-                                key={session.id}
-                                className="p-3 rounded-lg border border-gray-200 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-300 bg-white"
-                                onClick={() => openTab(session)}
-                              >
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center space-x-2">
-                                    <div className={cn("w-2 h-2 rounded-full", getStatusColor(session.status))} />
-                                    <span className="font-medium text-sm text-gray-900">
-                                      {session.user?.fullName || 'Anonymous'}
-                                    </span>
-                                  </div>
-                                  <Badge variant={getPriorityColor(session.priority)} className="text-xs">
-                                    {session.priority}
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-gray-600 truncate">
-                                  {session.subject || 'General Support'}
-                                </p>
-                                <div className="flex items-center justify-between mt-2">
-                                  <span className="text-xs text-gray-500">
-                                    #{session.id}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {new Date(session.startedAt).toLocaleTimeString()}
-                                  </span>
-                                </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSessionsList(!showSessionsList)}
+                      className="h-6 w-6 p-0"
+                    >
+                      {showSessionsList ? <X className="h-3 w-3" /> : <Users className="h-3 w-3" />}
+                    </Button>
+                  </div>
+
+                  {showSessionsList && (
+                    <>
+                      {/* Department Filter */}
+                      <div className="mb-3">
+                        <Select
+                          value={selectedDepartmentFilter?.toString() || 'all'}
+                          onValueChange={(value) => setSelectedDepartmentFilter(value === 'all' ? null : parseInt(value))}
+                        >
+                          <SelectTrigger className={cn(
+                            "h-8 text-xs",
+                            selectedDepartmentFilter && "border-blue-300 bg-blue-50"
+                          )}>
+                            <SelectValue placeholder="All Departments" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">
+                              <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 rounded-full bg-gray-400" />
+                                <span>All Departments</span>
                               </div>
-                            ))
+                            </SelectItem>
+                            {departments.map((dept) => (
+                              <SelectItem key={dept.id} value={dept.id.toString()}>
+                                <div className="flex items-center space-x-2">
+                                  <div
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: dept.color }}
+                                  />
+                                  <span className="truncate">{dept.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {selectedDepartmentFilter && (
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-xs text-blue-600">
+                              Filtering by: {departments.find(d => d.id === selectedDepartmentFilter)?.name}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0 text-blue-600 hover:text-blue-800"
+                              onClick={() => setSelectedDepartmentFilter(null)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
                         )}
                       </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Show Sessions Button when panel is hidden */}
-              {!showSessionsList && (
-                <div className="flex justify-center">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowSessionsList(true)}
-                    className="flex items-center space-x-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>Show Available Sessions ({availableSessions.filter(s => !activeTabs.some(t => t.sessionId === s.id)).length})</span>
-                  </Button>
+                    </>
+                  )}
                 </div>
-              )}
 
-              {/* Tabbed Chat Interface */}
-              <Card className="border-0 shadow-lg bg-white">
+                {/* Sessions List */}
+                <div className="flex-1 overflow-hidden">
+                  <ScrollArea className="h-full">
+                    <div className="p-2 space-y-1">
+                      {availableSessions.filter(session =>
+                        !activeTabs.some(tab => tab.sessionId === session.id) &&
+                        (!selectedDepartmentFilter || session.departmentId === selectedDepartmentFilter)
+                      ).length === 0 ? (
+                        <div className="text-center py-8">
+                          {showSessionsList ? (
+                            <>
+                              <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                              <p className="text-gray-500 text-xs">No available sessions</p>
+                            </>
+                          ) : (
+                            <MessageCircle className="h-6 w-6 text-gray-300 mx-auto" />
+                          )}
+                        </div>
+                      ) : (
+                        availableSessions
+                          .filter(session =>
+                            !activeTabs.some(tab => tab.sessionId === session.id) &&
+                            (!selectedDepartmentFilter || session.departmentId === selectedDepartmentFilter)
+                          )
+                          .map((session) => {
+                            const department = departments.find(d => d.id === session.departmentId);
+
+                            return (
+                              <div
+                                key={session.id}
+                                className={cn(
+                                  "p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50 bg-white border border-gray-100",
+                                  !showSessionsList && "p-2"
+                                )}
+                                onClick={() => openTab(session)}
+                              >
+                                <div className="flex items-start space-x-3">
+                                  {/* Avatar */}
+                                  <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                      <User className="h-4 w-4 text-gray-600" />
+                                    </div>
+                                  </div>
+
+                                  {showSessionsList && (
+                                    <div className="flex-1 min-w-0">
+                                      {/* Header */}
+                                      <div className="flex items-center justify-between mb-1">
+                                        <h4 className="text-sm font-medium text-gray-900 truncate">
+                                          {session.user?.fullName || 'Anonymous'}
+                                        </h4>
+                                        <div className="flex items-center space-x-1">
+                                          <div className={cn("w-2 h-2 rounded-full", getStatusColor(session.status))} />
+                                          <span className="text-xs text-gray-500">
+                                            {new Date(session.startedAt).toLocaleTimeString()}
+                                          </span>
+                                        </div>
+                                      </div>
+
+                                      {/* Subject */}
+                                      <p className="text-xs text-gray-600 truncate mb-2">
+                                        {session.subject || 'General Support'}
+                                      </p>
+
+                                      {/* Footer */}
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-2">
+                                          {department ? (
+                                            <Badge
+                                              variant="outline"
+                                              className="text-xs px-2 py-0.5 border font-medium"
+                                              style={{
+                                                borderColor: department.color,
+                                                color: department.color,
+                                                backgroundColor: `${department.color}15`
+                                              }}
+                                            >
+                                              {department.name}
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                                              General
+                                            </Badge>
+                                          )}
+                                          {session.priority !== 'normal' && (
+                                            <Badge variant={getPriorityColor(session.priority)} className="text-xs px-1.5 py-0.5">
+                                              {session.priority}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <span className="text-xs text-gray-400">#{session.id}</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+
+              {/* Main Chat Area */}
+              <div className="flex-1 flex flex-col bg-white">
                 {/* Tab Headers */}
                 {activeTabs.length > 0 && (
                   <div className="border-b border-gray-200">
@@ -859,7 +980,6 @@ export default function AdminChatManagement() {
                           {activeTabs.length}/{MAX_TABS}
                         </Badge>
                       </div>
-
                     </div>
 
                     {/* Tab Navigation */}
@@ -869,46 +989,63 @@ export default function AdminChatManagement() {
                         className="flex overflow-x-auto scrollbar-hide"
                         style={{ scrollBehavior: 'smooth' }}
                       >
-                        {activeTabs.map((tab) => (
-                          <div
-                            key={tab.sessionId}
-                            className={cn(
-                              "flex items-center space-x-2 px-4 py-3 border-b-2 cursor-pointer transition-all duration-200 min-w-[200px] max-w-[250px]",
-                              activeTabId === tab.sessionId
-                                ? "border-blue-500 bg-blue-50 text-blue-700"
-                                : "border-transparent hover:bg-gray-50 text-gray-600"
-                            )}
-                            onClick={() => switchTab(tab.sessionId)}
-                          >
-                            <div className={cn("w-2 h-2 rounded-full", getStatusColor(tab.session.status))} />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2">
-                                <span className="font-medium text-sm truncate">
-                                  {tab.session.user?.fullName || 'Anonymous'}
-                                </span>
-                                {tab.unreadCount > 0 && (
-                                  <Badge variant="destructive" className="text-xs px-1.5 py-0.5 min-w-[20px] h-5">
-                                    {tab.unreadCount > 99 ? '99+' : tab.unreadCount}
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-500 truncate">
-                                #{tab.sessionId} • {tab.session.priority}
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                closeTab(tab.sessionId, true);
-                              }}
+                        {activeTabs.map((tab) => {
+                          const department = departments.find(d => d.id === tab.session.departmentId);
+                          return (
+                            <div
+                              key={tab.sessionId}
+                              className={cn(
+                                "flex items-center space-x-2 px-4 py-3 border-b-2 cursor-pointer transition-all duration-200 min-w-[200px] max-w-[250px]",
+                                activeTabId === tab.sessionId
+                                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                                  : "border-transparent hover:bg-gray-50 text-gray-600"
+                              )}
+                              onClick={() => switchTab(tab.sessionId)}
                             >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
+                              <div className={cn("w-2 h-2 rounded-full", getStatusColor(tab.session.status))} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-medium text-sm truncate">
+                                    {tab.session.user?.fullName || 'Anonymous'}
+                                  </span>
+                                  {tab.unreadCount > 0 && (
+                                    <Badge variant="destructive" className="text-xs px-1.5 py-0.5 min-w-[20px] h-5">
+                                      {tab.unreadCount > 99 ? '99+' : tab.unreadCount}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center space-x-2 text-xs text-gray-500 truncate">
+                                  <span>#{tab.sessionId}</span>
+                                  <span>•</span>
+                                  <span>{tab.session.priority}</span>
+                                  {department && (
+                                    <>
+                                      <span>•</span>
+                                      <div className="flex items-center space-x-1">
+                                        <div
+                                          className="w-2 h-2 rounded-full"
+                                          style={{ backgroundColor: department.color }}
+                                        />
+                                        <span className="truncate max-w-16">{department.name}</span>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  closeTab(tab.sessionId, true);
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {/* Tab Overflow Controls */}
@@ -945,27 +1082,73 @@ export default function AdminChatManagement() {
                 )}
 
                 {/* Chat Content */}
-                <CardContent className="p-0">
+                <div className="flex-1 flex flex-col">
                   {activeTab && activeTabState ? (
-                    <div className="flex flex-col h-[600px]">
+                    <>
                       {/* Chat Header */}
                       <div className="border-b border-gray-100 px-6 py-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className={cn("w-3 h-3 rounded-full", getStatusColor(activeTab.session.status))} />
+                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                              <User className="h-5 w-5 text-gray-600" />
+                            </div>
                             <div>
                               <h3 className="font-semibold text-gray-900">
                                 {activeTab.session.user?.fullName || 'Anonymous User'}
                               </h3>
-                              <p className="text-sm text-gray-600">
-                                {activeTab.session.subject || 'General Support'} • Started {new Date(activeTab.session.startedAt).toLocaleTimeString()}
-                              </p>
+                              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                                <span>{activeTab.session.user?.email}</span>
+                                <span>•</span>
+                                <span>#{activeTab.session.id}</span>
+                                <span>•</span>
+                                <div className="flex items-center space-x-1">
+                                  <div className={cn("w-2 h-2 rounded-full", getStatusColor(activeTab.session.status))} />
+                                  <span className="capitalize">{activeTab.session.status}</span>
+                                </div>
+                                {(() => {
+                                  const department = departments.find(d => d.id === activeTab.session.departmentId);
+                                  return department && (
+                                    <>
+                                      <span>•</span>
+                                      <div className="flex items-center space-x-1">
+                                        <div
+                                          className="w-2 h-2 rounded-full"
+                                          style={{ backgroundColor: department.color }}
+                                        />
+                                        <span>{department.name}</span>
+                                      </div>
+                                    </>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <Badge variant={getPriorityColor(activeTab.session.priority)} className="text-xs">
-                              {activeTab.session.priority}
-                            </Badge>
+                            {(() => {
+                              const department = departments.find(d => d.id === activeTab.session.departmentId);
+                              return department ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs px-2 py-0.5 border font-medium"
+                                  style={{
+                                    borderColor: department.color,
+                                    color: department.color,
+                                    backgroundColor: `${department.color}15`
+                                  }}
+                                >
+                                  {department.name}
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                                  General
+                                </Badge>
+                              );
+                            })()}
+                            {activeTab.session.priority !== 'normal' && (
+                              <Badge variant={getPriorityColor(activeTab.session.priority)} className="text-xs">
+                                {activeTab.session.priority} priority
+                              </Badge>
+                            )}
                             <Badge variant={getStatusBadgeVariant(activeTab.session.status)} className="text-xs">
                               {activeTab.session.status}
                             </Badge>
@@ -1050,31 +1233,52 @@ export default function AdminChatManagement() {
                             <Send className="h-4 w-4" />
                           </Button>
                         </div>
+
+                        {/* Connection Status */}
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center space-x-2 text-xs text-gray-500">
+                            <div className={cn(
+                              "w-2 h-2 rounded-full",
+                              isConnected ? "bg-green-500" : "bg-red-500"
+                            )} />
+                            <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            Press Enter to send
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    /* No Session Selected */
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center">
+                        <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Chat</h3>
+                        <p className="text-gray-500 max-w-sm">
+                          Choose a chat session from the sidebar to start messaging with customers
+                        </p>
+                        {!showSessionsList && (
+                          <Button
+                            onClick={() => setShowSessionsList(true)}
+                            className="flex items-center justify-center space-x-2 mx-auto mt-4"
+                            style={{ backgroundColor: brandColors.primary.full }}
+                          >
+                            <Users className="h-4 w-4" />
+                            <span>Show Available Sessions</span>
+                          </Button>
+                        )}
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-20">
-                      <MessageSquare className="h-20 w-20 text-gray-300 mx-auto mb-6" />
-                      <h3 className="text-xl font-medium text-gray-900 mb-3">No Active Chats</h3>
-                      <p className="text-gray-500 mb-6">
-                        Open a chat session from the available sessions above to start messaging with customers
-                      </p>
-                      {!showSessionsList && (
-                        <Button
-                          onClick={() => setShowSessionsList(true)}
-                          className="flex items-center justify-center space-x-2 mx-auto"
-                          style={{ backgroundColor: brandColors.primary.full }}
-                        >
-                          <Plus className="h-4 w-4" />
-                          <span>Browse Available Sessions</span>
-                        </Button>
-                      )}
-                    </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
         </TabsContent>
+
+          <TabsContent value="departments" className="space-y-6">
+            <DepartmentManagement />
+          </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
             <Card className="border-0 shadow-lg bg-white">

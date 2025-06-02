@@ -363,6 +363,26 @@ export default function HomePage() {
                   </Button>
                 </Link>
 
+                <Link href="/live-chat">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
+                        style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
+                      >
+                        <MessageSquare
+                          className="w-4 h-4 transition-colors duration-200"
+                          style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium">Live Chat</span>
+                    </div>
+                  </Button>
+                </Link>
+
                 <Link href="/dashboard/blog">
                   <Button
                     variant="outline"

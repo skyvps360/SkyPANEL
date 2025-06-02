@@ -2236,10 +2236,14 @@ export class DatabaseStorage implements IStorage {
       if (session.assignedAdminId) {
         assignedAdmin = await this.getUser(session.assignedAdminId);
       }
+
+      // Handle department data properly - chatDepartment might be null if no department is assigned
+      const department = session.chatDepartment && session.chatDepartment.id ? session.chatDepartment : null;
+
       result.push({
         ...session,
         assignedAdmin,
-        department: session.chatDepartment
+        department
       });
     }
 
