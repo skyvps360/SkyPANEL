@@ -665,7 +665,7 @@ export default function LiveChat() {
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 overflow-hidden p-0">
-                    <ScrollArea className="h-full">
+                    <ScrollArea className="h-full max-h-[400px]">
                       <div className="p-6 pt-0 space-y-3">
                         {filteredHistory.length === 0 ? (
                           <div className="text-center py-8">

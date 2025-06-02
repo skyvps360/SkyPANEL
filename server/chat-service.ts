@@ -223,7 +223,8 @@ export class ChatService {
     try {
       // Check if user already has an active session
       const existingSession = await this.getActiveSessionForUser(ws.userId);
-      if (existingSession) {
+      if (existingSession && existingSession.status !== 'closed') {
+        // Only resume if the session is still active and not closed
         ws.sessionId = existingSession.id;
         this.addToSessionClients(existingSession.id, ws);
 
@@ -231,6 +232,7 @@ export class ChatService {
           type: 'session_resumed',
           data: existingSession
         });
+        console.log(`Resumed existing session ${existingSession.id} for user ${ws.userId}`);
         return;
       }
 

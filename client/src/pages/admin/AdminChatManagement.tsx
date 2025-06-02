@@ -633,14 +633,7 @@ export default function AdminChatManagement() {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'destructive';
-      case 'normal': return 'default';
-      case 'low': return 'secondary';
-      default: return 'default';
-    }
-  };
+
 
   return (
     <AdminLayout>
@@ -947,11 +940,7 @@ export default function AdminChatManagement() {
                                               General
                                             </Badge>
                                           )}
-                                          {session.priority !== 'normal' && (
-                                            <Badge variant={getPriorityColor(session.priority)} className="text-xs px-1.5 py-0.5">
-                                              {session.priority}
-                                            </Badge>
-                                          )}
+
                                         </div>
                                         <span className="text-xs text-gray-400">#{session.id}</span>
                                       </div>
@@ -1144,11 +1133,7 @@ export default function AdminChatManagement() {
                                 </Badge>
                               );
                             })()}
-                            {activeTab.session.priority !== 'normal' && (
-                              <Badge variant={getPriorityColor(activeTab.session.priority)} className="text-xs">
-                                {activeTab.session.priority} priority
-                              </Badge>
-                            )}
+
                             <Badge variant={getStatusBadgeVariant(activeTab.session.status)} className="text-xs">
                               {activeTab.session.status}
                             </Badge>
