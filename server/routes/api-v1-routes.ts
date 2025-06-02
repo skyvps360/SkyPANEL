@@ -31,7 +31,6 @@ router.get('/me', requireScope('read:user'), async (req: Request, res: Response)
         email: users.email,
         fullName: users.fullName,
         role: users.role,
-        credits: users.credits,
         isVerified: users.isVerified,
         isActive: users.isActive,
       })
@@ -83,27 +82,55 @@ router.get('/servers', requireScope('read:servers'), async (req: Request, res: R
 router.get('/balance', requireScope('read:billing'), async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
-    // Fetch user's credit balance
+
+    // Fetch user's VirtFusion token balance
     const [user] = await db
       .select({
-        credits: users.credits,
+        id: users.id,
+        virtFusionId: users.virtFusionId,
       })
       .from(users)
       .where(eq(users.id, userId));
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
-    return res.json({
-      credits: user.credits,
-      currency: 'USD' // Assuming USD is the default currency
-    });
+
+    // Initialize response with VirtFusion data only
+    const response = {
+      virtFusionCredits: 0,
+      virtFusionTokens: 0,
+      currency: 'USD'
+    };
+
+    // If user has VirtFusion account linked, fetch their tokens
+    if (user.virtFusionId) {
+      try {
+        const { VirtFusionApi } = await import('../virtfusion-api');
+        const virtFusionApi = new VirtFusionApi();
+        if (virtFusionApi.isConfigured()) {
+          // Use the VirtFusion API to get user hourly stats (which contains credit info)
+          const virtFusionData = await virtFusionApi.getUserHourlyStats(user.id);
+
+          if (virtFusionData?.data?.credit?.tokens) {
+            const tokenAmount = parseFloat(virtFusionData.data.credit.tokens);
+            const dollarAmount = tokenAmount / 100; // 100 tokens = $1.00 USD
+
+            response.virtFusionTokens = tokenAmount || 0;
+            response.virtFusionCredits = dollarAmount || 0;
+          }
+        }
+      } catch (virtFusionError) {
+        console.error("Error fetching VirtFusion credits:", virtFusionError);
+        // Return empty VirtFusion data if API call fails
+      }
+    }
+
+    return res.json(response);
   } catch (error) {
     console.error('Error fetching user balance:', error);
     return res.status(500).json({ error: 'Internal server error' });

@@ -65,14 +65,14 @@ router.get('/servers',
 });
 
 // Balance endpoint - requires API key with 'read:billing' scope
-router.get('/balance', 
-  apiKeyAuth, 
-  requireScope('read:billing'), 
+router.get('/balance',
+  apiKeyAuth,
+  requireScope('read:billing'),
   async (req, res) => {
     try {
       const { userId } = (req as any).apiKeyUser;
-      
-      // Get user for credits
+
+      // Get user for VirtFusion token balance
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({
@@ -80,12 +80,38 @@ router.get('/balance',
           message: 'User not found'
         });
       }
-      
-      // Return user credit balance
-      return res.json({
-        credits: user.credits,
+
+      // Initialize response with VirtFusion data only
+      const response = {
+        virtFusionCredits: 0,
+        virtFusionTokens: 0,
         currency: 'USD'
-      });
+      };
+
+      // If user has VirtFusion account linked, fetch their tokens
+      if (user.virtFusionId) {
+        try {
+          const { VirtFusionApi } = await import('../virtfusion-api');
+          const virtFusionApi = new VirtFusionApi();
+          if (virtFusionApi.isConfigured()) {
+            // Use the VirtFusion API to get user hourly stats (which contains credit info)
+            const virtFusionData = await virtFusionApi.getUserHourlyStats(user.id);
+
+            if (virtFusionData?.data?.credit?.tokens) {
+              const tokenAmount = parseFloat(virtFusionData.data.credit.tokens);
+              const dollarAmount = tokenAmount / 100; // 100 tokens = $1.00 USD
+
+              response.virtFusionTokens = tokenAmount || 0;
+              response.virtFusionCredits = dollarAmount || 0;
+            }
+          }
+        } catch (virtFusionError) {
+          console.error("Error fetching VirtFusion credits:", virtFusionError);
+          // Return empty VirtFusion data if API call fails
+        }
+      }
+
+      return res.json(response);
     } catch (error) {
       console.error('Error retrieving balance information via API:', error);
       return res.status(500).json({

@@ -3084,26 +3084,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`Server created successfully:`, response);
 
-      // Deduct credits from user account
-      if (estimatedCost > 0) {
-        try {
-          await storage.updateUserCredits(userId, -estimatedCost); // Negative amount to deduct
-          console.log(`Deducted ${estimatedCost.toFixed(2)} credits from user ${userId}`);
-          
-          // Log the transaction
-          const transaction: schema.InsertTransaction = {
-            userId,
-            amount: -estimatedCost,
-            type: 'deduction',
-            description: `Server creation: ${serverData.name || 'New Server'}`,
-            status: 'completed',
-          };
-          await db.insert(schema.transactions).values(transaction);
-        } catch (creditError) {
-          console.error(`Failed to deduct credits from user ${userId}:`, creditError);
-          // We won't fail the request since the server was already created
-        }
-      }
+      // VirtFusion handles billing automatically - no manual credit deduction needed
+      console.log(`Server created successfully. VirtFusion will handle billing automatically.`);
 
       res.status(201).json({
         success: true,
@@ -3463,119 +3445,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ----- User Credit Management Routes -----
-
-  // Add credit to user
-  app.post("/api/credits", isAdmin, async (req, res) => {
-    try {
-      const { userId, amount, reference } = req.body;
-
-      if (!userId || !amount) {
-        return res
-          .status(400)
-          .json({ error: "Missing required fields: userId, amount" });
-      }
-
-      // Check if the user exists
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      // If user has VirtFusion ID, add credit there as well
-      if (user.virtFusionId) {
-        try {
-          // IMPORTANT: Use user.id as extRelationId (NOT virtFusionId)
-          // According to API docs: /selfService/credit/byUserExtRelationId/{extRelationId}
-          await virtFusionApi.addCreditToUser(user.id, {
-            tokens: amount,
-            reference_1: Date.now(), // Timestamp as reference
-            reference_2:
-              reference || `Added via admin panel by ${req.user!.username}`,
-          });
-        } catch (error: any) {
-          console.error(`Error adding credit to VirtFusion:`, error);
-          // Continue with local credit addition even if VirtFusion API fails
-        }
-      }
-
-      // Add credit to local database
-      await storage.updateUserCredits(userId, amount);
-
-      // Create transaction record
-      const transaction = await storage.createTransaction({
-        userId,
-        amount,
-        type: "credit",
-        description:
-          reference || `Credit added by admin: ${req.user!.username}`,
-        status: "completed",
-      });
-
-
-
-      res.status(201).json({ success: true, transaction });
-    } catch (error: any) {
-      console.error(`Error adding credit:`, error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Cancel a credit transaction
-  app.delete("/api/credits/:id", isAdmin, async (req, res) => {
-    try {
-      const creditId = parseInt(req.params.id);
-      if (isNaN(creditId)) {
-        return res.status(400).json({ error: "Invalid credit ID" });
-      }
-
-      const transaction = await storage.getTransaction(creditId);
-      if (!transaction) {
-        return res.status(404).json({ error: "Transaction not found" });
-      }
-
-      // Only allow cancellation of credit transactions
-      if (transaction.type !== "credit") {
-        return res
-          .status(400)
-          .json({ error: "Only credit transactions can be canceled" });
-      }
-
-      // If transaction has a VirtFusion reference, cancel it there as well
-      if (transaction.virtFusionId) {
-        try {
-          await virtFusionApi.cancelUserCredit(transaction.virtFusionId);
-        } catch (error: any) {
-          console.error(`Error canceling credit in VirtFusion:`, error);
-          // Continue with local cancellation even if VirtFusion API fails
-        }
-      }
-
-      // Reverse the transaction in our local database
-      await storage.updateUserCredits(transaction.userId, -transaction.amount);
-
-      // Update transaction status
-      await storage.updateTransaction(creditId, { status: "canceled" });
-
-      // Create a reversal transaction
-      const reversalTransaction = await storage.createTransaction({
-        userId: transaction.userId,
-        amount: -transaction.amount,
-        type: "debit",
-        description: `Reversal of credit ID ${creditId}`,
-        status: "completed",
-        relatedTransactionId: creditId,
-      });
-
-      // Transaction recorded successfully
-      console.log(`Credit reversal transaction ${reversalTransaction.id} created successfully`);
-
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error(`Error canceling credit:`, error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // ----- VirtFusion Token Management Routes -----
+  // Note: Legacy credit management has been removed.
+  // All billing is now handled exclusively through VirtFusion tokens.
 
   // ----- IP Address Management Routes -----
 
@@ -4077,643 +3949,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Capture and verify PayPal payment with server-side handling
-  app.post("/api/billing/capture-paypal-payment", isAuthenticated, async (req, res) => {
-    try {
-      const { orderID } = req.body;
 
-      console.log(`Capturing PayPal payment: orderID=${orderID}`);
 
-      if (!orderID) {
-        console.log("Missing PayPal order ID");
-        return res.status(400).json({ error: "PayPal order ID is required" });
-      }
 
-      // Check if we're in sandbox mode
-      const isSandbox = process.env.VITE_PAYPAL_SANDBOX === "true";
-      const paypalBaseUrl = isSandbox
-        ? "https://api-m.sandbox.paypal.com"
-        : "https://api-m.paypal.com";
 
-      // Get credentials with debug logging
-      console.log(`PayPal Mode: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
-      
-      const clientId = isSandbox
-        ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
-        : (process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID);
-      const clientSecret = isSandbox
-        ? process.env.VITE_PAYPAL_SANDBOX_SECRET
-        : (process.env.VITE_PAYPAL_SECRET || process.env.PAYPAL_SECRET);
-      
-      console.log(`PayPal Client ID exists: ${!!clientId}`);
-      console.log(`PayPal Client Secret exists: ${!!clientSecret}`);
 
-      if (!clientId || !clientSecret) {
-        console.error("PayPal credentials are not configured");
-        return res.status(500).json({
-          error: "PayPal integration is not properly configured. Please contact support.",
-          details: "Missing API credentials"
-        });
-      }
 
-      // First, get an access token
-      let accessToken;
-      try {
-        const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-        const tokenResponse = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: 'grant_type=client_credentials'
-        });
 
-        if (!tokenResponse.ok) {
-          const errorData = await tokenResponse.json();
-          console.error("PayPal token error:", errorData);
-          throw new Error(`Failed to get PayPal access token: ${errorData.error_description || 'Unknown error'}`);
-        }
 
-        const tokenData = await tokenResponse.json();
-        accessToken = tokenData.access_token;
-        console.log("Successfully obtained PayPal access token");
-      } catch (tokenError) {
-        console.error("Error getting PayPal access token:", tokenError);
-        return res.status(500).json({
-          error: "Failed to authenticate with PayPal API. Please try again later.",
-          details: tokenError.message
-        });
-      }
-
-      // Now capture the order
-      try {
-        console.log(`Capturing PayPal order: ${orderID}`);
-
-        const captureResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderID}/capture`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!captureResponse.ok) {
-          const errorData = await captureResponse.json();
-          console.error("PayPal capture error:", errorData);
-          throw new Error(`Failed to capture PayPal payment: ${errorData.message || 'Unknown error'}`);
-        }
-
-        const captureData = await captureResponse.json();
-        console.log("PayPal capture successful:", {
-          id: captureData.id,
-          status: captureData.status
-        });
-
-        // Verify captured payment status
-        if (captureData.status !== 'COMPLETED') {
-          console.error(`Invalid PayPal capture status: ${captureData.status}`);
-          return res.status(400).json({
-            error: `PayPal payment was not completed (status: ${captureData.status})`
-          });
-        }
-
-        // Extract payment details
-        if (!captureData.purchase_units || captureData.purchase_units.length === 0) {
-          throw new Error("Invalid capture data: missing purchase units");
-        }
-
-        const purchaseUnit = captureData.purchase_units[0];
-        let amount = 0;
-        let currency = 'USD';
-
-        if (purchaseUnit.payments && purchaseUnit.payments.captures && purchaseUnit.payments.captures.length > 0) {
-          const capture = purchaseUnit.payments.captures[0];
-          amount = parseFloat(capture.amount.value);
-          currency = capture.amount.currency_code;
-        } else if (purchaseUnit.amount) {
-          amount = parseFloat(purchaseUnit.amount.value);
-          currency = purchaseUnit.amount.currency_code;
-        }
-
-        console.log(`Captured payment: ${amount} ${currency}, Order ID: ${orderID}`);
-
-        // Return successful capture result
-        return res.json({
-          captured: true,
-          verified: true,
-          orderId: captureData.id,
-          status: captureData.status,
-          amount,
-          currency
-        });
-      } catch (captureError) {
-        console.error("Error capturing PayPal payment:", captureError);
-
-        // Create a transaction record for the failed capture
-        try {
-          // Create transaction record for the failed payment
-          const transaction: InsertTransaction = {
-            userId: req.user!.id,
-            amount: 0, // Amount unknown at this point
-            type: "credit",
-            description: "Failed PayPal payment capture",
-            status: "failed",
-            paymentMethod: "paypal",
-            paymentId: orderID,
-          };
-
-          const createdTransaction = await storage.createTransaction(transaction);
-          console.log("Created transaction record for failed capture:", createdTransaction.id);
-
-
-        } catch (transactionError) {
-          console.error("Failed to create transaction record for failed capture:", transactionError);
-        }
-
-        return res.status(500).json({
-          error: "Failed to capture payment with PayPal. Please try again or contact support.",
-          details: captureError.message
-        });
-      }
-    } catch (error) {
-      console.error("Server error during PayPal capture:", error);
-
-      // Create a transaction record for the failed capture due to server error
-      try {
-        // Create transaction record for the failed payment
-        const transaction: InsertTransaction = {
-          userId: req.user!.id,
-          amount: 0, // Amount unknown at this point
-          type: "credit",
-          description: "Failed PayPal payment (server error)",
-          status: "failed",
-          paymentMethod: "paypal",
-          paymentId: req.body.orderID || "unknown",
-        };
-
-        const createdTransaction = await storage.createTransaction(transaction);
-        console.log("Created transaction record for server error during capture:", createdTransaction.id);
-
-
-      } catch (transactionError) {
-        console.error("Failed to create transaction record for server error during capture:", transactionError);
-      }
-
-      return res.status(500).json({
-        error: "An unexpected error occurred during payment capture",
-        details: error.message
-      });
-    }
-  });
-
-  // Verify PayPal payment with server-side validation (legacy method)
-  app.post("/api/billing/verify-paypal-payment", isAuthenticated, async (req, res) => {
-    try {
-      const { orderId } = req.body;
-
-      console.log(`Verifying PayPal payment: orderId=${orderId}`);
-
-      if (!orderId) {
-        console.log("Missing PayPal order ID");
-        return res.status(400).json({ error: "PayPal order ID is required" });
-      }
-
-      // Check if we're in sandbox mode
-      const isSandbox = process.env.VITE_PAYPAL_SANDBOX === "true";
-      const paypalBaseUrl = isSandbox
-        ? "https://api-m.sandbox.paypal.com"
-        : "https://api-m.paypal.com";
-
-      // Get credentials with debug logging
-      console.log(`PayPal Mode: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
-      
-      const clientId = isSandbox
-        ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
-        : (process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID);
-      const clientSecret = isSandbox
-        ? process.env.VITE_PAYPAL_SANDBOX_SECRET
-        : (process.env.VITE_PAYPAL_SECRET || process.env.PAYPAL_SECRET);
-      
-      console.log(`PayPal Client ID exists: ${!!clientId}`);
-      console.log(`PayPal Client Secret exists: ${!!clientSecret}`);
-
-      if (!clientId || !clientSecret) {
-        console.error("PayPal credentials are not configured");
-        return res.status(500).json({
-          error: "PayPal integration is not properly configured. Please contact support.",
-          details: "Missing API credentials"
-        });
-      }
-
-      // First, get an access token
-      let accessToken;
-      try {
-        const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-        const tokenResponse = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: 'grant_type=client_credentials'
-        });
-
-        if (!tokenResponse.ok) {
-          const errorData = await tokenResponse.json();
-          console.error("PayPal token error:", errorData);
-          throw new Error(`Failed to get PayPal access token: ${errorData.error_description || 'Unknown error'}`);
-        }
-
-        const tokenData = await tokenResponse.json();
-        accessToken = tokenData.access_token;
-        console.log("Successfully obtained PayPal access token");
-      } catch (tokenError) {
-        console.error("Error getting PayPal access token:", tokenError);
-        return res.status(500).json({
-          error: "Failed to authenticate with PayPal API. Please try again later.",
-          details: tokenError.message
-        });
-      }
-
-      // Now verify the order
-      try {
-        const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!orderResponse.ok) {
-          const errorData = await orderResponse.json();
-          console.error("PayPal order verification error:", errorData);
-          throw new Error(`Failed to verify PayPal order: ${errorData.message || 'Unknown error'}`);
-        }
-
-        const orderData = await orderResponse.json();
-        console.log("PayPal order verification successful:", {
-          id: orderData.id,
-          status: orderData.status,
-          intent: orderData.intent
-        });
-
-        // Verify order status is APPROVED or COMPLETED
-        if (orderData.status !== 'APPROVED' && orderData.status !== 'COMPLETED') {
-          console.error(`Invalid PayPal order status: ${orderData.status}`);
-          return res.status(400).json({
-            error: `PayPal payment is not approved (status: ${orderData.status})`
-          });
-        }
-
-        // Extract payment amount
-        if (!orderData.purchase_units || orderData.purchase_units.length === 0) {
-          throw new Error("Invalid order data: missing purchase units");
-        }
-
-        const purchaseUnit = orderData.purchase_units[0];
-        const amount = parseFloat(purchaseUnit.amount.value);
-        const currency = purchaseUnit.amount.currency_code;
-
-        console.log(`Verified payment: ${amount} ${currency}, Order ID: ${orderId}`);
-
-        // Return payment verification result
-        return res.json({
-          verified: true,
-          orderId: orderData.id,
-          status: orderData.status,
-          amount,
-          currency
-        });
-      } catch (verifyError) {
-        console.error("Error verifying PayPal order:", verifyError);
-
-        // Create a transaction record for the failed verification
-        try {
-          // Create transaction record for the failed verification
-          const transaction: InsertTransaction = {
-            userId: req.user!.id,
-            amount: 0, // Amount unknown at this point
-            type: "credit",
-            description: "Failed PayPal payment verification",
-            status: "failed",
-            paymentMethod: "paypal",
-            paymentId: orderId,
-          };
-
-          const createdTransaction = await storage.createTransaction(transaction);
-          console.log("Created transaction record for failed verification:", createdTransaction.id);
-
-
-        } catch (transactionError) {
-          console.error("Failed to create transaction record for failed verification:", transactionError);
-        }
-
-        return res.status(500).json({
-          error: "Failed to verify payment with PayPal. Please try again or contact support.",
-          details: verifyError.message
-        });
-      }
-    } catch (error) {
-      console.error("Server error during PayPal verification:", error);
-
-      // Create a transaction record for the failed verification due to server error
-      try {
-        // Create transaction record for the failed verification
-        const transaction: InsertTransaction = {
-          userId: req.user!.id,
-          amount: 0, // Amount unknown at this point
-          type: "credit",
-          description: "Failed PayPal payment verification (server error)",
-          status: "failed",
-          paymentMethod: "paypal",
-          paymentId: req.body.orderId || "unknown",
-        };
-
-        const createdTransaction = await storage.createTransaction(transaction);
-        console.log("Created transaction record for server error during verification:", createdTransaction.id);
-
-
-      } catch (transactionError) {
-        console.error("Failed to create transaction record for server error during verification:", transactionError);
-      }
-
-      return res.status(500).json({
-        error: "An unexpected error occurred during payment verification",
-        details: error.message
-      });
-    }
-  });
-
-  // Add credits via PayPal
-  app.post("/api/billing/add-credits", isAuthenticated, async (req, res) => {
-    try {
-      const { amount, paymentId, verificationData } = req.body;
-
-      console.log(`Processing add credits request: amount=${amount}, paymentId=${paymentId}`);
-
-      if (!amount || amount <= 0 || !paymentId) {
-        console.log("Invalid add credits request - missing amount or paymentId");
-        return res.status(400).json({ error: "Invalid amount or payment ID" });
-      }
-
-      // Validate amount limits (minimum $1, maximum $1000)
-      if (amount < 1) {
-        console.log(`Amount too low: ${amount}`);
-        return res.status(400).json({ error: "Minimum amount is $1.00" });
-      }
-
-      if (amount > 1000) {
-        console.log(`Amount too high: ${amount}`);
-        return res.status(400).json({ error: "Maximum amount is $1000.00" });
-      }
-
-      // Verify we have verification data
-      if (!verificationData || !verificationData.verified) {
-        console.error("Payment not verified through server-side validation");
-
-        // Create transaction record for the unverified payment
-        try {
-          const transaction: InsertTransaction = {
-            userId: req.user!.id,
-            amount: amount,
-            type: "credit",
-            description: "Unverified PayPal payment",
-            status: "failed",
-            paymentMethod: "paypal",
-            paymentId: paymentId,
-          };
-
-          const createdTransaction = await storage.createTransaction(transaction);
-          console.log("Created transaction record for unverified payment:", createdTransaction.id);
-
-
-        } catch (transactionError) {
-          console.error("Failed to create transaction record for unverified payment:", transactionError);
-        }
-
-        return res.status(400).json({
-          error: "Payment verification failed. Please try again.",
-          needsVerification: true
-        });
-      }
-
-      // Compare amounts for extra security
-      if (verificationData.amount !== amount) {
-        console.error(`Amount mismatch: verified=${verificationData.amount}, requested=${amount}`);
-
-        // Create transaction record for the payment with mismatched amount
-        try {
-          const transaction: InsertTransaction = {
-            userId: req.user!.id,
-            amount: amount,
-            type: "credit",
-            description: `PayPal payment with amount mismatch (verified: ${verificationData.amount}, requested: ${amount})`,
-            status: "failed",
-            paymentMethod: "paypal",
-            paymentId: paymentId,
-          };
-
-          const createdTransaction = await storage.createTransaction(transaction);
-          console.log("Created transaction record for payment with amount mismatch:", createdTransaction.id);
-
-
-        } catch (transactionError) {
-          console.error("Failed to create transaction record for payment with amount mismatch:", transactionError);
-        }
-
-        return res.status(400).json({
-          error: "Payment amount doesn't match the verification data",
-          needsVerification: true
-        });
-      }
-
-      // Check if the user has a VirtFusion ID (extRelationId)
-      if (!req.user!.virtFusionId) {
-        console.log(`User ${req.user!.id} does not have a linked VirtFusion account`);
-
-        // Create transaction record for the payment with no VirtFusion ID
-        try {
-          const transaction: InsertTransaction = {
-            userId: req.user!.id,
-            amount: amount,
-            type: "credit",
-            description: "PayPal payment - VirtFusion account not linked",
-            status: "failed",
-            paymentMethod: "paypal",
-            paymentId: paymentId,
-          };
-
-          const createdTransaction = await storage.createTransaction(transaction);
-          console.log("Created transaction record for payment with no VirtFusion ID:", createdTransaction.id);
-
-
-        } catch (transactionError) {
-          console.error("Failed to create transaction record for payment with no VirtFusion ID:", transactionError);
-        }
-
-        return res.status(400).json({
-          error: "Your account is not linked to VirtFusion yet. Please contact support.",
-          needsSync: true
-        });
-      }
-
-      console.log(`User has VirtFusion extRelationId: ${req.user!.virtFusionId}`);
-
-
-      // Check VirtFusion API configuration
-      const virtFusionApi = new VirtFusionApi();
-      await virtFusionApi.updateSettings();
-
-      // Validate VirtFusion API settings before proceeding
-      if (!virtFusionApi.isConfigured()) {
-        console.error("VirtFusion API is not properly configured");
-
-        // Create transaction record for payment with unconfigured VirtFusion API
-        try {
-          const transaction: InsertTransaction = {
-            userId: req.user!.id,
-            amount: amount,
-            type: "credit",
-            description: "PayPal payment - VirtFusion API not configured",
-            status: "failed",
-            paymentMethod: "paypal",
-            paymentId: paymentId,
-          };
-
-          const createdTransaction = await storage.createTransaction(transaction);
-          console.log("Created transaction record for payment with unconfigured VirtFusion API:", createdTransaction.id);
-
-
-        } catch (transactionError) {
-          console.error("Failed to create transaction record for payment with unconfigured VirtFusion API:", transactionError);
-        }
-
-        return res.status(500).json({
-          error: "VirtFusion API configuration is incomplete. Please contact support.",
-          details: "Missing API URL or token"
-        });
-      }
-
-      // Calculate the number of tokens to add to VirtFusion
-      // According to the documentation: 0.01 tokens = 1 cent USD
-      const tokens = amount * 100; // $1 = 100 tokens
-      console.log(`Converting $${amount} to ${tokens} VirtFusion tokens`);
-
-      // Create a new transaction locally
-      const transaction: InsertTransaction = {
-        userId: req.user!.id,
-        amount: amount,
-        type: "credit",
-        description: "Credit purchase via PayPal",
-        status: "pending", // Set as pending until VirtFusion confirms
-        paymentMethod: "paypal",
-        paymentId: paymentId,
-      };
-
-      console.log("Creating transaction record:", transaction);
-      const createdTransaction = await storage.createTransaction(transaction);
-      console.log("Transaction created with ID:", createdTransaction.id);
-
-      try {
-        // Test connection to VirtFusion API before proceeding with adding credits
-        try {
-          console.log("Testing VirtFusion API connection before adding credits");
-          await virtFusionApi.testConnection();
-          console.log("VirtFusion API connection successful");
-        } catch (connectionError: any) {
-          console.error("VirtFusion API connection test failed:", connectionError);
-          throw new Error(`VirtFusion API connection failed: ${connectionError.message}`);
-        }
-
-        // Update the VirtFusion account with the tokens
-        // For VirtFusion's API, we should use the user's ID as the extRelationId
-        // because that's how users were created in VirtFusion based on the logs
-        const extRelationId = req.user!.id; // Use user ID, not virtFusionId field
-        const storedVirtFusionId = req.user!.virtFusionId;
-        console.log(`Using user ID ${extRelationId} as extRelationId for VirtFusion (stored virtFusionId was ${storedVirtFusionId})`);
-        console.log(`Adding ${tokens} tokens to VirtFusion user with extRelationId: ${extRelationId}`);
-
-        // First check if the user exists in VirtFusion
-        console.log(`Verifying user exists in VirtFusion with extRelationId: ${extRelationId}`);
-        try {
-          const userCheckResult = await virtFusionApi.getUserByExtRelationId(extRelationId);
-          console.log("User verification successful:", userCheckResult);
-        } catch (verifyError: any) {
-          console.error("User verification failed:", verifyError);
-          throw new Error(`Failed to verify user in VirtFusion: ${verifyError.message}`);
-        }
-
-        // If we get here, the user exists, so proceed with adding credits
-        // Format the data EXACTLY as specified in the VirtFusion API documentation
-        // According to https://docs.virtfusion.com/api/stoplight.html#/paths/selfService-credit-byUserExtRelationId-extRelationId/post
-        const tokenData = {
-          tokens: tokens,
-          reference_1: createdTransaction.id, // Use our transaction ID as reference
-          reference_2: `Payment via PayPal ID: ${paymentId}`
-        };
-
-        console.log(`Sending to VirtFusion API with extRelationId=${extRelationId}:`, tokenData);
-
-        // Call the VirtFusion API with the extRelationId and the token data
-        // The ID passed here should be the external relation ID as configured in VirtFusion
-        const virtFusionResult = await virtFusionApi.addCreditToUser(
-          extRelationId,
-          tokenData
-        );
-
-        console.log("VirtFusion credit add response:", virtFusionResult);
-
-        // Calculate new credit balance
-        const newCreditBalance = (req.user!.credits || 0) + amount;
-        console.log(`Updating user credits: ${req.user!.credits || 0} + ${amount} = ${newCreditBalance}`);
-
-        // Mark the transaction as completed and update user credits
-        await storage.updateUser(req.user!.id, {
-          credits: newCreditBalance
-        });
-
-        // Update transaction status using the storage interface instead of direct db access
-        console.log(`Updating transaction ${createdTransaction.id} status to completed`);
-        await storage.updateTransaction(createdTransaction.id, {
-          status: "completed"
-        });
-
-
-
-        res.json({
-          success: true,
-          creditsAdded: amount,
-          newBalance: newCreditBalance,
-          virtFusionTokens: tokens,
-          virtFusionResponse: virtFusionResult
-        });
-
-      } catch (virtFusionError: any) {
-        console.error("VirtFusion API error:", virtFusionError);
-
-        // Update transaction status to failed using storage interface
-        console.log(`Updating transaction ${createdTransaction.id} status to failed`);
-        await storage.updateTransaction(createdTransaction.id, {
-          status: "failed",
-          description: `${transaction.description} (VirtFusion sync failed: ${virtFusionError.message})`
-        });
-
-
-
-        return res.status(500).json({
-          error: "Failed to add credits to VirtFusion account",
-          details: virtFusionError.message
-        });
-      }
-    } catch (error: any) {
-      console.error(`Error adding credits:`, error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get current credit balance
+  // Get current VirtFusion token balance
   app.get("/api/billing/balance", isAuthenticated, async (req, res) => {
     try {
       const user = await storage.getUser(req.user!.id);
@@ -4721,9 +3965,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Initialize response with local credits
+      // Initialize response with VirtFusion data only
       const response = {
-        credits: user.credits,
         virtFusionCredits: 0,
         virtFusionTokens: 0
       };
@@ -4746,18 +3989,288 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         } catch (virtFusionError) {
           console.error("Error fetching VirtFusion credits:", virtFusionError);
-          // We'll still return the local credits if VirtFusion API call fails
+          // Return empty VirtFusion data if API call fails
         }
       }
 
       res.json(response);
     } catch (error: any) {
-      console.error(`Error fetching credit balance:`, error);
+      console.error(`Error fetching VirtFusion balance:`, error);
       res.status(500).json({ error: error.message });
     }
   });
 
+  // Add VirtFusion tokens via PayPal
+  app.post("/api/billing/add-credits", isAuthenticated, async (req, res) => {
+    try {
+      const { amount, paymentId, verificationData } = req.body;
 
+      console.log(`Processing VirtFusion token purchase: amount=${amount}, paymentId=${paymentId}`);
+
+      if (!amount || amount <= 0 || !paymentId) {
+        console.log("Invalid token purchase request - missing amount or paymentId");
+        return res.status(400).json({ error: "Invalid amount or payment ID" });
+      }
+
+      // Validate amount limits (minimum $1, maximum $1000)
+      if (amount < 1) {
+        console.log(`Amount too low: ${amount}`);
+        return res.status(400).json({ error: "Minimum amount is $1.00" });
+      }
+
+      if (amount > 1000) {
+        console.log(`Amount too high: ${amount}`);
+        return res.status(400).json({ error: "Maximum amount is $1000.00" });
+      }
+
+      // Verify we have verification data
+      if (!verificationData || !verificationData.verified) {
+        console.error("Payment not verified through server-side validation");
+        return res.status(400).json({
+          error: "Payment verification failed. Please try again.",
+          needsVerification: true
+        });
+      }
+
+      // Compare amounts for extra security
+      if (verificationData.amount !== amount) {
+        console.error(`Amount mismatch: verified=${verificationData.amount}, requested=${amount}`);
+        return res.status(400).json({
+          error: "Payment amount doesn't match the verification data",
+          needsVerification: true
+        });
+      }
+
+      // Check if the user has a VirtFusion ID
+      if (!req.user!.virtFusionId) {
+        console.log(`User ${req.user!.id} does not have a linked VirtFusion account`);
+        return res.status(400).json({
+          error: "Your account is not linked to VirtFusion yet. Please contact support.",
+          needsSync: true
+        });
+      }
+
+      console.log(`User has VirtFusion extRelationId: ${req.user!.virtFusionId}`);
+
+      // Check VirtFusion API configuration
+      const virtFusionApi = new VirtFusionApi();
+      await virtFusionApi.updateSettings();
+
+      // Validate VirtFusion API settings before proceeding
+      if (!virtFusionApi.isConfigured()) {
+        console.error("VirtFusion API is not properly configured");
+        return res.status(500).json({
+          error: "VirtFusion API configuration is incomplete. Please contact support.",
+          details: "Missing API URL or token"
+        });
+      }
+
+      // Calculate the number of tokens to add to VirtFusion
+      const tokens = amount * 100; // $1 = 100 tokens
+      console.log(`Converting $${amount} to ${tokens} VirtFusion tokens`);
+
+      // Create a new transaction locally for record keeping
+      const transaction: InsertTransaction = {
+        userId: req.user!.id,
+        amount: amount,
+        type: "virtfusion_credit",
+        description: "VirtFusion token purchase via PayPal",
+        status: "pending",
+        paymentMethod: "paypal",
+        paymentId: paymentId,
+      };
+
+      console.log("Creating transaction record:", transaction);
+      const createdTransaction = await storage.createTransaction(transaction);
+      console.log("Transaction created with ID:", createdTransaction.id);
+
+      try {
+        // Test connection to VirtFusion API before proceeding
+        try {
+          console.log("Testing VirtFusion API connection before adding tokens");
+          await virtFusionApi.testConnection();
+          console.log("VirtFusion API connection successful");
+        } catch (connectionError: any) {
+          console.error("VirtFusion API connection test failed:", connectionError);
+          throw new Error(`VirtFusion API connection failed: ${connectionError.message}`);
+        }
+
+        // Add tokens to VirtFusion account
+        const extRelationId = req.user!.id; // Use user ID as extRelationId
+        console.log(`Adding ${tokens} tokens to VirtFusion user with extRelationId: ${extRelationId}`);
+
+        // First check if the user exists in VirtFusion
+        console.log(`Verifying user exists in VirtFusion with extRelationId: ${extRelationId}`);
+        try {
+          const userCheckResult = await virtFusionApi.getUserByExtRelationId(extRelationId);
+          console.log("User verification successful:", userCheckResult);
+        } catch (verifyError: any) {
+          console.error("User verification failed:", verifyError);
+          throw new Error(`Failed to verify user in VirtFusion: ${verifyError.message}`);
+        }
+
+        // Format the data for VirtFusion API
+        const tokenData = {
+          tokens: tokens,
+          reference_1: createdTransaction.id,
+          reference_2: `PayPal payment ID: ${paymentId}`
+        };
+
+        console.log(`Sending to VirtFusion API with extRelationId=${extRelationId}:`, tokenData);
+
+        // Call the VirtFusion API to add tokens
+        const virtFusionResult = await virtFusionApi.addCreditToUser(
+          extRelationId,
+          tokenData
+        );
+
+        console.log("VirtFusion token add response:", virtFusionResult);
+
+        // Mark the transaction as completed
+        console.log(`Updating transaction ${createdTransaction.id} status to completed`);
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "completed"
+        });
+
+        res.json({
+          success: true,
+          tokensAdded: tokens,
+          amountPaid: amount,
+          virtFusionResponse: virtFusionResult
+        });
+
+      } catch (virtFusionError: any) {
+        console.error("VirtFusion API error:", virtFusionError);
+
+        // Update transaction status to failed
+        console.log(`Updating transaction ${createdTransaction.id} status to failed`);
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "failed",
+          description: `${transaction.description} (VirtFusion sync failed: ${virtFusionError.message})`
+        });
+
+        return res.status(500).json({
+          error: "Failed to add tokens to VirtFusion account",
+          details: virtFusionError.message
+        });
+      }
+    } catch (error: any) {
+      console.error(`Error processing VirtFusion token purchase:`, error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Verify PayPal payment with server-side validation
+  app.post("/api/billing/verify-paypal-payment", isAuthenticated, async (req, res) => {
+    try {
+      const { orderId } = req.body;
+
+      console.log(`Verifying PayPal payment: orderId=${orderId}`);
+
+      if (!orderId) {
+        console.log("Missing PayPal order ID");
+        return res.status(400).json({ error: "PayPal order ID is required" });
+      }
+
+      // Check if we're in sandbox mode
+      const isSandbox = process.env.VITE_PAYPAL_SANDBOX === "true";
+      const paypalBaseUrl = isSandbox
+        ? "https://api-m.sandbox.paypal.com"
+        : "https://api-m.paypal.com";
+
+      // Get credentials
+      const clientId = isSandbox
+        ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
+        : (process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID);
+      const clientSecret = isSandbox
+        ? process.env.VITE_PAYPAL_SANDBOX_SECRET
+        : (process.env.VITE_PAYPAL_SECRET || process.env.PAYPAL_SECRET);
+
+      if (!clientId || !clientSecret) {
+        console.error("PayPal credentials are not configured");
+        return res.status(500).json({
+          error: "PayPal integration is not properly configured. Please contact support.",
+          details: "Missing API credentials"
+        });
+      }
+
+      // Get access token
+      const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+      const tokenResponse = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+      });
+
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json();
+        console.error("PayPal token error:", errorData);
+        throw new Error(`Failed to get PayPal access token: ${errorData.error_description || 'Unknown error'}`);
+      }
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Verify the order
+      const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json();
+        console.error("PayPal order verification error:", errorData);
+        throw new Error(`Failed to verify PayPal order: ${errorData.message || 'Unknown error'}`);
+      }
+
+      const orderData = await orderResponse.json();
+      console.log("PayPal order verification successful:", {
+        id: orderData.id,
+        status: orderData.status,
+        intent: orderData.intent
+      });
+
+      // Verify order status is APPROVED or COMPLETED
+      if (orderData.status !== 'APPROVED' && orderData.status !== 'COMPLETED') {
+        console.error(`Invalid PayPal order status: ${orderData.status}`);
+        return res.status(400).json({
+          error: `PayPal payment is not approved (status: ${orderData.status})`
+        });
+      }
+
+      // Extract payment amount
+      if (!orderData.purchase_units || orderData.purchase_units.length === 0) {
+        throw new Error("Invalid order data: missing purchase units");
+      }
+
+      const purchaseUnit = orderData.purchase_units[0];
+      const amount = parseFloat(purchaseUnit.amount.value);
+      const currency = purchaseUnit.amount.currency_code;
+
+      console.log(`Verified payment: ${amount} ${currency}, Order ID: ${orderId}`);
+
+      // Return payment verification result
+      return res.json({
+        verified: true,
+        orderId: orderData.id,
+        status: orderData.status,
+        amount,
+        currency
+      });
+    } catch (error: any) {
+      console.error("Error verifying PayPal order:", error);
+      return res.status(500).json({
+        error: "Failed to verify payment with PayPal. Please try again or contact support.",
+        details: error.message
+      });
+    }
+  });
 
   // Get VirtFusion usage for the last 30 days
   app.get("/api/billing/usage/last30days", isAuthenticated, async (req, res) => {

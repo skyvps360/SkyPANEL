@@ -31,9 +31,9 @@ export const releaseIp = (serverId: number, ipAddress: string) =>
 
 // Billing
 export const getTransactions = () => api.get('/transactions');
-export const getCreditBalance = () => api.get('/billing/balance');
-export const addCredits = (amount: number, paymentId: string) => 
-  api.post('/billing/add-credits', { amount, paymentId });
+export const getVirtFusionBalance = () => api.get('/billing/balance');
+export const addVirtFusionTokens = (amount: number, paymentId: string, verificationData: any) =>
+  api.post('/billing/add-credits', { amount, paymentId, verificationData });
 
 // Support Tickets
 export const getTickets = () => api.get('/tickets');

@@ -214,8 +214,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
 
 
-  // Fetch balance data including VirtFusion balance
-  const { data: balanceData } = useQuery<{ credits: number, virtFusionCredits: number, virtFusionTokens: number }>({
+  // Fetch VirtFusion token balance
+  const { data: balanceData } = useQuery<{ virtFusionCredits: number, virtFusionTokens: number }>({
     queryKey: ["/api/billing/balance"],
     staleTime: 30 * 1000, // 30 seconds
     enabled: !!user,
@@ -1186,7 +1186,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
               >
                 <Coins className="h-4 w-4 mr-2" style={{ color: brandColors.primary.full }} />
                 <span className="text-sm font-medium">
-                  ${balanceData?.virtFusionCredits ? balanceData.virtFusionCredits.toFixed(2) : (user?.credits?.toFixed(2) || "0.00")}
+                  ${balanceData?.virtFusionCredits?.toFixed(2) || "0.00"}
                 </span>
               </Link>
 

@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
@@ -360,23 +361,42 @@ function BrandThemeProvider({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  // PayPal configuration
+  const paypalOptions = {
+    clientId: import.meta.env.VITE_PAYPAL_SANDBOX === "true"
+      ? import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
+      : import.meta.env.VITE_PAYPAL_CLIENT_ID,
+    currency: import.meta.env.VITE_PAYPAL_CURRENCY || "USD",
+    intent: "capture",
+  };
+
+  // Debug PayPal configuration
+  console.log("PayPal Configuration:", {
+    sandbox: import.meta.env.VITE_PAYPAL_SANDBOX,
+    clientId: paypalOptions.clientId,
+    currency: paypalOptions.currency,
+    hasClientId: !!paypalOptions.clientId
+  });
+
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <DocumentTitle>
-            <Toaster />
-            {/* Global SSO handler for VirtFusion redirects */}
-            <VirtFusionSsoHandler />
-            {/* Wrap the router with PageLoadingProvider to enable loading screen */}
-            <PageLoadingProvider>
-              <BrandThemeProvider>
-                <Router />
-              </BrandThemeProvider>
-            </PageLoadingProvider>
-          </DocumentTitle>
-        </TooltipProvider>
-      </AuthProvider>
+      <PayPalScriptProvider options={paypalOptions}>
+        <AuthProvider>
+          <TooltipProvider>
+            <DocumentTitle>
+              <Toaster />
+              {/* Global SSO handler for VirtFusion redirects */}
+              <VirtFusionSsoHandler />
+              {/* Wrap the router with PageLoadingProvider to enable loading screen */}
+              <PageLoadingProvider>
+                <BrandThemeProvider>
+                  <Router />
+                </BrandThemeProvider>
+              </PageLoadingProvider>
+            </DocumentTitle>
+          </TooltipProvider>
+        </AuthProvider>
+      </PayPalScriptProvider>
     </QueryClientProvider>
   );
 }

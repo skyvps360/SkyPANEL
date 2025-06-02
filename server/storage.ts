@@ -431,7 +431,6 @@ export class DatabaseStorage implements IStorage {
         password: users.password,
         fullName: users.fullName,
         role: users.role,
-        credits: users.credits,
         virtFusionId: users.virtFusionId,
         isVerified: users.isVerified,
         isActive: users.isActive,
@@ -553,14 +552,7 @@ export class DatabaseStorage implements IStorage {
     await db.update(users).set({ role }).where(eq(users.id, id));
   }
 
-  async updateUserCredits(id: number, amount: number): Promise<void> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    if (!user) throw new Error("User not found");
 
-    await db.update(users)
-      .set({ credits: user.credits + amount })
-      .where(eq(users.id, id));
-  }
 
   async deleteUser(id: number): Promise<void> {
     console.log(`Deleting user with ID: ${id} and all related data`);

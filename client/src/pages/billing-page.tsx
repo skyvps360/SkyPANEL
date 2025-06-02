@@ -56,13 +56,8 @@ export default function BillingPage() {
     accentColor: brandingData?.accent_color
   });
 
-  // Handle tab changes and check if user is suspended
+  // Handle tab changes
   const handleTabChange = (tab: string) => {
-    // If user is suspended and tries to access "addCredits" tab, redirect to transactions
-    if (!user?.isActive && tab === "addCredits") {
-      return; // Don't change the tab
-    }
-
     setActiveTab(tab);
   };
 
@@ -73,8 +68,8 @@ export default function BillingPage() {
 
 
 
-  // Fetch credit balance
-  const { data: balanceData } = useQuery<{ credits: number, virtFusionCredits: number, virtFusionTokens: number }>({
+  // Fetch VirtFusion token balance
+  const { data: balanceData } = useQuery<{ virtFusionCredits: number, virtFusionTokens: number }>({
     queryKey: ["/api/billing/balance"],
   });
 
@@ -149,7 +144,7 @@ export default function BillingPage() {
            transaction.type === 'virtfusion_credit_removal';
   };
 
-  // Calculate billing summary
+  // Calculate billing summary using VirtFusion data only
   const hasVirtFusionBalance = balanceData?.virtFusionCredits && balanceData.virtFusionCredits > 0;
 
   // Calculate the spent and added amounts for the last 30 days from transactions
@@ -162,13 +157,9 @@ export default function BillingPage() {
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   const summaryData = {
-    // Prioritize VirtFusion balance when available
-    balance: hasVirtFusionBalance ?
-      balanceData?.virtFusionCredits || 0 :
-      (balanceData?.credits || user?.credits || 0),
-
+    // Use VirtFusion balance only
+    balance: balanceData?.virtFusionCredits || 0,
     virtFusionTokens: balanceData?.virtFusionTokens || 0,
-    localBalance: balanceData?.credits || user?.credits || 0,
 
     // Use VirtFusion API data if available, otherwise fall back to transaction calculation
     spent30Days: (usageData && 'usage' in usageData) ? usageData.usage : spentFromTransactions,
@@ -263,7 +254,7 @@ export default function BillingPage() {
 
 
 
-  // Credit amount options
+  // VirtFusion token amount options
   const creditOptions = [1, 2, 5, 10, 25, 50, 100, 250, 500];
 
   // Handle predefined amount selection
@@ -278,16 +269,16 @@ export default function BillingPage() {
   const handleCustomAmountChange = (value: string) => {
     // Only allow numbers and decimal point
     const sanitizedValue = value.replace(/[^0-9.]/g, '');
-    
+
     // Prevent multiple decimal points
     const decimalCount = (sanitizedValue.match(/\./g) || []).length;
     if (decimalCount > 1) return;
-    
+
     setCustomAmount(sanitizedValue);
-    
+
     if (sanitizedValue) {
       const numValue = parseFloat(sanitizedValue);
-      
+
       // Validate amount
       if (isNaN(numValue)) {
         setCustomAmountError("Please enter a valid amount");
@@ -361,27 +352,17 @@ export default function BillingPage() {
               </div>
             </div>
 
-            {/* Show VirtFusion tokens section when available */}
-            {hasVirtFusionBalance ? (
-              <div className="mt-3 pt-3 border-t border-border/60">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">VirtFusion Tokens:</span>
-                  <span className="font-medium" style={{ color: brandColors.primary.full }}>{summaryData.virtFusionTokens.toLocaleString()}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-                  <span>100 tokens = $1.00 USD</span>
-                  <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </div>
+            {/* Show VirtFusion tokens section */}
+            <div className="mt-3 pt-3 border-t border-border/60">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">VirtFusion Tokens:</span>
+                <span className="font-medium" style={{ color: brandColors.primary.full }}>{summaryData.virtFusionTokens.toLocaleString()}</span>
               </div>
-            ) : (
-              /* Show local balance only if no VirtFusion balance */
-              <div className="mt-3 pt-3 border-t border-border/60">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Local Balance:</span>
-                  <span className="font-medium">${summaryData.localBalance.toFixed(2)}</span>
-                </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
+                <span>100 tokens = $1.00 USD</span>
+                <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
 
@@ -439,11 +420,11 @@ export default function BillingPage() {
                 <History className="h-4 w-4 mr-2" />
                 Transactions
               </TabsTrigger>
-              {/* Only show Add Credits tab if user is not suspended */}
+              {/* Add VirtFusion Tokens tab */}
               {user?.isActive && (
                 <TabsTrigger value="addCredits" className="data-[state=active]:bg-background rounded-md">
                   <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Credits
+                  Add VirtFusion Tokens
                 </TabsTrigger>
               )}
 
@@ -477,7 +458,7 @@ export default function BillingPage() {
                         }}
                       >
                         <PlusCircle className="h-4 w-4 mr-2" />
-                        Add Credits
+                        Add VirtFusion Tokens
                       </Button>
                     ) : (
                       <Button
@@ -610,10 +591,12 @@ export default function BillingPage() {
                     <div className="p-2 rounded-full" style={{ backgroundColor: brandColors.primary.extraLight }}>
                       <PlusCircle className="h-5 w-5" style={{ color: brandColors.primary.full }} />
                     </div>
-                    Add Credits to Your Account
+                    Add VirtFusion Tokens
                   </h3>
                   <p className="text-muted-foreground">
-                    Select the amount you want to add to your account. Credits are used to pay for server resources and other services.
+                    Add tokens to your VirtFusion account via PayPal. Tokens are used to pay for server resources and services.
+                    <br />
+                    <span className="text-sm font-medium">Exchange Rate: 100 tokens = $1.00 USD</span>
                   </p>
                 </div>
 
@@ -671,7 +654,7 @@ export default function BillingPage() {
                       )}
                       {isCustomAmount && !customAmountError && customAmount && (
                         <p className="text-sm text-green-600 mt-1">
-                          Custom amount: ${parseFloat(customAmount).toFixed(2)}
+                          Custom amount: ${parseFloat(customAmount).toFixed(2)} = {(parseFloat(customAmount) * 100).toLocaleString()} tokens
                         </p>
                       )}
                     </div>
@@ -685,38 +668,16 @@ export default function BillingPage() {
                       ${getFinalAmount().toFixed(2)}
                     </span>
                   </div>
+                  <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
+                    <span>VirtFusion Tokens:</span>
+                    <span className="font-medium">{(getFinalAmount() * 100).toLocaleString()} tokens</span>
+                  </div>
                   {isCustomAmount && (
                     <div className="mt-2 text-sm text-muted-foreground">
                       Custom amount selected
                     </div>
                   )}
                 </div>
-
-                <div className="mb-8">
-                  <h4 className="text-sm font-medium mb-3">Payment Method</h4>
-                  <div className="rounded-lg border border-border/60 p-4 shadow-sm bg-card/30">
-                    <div className="flex items-center">
-                      <div className="mr-4 p-2 bg-blue-50 rounded-lg">
-                        <img
-                          src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg"
-                          alt="PayPal"
-                          className="h-8"
-                        />
-                      </div>
-                      <div>
-                        <h5 className="font-medium">PayPal</h5>
-                        <p className="text-sm text-muted-foreground">Pay securely using PayPal or credit card</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Admin section header */}
-                {user?.role === 'admin' && (
-                  <div className="border-t my-6 pt-6">
-                    <h4 className="text-sm font-medium mb-3">PayPal Checkout</h4>
-                  </div>
-                )}
 
                 {/* Only show PayPal checkout if amount is valid */}
                 {(!isCustomAmount || (isCustomAmount && !customAmountError && customAmount)) && (

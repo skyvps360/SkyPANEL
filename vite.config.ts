@@ -16,6 +16,13 @@ export default defineConfig({
         ]
       : []),
   ],
+  define: {
+    // Explicitly define PayPal environment variables for client-side access
+    'import.meta.env.VITE_PAYPAL_SANDBOX': JSON.stringify(process.env.VITE_PAYPAL_SANDBOX),
+    'import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID': JSON.stringify(process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID),
+    'import.meta.env.VITE_PAYPAL_CLIENT_ID': JSON.stringify(process.env.VITE_PAYPAL_CLIENT_ID),
+    'import.meta.env.VITE_PAYPAL_CURRENCY': JSON.stringify(process.env.VITE_PAYPAL_CURRENCY),
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
