@@ -5,7 +5,7 @@ import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { BillingActivity } from "@/components/dashboard/BillingActivity";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
-import DashboardBlogSection from "@/components/dashboard/DashboardBlogSection";
+
 import { getBrandColors } from "@/lib/brand-theme";
 import { usePageLoading } from "@/components/loading/PageLoadingProvider";
 import { Button } from "@/components/ui/button";
@@ -52,15 +52,8 @@ export default function HomePage() {
     totalServers: 0
   });
 
-  // Check if we're viewing the blog section
-  const [currentSection, setCurrentSection] = useState<string | null>(null);
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    setCurrentSection(urlParams.get('section'));
-  }, [location]);
-
-  const isBlogSection = currentSection === 'blog';
+  // The blog section is now handled by a separate route (/dashboard/blog)
+  // so we don't need to check for URL parameters here
 
   // Fetch brand settings for consistent colors
   const { data: brandingData = {
@@ -146,18 +139,9 @@ export default function HomePage() {
   const hasVirtFusion = stats.virtFusionTokens > 0;
   const displayCredits = hasVirtFusion ? stats.virtFusionCredits : 0;
 
-  // Handle navigation back from blog section
-  const handleNavigateBackFromBlog = () => {
-    navigate('/dashboard');
-  };
-
   return (
     <DashboardLayout>
-      {isBlogSection ? (
-        /* Blog Section */
-        <DashboardBlogSection onNavigateBack={handleNavigateBackFromBlog} />
-      ) : (
-        /* Default Dashboard Content */
+      {/* Dashboard Content */}
         <div className="space-y-8 animate-in fade-in duration-500">
           {/* Modern Hero Header */}
           <div className="rounded-2xl bg-white border border-gray-300/60 shadow-md">
@@ -379,7 +363,7 @@ export default function HomePage() {
                   </Button>
                 </Link>
 
-                <Link href="/dashboard?section=blog">
+                <Link href="/dashboard/blog">
                   <Button
                     variant="outline"
                     className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
@@ -466,7 +450,6 @@ export default function HomePage() {
             <BillingActivity />
           </div>
         </div>
-      )}
     </DashboardLayout>
   );
 }

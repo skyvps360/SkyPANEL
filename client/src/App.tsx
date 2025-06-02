@@ -38,6 +38,7 @@ import StatusPage from "@/pages/status/index";
 import SpeedTestPage from "@/pages/speed-test/index";
 import PlansPage from "@/pages/plans/index";
 import TeamsPage from "@/pages/teams-page";
+import DashboardBlogPage from "@/pages/dashboard-blog-page";
 
 // Admin pages
 import AdminDashboard from "@/pages/admin/index";
@@ -261,6 +262,7 @@ function Router() {
         </Route>
         <Route path="/maintenance" component={MaintenancePage} />
         <ProtectedRoute path="/dashboard" component={HomePage} />
+        <ProtectedRoute path="/dashboard/blog" component={DashboardBlogPage} />
         <Route path="/auth" component={AuthPage} />
         <Route path="/auth/verify" component={VerifyPage} />
         <Route path="/auth/forgot-username" component={ForgotUsernamePage} />
