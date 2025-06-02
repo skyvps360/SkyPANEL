@@ -46,25 +46,22 @@ export function BillingActivity() {
       header: "Transaction",
       cell: (transaction: Transaction) => (
         <div className="flex items-center">
-          <Avatar className="h-8 w-8 mr-3">
-            <AvatarFallback
-              className={
-                isCredit(transaction)
-                  ? "bg-blue-100 text-blue-600"
-                  : "bg-red-100 text-red-600"
-              }
-            >
-              {isCredit(transaction) ? (
-                <PlusCircle className="h-4 w-4" />
-              ) : (
-                <MinusCircle className="h-4 w-4" />
-              )}
-            </AvatarFallback>
-          </Avatar>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center mr-4 ${
+            isCredit(transaction)
+              ? "bg-emerald-100 text-emerald-600"
+              : "bg-red-100 text-red-600"
+          }`}>
+            {isCredit(transaction) ? (
+              <PlusCircle className="h-5 w-5" />
+            ) : (
+              <MinusCircle className="h-5 w-5" />
+            )}
+          </div>
           <div>
-            <div className="text-sm font-medium">{transaction.description}</div>
+            <div className="text-sm font-semibold text-gray-900">{transaction.description}</div>
             {transaction.paymentMethod && (
-              <div className="text-xs text-gray-500 capitalize">
+              <div className="text-xs text-gray-500 capitalize mt-1 flex items-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mr-2" />
                 {transaction.paymentMethod}
               </div>
             )}
@@ -76,11 +73,13 @@ export function BillingActivity() {
       accessorKey: "amount" as keyof Transaction,
       header: "Amount",
       cell: (transaction: Transaction) => (
-        <div
-          className={`text-sm ${isCredit(transaction) ? "text-accent" : "text-alert"}`}
-        >
-          {isCredit(transaction) ? "+" : "-"}$
-          {Math.abs(transaction.amount).toFixed(2)}
+        <div className="text-right">
+          <div className={`text-lg font-bold ${
+            isCredit(transaction) ? "text-emerald-600" : "text-red-600"
+          }`}>
+            {isCredit(transaction) ? "+" : "-"}$
+            {Math.abs(transaction.amount).toFixed(2)}
+          </div>
         </div>
       ),
     },
@@ -88,9 +87,12 @@ export function BillingActivity() {
       accessorKey: "createdAt" as keyof Transaction,
       header: "Date",
       cell: (transaction: Transaction) => (
-        <span className="text-sm text-gray-500">
+        <div className="text-sm text-gray-600">
           {format(new Date(transaction.createdAt), "MMM d, yyyy")}
-        </span>
+          <div className="text-xs text-gray-400 mt-1">
+            {format(new Date(transaction.createdAt), "h:mm a")}
+          </div>
+        </div>
       ),
     },
     {
@@ -101,24 +103,32 @@ export function BillingActivity() {
           switch (status.toLowerCase()) {
             case "completed":
               return (
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-200 font-medium">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2" />
                   Completed
                 </Badge>
               );
             case "pending":
               return (
-                <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200 font-medium">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2" />
                   Pending
                 </Badge>
               );
             case "failed":
               return (
-                <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+                <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200 font-medium">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2" />
                   Failed
                 </Badge>
               );
             default:
-              return <Badge>{status}</Badge>;
+              return (
+                <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100 border-gray-200 font-medium">
+                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500 mr-2" />
+                  {status}
+                </Badge>
+              );
           }
         };
 
@@ -128,25 +138,54 @@ export function BillingActivity() {
   ];
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-semibold">
-          Recent Transactions
-        </CardTitle>
+    <div className="space-y-6">
+      {/* Modern Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 pb-0">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Recent Transactions</h2>
+          <p className="text-gray-600 mt-1">Track your account activity and billing history</p>
+        </div>
         <Link href="/billing">
-          <Button variant="ghost" size="sm">
-            View All
+          <Button
+            variant="outline"
+            className="bg-white border-gray-200 hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-200"
+          >
+            View All Transactions
           </Button>
         </Link>
-      </CardHeader>
-      <CardContent>
-        <DataTable
-          data={transactions}
-          columns={columns}
-          searchKey="description"
-        />
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Enhanced Data Table */}
+      <div className="px-6 pb-6">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <span className="ml-3 text-gray-600">Loading transactions...</span>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+              <MinusCircle className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions yet</h3>
+            <p className="text-gray-600 mb-6">Your transaction history will appear here once you start using our services.</p>
+            <Link href="/packages">
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                Browse Packages
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="bg-gray-50 rounded-lg p-1">
+            <DataTable
+              data={transactions}
+              columns={columns}
+              searchKey="description"
+            />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

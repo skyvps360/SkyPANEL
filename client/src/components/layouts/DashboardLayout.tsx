@@ -37,12 +37,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { getBrandColors, getButtonStyles } from "@/lib/brand-theme";
+import { getBrandColors } from "@/lib/brand-theme";
 import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
 
 type NavigationItem = {
@@ -728,91 +727,107 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
   return (
     <div className="flex h-screen overflow-hidden text-textColor">
-      {/* Sidebar Navigation */}
+      {/* Modern Sidebar Navigation */}
       <aside
         className={cn(
-          "text-white w-64 flex-shrink-0 flex flex-col z-30",
+          "w-64 flex-shrink-0 flex flex-col z-30 bg-gray-900 border-r border-gray-800 shadow-xl",
           mobileMenuOpen ? "fixed inset-y-0 left-0 block" : "hidden md:flex",
         )}
-        style={{ backgroundColor: '#111827' }} /* Using dark bg for sidebar */
       >
-        <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-          <Link href="/dashboard" className="flex items-center">
+        {/* Enhanced Header with Modern Branding */}
+        <div className="p-6 border-b border-gray-800">
+          <Link href="/dashboard" className="flex items-center group">
             <div
-              className="flex items-center justify-center h-8 w-10 mr-2 rounded text-white font-bold text-lg"
-              style={{ backgroundColor: brandColors.primary.full }}
+              className="flex items-center justify-center h-12 w-12 mr-3 rounded-xl text-white font-bold text-xl shadow-lg group-hover:shadow-xl transition-shadow duration-200"
+              style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
             >
               {companyName?.charAt(0) || "S"}
             </div>
-            <span className="text-xl font-semibold">{companyName}</span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-white group-hover:text-primary transition-colors duration-200">
+                {companyName}
+              </span>
+              <span className="text-xs text-gray-400 font-medium">Dashboard</span>
+            </div>
           </Link>
 
           {/* Close button for mobile */}
           <button
-            className="md:hidden rounded-md p-1.5 text-gray-300 hover:bg-gray-700 focus:outline-none"
+            className="md:hidden absolute top-4 right-4 rounded-lg p-2 text-gray-400 hover:bg-gray-800 hover:text-gray-200 focus:outline-none transition-colors duration-200"
             onClick={() => setMobileMenuOpen(false)}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 py-4 px-2 overflow-y-auto">
-          {mainNavigation.map((item) => {
-            // Check if this is the blog item and we're on dashboard with blog section
-            const isBlogActive = item.name === "Blog" && location === "/dashboard" &&
-              new URLSearchParams(window.location.search).get('section') === 'blog';
-            // Check if this is a regular navigation item
-            const isActive = location === item.href || isBlogActive;
+        {/* Modern Navigation Links */}
+        <nav className="flex-1 py-6 px-4 overflow-y-auto">
+          <div className="space-y-2">
+            {mainNavigation.map((item) => {
+              // Check if this is the blog item and we're on dashboard with blog section
+              const isBlogActive = item.name === "Blog" && location === "/dashboard" &&
+                new URLSearchParams(window.location.search).get('section') === 'blog';
+              // Check if this is a regular navigation item
+              const isActive = location === item.href || isBlogActive;
 
-            return (
-              <div key={item.href} className="mb-1">
+              return (
                 <Link
+                  key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center px-4 py-3 rounded-md",
+                    "flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group",
                     isActive
-                      ? "text-white"
-                      : "text-gray-300 hover:bg-gray-700",
+                      ? "bg-primary text-primary-foreground shadow-lg"
+                      : "text-gray-300 hover:bg-gray-800 hover:text-white",
                   )}
-                  style={isActive ? { backgroundColor: brandColors.primary.full } : undefined}
                 >
-                  {item.icon}
-                  <span>{item.name}</span>
+                  <div className={cn(
+                    "mr-3 transition-colors duration-200",
+                    isActive ? "text-primary-foreground" : "text-gray-400 group-hover:text-gray-200"
+                  )}>
+                    {item.icon}
+                  </div>
+                  <span className="font-medium">{item.name}</span>
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 rounded-full bg-primary-foreground/40" />
+                  )}
                 </Link>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
 
-          {/* VirtFusion Login Button - Visible to all users */}
-          <div className="mt-6 mb-1">
-            <div className="px-4 py-2 text-xs text-gray-400 uppercase tracking-wide">
-              Control Panel
-            </div>
-            <div className="px-4">
+          {/* Enhanced VirtFusion Section */}
+          <div className="mt-8 px-4">
+            <div className="mb-4">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                Control Panel
+              </h3>
               <VirtFusionSsoButton
                 variant="outline"
                 size="default"
-                className="w-full justify-center text-white hover:opacity-90 bg-primary"
-                text="Login to VirtFusion"
+                className="w-full justify-center bg-primary text-primary-foreground hover:bg-primary/90 border-primary shadow-lg"
+                text="VirtFusion Panel"
               />
             </div>
           </div>
-
-          {/* Admin section removed - now available in user dropdown menu */}
         </nav>
 
-        {/* Account Section */}
-        <div className="p-4 border-t border-gray-700">
-          <div className="flex items-center text-sm text-gray-300">
-            <Avatar className="w-8 h-8 mr-3">
+        {/* Modern Account Section */}
+        <div className="p-4 border-t border-gray-800 bg-gray-800/50">
+          <div className="flex items-center">
+            <Avatar className="w-10 h-10 mr-3 ring-2 ring-primary/20">
               <AvatarImage src={getGravatarUrl(user?.email)} alt={user?.fullName || "User"} />
-              <AvatarFallback style={{ backgroundColor: brandColors.primary.full }}>
+              <AvatarFallback
+                className="text-white font-semibold"
+                style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
+              >
                 {getUserInitials(user?.fullName)}
               </AvatarFallback>
             </Avatar>
-            <div className="overflow-hidden">
-              <div className="font-medium">{user?.fullName || "User"}</div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-white truncate">
+                {user?.fullName || "User"}
+              </div>
               <div className="text-xs text-gray-400 truncate">
                 {user?.email || "user@example.com"}
               </div>
@@ -823,442 +838,137 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
       {/* Mobile Sidebar Toggle & Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Navigation Bar */}
-        <header className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between px-4 py-3">
+        {/* Modern Top Navigation Bar */}
+        <header className="bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm sticky top-0 z-20">
+          <div className="flex items-center justify-between px-4 lg:px-6 py-4">
             {/* Mobile Menu Button */}
             <button
-              className="md:hidden rounded-md p-2 text-gray-600 hover:bg-gray-100 focus:outline-none"
+              className="md:hidden rounded-xl p-2.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none transition-colors duration-200"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <Menu className="h-5 w-5" />
             </button>
 
-            {/* Enhanced Navbar Search with Keyboard Shortcut Indicator */}
+            {/* Enhanced Modern Search */}
             <div className="flex-1 flex max-w-2xl mx-4 relative z-10">
               <div className="relative w-full">
-                {/* Modern Search Input */}
                 <div className="relative w-full">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search for anything... (press Ctrl+K or ⌘K)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setShowSearchPopup(true)}
+                    className="h-11 w-full pl-11 pr-20 py-3 border border-gray-300 rounded-xl text-sm bg-gray-100/70 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 placeholder:text-gray-500"
+                  />
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                    <kbd className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-2 py-1 font-mono text-xs text-gray-500 shadow-sm">
+                      ⌘K
+                    </kbd>
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search for anything... (press Ctrl+K or ⌘K)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setShowSearchPopup(true)}
-                  className="h-10 w-full pl-10 pr-20 py-2 border border-gray-200 rounded-md text-sm focus:ring-2 focus:ring-brand focus:border-brand"
-                  style={{ "--ring-color": brandColors.primary.medium } as React.CSSProperties}
-                />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-xs">
-                  <kbd className="inline-flex items-center justify-center rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-400">
-                    ⌘K
-                  </kbd>
-                </div>
-              </div>
               </div>
             </div>
 
-            {/* Search Popup Dialog */}
-            {showSearchPopup && (
-              <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-16 px-4">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
-                  <div className="p-3 border-b border-gray-200">
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                        <Search className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        placeholder="Search for anything... (press ESC to close)"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full py-2 pl-10 pr-4 outline-none text-base"
-                        autoFocus
-                      />
-                      <button
-                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                        onClick={() => {
-                          setShowSearchPopup(false);
-                          setSearchQuery('');
-                        }}
-                      >
-                        <X className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Search Results in Dialog */}
-                  <div className="max-h-[calc(80vh-10rem)] overflow-y-auto">
-                    {searchQuery.trim() !== "" && (
-                      <div ref={searchResultsRef} className="w-full divide-y divide-gray-100">
-                        {isSearching ? (
-                          <div className="py-6 text-center">
-                            <div className="animate-spin h-5 w-5 text-primary mx-auto border-2 border-t-primary border-r-primary border-b-transparent border-l-transparent rounded-full" />
-                            <p className="mt-2 text-sm text-gray-500">Searching...</p>
-                          </div>
-                        ) : searchResults.length === 0 ? (
-                          <div className="p-6 text-center">
-                            <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                              <Search className="h-6 w-6 text-gray-400" />
-                            </div>
-                            <p className="text-gray-700 font-medium">No results found</p>
-                            <p className="text-sm text-gray-500 mt-1">Try different keywords or check spelling</p>
-                          </div>
-                        ) : (
-                          <div>
-                            {/* Navigation Shortcuts */}
-                            {searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length > 0 && (
-                              <div className="py-2">
-                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
-                                  Navigation
-                                </div>
-                                <div className="grid grid-cols-2 gap-1">
-                                  {searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").map((result, index) => (
-                                    <div
-                                      key={`nav-${result.id}`}
-                                      onClick={() => navigateToResult(result)}
-                                      className={`search-result-item flex items-center px-4 py-2 cursor-pointer rounded-sm ${activeResultIndex === index ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
-                                      style={activeResultIndex === index ? { backgroundColor: brandColors.primary.lighter } : undefined}
-                                    >
-                                      <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center"
-                                       style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
-                                        {result.icon}
-                                      </div>
-                                      <div>
-                                        <p className="text-sm font-medium text-gray-900">{result.name}</p>
-                                        {result.description && (
-                                          <p className="text-xs text-gray-500">{result.description}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Admin Shortcuts */}
-                            {user?.role === "admin" && searchResults.filter(r => r.type === "user" && typeof r.id === "string").length > 0 && (
-                              <div className="py-2">
-                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
-                                  Admin
-                                </div>
-                                <div className="grid grid-cols-2 gap-1">
-                                  {searchResults.filter(r => r.type === "user" && typeof r.id === "string").map((result, index) => {
-                                    // Calculate overall index position in the combined results array
-                                    const overallIndex = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length + index;
-
-                                    return (
-                                      <div
-                                        key={`admin-${result.id}`}
-                                        onClick={() => navigateToResult(result)}
-                                        className={`search-result-item flex items-center px-4 py-2 cursor-pointer rounded-sm ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
-                                        style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
-                                      >
-                                        <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center"
-                                         style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
-                                          {result.icon}
-                                        </div>
-                                        <div>
-                                          <p className="text-sm font-medium text-gray-900">{result.name}</p>
-                                          {result.description && (
-                                            <p className="text-xs text-gray-500">{result.description}</p>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Tickets Results */}
-                            {searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").length > 0 && (
-                              <div className="py-2">
-                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase flex items-center">
-                                  <Ticket className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                                  Support Tickets
-                                </div>
-                                {searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").map((result, index) => {
-                                  // Calculate overall index position in the combined results array
-                                  const navItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length;
-                                  const adminItems = searchResults.filter(r => r.type === "user" && typeof r.id === "string").length;
-                                  const overallIndex = navItems + adminItems + index;
-
-                                  return (
-                                    <div
-                                      key={`ticket-${result.id}`}
-                                      onClick={() => navigateToResult(result)}
-                                      className={`search-result-item flex items-center px-4 py-2 cursor-pointer ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
-                                      style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
-                                    >
-                                      <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
-                                       style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
-                                        <Ticket className="h-4 w-4" />
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
-                                        {result.description && (
-                                          <p className="text-xs text-gray-500 truncate">{result.description}</p>
-                                        )}
-                                      </div>
-                                      {/* Action buttons for tickets */}
-                                      <div className="flex space-x-2 ml-2">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="px-2 text-xs"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            window.open(`/api/tickets/${result.id}/download`, '_blank');
-                                          }}
-                                        >
-                                          <Download className="h-3 w-3 mr-1" />
-                                          Download
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {/* Users Results (Admin Only) */}
-                            {searchResults.filter(r => r.type === "user" && typeof r.id === "number").length > 0 && (
-                              <div className="py-2">
-                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase flex items-center">
-                                  <Users className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                                  Users
-                                </div>
-                                {searchResults.filter(r => r.type === "user" && typeof r.id === "number").map((result, index) => {
-                                  // Calculate overall index position in the combined results array
-                                  const navItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length;
-                                  const adminItems = searchResults.filter(r => r.type === "user" && typeof r.id === "string").length;
-                                  const ticketItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").length;
-                                  const overallIndex = navItems + adminItems + ticketItems + index;
-
-                                  return (
-                                    <div
-                                      key={`user-${result.id}`}
-                                      onClick={() => navigateToResult(result)}
-                                      className={`search-result-item flex items-center px-4 py-2 cursor-pointer ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
-                                      style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
-                                    >
-                                      <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
-                                       style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
-                                        <Users className="h-4 w-4" />
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
-                                        {result.description && (
-                                          <p className="text-xs text-gray-500 truncate">{result.description}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {/* Billing & Transactions Results */}
-                            {searchResults.filter(r => r.type === "billing").length > 0 && (
-                              <div className="py-2">
-                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase flex items-center">
-                                  <CreditCard className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                                  Billing & Transactions
-                                </div>
-                                {searchResults.filter(r => r.type === "billing").map((result, index) => {
-                                  // Calculate overall index position in the combined results array
-                                  const navItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length;
-                                  const adminItems = searchResults.filter(r => r.type === "user" && typeof r.id === "string").length;
-                                  const ticketItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").length;
-                                  const userItems = searchResults.filter(r => r.type === "user" && typeof r.id === "number").length;
-                                  const overallIndex = navItems + adminItems + ticketItems + userItems + index;
-
-                                  // For transactions
-                                  const isTransaction = result.name.toLowerCase().includes('transaction') ||
-                                                       result.name.toLowerCase().includes('debit') ||
-                                                       result.name.toLowerCase().includes('credit');
-
-                                  return (
-                                    <div
-                                      key={`billing-${result.id}`}
-                                      onClick={() => navigateToResult(result)}
-                                      className={`search-result-item flex items-center px-4 py-2 cursor-pointer ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
-                                      style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
-                                    >
-                                      <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
-                                       style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
-                                        <CreditCard className="h-4 w-4" />
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
-                                        {result.description && (
-                                          <p className="text-xs text-gray-500 truncate">{result.description}</p>
-                                        )}
-                                      </div>
-
-                                      {/* Add action buttons - only show direct download buttons if no action buttons exist */}
-                                      {result.actionButtons && result.actionButtons.length > 0 ? (
-                                        <div className="ml-2 flex space-x-1">
-                                          {result.actionButtons.map((button, i) => (
-                                            <Button
-                                              key={`action-${i}`}
-                                              size="sm"
-                                              variant="ghost"
-                                              className="text-gray-500 hover:text-gray-700"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                // If it's a download action, open in new tab
-                                                if (button.action.includes('/download')) {
-                                                  const url = button.action;
-                                                  window.open(url, '_blank');
-                                                } else {
-                                                  // Otherwise navigate to the URL
-                                                  navigate(button.action);
-                                                }
-                                              }}
-                                            >
-                                              {button.icon}
-                                              <span className="sr-only">{button.label}</span>
-                                            </Button>
-                                          ))}
-                                        </div>
-                                      ) : (
-                                        // Only show these fallback buttons if no action buttons exist
-                                        <>
-                                          {isTransaction && (
-                                            <div className="ml-2">
-                                              <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-gray-500 hover:text-gray-700"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  const url = `/api/transactions/${result.id}/download`;
-                                                  console.log("Direct transaction download URL:", url);
-                                                  window.open(url, '_blank');
-                                                }}
-                                              >
-                                                <Download className="h-4 w-4" />
-                                                <span className="sr-only">Download</span>
-                                              </Button>
-                                            </div>
-                                          )}
-
-
-                                        </>
-                                      )}
-
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-
-                            {/* Footer with keyboard tips */}
-                            <div className="py-2 px-4 text-xs text-gray-500 border-t border-gray-100 bg-gray-50">
-                              <div className="flex items-center justify-between">
-                                <span>Press <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded font-mono text-xs">↑</kbd><kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded font-mono text-xs">↓</kbd> to navigate</span>
-                                <span>Press <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded font-mono text-xs">Enter</kbd> to select</span>
-                                <span>Press <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded font-mono text-xs">Esc</kbd> to dismiss</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Right-side Actions */}
-            <div className="flex items-center">
-              {/* Credit Balance - Linked to Billing Page */}
+            {/* Enhanced Right-side Actions */}
+            <div className="flex items-center space-x-3">
+              {/* Enhanced Credit Balance */}
               <Link
                 href="/billing"
-                className="hidden sm:flex items-center px-3 py-1.5 rounded-full mr-4 hover:bg-opacity-90 transition-colors"
-                style={{ backgroundColor: brandColors.primary.lighter }}
+                className="hidden sm:flex items-center px-4 py-2.5 rounded-xl hover:shadow-sm transition-all duration-200 group"
+                style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
                 title="Go to Billing"
               >
-                <Coins className="h-4 w-4 mr-2" style={{ color: brandColors.primary.full }} />
-                <span className="text-sm font-medium">
+                <Coins
+                  className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200"
+                  style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
+                />
+                <span className="text-sm font-semibold text-gray-900">
                   ${balanceData?.virtFusionCredits?.toFixed(2) || "0.00"}
                 </span>
               </Link>
 
-              {/* Profile Dropdown */}
+              {/* Enhanced Profile Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="ml-2">
-                    <Avatar className="w-8 h-8">
+                  <Button
+                    variant="ghost"
+                    className="rounded-xl p-2 hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    <Avatar className="w-9 h-9 ring-2 ring-primary/10 hover:ring-primary/20 transition-all duration-200">
                       <AvatarImage src={getGravatarUrl(user?.email)} alt={user?.fullName || "User"} />
-                      <AvatarFallback style={{ backgroundColor: brandColors.primary.full, color: 'white' }}>
+                      <AvatarFallback
+                        className="text-white font-semibold"
+                        style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
+                      >
                         {getUserInitials(user?.fullName)}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="profile-dropdown-content" style={{
-                    '--brand-lighter': brandColors.primary.lighter,
-                    '--brand-light': brandColors.primary.light,
-                    '--color-brand': brandColors.primary.full
-                  } as React.CSSProperties}>
-                  {/* Custom CSS variables are applied to the dropdown */}
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 p-2 bg-white border border-gray-200 shadow-lg rounded-xl"
+                >
+                  <div className="px-3 py-2 mb-2">
+                    <p className="text-sm font-semibold text-gray-900">{user?.fullName || "User"}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.email || "user@example.com"}</p>
+                  </div>
+                  <DropdownMenuSeparator className="my-2" />
+
                   <DropdownMenuItem asChild>
                     <Link
                       href="/profile"
-                      className="flex items-center dropdown-menu-link"
-                      style={{ '--hover-color': brandColors.primary.full } as React.CSSProperties}
+                      className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-primary hover:text-primary-foreground transition-colors duration-200 cursor-pointer"
                     >
-                      <Users className="h-4 w-4 mr-2" style={{ color: brandColors.primary.medium }} />
-                      Profile
+                      <Users className="h-4 w-4 mr-3" />
+                      Profile Settings
                     </Link>
                   </DropdownMenuItem>
+
                   <DropdownMenuItem asChild>
                     <Link
                       href="/billing"
-                      className="flex items-center dropdown-menu-link"
-                      style={{ '--hover-color': brandColors.primary.full } as React.CSSProperties}
+                      className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-primary hover:text-primary-foreground transition-colors duration-200 cursor-pointer"
                     >
-                      <CreditCard className="h-4 w-4 mr-2" style={{ color: brandColors.primary.medium }} />
-                      Billing
+                      <CreditCard className="h-4 w-4 mr-3" />
+                      Billing & Usage
                     </Link>
                   </DropdownMenuItem>
+
                   <DropdownMenuItem asChild>
                     <Link
                       href="/tickets"
-                      className="flex items-center dropdown-menu-link"
-                      style={{ '--hover-color': brandColors.primary.full } as React.CSSProperties}
+                      className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-primary hover:text-primary-foreground transition-colors duration-200 cursor-pointer"
                     >
-                      <Ticket className="h-4 w-4 mr-2" style={{ color: brandColors.primary.medium }} />
+                      <Ticket className="h-4 w-4 mr-3" />
                       Support Tickets
                     </Link>
                   </DropdownMenuItem>
+
                   {user?.role === "admin" && (
                     <DropdownMenuItem asChild>
                       <Link
-                        href="/admin/settings"
-                        className="flex items-center dropdown-menu-link"
-                        style={{ '--hover-color': brandColors.primary.full } as React.CSSProperties}
+                        href="/admin"
+                        className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-primary hover:text-primary-foreground transition-colors duration-200 cursor-pointer"
                       >
-                        <SettingsIcon className="h-4 w-4 mr-2" style={{ color: brandColors.primary.medium }} />
-                        Admin
+                        <SettingsIcon className="h-4 w-4 mr-3" />
+                        Admin Dashboard
                       </Link>
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuSeparator />
+
+                  <DropdownMenuSeparator className="my-2" />
+
                   <DropdownMenuItem
                     onClick={handleLogout}
-                    className="text-alert"
+                    className="flex items-center px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors duration-200 cursor-pointer"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
+                    <LogOut className="h-4 w-4 mr-3" />
+                    Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1266,27 +976,228 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           </div>
         </header>
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto bg-background p-4 md:p-6">
-          {children}
+        {/* Enhanced Main Content Area */}
+        <main className="flex-1 overflow-y-auto bg-gray-100/60 p-4 md:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
 
-        {/* Footer with SkyVPS360.xyz branding */}
-        <footer className="bg-gray-50 border-t border-gray-200 py-4">
-          <div className="container mx-auto px-4">
+        {/* Modern Footer */}
+        <footer className="bg-white border-t border-gray-200/60 py-6">
+          <div className="max-w-7xl mx-auto px-4 lg:px-8">
             <div className="flex flex-col md:flex-row md:justify-between md:items-center">
               <div className="flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 text-sm mb-3 md:mb-0">
-                <a href="/status" className="text-gray-600 hover:underline hover:text-brand">Status</a>
-                <a href="/tos" className="text-gray-600 hover:underline hover:text-brand">Terms of Service</a>
-                <a href="/privacy" className="text-gray-600 hover:underline hover:text-brand">Privacy Policy</a>
+                <a
+                  href="/status"
+                  className="text-gray-600 hover:text-primary transition-colors duration-200 font-medium"
+                >
+                  Status
+                </a>
+                <a
+                  href="/tos"
+                  className="text-gray-600 hover:text-primary transition-colors duration-200 font-medium"
+                >
+                  Terms of Service
+                </a>
+                <a
+                  href="/privacy"
+                  className="text-gray-600 hover:text-primary transition-colors duration-200 font-medium"
+                >
+                  Privacy Policy
+                </a>
               </div>
               <div className="text-center md:text-right">
-                <span className="text-gray-600 text-sm">© {new Date().getFullYear()} {companyName}</span>
+                <span className="text-gray-500 text-sm font-medium">
+                  © {new Date().getFullYear()} {companyName}. All rights reserved.
+                </span>
               </div>
             </div>
           </div>
         </footer>
       </div>
+
+      {/* Search Popup Dialog - Outside main layout for proper z-index */}
+      {showSearchPopup && (
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-start justify-center pt-16 px-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden">
+            <div className="p-3 border-b border-gray-200">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search for anything... (press ESC to close)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2 pl-10 pr-4 outline-none text-base"
+                  autoFocus
+                />
+                <button
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                  onClick={() => {
+                    setShowSearchPopup(false);
+                    setSearchQuery('');
+                  }}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Search Results in Dialog */}
+            <div className="max-h-[calc(80vh-10rem)] overflow-y-auto">
+              {searchQuery.trim() !== "" && (
+                <div className="w-full divide-y divide-gray-100">
+                  {isSearching ? (
+                    <div className="py-6 text-center">
+                      <div className="animate-spin h-5 w-5 text-primary mx-auto border-2 border-t-primary border-r-primary border-b-transparent border-l-transparent rounded-full" />
+                      <p className="mt-2 text-sm text-gray-500">Searching...</p>
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                        <Search className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-gray-700 font-medium">No results found</p>
+                      <p className="text-sm text-gray-500 mt-1">Try different keywords or check spelling</p>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Navigation Shortcuts */}
+                      {searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length > 0 && (
+                        <div className="py-2">
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                            Navigation
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            {searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").map((result, index) => (
+                              <div
+                                key={`nav-${result.id}`}
+                                onClick={() => navigateToResult(result)}
+                                className={`search-result-item flex items-center px-4 py-2 cursor-pointer rounded-sm ${activeResultIndex === index ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
+                                style={activeResultIndex === index ? { backgroundColor: brandColors.primary.lighter } : undefined}
+                              >
+                                <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center"
+                                 style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                  {result.icon}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{result.name}</p>
+                                  {result.description && (
+                                    <p className="text-xs text-gray-500">{result.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Admin Shortcuts */}
+                      {user?.role === "admin" && searchResults.filter(r => r.type === "user" && typeof r.id === "string").length > 0 && (
+                        <div className="py-2">
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">
+                            Admin
+                          </div>
+                          <div className="grid grid-cols-2 gap-1">
+                            {searchResults.filter(r => r.type === "user" && typeof r.id === "string").map((result, index) => {
+                              // Calculate overall index position in the combined results array
+                              const overallIndex = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length + index;
+
+                              return (
+                                <div
+                                  key={`admin-${result.id}`}
+                                  onClick={() => navigateToResult(result)}
+                                  className={`search-result-item flex items-center px-4 py-2 cursor-pointer rounded-sm ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
+                                  style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
+                                >
+                                  <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center"
+                                   style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                    {result.icon}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">{result.name}</p>
+                                    {result.description && (
+                                      <p className="text-xs text-gray-500">{result.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tickets Results */}
+                      {searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").length > 0 && (
+                        <div className="py-2">
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase flex items-center">
+                            <Ticket className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
+                            Support Tickets
+                          </div>
+                          {searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").map((result, index) => {
+                            // Calculate overall index position in the combined results array
+                            const navItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length;
+                            const adminItems = searchResults.filter(r => r.type === "user" && typeof r.id === "string").length;
+                            const overallIndex = navItems + adminItems + index;
+
+                            return (
+                              <div
+                                key={`ticket-${result.id}`}
+                                onClick={() => navigateToResult(result)}
+                                className={`search-result-item flex items-center px-4 py-2 cursor-pointer ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
+                                style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
+                              >
+                                <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
+                                 style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                  <Ticket className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
+                                  {result.description && (
+                                    <p className="text-xs text-gray-500 truncate">{result.description}</p>
+                                  )}
+                                </div>
+                                {/* Action buttons for tickets */}
+                                <div className="flex space-x-2 ml-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="px-2 text-xs"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      window.open(`/api/tickets/${result.id}/download`, '_blank');
+                                    }}
+                                  >
+                                    <Download className="h-3 w-3 mr-1" />
+                                    Download
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Footer with keyboard tips */}
+                      <div className="py-2 px-4 text-xs text-gray-500 border-t border-gray-100 bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <span>Press <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded font-mono text-xs">↑</kbd><kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded font-mono text-xs">↓</kbd> to navigate</span>
+                          <span>Press <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded font-mono text-xs">Enter</kbd> to select</span>
+                          <span>Press <kbd className="px-1.5 py-0.5 bg-white border border-gray-200 rounded font-mono text-xs">Esc</kbd> to dismiss</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
