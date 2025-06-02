@@ -337,7 +337,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     },
     {
       name: "Blog",
-      href: "/blog",
+      href: "/dashboard?section=blog",
       icon: <FileText className="h-5 w-5 mr-3" />,
     },
     {
@@ -758,23 +758,31 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
         {/* Navigation Links */}
         <nav className="flex-1 py-4 px-2 overflow-y-auto">
-          {mainNavigation.map((item) => (
-            <div key={item.href} className="mb-1">
-              <Link
-                href={item.href}
-                className={cn(
-                  "flex items-center px-4 py-3 rounded-md",
-                  location === item.href
-                    ? "text-white"
-                    : "text-gray-300 hover:bg-gray-700",
-                )}
-                style={location === item.href ? { backgroundColor: brandColors.primary.full } : undefined}
-              >
-                {item.icon}
-                <span>{item.name}</span>
-              </Link>
-            </div>
-          ))}
+          {mainNavigation.map((item) => {
+            // Check if this is the blog item and we're on dashboard with blog section
+            const isBlogActive = item.name === "Blog" && location === "/dashboard" &&
+              new URLSearchParams(window.location.search).get('section') === 'blog';
+            // Check if this is a regular navigation item
+            const isActive = location === item.href || isBlogActive;
+
+            return (
+              <div key={item.href} className="mb-1">
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "flex items-center px-4 py-3 rounded-md",
+                    isActive
+                      ? "text-white"
+                      : "text-gray-300 hover:bg-gray-700",
+                  )}
+                  style={isActive ? { backgroundColor: brandColors.primary.full } : undefined}
+                >
+                  {item.icon}
+                  <span>{item.name}</span>
+                </Link>
+              </div>
+            );
+          })}
 
           {/* VirtFusion Login Button - Visible to all users */}
           <div className="mt-6 mb-1">
