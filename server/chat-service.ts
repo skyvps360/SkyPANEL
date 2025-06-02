@@ -74,11 +74,14 @@ export class ChatService {
    */
   private async handleConnection(ws: WebSocketWithUser, request: any): Promise<void> {
     try {
+      console.log('New WebSocket connection established');
+
       // Extract user info from session or token
       // For now, we'll expect the client to send authentication info
       ws.on('message', async (data) => {
         try {
           const message = JSON.parse(data.toString());
+          console.log('Received WebSocket message:', message.type, message.data);
           await this.handleMessage(ws, message);
         } catch (error) {
           console.error('Error handling chat message:', error);
@@ -86,7 +89,8 @@ export class ChatService {
         }
       });
 
-      ws.on('close', () => {
+      ws.on('close', (event) => {
+        console.log('WebSocket connection closed:', event.code, event.reason);
         this.handleDisconnection(ws);
       });
 
@@ -133,6 +137,15 @@ export class ChatService {
         // Respond to ping with pong to keep connection alive
         this.sendEvent(ws, { type: 'pong', data: {} });
         break;
+      case 'debug_state':
+        // Debug command to log connection state
+        if (ws.isAdmin) {
+          this.debugConnectionState();
+          this.sendEvent(ws, { type: 'debug_complete', data: { message: 'Connection state logged to console' } });
+        } else {
+          this.sendError(ws, 'Admin access required for debug commands');
+        }
+        break;
       default:
         this.sendError(ws, `Unknown message type: ${type}`);
     }
@@ -149,6 +162,12 @@ export class ChatService {
         return;
       }
 
+      // Prevent re-authentication
+      if (ws.userId) {
+        console.log(`User ${ws.userId} already authenticated, ignoring re-auth attempt`);
+        return;
+      }
+
       ws.userId = data.userId;
       ws.isAdmin = data.isAdmin || user.role === 'admin';
 
@@ -157,7 +176,12 @@ export class ChatService {
         if (!this.adminClients.has(data.userId)) {
           this.adminClients.set(data.userId, []);
         }
-        this.adminClients.get(data.userId)!.push(ws);
+        const adminClients = this.adminClients.get(data.userId)!;
+
+        // Check for duplicate connections
+        if (!adminClients.includes(ws)) {
+          adminClients.push(ws);
+        }
 
         // Update admin status to online
         await this.updateAdminStatus(data.userId, 'online');
@@ -165,7 +189,12 @@ export class ChatService {
         if (!this.clients.has(data.userId)) {
           this.clients.set(data.userId, []);
         }
-        this.clients.get(data.userId)!.push(ws);
+        const clients = this.clients.get(data.userId)!;
+
+        // Check for duplicate connections
+        if (!clients.includes(ws)) {
+          clients.push(ws);
+        }
       }
 
       this.sendEvent(ws, {
@@ -173,7 +202,7 @@ export class ChatService {
         data: { userId: data.userId, isAdmin: ws.isAdmin }
       });
 
-      console.log(`Chat user authenticated: ${data.userId} (admin: ${ws.isAdmin})`);
+      console.log(`Chat user authenticated: ${data.userId} (admin: ${ws.isAdmin}). Total connections: ${ws.isAdmin ? this.adminClients.get(data.userId)?.length : this.clients.get(data.userId)?.length}`);
     } catch (error) {
       console.error('Error handling auth:', error);
       this.sendError(ws, 'Authentication failed');
@@ -238,12 +267,38 @@ export class ChatService {
    * Handle sending a chat message
    */
   private async handleSendMessage(ws: WebSocketWithUser, data: { message: string; sessionId: number }): Promise<void> {
-    if (!ws.userId || !ws.sessionId) {
-      this.sendError(ws, 'Not authenticated or no active session');
+    if (!ws.userId) {
+      this.sendError(ws, 'Not authenticated');
       return;
     }
 
+    // Validate session ID
+    if (!data.sessionId) {
+      this.sendError(ws, 'Session ID is required');
+      return;
+    }
+
+    // Ensure the WebSocket is associated with this session
+    if (ws.sessionId !== data.sessionId) {
+      console.log(`WebSocket session mismatch: ws.sessionId=${ws.sessionId}, data.sessionId=${data.sessionId}`);
+      // Update the WebSocket session ID if it's not set
+      if (!ws.sessionId) {
+        ws.sessionId = data.sessionId;
+        this.addToSessionClients(data.sessionId, ws);
+      } else {
+        this.sendError(ws, 'Session ID mismatch');
+        return;
+      }
+    }
+
     try {
+      // Verify session exists
+      const session = await this.getChatSession(data.sessionId);
+      if (!session) {
+        this.sendError(ws, 'Session not found');
+        return;
+      }
+
       const messageData: InsertChatMessage = {
         sessionId: data.sessionId,
         userId: ws.userId,
@@ -253,20 +308,26 @@ export class ChatService {
       };
 
       const chatMessage = await this.createChatMessage(messageData);
-      
+
       // Update session last activity
       await this.updateSessionActivity(data.sessionId);
 
+      // Get user info for the message
+      const user = await storage.getUser(ws.userId);
+
       // Broadcast message to all clients in the session
-      this.broadcastToSession(data.sessionId, {
-        type: 'message',
+      const messageEvent = {
+        type: 'message' as const,
         data: {
           ...chatMessage,
-          user: await storage.getUser(ws.userId)
+          user
         }
-      });
+      };
 
-      console.log(`Message sent in session ${data.sessionId} by user ${ws.userId}`);
+      console.log(`Broadcasting message in session ${data.sessionId} to ${this.sessionClients.get(data.sessionId)?.length || 0} clients`);
+      this.broadcastToSession(data.sessionId, messageEvent);
+
+      console.log(`Message sent in session ${data.sessionId} by user ${ws.userId} (admin: ${ws.isAdmin})`);
     } catch (error) {
       console.error('Error sending message:', error);
       this.sendError(ws, 'Failed to send message');
@@ -339,12 +400,37 @@ export class ChatService {
    */
   private broadcastToSession(sessionId: number, event: ChatEvent, excludeUserId?: number): void {
     const clients = this.sessionClients.get(sessionId) || [];
+
+    if (clients.length === 0) {
+      console.log(`No clients found for session ${sessionId} to broadcast ${event.type}`);
+      return;
+    }
+
+    let sentCount = 0;
+    let excludedCount = 0;
+    let failedCount = 0;
+
     clients.forEach(client => {
       if (excludeUserId && client.userId === excludeUserId) {
+        excludedCount++;
         return;
       }
-      this.sendEvent(client, event);
+
+      try {
+        if (client.readyState === WebSocket.OPEN) {
+          this.sendEvent(client, event);
+          sentCount++;
+        } else {
+          console.log(`Client ${client.userId} has closed connection (state: ${client.readyState})`);
+          failedCount++;
+        }
+      } catch (error) {
+        console.error(`Failed to send event to client ${client.userId}:`, error);
+        failedCount++;
+      }
     });
+
+    console.log(`Broadcast ${event.type} to session ${sessionId}: sent=${sentCount}, excluded=${excludedCount}, failed=${failedCount}, total=${clients.length}`);
   }
 
   /**
@@ -453,7 +539,12 @@ export class ChatService {
    * Handle client disconnection
    */
   private handleDisconnection(ws: WebSocketWithUser): void {
-    if (!ws.userId) return;
+    if (!ws.userId) {
+      console.log('Disconnecting unauthenticated client');
+      return;
+    }
+
+    console.log(`Handling disconnection for user ${ws.userId} (admin: ${ws.isAdmin}, session: ${ws.sessionId})`);
 
     // Remove from client maps
     if (ws.isAdmin) {
@@ -461,10 +552,13 @@ export class ChatService {
       const index = adminClients.indexOf(ws);
       if (index > -1) {
         adminClients.splice(index, 1);
+        console.log(`Removed admin ${ws.userId} from admin clients. Remaining: ${adminClients.length}`);
+
         if (adminClients.length === 0) {
           this.adminClients.delete(ws.userId);
           // Update admin status to offline if no more connections
           this.updateAdminStatus(ws.userId, 'offline').catch(console.error);
+          console.log(`Admin ${ws.userId} set to offline (no more connections)`);
         }
       }
     } else {
@@ -472,6 +566,8 @@ export class ChatService {
       const index = clients.indexOf(ws);
       if (index > -1) {
         clients.splice(index, 1);
+        console.log(`Removed user ${ws.userId} from clients. Remaining: ${clients.length}`);
+
         if (clients.length === 0) {
           this.clients.delete(ws.userId);
         }
@@ -484,6 +580,13 @@ export class ChatService {
       const index = sessionClients.indexOf(ws);
       if (index > -1) {
         sessionClients.splice(index, 1);
+        console.log(`Removed user ${ws.userId} from session ${ws.sessionId}. Remaining clients in session: ${sessionClients.length}`);
+
+        // Clean up empty session client arrays
+        if (sessionClients.length === 0) {
+          this.sessionClients.delete(ws.sessionId);
+          console.log(`Cleaned up empty session clients for session ${ws.sessionId}`);
+        }
       }
     }
 
@@ -497,7 +600,18 @@ export class ChatService {
     if (!this.sessionClients.has(sessionId)) {
       this.sessionClients.set(sessionId, []);
     }
-    this.sessionClients.get(sessionId)!.push(ws);
+
+    const clients = this.sessionClients.get(sessionId)!;
+
+    // Check if this WebSocket is already in the session
+    const existingIndex = clients.findIndex(client => client === ws);
+    if (existingIndex !== -1) {
+      console.log(`WebSocket for user ${ws.userId} already in session ${sessionId}`);
+      return;
+    }
+
+    clients.push(ws);
+    console.log(`Added user ${ws.userId} to session ${sessionId}. Total clients in session: ${clients.length}`);
   }
 
   /**
@@ -563,6 +677,35 @@ export class ChatService {
 
   private async getAvailableAdmins(): Promise<AdminChatStatus[]> {
     return await storage.getAvailableAdmins();
+  }
+
+  /**
+   * Debug method to log current connection state
+   */
+  public debugConnectionState(): void {
+    console.log('=== Chat Service Connection State ===');
+    console.log(`Total client connections: ${this.clients.size}`);
+    console.log(`Total admin connections: ${this.adminClients.size}`);
+    console.log(`Total session connections: ${this.sessionClients.size}`);
+
+    // Log client details
+    this.clients.forEach((connections, userId) => {
+      console.log(`Client ${userId}: ${connections.length} connections`);
+    });
+
+    // Log admin details
+    this.adminClients.forEach((connections, userId) => {
+      console.log(`Admin ${userId}: ${connections.length} connections`);
+    });
+
+    // Log session details
+    this.sessionClients.forEach((connections, sessionId) => {
+      console.log(`Session ${sessionId}: ${connections.length} clients`);
+      connections.forEach(client => {
+        console.log(`  - User ${client.userId} (admin: ${client.isAdmin}, state: ${client.readyState})`);
+      });
+    });
+    console.log('=====================================');
   }
 
   /**

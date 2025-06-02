@@ -26,7 +26,9 @@ class ChatWebSocketManager {
   private getWebSocketUrl(): string {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    return `${protocol}//${host}/chat-ws`;
+    const url = `${protocol}//${host}/chat-ws`;
+    console.log('Generated WebSocket URL:', url);
+    return url;
   }
 
   public connect(user: any): void {
