@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -15,8 +15,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Search, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { ArrowUpDown, Search, ChevronLeft, ChevronRight, MoreHorizontal, ChevronsLeft, ChevronsRight } from "lucide-react";
 
 export interface DataTableColumn<T> {
   accessorKey?: keyof T;
@@ -36,6 +43,11 @@ interface DataTableProps<T> {
   actions?: (item: T) => React.ReactNode;
   isLoading?: boolean;
   emptyMessage?: string;
+  enableSearch?: boolean; // Enable search functionality
+  searchPlaceholder?: string; // Custom search placeholder
+  enablePagination?: boolean; // Enable pagination
+  defaultPageSize?: number; // Default page size
+  pageSizeOptions?: number[]; // Available page size options
 }
 
 export function DataTable<T>({
@@ -47,29 +59,50 @@ export function DataTable<T>({
   actions,
   isLoading = false,
   emptyMessage = "No data available",
+  enableSearch = false,
+  searchPlaceholder = "Search...",
+  enablePagination = true,
+  defaultPageSize = 10,
+  pageSizeOptions = [5, 10, 25, 50, 100],
 }: DataTableProps<T>) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<keyof T | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(defaultPageSize);
   const [isMobile, setIsMobile] = useState(false);
-  const itemsPerPage = 10;
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page when search changes
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Check if we're on mobile
   useEffect(() => {
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < 768); // 768px is typical md breakpoint
     };
-    
+
     // Initial check
     checkIfMobile();
-    
+
     // Add event listener for window resize
     window.addEventListener('resize', checkIfMobile);
-    
+
     // Cleanup
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
+
+  // Reset to first page when page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
 
   // Generate a unique key for columns
   const getColumnKey = (column: DataTableColumn<T>, index: number): string => {
@@ -78,25 +111,27 @@ export function DataTable<T>({
     return `column-${index}-${column.header}`;
   };
 
-  // Filter by search
-  const filteredData = searchQuery
-    ? data.filter((item) => {
-        // If custom search function is provided, use it
-        if (searchFunction) {
-          return searchFunction(item, searchQuery);
+  // Filter by search using debounced query
+  const filteredData = useMemo(() => {
+    if (!debouncedSearchQuery) return data;
+
+    return data.filter((item) => {
+      // If custom search function is provided, use it
+      if (searchFunction) {
+        return searchFunction(item, debouncedSearchQuery);
+      }
+      // Otherwise use the default search by key
+      else if (searchKey) {
+        const value = item[searchKey];
+        if (typeof value === "string") {
+          return value.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
         }
-        // Otherwise use the default search by key
-        else if (searchKey) {
-          const value = item[searchKey];
-          if (typeof value === "string") {
-            return value.toLowerCase().includes(searchQuery.toLowerCase());
-          }
-          return false;
-        }
-        // If no search criteria provided, include all items
-        return true;
-      })
-    : data;
+        return false;
+      }
+      // If no search criteria provided, include all items
+      return true;
+    });
+  }, [data, debouncedSearchQuery, searchFunction, searchKey]);
 
   // Sort data
   const sortedData = sortBy
@@ -128,11 +163,10 @@ export function DataTable<T>({
     : filteredData;
 
   // Pagination
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
-  const paginatedData = sortedData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = Math.ceil(sortedData.length / pageSize);
+  const paginatedData = enablePagination
+    ? sortedData.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+    : sortedData;
 
   const handleSort = (columnKey: keyof T) => {
     if (sortBy === columnKey) {
@@ -282,43 +316,71 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-4">
-      {searchKey && (
-        <Card className="mb-4">
-          <CardContent className="pt-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+      {(enableSearch || searchKey || searchFunction) && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={searchPlaceholder}
+              className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {enablePagination && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">Rows per page:</span>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(value) => setPageSize(Number(value))}
+              >
+                <SelectTrigger className="w-[70px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {pageSizeOptions.map((size) => (
+                    <SelectItem key={size} value={size.toString()}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
       )}
       
       {/* Responsive view - table on desktop, cards on mobile */}
       <div className="hidden md:block">{renderTableView()}</div>
       <div className="md:hidden">{renderCardView()}</div>
       
-      {totalPages > 1 && (
+      {enablePagination && totalPages > 1 && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
           <div className="text-sm text-muted-foreground">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-            {Math.min(currentPage * itemsPerPage, sortedData.length)} of{" "}
-            {sortedData.length} entries
+            Showing {(currentPage - 1) * pageSize + 1} to{" "}
+            {Math.min(currentPage * pageSize, sortedData.length)} of{" "}
+            {sortedData.length} {sortedData.length === 1 ? 'entry' : 'entries'}
           </div>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              title="First page"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
+              title="Previous page"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="text-sm">
+            <div className="text-sm font-medium px-2">
               Page {currentPage} of {totalPages}
             </div>
             <Button
@@ -328,8 +390,18 @@ export function DataTable<T>({
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
               disabled={currentPage === totalPages}
+              title="Next page"
             >
               <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              title="Last page"
+            >
+              <ChevronsRight className="h-4 w-4" />
             </Button>
           </div>
         </div>

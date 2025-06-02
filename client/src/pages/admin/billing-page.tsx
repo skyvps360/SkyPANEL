@@ -391,17 +391,24 @@ export default function AdminBillingPage() {
               data={transactions}
               isLoading={isLoading}
               emptyMessage="No transactions found"
+              enableSearch={true}
+              searchPlaceholder="Search transactions by user, description, ID, or status..."
+              enablePagination={true}
+              defaultPageSize={5}
+              pageSizeOptions={[5, 10, 25, 50, 100]}
               searchFunction={(transaction, query) => {
                 const searchLower = query.toLowerCase();
-                // Search by user's email or username
-                if (transaction.user?.email?.toLowerCase().includes(searchLower) ||
-                    transaction.user?.username?.toLowerCase().includes(searchLower) ||
-                    transaction.userId.toString().includes(searchLower) ||
-                    transaction.description?.toLowerCase().includes(searchLower) ||
-                    transaction.id.toString().includes(searchLower)) {
-                  return true;
-                }
-                return false;
+                // Search by user's email, username, transaction description, ID, payment method, and status
+                return (
+                  transaction.user?.email?.toLowerCase().includes(searchLower) ||
+                  transaction.user?.username?.toLowerCase().includes(searchLower) ||
+                  transaction.userId.toString().includes(searchLower) ||
+                  transaction.description?.toLowerCase().includes(searchLower) ||
+                  transaction.id.toString().includes(searchLower) ||
+                  transaction.paymentMethod?.toLowerCase().includes(searchLower) ||
+                  transaction.status?.toLowerCase().includes(searchLower) ||
+                  transaction.type?.toLowerCase().includes(searchLower)
+                );
               }}
             />
           </CardContent>
