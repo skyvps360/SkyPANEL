@@ -449,6 +449,21 @@ import { ServerLogsModal } from "@/components/server/ServerLogsModal";
 const VNCTab = ({ serverId }: { serverId: number }) => {
   const { toast } = useToast();
 
+  // Get brand colors for styling
+  const { data: brandingData } = useQuery<{
+    primary_color?: string;
+    secondary_color?: string;
+    accent_color?: string;
+  }>({
+    queryKey: ["/api/settings/branding"],
+  });
+
+  const brandColors = getBrandColors({
+    primaryColor: brandingData?.primary_color,
+    secondaryColor: brandingData?.secondary_color,
+    accentColor: brandingData?.accent_color,
+  });
+
   // Fetch VNC status
   // NOTE: Increased cache time to reduce VNC API calls since each call toggles VNC state
   const { data: vncData, isLoading: vncLoading, error: vncError } = useQuery({
@@ -553,9 +568,10 @@ const VNCTab = ({ serverId }: { serverId: number }) => {
                     </div>
                     <UIBadge
                       variant={isVNCEnabled ? "default" : "outline"}
-                      className={`px-3 py-1 ${
-                        isVNCEnabled ? "bg-green-500 hover:bg-green-600" : ""
-                      }`}
+                      className={`px-3 py-1 ${isVNCEnabled ? "text-white" : ""}`}
+                      style={isVNCEnabled ? {
+                        backgroundColor: brandColors.secondary.full,
+                      } : {}}
                     >
                       {isVNCEnabled ? "VNC ACTIVE" : "VNC INACTIVE"}
                     </UIBadge>
