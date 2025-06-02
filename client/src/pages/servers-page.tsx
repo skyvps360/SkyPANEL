@@ -276,7 +276,7 @@ export default function ServersPage() {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-xl bg-white border border-gray-300/60 shadow-md">
+              <div key={i} className="rounded-xl bg-card border border-border shadow-md">
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
@@ -318,7 +318,7 @@ export default function ServersPage() {
                 return (
                   <div
                     key={server.id}
-                    className="group rounded-xl bg-white border border-gray-300/60 shadow-md hover:shadow-xl hover:border-gray-400/60 transition-all duration-300"
+                    className="group rounded-xl bg-card border border-border shadow-md hover:shadow-xl hover:border-border/80 transition-all duration-300"
                   >
                     <div className="p-6">
                       {/* Header with Status */}
@@ -326,23 +326,16 @@ export default function ServersPage() {
                         <div className="flex items-center gap-3">
                           <div
                             className={`flex items-center justify-center h-10 w-10 rounded-lg text-white shadow-sm transition-all duration-200 ${
-                              isRunning ? 'shadow-lg' : ''
+                              isRunning ? 'bg-primary shadow-lg' : isSuspended ? 'bg-destructive' : 'bg-muted-foreground'
                             }`}
-                            style={{
-                              backgroundColor: isRunning
-                                ? `var(--brand-primary, ${brandColors.primary.full})`
-                                : isSuspended
-                                ? '#ef4444'
-                                : '#6b7280'
-                            }}
                           >
                             <Server className="h-5 w-5" />
                           </div>
                           <div>
-                            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-gray-700 transition-colors">
+                            <h3 className="text-lg font-semibold text-foreground group-hover:text-muted-foreground transition-colors">
                               {server.name}
                             </h3>
-                            <p className="text-sm text-gray-500 font-mono">
+                            <p className="text-sm text-muted-foreground font-mono">
                               ID: {server.id}
                             </p>
                           </div>
@@ -352,14 +345,14 @@ export default function ServersPage() {
                           variant={getStatusBadgeVariant(status)}
                           className={`${
                             isRunning
-                              ? 'bg-green-100 text-green-800 border-green-200'
+                              ? 'bg-primary/10 text-primary border-primary/20'
                               : isSuspended
-                              ? 'bg-red-100 text-red-800 border-red-200'
-                              : 'bg-gray-100 text-gray-800 border-gray-200'
+                              ? 'bg-destructive/10 text-destructive border-destructive/20'
+                              : 'bg-muted text-muted-foreground border-border'
                           } font-medium`}
                         >
                           <div className={`w-2 h-2 rounded-full mr-1.5 ${
-                            isRunning ? 'bg-green-500' : isSuspended ? 'bg-red-500' : 'bg-gray-500'
+                            isRunning ? 'bg-primary' : isSuspended ? 'bg-destructive' : 'bg-muted-foreground'
                           }`} />
                           {status}
                         </Badge>
@@ -368,35 +361,35 @@ export default function ServersPage() {
                       {/* Server Details */}
                       <div className="space-y-3 mb-6">
                         {server.hypervisor?.name && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <MapPin className="h-4 w-4 text-gray-400" />
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <MapPin className="h-4 w-4 text-muted-foreground/60" />
                             <span>{server.hypervisor.name}</span>
                           </div>
                         )}
                         {server.created && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Calendar className="h-4 w-4 text-gray-400" />
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="h-4 w-4 text-muted-foreground/60" />
                             <span>Created {new Date(server.created).toLocaleDateString()}</span>
                           </div>
                         )}
 
                         {/* Resource Info (if available) */}
                         {(server.cpu?.cores || server.memory || server.storage?.length > 0) && (
-                          <div className="flex items-center gap-4 pt-2 border-t border-gray-100">
+                          <div className="flex items-center gap-4 pt-2 border-t border-border">
                             {server.cpu?.cores && (
-                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Cpu className="h-3 w-3" />
                                 <span>{server.cpu.cores} CPU</span>
                               </div>
                             )}
                             {server.memory && (
-                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <MemoryStick className="h-3 w-3" />
                                 <span>{server.memory}MB</span>
                               </div>
                             )}
                             {server.storage?.length > 0 && (
-                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <HardDrive className="h-3 w-3" />
                                 <span>{server.storage[0]?.capacity || 'Storage'}</span>
                               </div>
@@ -425,13 +418,13 @@ export default function ServersPage() {
             {/* Enhanced Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-8">
-                <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-300/60 shadow-sm p-2">
+                <div className="flex items-center gap-2 bg-card rounded-xl border border-border shadow-sm p-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage <= 1}
-                    className="border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                    className="disabled:opacity-50"
                   >
                     Previous
                   </Button>
@@ -448,7 +441,7 @@ export default function ServersPage() {
                             onClick={() => setPage(pageNum)}
                             className={pageNum === currentPage
                               ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                              : "border-gray-300 hover:bg-gray-50"
+                              : ""
                             }
                           >
                             {pageNum}
@@ -464,7 +457,7 @@ export default function ServersPage() {
                     size="sm"
                     onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage >= totalPages}
-                    className="border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                    className="disabled:opacity-50"
                   >
                     Next
                   </Button>
@@ -474,23 +467,17 @@ export default function ServersPage() {
           </>
         ) : (
           /* Enhanced Empty State */
-          <div className="rounded-xl bg-white border border-gray-300/60 shadow-md">
+          <div className="rounded-xl bg-card border border-border shadow-md">
             <div className="text-center py-16 px-8">
-              <div
-                className="mx-auto h-16 w-16 rounded-xl flex items-center justify-center mb-6 shadow-lg"
-                style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
-              >
-                <Server
-                  className="h-8 w-8"
-                  style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
-                />
+              <div className="mx-auto h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6 shadow-lg">
+                <Server className="h-8 w-8 text-primary" />
               </div>
 
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+              <h3 className="text-xl font-semibold text-foreground mb-3">
                 {searchQuery || statusFilter !== 'all' ? 'No servers found' : 'No servers yet'}
               </h3>
 
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                 {searchQuery || statusFilter !== 'all'
                   ? 'No servers match your current search criteria. Try adjusting your filters or search terms.'
                   : 'You don\'t have any servers yet. Create your first server to get started with your virtual infrastructure.'}
@@ -504,7 +491,6 @@ export default function ServersPage() {
                       setStatusFilter('all');
                     }}
                     variant="outline"
-                    className="border-gray-300 hover:bg-gray-50"
                   >
                     Clear Filters
                   </Button>
