@@ -2033,7 +2033,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(adminChatStatus)
       .where(and(
-        inArray(adminChatStatus.status, ['online', 'away']),
+        eq(adminChatStatus.status, 'online'),
         eq(adminChatStatus.autoAssign, true)
       ))
       .orderBy(adminChatStatus.lastSeenAt);

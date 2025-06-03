@@ -1476,18 +1476,6 @@ export default function AdminChatManagement() {
                               <span>Online</span>
                             </div>
                           </SelectItem>
-                          <SelectItem value="away">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                              <span>Away</span>
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="busy">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 rounded-full bg-red-500" />
-                              <span>Busy</span>
-                            </div>
-                          </SelectItem>
                           <SelectItem value="offline">
                             <div className="flex items-center space-x-2">
                               <div className="w-2 h-2 rounded-full bg-gray-400" />

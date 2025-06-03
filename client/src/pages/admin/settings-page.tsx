@@ -96,6 +96,7 @@ const generalSchema = z.object({
   companyName: z.string().min(1, { message: "Company name is required" }),
   platformName: z.string().min(1, { message: "Platform name is required" }),
   supportEmail: z.string().email({ message: "Valid support email is required" }),
+  frontendUrl: z.string().url({ message: "Valid frontend URL is required" }),
   defaultTimezone: z.string(),
   dateFormat: z.string(),
   // Brand colors
@@ -382,6 +383,7 @@ export default function SettingsPage() {
       companyName: getSettingValue("company_name", "SkyVPS360"),
       platformName: getSettingValue("platform_name", "SkyVPS360 Client Portal"),
       supportEmail: getSettingValue("support_email", "support@skyvps360.xyz"),
+      frontendUrl: getSettingValue("frontend_url", "https://skyvps360.xyz"),
       defaultTimezone: getSettingValue("default_timezone", "UTC"),
       dateFormat: getSettingValue("date_format", "MM/DD/YYYY"),
       // Brand colors
@@ -1250,6 +1252,7 @@ export default function SettingsPage() {
         companyName: getSettingValue("company_name", "SkyVPS360"),
         platformName: getSettingValue("platform_name", "SkyVPS360 Client Portal"),
         supportEmail: getSettingValue("support_email", "support@skyvps360.xyz"),
+        frontendUrl: getSettingValue("frontend_url", "https://skyvps360.xyz"),
         defaultTimezone: getSettingValue("default_timezone", "UTC"),
         dateFormat: getSettingValue("date_format", "MM/DD/YYYY"),
         primaryColor: getSettingValue("primary_color", "2563eb"),
@@ -1514,6 +1517,7 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "company_name", value: data.companyName });
       await updateSettingMutation.mutateAsync({ key: "platform_name", value: data.platformName });
       await updateSettingMutation.mutateAsync({ key: "support_email", value: data.supportEmail });
+      await updateSettingMutation.mutateAsync({ key: "frontend_url", value: data.frontendUrl });
       await updateSettingMutation.mutateAsync({ key: "default_timezone", value: data.defaultTimezone });
       await updateSettingMutation.mutateAsync({ key: "date_format", value: data.dateFormat });
 
@@ -2480,6 +2484,24 @@ export default function SettingsPage() {
                               {generalForm.formState.errors.supportEmail.message}
                             </p>
                           )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="frontendUrl">Frontend URL</Label>
+                          <Input
+                            id="frontendUrl"
+                            type="url"
+                            placeholder="https://yourdomain.com"
+                            {...generalForm.register("frontendUrl")}
+                          />
+                          {generalForm.formState.errors.frontendUrl && (
+                            <p className="text-sm text-destructive mt-1">
+                              {generalForm.formState.errors.frontendUrl.message}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Base URL used in email links and external references
+                          </p>
                         </div>
 
                         <div className="space-y-5">

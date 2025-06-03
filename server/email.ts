@@ -13,6 +13,8 @@ export class EmailService {
     fromName?: string;
     enabled?: boolean;
     companyName?: string;
+    supportEmail?: string;
+    frontendUrl?: string;
     smtpHost?: string;
     smtpPort?: number;
     smtpUser?: string;
@@ -119,6 +121,12 @@ export class EmailService {
             break;
           case 'company_name':
             this.settings.companyName = setting.value;
+            break;
+          case 'support_email':
+            this.settings.supportEmail = setting.value;
+            break;
+          case 'frontend_url':
+            this.settings.frontendUrl = setting.value;
             break;
         }
       });
@@ -587,16 +595,42 @@ export class EmailService {
     if (this.settings.companyName) {
       return this.settings.companyName;
     }
-    
+
     // Attempt to get from database if not already loaded
     const companySetting = await storage.getSetting('company_name');
     if (companySetting) {
       this.settings.companyName = companySetting.value;
       return companySetting.value;
     }
-    
+
     // Return default value if not found
-    return 'VirtFusion';
+    return 'SkyVPS360';
+  }
+
+  /**
+   * Get the frontend URL from settings
+   * @returns The frontend URL or a default value
+   */
+  private async getFrontendUrl(): Promise<string> {
+    // First check environment variable
+    if (process.env.FRONTEND_URL) {
+      return process.env.FRONTEND_URL;
+    }
+
+    // Then check settings cache
+    if (this.settings.frontendUrl) {
+      return this.settings.frontendUrl;
+    }
+
+    // Attempt to get from database if not already loaded
+    const frontendSetting = await storage.getSetting('frontend_url');
+    if (frontendSetting) {
+      this.settings.frontendUrl = frontendSetting.value;
+      return frontendSetting.value;
+    }
+
+    // Return default value if not found
+    return 'https://skyvps360.xyz';
   }
 
   /**
@@ -812,8 +846,9 @@ export class EmailService {
   ): Promise<boolean> {
     console.log(`Sending chat-to-ticket notification to ${email} for ticket #${ticketId}`);
 
-    const companyName = this.settings.companyName || 'SkyPANEL';
+    const companyName = await this.getCompanyName();
     const supportEmail = this.settings.supportEmail || 'support@skyvps360.xyz';
+    const frontendUrl = await this.getFrontendUrl();
 
     const textContent =
       `Hello ${userName},\n\n` +
@@ -854,7 +889,7 @@ export class EmailService {
       `</ul>` +
       `<p style="color: #333; font-size: 16px; line-height: 1.6; margin-top: 25px;">Our support team will respond to your ticket as soon as possible.</p>` +
       `<div style="text-align: center; margin: 30px 0;">` +
-      `<a href="${process.env.FRONTEND_URL || 'https://panel.skyvps360.xyz'}/tickets/${ticketId}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">View Ticket</a>` +
+      `<a href="${frontendUrl}/tickets/${ticketId}" style="background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">View Ticket</a>` +
       `</div>` +
       `<p style="color: #666; font-size: 14px; margin-top: 30px;">If you have any questions, please contact us at <a href="mailto:${supportEmail}" style="color: #667eea;">${supportEmail}</a>.</p>` +
       `<p style="color: #333; margin-top: 25px;">Thank you,<br><strong>${companyName} Support Team</strong></p>` +

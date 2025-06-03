@@ -730,7 +730,7 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export const adminChatStatus = pgTable("admin_chat_status", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
-  status: text("status").notNull().default("offline"), // online, offline, away, busy
+  status: text("status").notNull().default("offline"), // online, offline
   statusMessage: text("status_message"), // Custom status message
   maxConcurrentChats: integer("max_concurrent_chats").default(5),
   autoAssign: boolean("auto_assign").default(true), // Whether to auto-assign new chats to this admin
