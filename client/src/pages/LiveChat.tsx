@@ -598,20 +598,20 @@ export default function LiveChat() {
             ) : (
               <>
                 {/* Messages Area */}
-                <div className="flex-1 overflow-hidden">
-                  <ScrollArea className="h-full p-6">
-                    <div className="space-y-4">
+                <div className="flex-1 overflow-hidden min-h-0 chat-messages-area">
+                  <ScrollArea className="h-full w-full">
+                    <div className="p-6 space-y-4 w-full">
                       {messages.map((msg) => (
                         <div
                           key={msg.id}
                           className={cn(
-                            "flex",
+                            "flex chat-message-container",
                             msg.isFromAdmin ? "justify-start" : "justify-end"
                           )}
                         >
                           <div
                             className={cn(
-                              "max-w-[70%] rounded-lg px-4 py-3 text-sm",
+                              "max-w-[70%] min-w-0 rounded-lg px-4 py-3 text-sm chat-message-bubble",
                               msg.user?.role === 'system'
                                 ? "bg-amber-50 border border-amber-200 text-amber-800"
                                 : msg.isFromAdmin
@@ -619,19 +619,22 @@ export default function LiveChat() {
                                 : "bg-blue-600 text-white"
                             )}
                           >
-                            <div className="flex items-center space-x-2 mb-1">
+                            <div className="flex items-center space-x-2 mb-1 flex-wrap">
                               {msg.user?.role === 'system' ? (
-                                <div className="h-3 w-3 rounded-full bg-amber-500" />
+                                <div className="h-3 w-3 rounded-full bg-amber-500 flex-shrink-0" />
                               ) : msg.isFromAdmin ? (
-                                <Bot className="h-3 w-3" />
+                                <Bot className="h-3 w-3 flex-shrink-0" />
                               ) : (
-                                <User className="h-3 w-3" />
+                                <User className="h-3 w-3 flex-shrink-0" />
                               )}
-                              <span className="text-xs opacity-70">
+                              <span className="text-xs opacity-70 truncate">
                                 {msg.user.fullName}
                               </span>
+                              <span className="text-xs opacity-50 flex-shrink-0">
+                                {new Date(msg.createdAt).toLocaleTimeString()}
+                              </span>
                             </div>
-                            <p className="leading-relaxed">{msg.message}</p>
+                            <p className="leading-relaxed break-words whitespace-pre-wrap overflow-wrap-anywhere">{msg.message}</p>
                           </div>
                         </div>
                       ))}
@@ -720,8 +723,8 @@ export default function LiveChat() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex-1 overflow-hidden p-0">
-                    <ScrollArea className="h-full max-h-[400px]">
+                  <CardContent className="flex-1 overflow-hidden p-0 min-h-0">
+                    <ScrollArea className="h-full">
                       <div className="p-6 pt-0 space-y-3">
                         {filteredHistory.length === 0 ? (
                           <div className="text-center py-8">
@@ -789,7 +792,7 @@ export default function LiveChat() {
 
               {/* History Messages */}
               <div className="lg:col-span-2">
-                <Card className="h-full flex flex-col">
+                <Card className="h-full flex flex-col chat-container">
                   {selectedHistorySession ? (
                     <>
                       <CardHeader className="flex-shrink-0 border-b border-gray-100">
@@ -833,9 +836,9 @@ export default function LiveChat() {
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="flex-1 overflow-hidden p-0 flex flex-col">
-                        <ScrollArea className="flex-1 p-6">
-                          <div className="space-y-4">
+                      <CardContent className="flex-1 overflow-hidden p-0 flex flex-col min-h-0">
+                        <ScrollArea className="flex-1 w-full chat-messages-area">
+                          <div className="p-6 space-y-4 w-full">
                             {historyMessages.length === 0 ? (
                               <div className="text-center py-12">
                                 <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -849,13 +852,13 @@ export default function LiveChat() {
                                 <div
                                   key={msg.id}
                                   className={cn(
-                                    "flex",
+                                    "flex chat-message-container",
                                     msg.isFromAdmin ? "justify-start" : "justify-end"
                                   )}
                                 >
                                   <div
                                     className={cn(
-                                      "max-w-[70%] rounded-lg px-4 py-3 text-sm",
+                                      "max-w-[70%] min-w-0 rounded-lg px-4 py-3 text-sm chat-message-bubble",
                                       msg.user?.role === 'system'
                                         ? "bg-amber-50 border border-amber-200 text-amber-800"
                                         : msg.isFromAdmin
@@ -863,22 +866,22 @@ export default function LiveChat() {
                                         : "bg-blue-600 text-white"
                                     )}
                                   >
-                                    <div className="flex items-center space-x-2 mb-1">
+                                    <div className="flex items-center space-x-2 mb-1 flex-wrap">
                                       {msg.user?.role === 'system' ? (
-                                        <div className="h-3 w-3 rounded-full bg-amber-500" />
+                                        <div className="h-3 w-3 rounded-full bg-amber-500 flex-shrink-0" />
                                       ) : msg.isFromAdmin ? (
-                                        <Bot className="h-3 w-3" />
+                                        <Bot className="h-3 w-3 flex-shrink-0" />
                                       ) : (
-                                        <User className="h-3 w-3" />
+                                        <User className="h-3 w-3 flex-shrink-0" />
                                       )}
-                                      <span className="text-xs opacity-70">
+                                      <span className="text-xs opacity-70 truncate">
                                         {msg.user.fullName}
                                       </span>
-                                      <span className="text-xs opacity-50">
+                                      <span className="text-xs opacity-50 flex-shrink-0">
                                         {new Date(msg.createdAt).toLocaleTimeString()}
                                       </span>
                                     </div>
-                                    <p className="leading-relaxed">{msg.message}</p>
+                                    <p className="leading-relaxed break-words whitespace-pre-wrap overflow-wrap-anywhere">{msg.message}</p>
                                   </div>
                                 </div>
                               ))

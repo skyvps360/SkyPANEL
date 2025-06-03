@@ -1318,9 +1318,9 @@ export default function AdminChatManagement() {
                         </div>
 
                         {/* Messages Area */}
-                        <div className="flex-1 overflow-hidden">
-                          <ScrollArea className="h-full p-6">
-                            <div className="space-y-4">
+                        <div className="flex-1 overflow-hidden min-h-0 chat-messages-area">
+                          <ScrollArea className="h-full w-full">
+                            <div className="p-6 space-y-4 w-full">
                               {activeTabState.messages.length === 0 ? (
                                 <div className="text-center py-12">
                                   <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -1334,32 +1334,32 @@ export default function AdminChatManagement() {
                                   <div
                                     key={msg.id}
                                     className={cn(
-                                      "flex",
+                                      "flex chat-message-container",
                                       msg.isFromAdmin ? "justify-end" : "justify-start"
                                     )}
                                   >
                                     <div
                                       className={cn(
-                                        "max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm",
+                                        "chat-message-bubble rounded-2xl px-4 py-3 text-sm shadow-sm",
                                         msg.isFromAdmin
                                           ? "bg-blue-600 text-white rounded-br-md"
                                           : "bg-gray-100 text-gray-900 rounded-bl-md"
                                       )}
                                     >
-                                      <div className="flex items-center space-x-2 mb-1">
+                                      <div className="flex items-center space-x-2 mb-1 flex-wrap">
                                         {msg.isFromAdmin ? (
-                                          <Bot className="h-3 w-3 opacity-70" />
+                                          <Bot className="h-3 w-3 opacity-70 flex-shrink-0" />
                                         ) : (
-                                          <User className="h-3 w-3 opacity-70" />
+                                          <User className="h-3 w-3 opacity-70 flex-shrink-0" />
                                         )}
-                                        <span className="text-xs opacity-70 font-medium">
+                                        <span className="text-xs opacity-70 font-medium truncate">
                                           {msg.user?.fullName || 'User'}
                                         </span>
-                                        <span className="text-xs opacity-50">
+                                        <span className="text-xs opacity-50 flex-shrink-0">
                                           {new Date(msg.createdAt).toLocaleTimeString()}
                                         </span>
                                       </div>
-                                      <p className="leading-relaxed">{msg.message}</p>
+                                      <p className="leading-relaxed break-words whitespace-pre-wrap overflow-wrap-anywhere">{msg.message}</p>
                                     </div>
                                   </div>
                                 ))
@@ -1739,7 +1739,7 @@ export default function AdminChatManagement() {
 
           <TabsContent value="sessions" className="space-y-6">
             {/* Sidebar Layout Chat Interface */}
-            <div className="flex h-[calc(100vh-200px)] bg-gray-50 rounded-lg overflow-hidden">
+            <div className="flex h-[calc(100vh-200px)] bg-gray-50 rounded-lg overflow-hidden chat-container">
               {/* Sidebar - Available Sessions */}
               <div className={cn(
                 "flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
@@ -1927,7 +1927,7 @@ export default function AdminChatManagement() {
               </div>
 
               {/* Main Chat Area */}
-              <div className="flex-1 flex flex-col bg-white">
+              <div className="flex-1 flex flex-col bg-white min-w-0 overflow-hidden">
                 {/* Tab Headers */}
                 {activeTabs.length > 0 && (
                   <div className="border-b border-gray-200">
@@ -2041,7 +2041,7 @@ export default function AdminChatManagement() {
                 )}
 
                 {/* Chat Content */}
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                   {activeTab && activeTabState ? (
                     <>
                       {/* Chat Header */}
@@ -2126,9 +2126,9 @@ export default function AdminChatManagement() {
                       </div>
 
                       {/* Messages Area */}
-                      <div className="flex-1 overflow-hidden">
-                        <ScrollArea className="h-full p-6">
-                          <div className="space-y-4">
+                      <div className="flex-1 overflow-hidden min-h-0 chat-messages-area">
+                        <ScrollArea className="h-full w-full">
+                          <div className="p-6 space-y-4 w-full">
                             {activeTabState.messages.length === 0 ? (
                               <div className="text-center py-12">
                                 <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -2142,32 +2142,32 @@ export default function AdminChatManagement() {
                                 <div
                                   key={msg.id}
                                   className={cn(
-                                    "flex",
+                                    "flex chat-message-container",
                                     msg.isFromAdmin ? "justify-end" : "justify-start"
                                   )}
                                 >
                                   <div
                                     className={cn(
-                                      "max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm",
+                                      "chat-message-bubble rounded-2xl px-4 py-3 text-sm shadow-sm",
                                       msg.isFromAdmin
                                         ? "bg-blue-600 text-white rounded-br-md"
                                         : "bg-gray-100 text-gray-900 rounded-bl-md"
                                     )}
                                   >
-                                    <div className="flex items-center space-x-2 mb-1">
+                                    <div className="flex items-center space-x-2 mb-1 flex-wrap">
                                       {msg.isFromAdmin ? (
-                                        <Bot className="h-3 w-3 opacity-70" />
+                                        <Bot className="h-3 w-3 opacity-70 flex-shrink-0" />
                                       ) : (
-                                        <User className="h-3 w-3 opacity-70" />
+                                        <User className="h-3 w-3 opacity-70 flex-shrink-0" />
                                       )}
-                                      <span className="text-xs opacity-70 font-medium">
+                                      <span className="text-xs opacity-70 font-medium truncate">
                                         {msg.user?.fullName || 'User'}
                                       </span>
-                                      <span className="text-xs opacity-50">
+                                      <span className="text-xs opacity-50 flex-shrink-0">
                                         {new Date(msg.createdAt).toLocaleTimeString()}
                                       </span>
                                     </div>
-                                    <p className="leading-relaxed">{msg.message}</p>
+                                    <p className="leading-relaxed break-words whitespace-pre-wrap overflow-wrap-anywhere">{msg.message}</p>
                                   </div>
                                 </div>
                               ))

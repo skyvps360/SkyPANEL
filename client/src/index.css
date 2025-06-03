@@ -14,6 +14,50 @@
   display: none;  /* Chrome, Safari and Opera */
 }
 
+/* Chat message container styles */
+.chat-message-container {
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.chat-message-bubble {
+  max-width: 75%;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.chat-messages-area {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Additional overflow handling for chat containers */
+.chat-container {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Ensure ScrollArea components handle overflow properly */
+[data-radix-scroll-area-viewport] {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Force word breaking for very long words */
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 /* Global override for Input focus styles using brand colors */
 .input-brand-focus {
   @apply focus-visible:ring-2 focus-visible:ring-offset-2;

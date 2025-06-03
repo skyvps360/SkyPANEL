@@ -382,9 +382,9 @@ export default function EnhancedChatInterface({
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-hidden">
-              <ScrollArea className="h-full p-4">
-                <div className="space-y-4">
+            <div className="flex-1 overflow-hidden min-h-0 chat-messages-area">
+              <ScrollArea className="h-full w-full">
+                <div className="p-4 space-y-4 w-full">
                   {messages.length === 0 ? (
                     <div className="text-center py-12">
                       <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -398,32 +398,32 @@ export default function EnhancedChatInterface({
                       <div
                         key={msg.id}
                         className={cn(
-                          "flex",
+                          "flex chat-message-container",
                           msg.isFromAdmin ? "justify-end" : "justify-start"
                         )}
                       >
                         <div
                           className={cn(
-                            "max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm",
+                            "chat-message-bubble rounded-2xl px-4 py-3 text-sm shadow-sm",
                             msg.isFromAdmin
                               ? "bg-blue-600 text-white rounded-br-md"
                               : "bg-gray-100 text-gray-900 rounded-bl-md"
                           )}
                         >
-                          <div className="flex items-center space-x-2 mb-1">
+                          <div className="flex items-center space-x-2 mb-1 flex-wrap">
                             {msg.isFromAdmin ? (
-                              <Bot className="h-3 w-3 opacity-70" />
+                              <Bot className="h-3 w-3 opacity-70 flex-shrink-0" />
                             ) : (
-                              <User className="h-3 w-3 opacity-70" />
+                              <User className="h-3 w-3 opacity-70 flex-shrink-0" />
                             )}
-                            <span className="text-xs opacity-70 font-medium">
+                            <span className="text-xs opacity-70 font-medium truncate">
                               {msg.user?.fullName || 'User'}
                             </span>
-                            <span className="text-xs opacity-50">
+                            <span className="text-xs opacity-50 flex-shrink-0">
                               {new Date(msg.createdAt).toLocaleTimeString()}
                             </span>
                           </div>
-                          <p className="leading-relaxed">{msg.message}</p>
+                          <p className="leading-relaxed break-words whitespace-pre-wrap overflow-wrap-anywhere">{msg.message}</p>
                         </div>
                       </div>
                     ))
