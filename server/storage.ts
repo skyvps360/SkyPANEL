@@ -363,6 +363,14 @@ export interface IStorage {
   updateChatDepartment(id: number, updates: Partial<ChatDepartment>): Promise<void>;
   deleteChatDepartment(id: number): Promise<void>;
 
+  // Unified support department operations
+  createSupportDepartment(department: InsertSupportDepartment): Promise<SupportDepartment>;
+  getSupportDepartment(id: number): Promise<SupportDepartment | undefined>;
+  getSupportDepartments(): Promise<SupportDepartment[]>;
+  getActiveSupportDepartments(): Promise<SupportDepartment[]>;
+  updateSupportDepartment(id: number, updates: Partial<SupportDepartment>): Promise<void>;
+  deleteSupportDepartment(id: number): Promise<void>;
+
   // Chat department admin operations
   assignAdminToDepartment(assignment: InsertChatDepartmentAdmin): Promise<ChatDepartmentAdmin>;
   removeAdminFromDepartment(departmentId: number, adminId: number): Promise<void>;
@@ -2231,34 +2239,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSupportDepartment(department: InsertSupportDepartment): Promise<SupportDepartment> {
-    // If this department is set as default, we need to unset any existing defaults
-    if (department.isDefault) {
-      await db.update(supportDepartments)
-        .set({ isDefault: false, updatedAt: new Date() })
-        .where(eq(supportDepartments.isDefault, true));
-    }
+    // Use the migration service to create unified department with legacy sync
+    const { DepartmentMigrationService } = await import('./services/department-migration');
+    const migrationService = new DepartmentMigrationService();
 
-    const [newDepartment] = await db.insert(supportDepartments).values({
-      ...department,
-      updatedAt: new Date()
-    }).returning();
-    return newDepartment;
+    return await migrationService.createUnifiedDepartment({
+      name: department.name,
+      description: department.description || undefined,
+      isDefault: department.isDefault || undefined,
+      requiresVps: department.requiresVps || undefined,
+      isActive: department.isActive ?? undefined,
+      displayOrder: department.displayOrder || undefined,
+      color: department.color || undefined,
+      icon: department.icon || undefined
+    });
   }
 
   async updateSupportDepartment(id: number, updates: Partial<SupportDepartment>): Promise<void> {
-    // If this department is being set as default, we need to unset any existing defaults
-    if (updates.isDefault) {
-      await db.update(supportDepartments)
-        .set({ isDefault: false, updatedAt: new Date() })
-        .where(and(
-          eq(supportDepartments.isDefault, true),
-          not(eq(supportDepartments.id, id))
-        ));
-    }
+    // Use the migration service to update unified department with legacy sync
+    const { DepartmentMigrationService } = await import('./services/department-migration');
+    const migrationService = new DepartmentMigrationService();
 
-    await db.update(supportDepartments)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(supportDepartments.id, id));
+    await migrationService.updateUnifiedDepartment(id, updates);
   }
 
   async deleteSupportDepartment(id: number): Promise<void> {

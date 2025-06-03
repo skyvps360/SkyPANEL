@@ -4610,6 +4610,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to check department counts
+  app.get("/api/admin/department-counts", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const supportDepts = await storage.getSupportDepartments();
+      const ticketDepts = await storage.getAllTicketDepartments();
+      const chatDepts = await storage.getChatDepartments();
+
+      res.json({
+        supportDepartments: {
+          count: supportDepts.length,
+          departments: supportDepts.map(d => ({ id: d.id, name: d.name, isActive: d.isActive }))
+        },
+        ticketDepartments: {
+          count: ticketDepts.length,
+          departments: ticketDepts.map(d => ({ id: d.id, name: d.name, isActive: d.isActive }))
+        },
+        chatDepartments: {
+          count: chatDepts.length,
+          departments: chatDepts.map(d => ({ id: d.id, name: d.name, isActive: d.isActive }))
+        }
+      });
+    } catch (error: any) {
+      console.error("Error checking department counts:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/admin/department-migration/migrate", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const result = await departmentMigrationService.migrateDepartments();
@@ -4633,6 +4660,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
           conflicts: []
         }
       });
+    }
+  });
+
+  app.post("/api/admin/department-migration/sync", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const result = await departmentMigrationService.syncNewDepartments();
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(500).json(result);
+      }
+    } catch (error: any) {
+      console.error("Error performing department sync:", error);
+      res.status(500).json({
+        success: false,
+        message: `Department sync failed: ${error.message}`,
+        details: {
+          supportDepartmentsCreated: 0,
+          ticketDepartmentsMigrated: 0,
+          chatDepartmentsMigrated: 0,
+          ticketsMigrated: 0,
+          chatSessionsMigrated: 0,
+          adminAssignmentsMigrated: 0,
+          conflicts: []
+        }
+      });
+    }
+  });
+
+  // Unified Department Management Routes
+  app.get("/api/admin/unified-departments", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const departments = await storage.getSupportDepartments();
+      res.json(departments);
+    } catch (error: any) {
+      console.error("Error fetching unified departments:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/unified-departments", isAuthenticated, async (req, res) => {
+    try {
+      const departments = await storage.getActiveSupportDepartments();
+      res.json(departments);
+    } catch (error: any) {
+      console.error("Error fetching active unified departments:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/unified-departments", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const department = await storage.createSupportDepartment(req.body);
+      res.status(201).json(department);
+    } catch (error: any) {
+      console.error("Error creating unified department:", error);
+      if (error.code === '23505') { // Unique constraint violation
+        res.status(400).json({ error: 'Department name already exists' });
+      } else {
+        res.status(500).json({ error: error.message });
+      }
+    }
+  });
+
+  app.put("/api/admin/unified-departments/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.updateSupportDepartment(id, req.body);
+      const updatedDepartment = await storage.getSupportDepartment(id);
+      res.json(updatedDepartment);
+    } catch (error: any) {
+      console.error("Error updating unified department:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/unified-departments/:id", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteSupportDepartment(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting unified department:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

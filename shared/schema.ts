@@ -160,7 +160,7 @@ export const tickets = pgTable("tickets", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   departmentId: integer("department_id").references(() => supportDepartments.id, { onDelete: 'set null' }),
-  legacyDepartmentId: integer("legacy_department_id").references(() => ticketDepartments.id, { onDelete: 'set null' }), // For migration compatibility
+  legacyDepartmentId: integer("legacy_department_id").references(() => ticketDepartments.id, { onDelete: 'set null' }), // For migration rollback capability
   subject: text("subject").notNull(),
   status: text("status").notNull().default("open"), // open, in-progress, closed
   priority: text("priority").notNull().default("medium"), // low, medium, high
@@ -678,7 +678,7 @@ export const chatSessions = pgTable("chat_sessions", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   assignedAdminId: integer("assigned_admin_id").references(() => users.id, { onDelete: 'set null' }),
   departmentId: integer("department_id").references(() => supportDepartments.id, { onDelete: 'set null' }),
-  legacyChatDepartmentId: integer("legacy_chat_department_id").references(() => chatDepartments.id, { onDelete: 'set null' }), // For migration compatibility
+  legacyChatDepartmentId: integer("legacy_chat_department_id").references(() => chatDepartments.id, { onDelete: 'set null' }), // For migration rollback capability
   status: text("status").notNull().default("waiting"), // waiting, active, closed, converted_to_ticket
   priority: text("priority").notNull().default("normal"), // low, normal, high
   subject: text("subject"), // Optional subject for the chat

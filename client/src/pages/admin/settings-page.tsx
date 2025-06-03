@@ -23,6 +23,8 @@ import {
 import { getBrandColors } from "@/lib/brand-theme";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { UnifiedDepartmentManager } from "@/components/admin/unified-department-manager";
 import { ToastAction } from "@/components/ui/toast";
 import TeamManagement from "@/components/admin/TeamManagement";
 import {
@@ -44,10 +46,7 @@ import {
   Merge,
   CheckCircle,
   Info,
-  Edit,
-  Plus,
-  X,
-  Trash2
+  X
 } from "lucide-react";
 
 interface Setting {
@@ -123,12 +122,32 @@ interface TicketDepartment {
   displayOrder: number;
 }
 
+// Chat Department interface
+interface ChatDepartment {
+  id: number;
+  name: string;
+  description: string;
+  isActive: boolean;
+  isDefault: boolean;
+  displayOrder: number;
+  color?: string;
+  icon?: string;
+}
+
 // Department Migration interfaces
+interface SyncStatus {
+  needsSync: boolean;
+  newTicketDepartments: TicketDepartment[];
+  newChatDepartments: ChatDepartment[];
+  totalNewDepartments: number;
+}
+
 interface MigrationStatus {
   needsMigration: boolean;
   ticketDepartmentCount: number;
   chatDepartmentCount: number;
   supportDepartmentCount: number;
+  syncStatus?: SyncStatus;
 }
 
 interface MigrationResult {
@@ -290,6 +309,7 @@ const settingsOptions = [
   { value: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4 mr-2" /> },
   { value: "team", label: "Team", icon: <Users className="h-4 w-4 mr-2" /> },
   { value: "virtfusion", label: "VirtFusion API", icon: <Server className="h-4 w-4 mr-2" /> },
+  { value: "departments", label: "Departments", icon: <Merge className="h-4 w-4 mr-2" /> },
   { value: "tickets", label: "Tickets", icon: <Ticket className="h-4 w-4 mr-2" /> },
   { value: "maintenance", label: "Maintenance", icon: <AlertTriangle className="h-4 w-4 mr-2" /> },
   { value: "loading-screen", label: "Loading Screen", icon: <Hourglass className="h-4 w-4 mr-2" /> },
@@ -308,6 +328,8 @@ export default function SettingsPage() {
   const [themeKey, setThemeKey] = useState(0); // Force re-render key
   const [migrationInProgress, setMigrationInProgress] = useState(false);
   const [migrationResult, setMigrationResult] = useState<MigrationResult | null>(null);
+  const [syncInProgress, setSyncInProgress] = useState(false);
+  const [syncResult, setSyncResult] = useState<MigrationResult | null>(null);
 
   // State for color pickers
   const [activeColorPicker, setActiveColorPicker] = useState<"primary" | "secondary" | "accent" | null>(null);
@@ -808,6 +830,34 @@ export default function SettingsPage() {
     }
   });
 
+  // Department sync mutation
+  const syncDepartmentsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/department-migration/sync', {
+        method: 'POST'
+      });
+    },
+    onSuccess: (result: MigrationResult) => {
+      setSyncResult(result);
+      toast({
+        title: 'Sync completed',
+        description: result.message,
+        duration: 8000,
+      });
+      // Refresh migration status and departments
+      refetchMigrationStatus();
+      queryClient.invalidateQueries({ queryKey: ['/api/ticket-departments'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Sync failed',
+        description: error.message || 'An error occurred during sync',
+        variant: 'destructive',
+        duration: 8000,
+      });
+    }
+  });
+
   // Handle department form submission
   const onDepartmentSubmit = async (data: TicketDepartmentFormData) => {
     setSaveInProgress(true);
@@ -877,6 +927,41 @@ export default function SettingsPage() {
       console.error('Migration error:', error);
     } finally {
       setMigrationInProgress(false);
+    }
+  };
+
+  // Handle department sync
+  const handleSyncDepartments = async () => {
+    if (!migrationStatus?.syncStatus?.needsSync) {
+      toast({
+        title: 'No sync needed',
+        description: 'All departments are already synchronized',
+        variant: 'default',
+      });
+      return;
+    }
+
+    const syncStatus = migrationStatus.syncStatus;
+    const newDeptNames = [
+      ...syncStatus.newTicketDepartments.map(d => d.name),
+      ...syncStatus.newChatDepartments.map(d => d.name)
+    ];
+
+    const confirmed = confirm(
+      `This will sync ${syncStatus.totalNewDepartments} new departments (${newDeptNames.join(', ')}) into the unified system. Continue?`
+    );
+
+    if (!confirmed) return;
+
+    setSyncInProgress(true);
+    setSyncResult(null);
+
+    try {
+      await syncDepartmentsMutation.mutateAsync();
+    } catch (error) {
+      console.error('Sync error:', error);
+    } finally {
+      setSyncInProgress(false);
     }
   };
 
@@ -2992,6 +3077,10 @@ export default function SettingsPage() {
                 <TeamManagement brandColors={brandColors} />
               </TabsContent>
 
+              <TabsContent value="departments">
+                <UnifiedDepartmentManager />
+              </TabsContent>
+
               <TabsContent value="maintenance">
                 <form onSubmit={maintenanceForm.handleSubmit(onMaintenanceSubmit)}>
                   <div className="space-y-6">
@@ -3312,6 +3401,169 @@ export default function SettingsPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => setMigrationResult(null)}
+                            className="mt-3"
+                          >
+                            <X className="mr-1 h-3 w-3" />
+                            Dismiss
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Department Sync Section */}
+                  {!isLoadingMigrationStatus && migrationStatus && !migrationStatus.needsMigration && migrationStatus.syncStatus?.needsSync && (
+                    <div className="border rounded-lg p-6 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950/20 dark:to-yellow-950/20">
+                      <div className="flex items-start space-x-4">
+                        <div className="flex-shrink-0">
+                          <AlertTriangle className="h-6 w-6 text-orange-500" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            New Departments Detected
+                          </h4>
+                          <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                            <p className="mb-3">
+                              {migrationStatus.syncStatus.totalNewDepartments} new departments have been added since the initial migration.
+                              You can sync them into the unified department system.
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                              {migrationStatus.syncStatus.newTicketDepartments.length > 0 && (
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
+                                  <div className="flex items-center space-x-2">
+                                    <Ticket className="h-4 w-4 text-blue-500" />
+                                    <span className="font-medium">New Ticket Departments</span>
+                                  </div>
+                                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">
+                                    {migrationStatus.syncStatus.newTicketDepartments.length}
+                                  </p>
+                                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                    {migrationStatus.syncStatus.newTicketDepartments.map(dept => dept.name).join(', ')}
+                                  </div>
+                                </div>
+                              )}
+                              {migrationStatus.syncStatus.newChatDepartments.length > 0 && (
+                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
+                                  <div className="flex items-center space-x-2">
+                                    <Users className="h-4 w-4 text-green-500" />
+                                    <span className="font-medium">New Chat Departments</span>
+                                  </div>
+                                  <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
+                                    {migrationStatus.syncStatus.newChatDepartments.length}
+                                  </p>
+                                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                                    {migrationStatus.syncStatus.newChatDepartments.map(dept => dept.name).join(', ')}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                              <div className="flex items-start space-x-2">
+                                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                <div className="text-sm text-blue-800 dark:text-blue-200">
+                                  <p className="font-medium mb-1">What syncing does:</p>
+                                  <ul className="list-disc list-inside space-y-1 text-xs">
+                                    <li>Adds new departments to the unified system</li>
+                                    <li>Migrates any tickets/chat sessions using these departments</li>
+                                    <li>Preserves all existing data and settings</li>
+                                    <li>Maintains admin assignments for chat departments</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex space-x-3">
+                            <Button
+                              onClick={handleSyncDepartments}
+                              disabled={syncInProgress}
+                              className="bg-orange-600 hover:bg-orange-700 text-white"
+                            >
+                              {syncInProgress ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Syncing...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="mr-2 h-4 w-4" />
+                                  Sync New Departments
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => refetchMigrationStatus()}
+                              disabled={syncInProgress}
+                            >
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Refresh Status
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sync Result Display */}
+                  {syncResult && (
+                    <div className={cn(
+                      "border rounded-lg p-4",
+                      syncResult.success
+                        ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+                        : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+                    )}>
+                      <div className="flex items-start space-x-3">
+                        {syncResult.success ? (
+                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+                        ) : (
+                          <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className={cn(
+                            "font-medium",
+                            syncResult.success
+                              ? "text-green-800 dark:text-green-200"
+                              : "text-red-800 dark:text-red-200"
+                          )}>
+                            {syncResult.success ? 'Sync Completed Successfully' : 'Sync Failed'}
+                          </h4>
+                          <p className={cn(
+                            "text-sm mt-1",
+                            syncResult.success
+                              ? "text-green-700 dark:text-green-300"
+                              : "text-red-700 dark:text-red-300"
+                          )}>
+                            {syncResult.message}
+                          </p>
+
+                          {syncResult.success && (
+                            <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border">
+                                <span className="font-medium">Departments Added:</span>
+                                <span className="ml-1 text-green-600 dark:text-green-400 font-bold">
+                                  {syncResult.details.supportDepartmentsCreated}
+                                </span>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border">
+                                <span className="font-medium">Tickets Migrated:</span>
+                                <span className="ml-1 text-blue-600 dark:text-blue-400 font-bold">
+                                  {syncResult.details.ticketsMigrated}
+                                </span>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border">
+                                <span className="font-medium">Chat Sessions:</span>
+                                <span className="ml-1 text-purple-600 dark:text-purple-400 font-bold">
+                                  {syncResult.details.chatSessionsMigrated}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSyncResult(null)}
                             className="mt-3"
                           >
                             <X className="mr-1 h-3 w-3" />
