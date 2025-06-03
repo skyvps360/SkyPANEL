@@ -411,7 +411,30 @@ router.post('/admin/:sessionId/convert-to-ticket', requireAdmin, async (req, res
       console.error('Error sending chat-to-ticket notification email:', emailError);
     }
 
-    // End the chat session via chat service
+    // Create Discord thread for the converted ticket (NOTE: No webhook notifications as per requirements)
+    try {
+      const { discordBotService } = await import('../discord-bot-service');
+      const user = await storage.getUser(session.userId);
+      const userName = user?.fullName || `User #${session.userId}`;
+
+      // Create Discord thread for the ticket using the same pattern as regular ticket creation
+      await discordBotService.createThreadForTicket(
+        ticket.id,
+        ticket.subject,
+        ticketContent, // Use the formatted chat history as the initial message
+        userName
+      );
+
+      console.log(`Discord thread created for converted ticket #${ticket.id} from chat session #${sessionId}`);
+    } catch (discordError) {
+      // Log but don't fail the conversion if Discord integration fails
+      console.error('Error creating Discord thread for converted ticket:', discordError);
+    }
+
+    // Broadcast chat-to-ticket conversion to clients before ending session
+    await chatService.broadcastChatToTicketConversion(sessionId, ticket.id, ticket.subject);
+
+    // End the chat session via chat service (after conversion notification)
     await chatService.endChatSession(sessionId);
 
     res.json({

@@ -111,7 +111,31 @@ export type Transaction = typeof transactions.$inferSelect;
 
 
 
-// Ticket Departments
+// Unified Support Departments (for both tickets and chat)
+export const supportDepartments = pgTable("support_departments", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  requiresVps: boolean("requires_vps").default(false), // If true, VPS info will be fetched for this department
+  isActive: boolean("is_active").default(true),
+  displayOrder: integer("display_order").default(0),
+  color: text("color").default("#3b82f6"), // Brand color for the department
+  icon: text("icon").default("MessageCircle"), // Lucide icon name
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSupportDepartmentSchema = createInsertSchema(supportDepartments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSupportDepartment = z.infer<typeof insertSupportDepartmentSchema>;
+export type SupportDepartment = typeof supportDepartments.$inferSelect;
+
+// Legacy Ticket Departments (kept for backward compatibility during migration)
 export const ticketDepartments = pgTable("ticket_departments", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
@@ -135,7 +159,8 @@ export type TicketDepartment = typeof ticketDepartments.$inferSelect;
 export const tickets = pgTable("tickets", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  departmentId: integer("department_id").references(() => ticketDepartments.id, { onDelete: 'set null' }),
+  departmentId: integer("department_id").references(() => supportDepartments.id, { onDelete: 'set null' }),
+  legacyDepartmentId: integer("legacy_department_id").references(() => ticketDepartments.id, { onDelete: 'set null' }), // For migration compatibility
   subject: text("subject").notNull(),
   status: text("status").notNull().default("open"), // open, in-progress, closed
   priority: text("priority").notNull().default("medium"), // low, medium, high
@@ -607,7 +632,27 @@ export const insertChatDepartmentSchema = createInsertSchema(chatDepartments).om
 export type InsertChatDepartment = z.infer<typeof insertChatDepartmentSchema>;
 export type ChatDepartment = typeof chatDepartments.$inferSelect;
 
-// Chat Department Admin Assignments
+// Support Department Admin Assignments (unified for both tickets and chat)
+export const supportDepartmentAdmins = pgTable("support_department_admins", {
+  id: serial("id").primaryKey(),
+  departmentId: integer("department_id").notNull().references(() => supportDepartments.id, { onDelete: 'cascade' }),
+  adminId: integer("admin_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  canManage: boolean("can_manage").default(false), // Can manage department settings
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSupportDepartmentAdminSchema = createInsertSchema(supportDepartmentAdmins).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertSupportDepartmentAdmin = z.infer<typeof insertSupportDepartmentAdminSchema>;
+export type SupportDepartmentAdmin = typeof supportDepartmentAdmins.$inferSelect;
+
+// Legacy Chat Department Admin Assignments (kept for backward compatibility during migration)
 export const chatDepartmentAdmins = pgTable("chat_department_admins", {
   id: serial("id").primaryKey(),
   departmentId: integer("department_id").notNull().references(() => chatDepartments.id, { onDelete: 'cascade' }),
@@ -632,7 +677,8 @@ export const chatSessions = pgTable("chat_sessions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   assignedAdminId: integer("assigned_admin_id").references(() => users.id, { onDelete: 'set null' }),
-  departmentId: integer("department_id").references(() => chatDepartments.id, { onDelete: 'set null' }),
+  departmentId: integer("department_id").references(() => supportDepartments.id, { onDelete: 'set null' }),
+  legacyChatDepartmentId: integer("legacy_chat_department_id").references(() => chatDepartments.id, { onDelete: 'set null' }), // For migration compatibility
   status: text("status").notNull().default("waiting"), // waiting, active, closed, converted_to_ticket
   priority: text("priority").notNull().default("normal"), // low, normal, high
   subject: text("subject"), // Optional subject for the chat

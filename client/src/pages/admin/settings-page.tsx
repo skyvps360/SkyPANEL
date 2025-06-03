@@ -40,7 +40,14 @@ import {
   Mail,
   PenTool,
   Cloud,
-  Users
+  Users,
+  Merge,
+  CheckCircle,
+  Info,
+  Edit,
+  Plus,
+  X,
+  Trash2
 } from "lucide-react";
 
 interface Setting {
@@ -114,6 +121,31 @@ interface TicketDepartment {
   isDefault: boolean;
   requiresVps: boolean;
   displayOrder: number;
+}
+
+// Department Migration interfaces
+interface MigrationStatus {
+  needsMigration: boolean;
+  ticketDepartmentCount: number;
+  chatDepartmentCount: number;
+  supportDepartmentCount: number;
+}
+
+interface MigrationResult {
+  success: boolean;
+  message: string;
+  details: {
+    supportDepartmentsCreated: number;
+    ticketDepartmentsMigrated: number;
+    chatDepartmentsMigrated: number;
+    ticketsMigrated: number;
+    chatSessionsMigrated: number;
+    adminAssignmentsMigrated: number;
+    conflicts: Array<{
+      type: 'name_conflict' | 'default_conflict';
+      resolution: string;
+    }>;
+  };
 }
 
 // Ticket Department form schema
@@ -274,6 +306,8 @@ export default function SettingsPage() {
   const [editingDepartment, setEditingDepartment] = useState<TicketDepartment | null>(null);
   const [isAddingDepartment, setIsAddingDepartment] = useState(false);
   const [themeKey, setThemeKey] = useState(0); // Force re-render key
+  const [migrationInProgress, setMigrationInProgress] = useState(false);
+  const [migrationResult, setMigrationResult] = useState<MigrationResult | null>(null);
 
   // State for color pickers
   const [activeColorPicker, setActiveColorPicker] = useState<"primary" | "secondary" | "accent" | null>(null);
@@ -296,6 +330,12 @@ export default function SettingsPage() {
   // Fetch ticket departments
   const { data: departments = [], isLoading: isLoadingDepartments } = useQuery<TicketDepartment[]>({
     queryKey: ["/api/ticket-departments"],
+  });
+
+  // Fetch migration status
+  const { data: migrationStatus, isLoading: isLoadingMigrationStatus, refetch: refetchMigrationStatus } = useQuery<MigrationStatus>({
+    queryKey: ["/api/admin/department-migration/status"],
+    staleTime: 30000, // Cache for 30 seconds
   });
 
   // Notifications settings form
@@ -740,6 +780,34 @@ export default function SettingsPage() {
     }
   });
 
+  // Department migration mutation
+  const migrateDepartmentsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/department-migration/migrate', {
+        method: 'POST'
+      });
+    },
+    onSuccess: (result: MigrationResult) => {
+      setMigrationResult(result);
+      toast({
+        title: 'Migration completed',
+        description: result.message,
+        duration: 8000,
+      });
+      // Refresh migration status and departments
+      refetchMigrationStatus();
+      queryClient.invalidateQueries({ queryKey: ['/api/ticket-departments'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Migration failed',
+        description: error.message || 'An error occurred during migration',
+        variant: 'destructive',
+        duration: 8000,
+      });
+    }
+  });
+
   // Handle department form submission
   const onDepartmentSubmit = async (data: TicketDepartmentFormData) => {
     setSaveInProgress(true);
@@ -781,6 +849,35 @@ export default function SettingsPage() {
     setEditingDepartment(null);
     setIsAddingDepartment(false);
     ticketDepartmentForm.reset();
+  };
+
+  // Handle department migration
+  const handleMigrateDepartments = async () => {
+    if (!migrationStatus?.needsMigration) {
+      toast({
+        title: 'No migration needed',
+        description: 'The department system is already unified',
+        variant: 'default',
+      });
+      return;
+    }
+
+    const confirmed = confirm(
+      `This will merge ${migrationStatus.ticketDepartmentCount} ticket departments and ${migrationStatus.chatDepartmentCount} chat departments into a unified system. This action cannot be undone. Continue?`
+    );
+
+    if (!confirmed) return;
+
+    setMigrationInProgress(true);
+    setMigrationResult(null);
+
+    try {
+      await migrateDepartmentsMutation.mutateAsync();
+    } catch (error) {
+      console.error('Migration error:', error);
+    } finally {
+      setMigrationInProgress(false);
+    }
   };
 
   // Footer form
@@ -3030,6 +3127,200 @@ export default function SettingsPage() {
                       Manage ticket departments for your support system
                     </p>
                   </div>
+
+                  {/* Department Migration Section */}
+                  {!isLoadingMigrationStatus && migrationStatus && (
+                    <div className="border rounded-lg p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+                      <div className="flex items-start space-x-4">
+                        <div className="flex-shrink-0">
+                          {migrationStatus.needsMigration ? (
+                            <AlertTriangle className="h-6 w-6 text-amber-500" />
+                          ) : (
+                            <CheckCircle className="h-6 w-6 text-green-500" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            {migrationStatus.needsMigration ? 'Department Consolidation Available' : 'Department System Unified'}
+                          </h4>
+                          <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                            {migrationStatus.needsMigration ? (
+                              <>
+                                <p className="mb-3">
+                                  Your system currently has separate department systems for tickets and live chat.
+                                  You can consolidate them into a unified department system for easier management.
+                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
+                                    <div className="flex items-center space-x-2">
+                                      <Ticket className="h-4 w-4 text-blue-500" />
+                                      <span className="font-medium">Ticket Departments</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">
+                                      {migrationStatus.ticketDepartmentCount}
+                                    </p>
+                                  </div>
+                                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
+                                    <div className="flex items-center space-x-2">
+                                      <Users className="h-4 w-4 text-green-500" />
+                                      <span className="font-medium">Chat Departments</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
+                                      {migrationStatus.chatDepartmentCount}
+                                    </p>
+                                  </div>
+                                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
+                                    <div className="flex items-center space-x-2">
+                                      <Merge className="h-4 w-4 text-purple-500" />
+                                      <span className="font-medium">Will Create</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-purple-600 dark:text-purple-400 mt-1">
+                                      {Math.max(migrationStatus.ticketDepartmentCount, migrationStatus.chatDepartmentCount)} unified
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4">
+                                  <div className="flex items-start space-x-2">
+                                    <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                    <div className="text-sm text-amber-800 dark:text-amber-200">
+                                      <p className="font-medium mb-1">What this migration does:</p>
+                                      <ul className="list-disc list-inside space-y-1 text-xs">
+                                        <li>Merges ticket and chat departments with the same name</li>
+                                        <li>Preserves all existing tickets and chat sessions</li>
+                                        <li>Maintains admin assignments and permissions</li>
+                                        <li>Creates a single unified department management interface</li>
+                                        <li>Handles conflicts automatically (e.g., multiple default departments)</li>
+                                      </ul>
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <p>
+                                Your department system is already unified. Both tickets and live chat use the same department system
+                                with {migrationStatus.supportDepartmentCount} departments configured.
+                              </p>
+                            )}
+                          </div>
+
+                          {migrationStatus.needsMigration && (
+                            <div className="mt-4 flex space-x-3">
+                              <Button
+                                onClick={handleMigrateDepartments}
+                                disabled={migrationInProgress}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                {migrationInProgress ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Migrating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Merge className="mr-2 h-4 w-4" />
+                                    Consolidate Departments
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => refetchMigrationStatus()}
+                                disabled={migrationInProgress}
+                              >
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Refresh Status
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Migration Result Display */}
+                  {migrationResult && (
+                    <div className={cn(
+                      "border rounded-lg p-4",
+                      migrationResult.success
+                        ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
+                        : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
+                    )}>
+                      <div className="flex items-start space-x-3">
+                        {migrationResult.success ? (
+                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+                        ) : (
+                          <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                        )}
+                        <div className="flex-1">
+                          <h4 className={cn(
+                            "font-medium",
+                            migrationResult.success
+                              ? "text-green-800 dark:text-green-200"
+                              : "text-red-800 dark:text-red-200"
+                          )}>
+                            {migrationResult.success ? 'Migration Completed Successfully' : 'Migration Failed'}
+                          </h4>
+                          <p className={cn(
+                            "text-sm mt-1",
+                            migrationResult.success
+                              ? "text-green-700 dark:text-green-300"
+                              : "text-red-700 dark:text-red-300"
+                          )}>
+                            {migrationResult.message}
+                          </p>
+
+                          {migrationResult.success && (
+                            <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border">
+                                <span className="font-medium">Departments Created:</span>
+                                <span className="ml-1 text-green-600 dark:text-green-400 font-bold">
+                                  {migrationResult.details.supportDepartmentsCreated}
+                                </span>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border">
+                                <span className="font-medium">Tickets Migrated:</span>
+                                <span className="ml-1 text-blue-600 dark:text-blue-400 font-bold">
+                                  {migrationResult.details.ticketsMigrated}
+                                </span>
+                              </div>
+                              <div className="bg-white dark:bg-gray-800 rounded p-2 border">
+                                <span className="font-medium">Chat Sessions:</span>
+                                <span className="ml-1 text-purple-600 dark:text-purple-400 font-bold">
+                                  {migrationResult.details.chatSessionsMigrated}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {migrationResult.details.conflicts.length > 0 && (
+                            <div className="mt-3">
+                              <p className="text-xs font-medium text-amber-700 dark:text-amber-300 mb-2">
+                                Conflicts Resolved ({migrationResult.details.conflicts.length}):
+                              </p>
+                              <div className="space-y-1">
+                                {migrationResult.details.conflicts.map((conflict, index) => (
+                                  <div key={index} className="text-xs bg-amber-100 dark:bg-amber-900/20 rounded p-2">
+                                    <span className="font-medium capitalize">{conflict.type.replace('_', ' ')}:</span>
+                                    <span className="ml-1">{conflict.resolution}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setMigrationResult(null)}
+                            className="mt-3"
+                          >
+                            <X className="mr-1 h-3 w-3" />
+                            Dismiss
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Department List */}
                   <div className="space-y-4">

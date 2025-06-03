@@ -23,6 +23,8 @@ import {
   faqItems,
   legalContent,
   ticketDepartments,
+  supportDepartments,
+  supportDepartmentAdmins,
   teamMembers,
   chatSessions,
   chatMessages,
@@ -40,6 +42,10 @@ import {
   type InsertTicketMessage,
   type TicketDepartment,
   type InsertTicketDepartment,
+  type SupportDepartment,
+  type InsertSupportDepartment,
+  type SupportDepartmentAdmin,
+  type InsertSupportDepartmentAdmin,
   type Settings,
   type InsertSettings,
   type Notification,
@@ -363,6 +369,22 @@ export interface IStorage {
   getDepartmentAdmins(departmentId: number): Promise<(ChatDepartmentAdmin & { admin: User })[]>;
   getAdminDepartments(adminId: number): Promise<(ChatDepartmentAdmin & { department: ChatDepartment })[]>;
   updateDepartmentAdminPermissions(departmentId: number, adminId: number, updates: Partial<ChatDepartmentAdmin>): Promise<void>;
+
+  // Unified support department operations
+  getSupportDepartments(): Promise<SupportDepartment[]>;
+  getActiveSupportDepartments(): Promise<SupportDepartment[]>;
+  getSupportDepartment(id: number): Promise<SupportDepartment | undefined>;
+  getDefaultSupportDepartment(): Promise<SupportDepartment | undefined>;
+  createSupportDepartment(department: InsertSupportDepartment): Promise<SupportDepartment>;
+  updateSupportDepartment(id: number, updates: Partial<SupportDepartment>): Promise<void>;
+  deleteSupportDepartment(id: number): Promise<void>;
+
+  // Support department admin operations
+  assignAdminToSupportDepartment(assignment: InsertSupportDepartmentAdmin): Promise<SupportDepartmentAdmin>;
+  removeAdminFromSupportDepartment(departmentId: number, adminId: number): Promise<void>;
+  getSupportDepartmentAdmins(departmentId: number): Promise<SupportDepartmentAdmin[]>;
+  getAdminSupportDepartments(adminId: number): Promise<Array<SupportDepartmentAdmin & { department: SupportDepartment | null }>>;
+  updateSupportDepartmentAdminPermissions(departmentId: number, adminId: number, updates: Partial<SupportDepartmentAdmin>): Promise<void>;
 
   // Enhanced chat session operations with departments
   getChatSessionsWithDepartments(): Promise<(ChatSession & { user: User; assignedAdmin?: User; department?: ChatDepartment })[]>;
@@ -2178,6 +2200,136 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(chatDepartmentAdmins.departmentId, departmentId),
         eq(chatDepartmentAdmins.adminId, adminId)
+      ));
+  }
+
+  // Unified Support Department operations
+  async getSupportDepartments(): Promise<SupportDepartment[]> {
+    return await db.select().from(supportDepartments).orderBy(supportDepartments.displayOrder, supportDepartments.name);
+  }
+
+  async getActiveSupportDepartments(): Promise<SupportDepartment[]> {
+    return await db.select()
+      .from(supportDepartments)
+      .where(eq(supportDepartments.isActive, true))
+      .orderBy(supportDepartments.displayOrder, supportDepartments.name);
+  }
+
+  async getSupportDepartment(id: number): Promise<SupportDepartment | undefined> {
+    const [department] = await db.select().from(supportDepartments).where(eq(supportDepartments.id, id));
+    return department;
+  }
+
+  async getDefaultSupportDepartment(): Promise<SupportDepartment | undefined> {
+    const [department] = await db.select()
+      .from(supportDepartments)
+      .where(and(
+        eq(supportDepartments.isDefault, true),
+        eq(supportDepartments.isActive, true)
+      ));
+    return department;
+  }
+
+  async createSupportDepartment(department: InsertSupportDepartment): Promise<SupportDepartment> {
+    // If this department is set as default, we need to unset any existing defaults
+    if (department.isDefault) {
+      await db.update(supportDepartments)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(eq(supportDepartments.isDefault, true));
+    }
+
+    const [newDepartment] = await db.insert(supportDepartments).values({
+      ...department,
+      updatedAt: new Date()
+    }).returning();
+    return newDepartment;
+  }
+
+  async updateSupportDepartment(id: number, updates: Partial<SupportDepartment>): Promise<void> {
+    // If this department is being set as default, we need to unset any existing defaults
+    if (updates.isDefault) {
+      await db.update(supportDepartments)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(and(
+          eq(supportDepartments.isDefault, true),
+          not(eq(supportDepartments.id, id))
+        ));
+    }
+
+    await db.update(supportDepartments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(supportDepartments.id, id));
+  }
+
+  async deleteSupportDepartment(id: number): Promise<void> {
+    await db.delete(supportDepartments).where(eq(supportDepartments.id, id));
+  }
+
+  // Support Department Admin operations
+  async assignAdminToSupportDepartment(assignment: InsertSupportDepartmentAdmin): Promise<SupportDepartmentAdmin> {
+    const [createdAssignment] = await db.insert(supportDepartmentAdmins).values({
+      ...assignment,
+      updatedAt: new Date()
+    }).returning();
+    return createdAssignment;
+  }
+
+  async removeAdminFromSupportDepartment(departmentId: number, adminId: number): Promise<void> {
+    await db.delete(supportDepartmentAdmins)
+      .where(and(
+        eq(supportDepartmentAdmins.departmentId, departmentId),
+        eq(supportDepartmentAdmins.adminId, adminId)
+      ));
+  }
+
+  async getSupportDepartmentAdmins(departmentId: number): Promise<SupportDepartmentAdmin[]> {
+    return await db.select()
+      .from(supportDepartmentAdmins)
+      .where(and(
+        eq(supportDepartmentAdmins.departmentId, departmentId),
+        eq(supportDepartmentAdmins.isActive, true)
+      ));
+  }
+
+  async getAdminSupportDepartments(adminId: number): Promise<Array<SupportDepartmentAdmin & { department: SupportDepartment | null }>> {
+    return await db.select({
+      id: supportDepartmentAdmins.id,
+      departmentId: supportDepartmentAdmins.departmentId,
+      adminId: supportDepartmentAdmins.adminId,
+      canManage: supportDepartmentAdmins.canManage,
+      isActive: supportDepartmentAdmins.isActive,
+      createdAt: supportDepartmentAdmins.createdAt,
+      updatedAt: supportDepartmentAdmins.updatedAt,
+      department: {
+        id: supportDepartments.id,
+        name: supportDepartments.name,
+        description: supportDepartments.description,
+        isDefault: supportDepartments.isDefault,
+        requiresVps: supportDepartments.requiresVps,
+        isActive: supportDepartments.isActive,
+        displayOrder: supportDepartments.displayOrder,
+        color: supportDepartments.color,
+        icon: supportDepartments.icon,
+        createdAt: supportDepartments.createdAt,
+        updatedAt: supportDepartments.updatedAt,
+      }
+    })
+    .from(supportDepartmentAdmins)
+    .leftJoin(supportDepartments, eq(supportDepartmentAdmins.departmentId, supportDepartments.id))
+    .where(and(
+      eq(supportDepartmentAdmins.adminId, adminId),
+      eq(supportDepartmentAdmins.isActive, true),
+      eq(supportDepartments.isActive, true)
+    ))
+    .orderBy(supportDepartments.displayOrder, supportDepartments.name);
+  }
+
+  async updateSupportDepartmentAdminPermissions(departmentId: number, adminId: number, updates: Partial<SupportDepartmentAdmin>): Promise<void> {
+    await db.update(supportDepartmentAdmins)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(
+        eq(supportDepartmentAdmins.departmentId, departmentId),
+        eq(supportDepartmentAdmins.adminId, adminId)
       ));
   }
 

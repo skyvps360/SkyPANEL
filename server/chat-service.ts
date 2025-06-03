@@ -20,7 +20,7 @@ interface WebSocketWithUser extends WebSocket {
 }
 
 interface ChatEvent {
-  type: 'message' | 'typing' | 'session_update' | 'admin_status' | 'error' | 'session_assigned';
+  type: 'message' | 'typing' | 'session_update' | 'admin_status' | 'error' | 'session_assigned' | 'session_converted_to_ticket';
   data: any;
   sessionId?: number;
   userId?: number;
@@ -329,6 +329,29 @@ export class ChatService {
       if (!session) {
         this.sendError(ws, 'Session not found');
         return;
+      }
+
+      // If this is an admin sending a message and the session is still "waiting", update it to "active"
+      if (ws.isAdmin && session.status === 'waiting') {
+        console.log(`Admin ${ws.userId} sending first message to session ${data.sessionId}, updating status from "waiting" to "active"`);
+        await this.updateSessionStatus(data.sessionId, 'active');
+
+        // Assign admin to session if not already assigned
+        if (!session.assignedAdminId) {
+          await this.assignAdminToSession(data.sessionId, ws.userId);
+        }
+
+        // Broadcast session status update to all clients in the session
+        this.broadcastToSession(data.sessionId, {
+          type: 'session_update',
+          data: { sessionId: data.sessionId, status: 'active' }
+        });
+
+        // Notify client that admin joined (if not already notified)
+        this.broadcastToSession(data.sessionId, {
+          type: 'admin_joined',
+          data: { adminId: ws.userId }
+        }, ws.userId);
       }
 
       const messageData: InsertChatMessage = {
@@ -839,6 +862,24 @@ export class ChatService {
       type: 'session_ended',
       data: { sessionId }
     });
+  }
+
+  public async broadcastChatToTicketConversion(sessionId: number, ticketId: number, ticketSubject: string): Promise<void> {
+    // First update session status to converted
+    await this.updateSessionStatus(sessionId, 'converted_to_ticket');
+
+    // Broadcast conversion notification to all clients in the session
+    this.broadcastToSession(sessionId, {
+      type: 'session_converted_to_ticket',
+      data: {
+        sessionId,
+        ticketId,
+        ticketSubject,
+        message: 'Your chat session has been converted to a support ticket for better assistance.'
+      }
+    });
+
+    console.log(`Broadcasted chat-to-ticket conversion for session ${sessionId} → ticket #${ticketId}`);
   }
 }
 

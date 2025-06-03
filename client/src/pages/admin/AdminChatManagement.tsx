@@ -252,7 +252,7 @@ export default function AdminChatManagement() {
       priority: 'low' | 'medium' | 'high';
       departmentId?: number;
     }) => {
-      const response = await fetch(`/api/admin/chat/${sessionId}/convert-to-ticket`, {
+      const response = await fetch(`/api/chat/admin/${sessionId}/convert-to-ticket`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -391,8 +391,39 @@ export default function AdminChatManagement() {
         });
         refetchSessions();
       } else if (data.type === 'session_update') {
-        // Handle session status updates
+        // Handle session status updates with real-time UI synchronization
+        const { sessionId, status } = data.data;
+
+        // Update active tabs in real-time
+        setActiveTabs(prev => prev.map(tab =>
+          tab.sessionId === sessionId
+            ? { ...tab, session: { ...tab.session, status } }
+            : tab
+        ));
+
+        // Update available sessions list
+        setAvailableSessions(prev => prev.map(session =>
+          session.id === sessionId
+            ? { ...session, status }
+            : session
+        ));
+
+        // Refetch sessions to ensure consistency with backend
         refetchSessions();
+
+        // Show toast notification for status changes (only for significant transitions)
+        if (status === 'active') {
+          const session = activeTabs.find(tab => tab.sessionId === sessionId)?.session;
+          if (session) {
+            toast({
+              title: 'Chat session activated',
+              description: `Session with ${session.user?.fullName || 'user'} is now active`,
+              duration: 3000,
+            });
+          }
+        }
+
+        console.log(`Real-time session status update: Session ${sessionId} → ${status}`);
       }
     },
     onConnectionChange: (connected) => {
@@ -424,15 +455,18 @@ export default function AdminChatManagement() {
     }
 
     try {
-      // Fetch messages for this session
+      // Fetch fresh session data and messages to ensure we have the latest status
       const response = await fetch(`/api/chat/admin/sessions/${session.id}`);
       if (!response.ok) throw new Error('Failed to fetch session messages');
       const data = await response.json();
 
-      // Create new tab
+      // Use the fresh session data from the API response to ensure current status
+      const currentSession = data.session || session;
+
+      // Create new tab with current session data
       const newTab: ChatTab = {
         sessionId: session.id,
-        session,
+        session: currentSession,
         messages: data.messages || [],
         unreadCount: 0,
         isActive: true,
@@ -457,8 +491,8 @@ export default function AdminChatManagement() {
       // Join the session via WebSocket
       await joinSession(session.id);
 
-      // Assign session to current admin if not already assigned
-      if (!session.assignedAdminId) {
+      // Assign session to current admin if not already assigned (use current session data)
+      if (!currentSession.assignedAdminId) {
         assignSessionMutation.mutate(session.id);
       }
 

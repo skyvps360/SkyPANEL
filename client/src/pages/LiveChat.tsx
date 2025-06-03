@@ -177,6 +177,36 @@ export default function LiveChat() {
         // Handle real-time admin availability updates
         console.log('Received admin status update:', data.data);
         setAdminStatus(data.data);
+      } else if (data.type === 'session_converted_to_ticket') {
+        // Handle chat-to-ticket conversion
+        const { ticketId, ticketSubject, message } = data.data;
+
+        // Update session status to converted
+        if (session && data.data.sessionId === session.id) {
+          setSession(prev => prev ? { ...prev, status: 'converted_to_ticket' } : prev);
+        }
+
+        // Show conversion notification with ticket information
+        toast({
+          title: "Chat Converted to Ticket",
+          description: `Your chat has been converted to support ticket #${ticketId}. You'll receive an email with details.`,
+          duration: 8000,
+        });
+
+        // Add system message about conversion
+        setMessages(prev => [...prev, {
+          id: Date.now(),
+          message: `This chat session has been converted to support ticket #${ticketId}: "${ticketSubject}". You will receive an email notification with instructions on how to continue the conversation through our ticket system.`,
+          isFromAdmin: true,
+          createdAt: new Date().toISOString(),
+          user: { id: 0, fullName: 'System', role: 'system' },
+          messageType: 'system'
+        }]);
+
+        // Auto-scroll to show the conversion message
+        setTimeout(scrollToBottom, 100);
+
+        console.log(`Chat session converted to ticket #${ticketId}: ${ticketSubject}`);
       }
     }
   });
@@ -260,7 +290,7 @@ export default function LiveChat() {
 
     try {
       // If we're in a history session that's still active, send to that session
-      if (selectedHistorySession && selectedHistorySession.status !== 'closed') {
+      if (selectedHistorySession && selectedHistorySession.status !== 'closed' && selectedHistorySession.status !== 'converted_to_ticket') {
         await sendWebSocketMessage({
           message: message.trim(),
           sessionId: selectedHistorySession.id
@@ -456,8 +486,17 @@ export default function LiveChat() {
                   <span>Support Chat</span>
                   {session && (
                     <div className="flex items-center space-x-2">
-                      <Badge variant="outline" className="text-xs">
-                        {session.status === 'waiting' ? 'Waiting for admin' : 'Active'}
+                      <Badge
+                        variant={
+                          session.status === 'converted_to_ticket' ? 'secondary' :
+                          session.status === 'closed' ? 'secondary' :
+                          session.status === 'active' ? 'default' : 'outline'
+                        }
+                        className="text-xs"
+                      >
+                        {session.status === 'waiting' ? 'Waiting for admin' :
+                         session.status === 'converted_to_ticket' ? 'Converted to Ticket' :
+                         session.status === 'closed' ? 'Closed' : 'Active'}
                       </Badge>
                       <Button
                         variant="ghost"
@@ -573,13 +612,17 @@ export default function LiveChat() {
                           <div
                             className={cn(
                               "max-w-[70%] rounded-lg px-4 py-3 text-sm",
-                              msg.isFromAdmin
+                              msg.user?.role === 'system'
+                                ? "bg-amber-50 border border-amber-200 text-amber-800"
+                                : msg.isFromAdmin
                                 ? "bg-gray-100 text-gray-900"
                                 : "bg-blue-600 text-white"
                             )}
                           >
                             <div className="flex items-center space-x-2 mb-1">
-                              {msg.isFromAdmin ? (
+                              {msg.user?.role === 'system' ? (
+                                <div className="h-3 w-3 rounded-full bg-amber-500" />
+                              ) : msg.isFromAdmin ? (
                                 <Bot className="h-3 w-3" />
                               ) : (
                                 <User className="h-3 w-3" />
@@ -612,24 +655,36 @@ export default function LiveChat() {
 
                 {/* Input Area */}
                 <div className="p-6 flex-shrink-0">
-                  <div className="flex space-x-3">
-                    <Input
-                      value={message}
-                      onChange={handleInputChange}
-                      onKeyDown={handleKeyPress}
-                      placeholder={isConnected ? "Type your message..." : "Connecting..."}
-                      disabled={!isConnected}
-                      className="flex-1"
-                    />
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!message.trim() || !isConnected}
-                      size="sm"
-                      className="px-6"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  {session && (session.status === 'converted_to_ticket' || session.status === 'closed') ? (
+                    <div className="text-center py-4">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <p className="text-sm text-gray-600">
+                          {session.status === 'converted_to_ticket'
+                            ? 'This chat session has been converted to a support ticket. You will receive an email with instructions to continue the conversation.'
+                            : 'This chat session has ended.'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex space-x-3">
+                      <Input
+                        value={message}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyPress}
+                        placeholder={isConnected ? "Type your message..." : "Connecting..."}
+                        disabled={!isConnected}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={handleSendMessage}
+                        disabled={!message.trim() || !isConnected}
+                        size="sm"
+                        className="px-6"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                   {isTyping && (
                     <p className="text-xs text-gray-500 mt-2">You are typing...</p>
                   )}
@@ -700,12 +755,15 @@ export default function LiveChat() {
                                 <Badge
                                   variant={
                                     historySession.status === 'closed' ? 'secondary' :
+                                    historySession.status === 'converted_to_ticket' ? 'secondary' :
                                     historySession.status === 'active' ? 'default' :
                                     'outline'
                                   }
                                   className="text-xs"
                                 >
-                                  {historySession.status === 'waiting' ? 'Awaiting Response' : historySession.status}
+                                  {historySession.status === 'waiting' ? 'Awaiting Response' :
+                                   historySession.status === 'converted_to_ticket' ? 'Converted to Ticket' :
+                                   historySession.status}
                                 </Badge>
                               </div>
                               <p className="text-sm text-gray-700 truncate mb-2">
@@ -762,12 +820,15 @@ export default function LiveChat() {
                             <Badge
                               variant={
                                 selectedHistorySession.status === 'closed' ? 'secondary' :
+                                selectedHistorySession.status === 'converted_to_ticket' ? 'secondary' :
                                 selectedHistorySession.status === 'active' ? 'default' :
                                 'outline'
                               }
                               className="text-xs"
                             >
-                              {selectedHistorySession.status === 'waiting' ? 'Awaiting Response' : selectedHistorySession.status}
+                              {selectedHistorySession.status === 'waiting' ? 'Awaiting Response' :
+                               selectedHistorySession.status === 'converted_to_ticket' ? 'Converted to Ticket' :
+                               selectedHistorySession.status}
                             </Badge>
                           </div>
                         </div>
@@ -795,13 +856,17 @@ export default function LiveChat() {
                                   <div
                                     className={cn(
                                       "max-w-[70%] rounded-lg px-4 py-3 text-sm",
-                                      msg.isFromAdmin
+                                      msg.user?.role === 'system'
+                                        ? "bg-amber-50 border border-amber-200 text-amber-800"
+                                        : msg.isFromAdmin
                                         ? "bg-gray-100 text-gray-900"
                                         : "bg-blue-600 text-white"
                                     )}
                                   >
                                     <div className="flex items-center space-x-2 mb-1">
-                                      {msg.isFromAdmin ? (
+                                      {msg.user?.role === 'system' ? (
+                                        <div className="h-3 w-3 rounded-full bg-amber-500" />
+                                      ) : msg.isFromAdmin ? (
                                         <Bot className="h-3 w-3" />
                                       ) : (
                                         <User className="h-3 w-3" />
@@ -822,7 +887,7 @@ export default function LiveChat() {
                         </ScrollArea>
 
                         {/* Message Input for Active Sessions */}
-                        {selectedHistorySession && selectedHistorySession.status !== 'closed' && (
+                        {selectedHistorySession && selectedHistorySession.status !== 'closed' && selectedHistorySession.status !== 'converted_to_ticket' && (
                           <div className="border-t border-gray-100 p-4 bg-white">
                             <div className="flex space-x-3">
                               <Input
