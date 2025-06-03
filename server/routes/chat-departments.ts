@@ -9,9 +9,10 @@ const router = Router();
  */
 
 // Get active chat departments for client selection
+// After migration, this returns unified support departments instead of legacy chat departments
 router.get('/departments', requireAuth, async (req, res) => {
   try {
-    const departments = await storage.getActiveChatDepartments();
+    const departments = await storage.getActiveSupportDepartments();
     res.json(departments);
   } catch (error) {
     console.error('Error getting chat departments:', error);

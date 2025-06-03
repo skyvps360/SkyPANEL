@@ -338,25 +338,38 @@ router.post('/admin/:sessionId/convert-to-ticket', requireAdmin, async (req, res
     // Determine the ticket department
     let ticketDepartmentId = departmentId;
 
-    // If no department specified, try to map from chat department
+    // If no department specified, use the chat session's department directly
+    // After migration, both chat sessions and tickets use the same unified support_departments table
     if (!ticketDepartmentId && session.departmentId) {
-      const chatDepartment = await storage.getChatDepartment(session.departmentId);
-      if (chatDepartment) {
-        // Try to find a ticket department with the same name
-        const ticketDepartments = await storage.getActiveTicketDepartments();
-        const matchingDept = ticketDepartments.find(td => td.name === chatDepartment.name);
-        if (matchingDept) {
-          ticketDepartmentId = matchingDept.id;
-        }
+      // Validate that the department still exists and is active
+      const supportDepartment = await storage.getSupportDepartment(session.departmentId);
+      if (supportDepartment && supportDepartment.isActive) {
+        ticketDepartmentId = session.departmentId;
+        console.log(`Using chat session department ${session.departmentId} for ticket conversion`);
+      } else {
+        console.warn(`Chat session department ${session.departmentId} is not valid or inactive`);
       }
     }
 
-    // If still no department, use the default ticket department
+    // If still no department, require explicit department selection
     if (!ticketDepartmentId) {
-      const ticketDepartments = await storage.getActiveTicketDepartments();
-      const defaultDept = ticketDepartments.find(td => td.isDefault);
+      // Check if the chat session has no department assigned
+      if (!session.departmentId) {
+        return res.status(400).json({
+          error: 'Chat session has no department assigned. Please select a department for the ticket.'
+        });
+      }
+
+      // If chat session has a department but it's invalid, use default as fallback
+      const supportDepartments = await storage.getActiveSupportDepartments();
+      const defaultDept = supportDepartments.find(sd => sd.isDefault);
       if (defaultDept) {
         ticketDepartmentId = defaultDept.id;
+        console.log(`Using default support department ${defaultDept.id} for ticket conversion (fallback)`);
+      } else {
+        return res.status(400).json({
+          error: 'No valid department available for ticket creation. Please contact an administrator.'
+        });
       }
     }
 

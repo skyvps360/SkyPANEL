@@ -28,7 +28,7 @@ import chatRoutes from "./routes/chat";
 import chatDepartmentsRoutes from "./routes/chat-departments";
 import { chatService } from "./chat-service";
 import { departmentMigrationService } from "./services/department-migration";
-import { eq, and, desc, isNull, gte, lte } from "drizzle-orm";
+import { eq, and, desc, isNull, gte, lte, sql } from "drizzle-orm";
 import PDFDocument from "pdfkit";
 import { formatTicketPdf } from "./ticket-download";
 import * as schema from "../shared/schema";
@@ -4633,6 +4633,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error checking department counts:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Manual migration finalization endpoint
+  app.post("/api/admin/department-migration/finalize-columns", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log('Starting manual migration finalization...');
+
+      // Check current foreign key constraints
+      const constraintsResult = await db.execute(sql`
+        SELECT constraint_name, table_name, column_name
+        FROM information_schema.key_column_usage
+        WHERE table_name IN ('tickets', 'chat_sessions')
+        AND constraint_name LIKE '%department%'
+        ORDER BY table_name, constraint_name
+      `);
+
+      console.log('Current department-related constraints:', constraintsResult.rows);
+
+      await db.transaction(async (tx) => {
+        // Step 1: Drop ALL existing department-related foreign key constraints
+        console.log('Dropping all existing department foreign key constraints...');
+
+        await tx.execute(sql`
+          ALTER TABLE "tickets"
+          DROP CONSTRAINT IF EXISTS "tickets_department_id_ticket_departments_id_fk"
+        `);
+
+        await tx.execute(sql`
+          ALTER TABLE "tickets"
+          DROP CONSTRAINT IF EXISTS "tickets_department_id_new_fkey"
+        `);
+
+        await tx.execute(sql`
+          ALTER TABLE "tickets"
+          DROP CONSTRAINT IF EXISTS "tickets_department_id_support_departments_id_fk"
+        `);
+
+        await tx.execute(sql`
+          ALTER TABLE "chat_sessions"
+          DROP CONSTRAINT IF EXISTS "chat_sessions_department_id_chat_departments_id_fk"
+        `);
+
+        await tx.execute(sql`
+          ALTER TABLE "chat_sessions"
+          DROP CONSTRAINT IF EXISTS "chat_sessions_department_id_support_departments_id_fk"
+        `);
+
+        // Step 2: Check if department_id_new column exists and handle column swap
+        const ticketsTableInfo = await tx.execute(sql`
+          SELECT column_name
+          FROM information_schema.columns
+          WHERE table_name = 'tickets' AND column_name = 'department_id_new'
+        `);
+
+        if (ticketsTableInfo.rows.length > 0) {
+          console.log('Found department_id_new column, performing column swap...');
+
+          await tx.execute(sql`
+            ALTER TABLE "tickets"
+            RENAME COLUMN "department_id" TO "legacy_department_id_temp"
+          `);
+
+          await tx.execute(sql`
+            ALTER TABLE "tickets"
+            RENAME COLUMN "department_id_new" TO "department_id"
+          `);
+
+          // Update legacy_department_id with old values if not already set
+          await tx.execute(sql`
+            UPDATE "tickets"
+            SET "legacy_department_id" = "legacy_department_id_temp"
+            WHERE "legacy_department_id" IS NULL AND "legacy_department_id_temp" IS NOT NULL
+          `);
+
+          // Drop the temporary column
+          await tx.execute(sql`
+            ALTER TABLE "tickets"
+            DROP COLUMN IF EXISTS "legacy_department_id_temp"
+          `);
+        } else {
+          console.log('No department_id_new column found, columns already swapped');
+        }
+
+        // Step 3: Add correct foreign key constraints pointing to support_departments
+        console.log('Adding new foreign key constraints for unified departments...');
+
+        await tx.execute(sql`
+          ALTER TABLE "tickets"
+          ADD CONSTRAINT "tickets_department_id_support_departments_id_fk"
+          FOREIGN KEY ("department_id") REFERENCES "support_departments"("id") ON DELETE SET NULL
+        `);
+
+        await tx.execute(sql`
+          ALTER TABLE "chat_sessions"
+          ADD CONSTRAINT "chat_sessions_department_id_support_departments_id_fk"
+          FOREIGN KEY ("department_id") REFERENCES "support_departments"("id") ON DELETE SET NULL
+        `);
+
+        console.log('Migration finalization completed successfully');
+      });
+
+      res.json({
+        success: true,
+        message: 'Migration finalization completed successfully - all tables now reference support_departments'
+      });
+    } catch (error: any) {
+      console.error("Error finalizing migration:", error);
       res.status(500).json({ error: error.message });
     }
   });

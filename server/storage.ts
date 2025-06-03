@@ -2100,19 +2100,71 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getChatDepartment(id: number): Promise<ChatDepartment | undefined> {
-    const [department] = await db.select().from(chatDepartments).where(eq(chatDepartments.id, id));
-    return department;
+    // After migration, chat departments are unified in support_departments table
+    // This method now looks up in the unified table but returns in ChatDepartment format for compatibility
+    const [supportDept] = await db.select().from(supportDepartments).where(eq(supportDepartments.id, id));
+    if (!supportDept) {
+      return undefined;
+    }
+
+    // Convert SupportDepartment to ChatDepartment format for backward compatibility
+    return {
+      id: supportDept.id,
+      name: supportDept.name,
+      description: supportDept.description || '',
+      isDefault: supportDept.isDefault || false,
+      isActive: supportDept.isActive || true,
+      displayOrder: supportDept.displayOrder || 0,
+      color: supportDept.color || '#3b82f6',
+      icon: supportDept.icon || 'MessageCircle',
+      createdAt: supportDept.createdAt || new Date(),
+      updatedAt: supportDept.updatedAt || new Date(),
+    };
   }
 
   async getChatDepartments(): Promise<ChatDepartment[]> {
-    return await db.select().from(chatDepartments).orderBy(chatDepartments.displayOrder, chatDepartments.name);
+    // After migration, chat departments are unified in support_departments table
+    // This method now looks up in the unified table but returns in ChatDepartment format for compatibility
+    const supportDepts = await db.select()
+      .from(supportDepartments)
+      .orderBy(supportDepartments.displayOrder, supportDepartments.name);
+
+    // Convert SupportDepartment[] to ChatDepartment[] format for backward compatibility
+    return supportDepts.map(supportDept => ({
+      id: supportDept.id,
+      name: supportDept.name,
+      description: supportDept.description || '',
+      isDefault: supportDept.isDefault || false,
+      isActive: supportDept.isActive || true,
+      displayOrder: supportDept.displayOrder || 0,
+      color: supportDept.color || '#3b82f6',
+      icon: supportDept.icon || 'MessageCircle',
+      createdAt: supportDept.createdAt || new Date(),
+      updatedAt: supportDept.updatedAt || new Date(),
+    }));
   }
 
   async getActiveChatDepartments(): Promise<ChatDepartment[]> {
-    return await db.select()
-      .from(chatDepartments)
-      .where(eq(chatDepartments.isActive, true))
-      .orderBy(chatDepartments.displayOrder, chatDepartments.name);
+    // After migration, chat departments are unified in support_departments table
+    // This method now looks up in the unified table but returns in ChatDepartment format for compatibility
+    const supportDepts = await db.select()
+      .from(supportDepartments)
+      .where(eq(supportDepartments.isActive, true))
+      .orderBy(supportDepartments.displayOrder, supportDepartments.name);
+
+    // Convert SupportDepartment[] to ChatDepartment[] format for backward compatibility
+    return supportDepts.map(supportDept => ({
+      id: supportDept.id,
+      name: supportDept.name,
+      description: supportDept.description || '',
+      isDefault: supportDept.isDefault || false,
+      isActive: supportDept.isActive || true,
+      displayOrder: supportDept.displayOrder || 0,
+      color: supportDept.color || '#3b82f6',
+      icon: supportDept.icon || 'MessageCircle',
+      createdAt: supportDept.createdAt || new Date(),
+      updatedAt: supportDept.updatedAt || new Date(),
+    }));
   }
 
   async updateChatDepartment(id: number, updates: Partial<ChatDepartment>): Promise<void> {
