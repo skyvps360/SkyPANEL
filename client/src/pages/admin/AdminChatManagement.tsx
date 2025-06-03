@@ -6,38 +6,30 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import {
   MessageCircle,
   Users,
-  Clock,
   CheckCircle,
-  XCircle,
   Send,
   User,
   Bot,
   Settings,
   Activity,
-  AlertCircle,
   Zap,
   MessageSquare,
-  UserCheck,
   Timer,
-  Plus,
   X,
   ChevronLeft,
   ChevronRight,
-  MoreHorizontal,
   Ticket,
   ArrowRight,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Save
 } from 'lucide-react';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { useAuth } from '@/hooks/use-auth';
@@ -50,6 +42,7 @@ interface ChatSession {
   id: number;
   userId: number;
   assignedAdminId?: number;
+  departmentId?: number;
   status: string;
   priority: string;
   subject?: string;
@@ -122,7 +115,6 @@ export default function AdminChatManagement() {
 
   // UI state
   const [showSessionsList, setShowSessionsList] = useState(true);
-  const [tabScrollPosition, setTabScrollPosition] = useState(0);
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -778,7 +770,6 @@ export default function AdminChatManagement() {
   const activeTab = activeTabs.find(tab => tab.sessionId === activeTabId);
   const activeTabState = activeTabId ? tabStates[activeTabId] : null;
 
-  const sessions = sessionsData?.sessions || [];
   const stats = statsData?.stats || { activeSessions: 0, totalMessages: 0, averageResponseTime: 0 };
 
   const getStatusColor = (status: string) => {
@@ -940,10 +931,509 @@ export default function AdminChatManagement() {
             </TabsList>
 
             <TabsContent value="sessions" className="flex-1 mt-6">
-              <div className="text-center py-12">
-                <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Fullscreen Chat Management</h3>
-                <p className="text-gray-500">Complete support team monitoring interface - All features available in fullscreen mode</p>
+              {/* Fullscreen Sidebar Layout Chat Interface */}
+              <div className="flex h-[calc(100vh-300px)] bg-gray-50 rounded-lg overflow-hidden">
+                {/* Sidebar - Available Sessions */}
+                <div className={cn(
+                  "flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
+                  showSessionsList ? "w-80" : "w-16"
+                )}>
+                  {/* Sidebar Header */}
+                  <div className="flex-shrink-0 p-4 border-b border-gray-100 bg-white">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        {showSessionsList && (
+                          <h3 className="text-sm font-semibold text-gray-900">Available Sessions</h3>
+                        )}
+                        <Badge variant="secondary" className="text-xs">
+                          {availableSessions.filter(session =>
+                            !activeTabs.some(tab => tab.sessionId === session.id) &&
+                            (!selectedDepartmentFilter || session.departmentId === selectedDepartmentFilter)
+                          ).length}
+                        </Badge>
+                      </div>
+                      {showSessionsList && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowSessionsList(false)}
+                          className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+                          title="Collapse sidebar"
+                        >
+                          <ChevronLeft className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+
+                    {showSessionsList && (
+                      <>
+                        {/* Department Filter */}
+                        <div className="mb-3">
+                          <Select
+                            value={selectedDepartmentFilter?.toString() || 'all'}
+                            onValueChange={(value) => setSelectedDepartmentFilter(value === 'all' ? null : parseInt(value))}
+                          >
+                            <SelectTrigger className={cn(
+                              "h-8 text-xs",
+                              selectedDepartmentFilter && "border-blue-300 bg-blue-50"
+                            )}>
+                              <SelectValue placeholder="All Departments" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                                  <span>All Departments</span>
+                                </div>
+                              </SelectItem>
+                              {departments.map((dept) => (
+                                <SelectItem key={dept.id} value={dept.id.toString()}>
+                                  <div className="flex items-center space-x-2">
+                                    <div
+                                      className="w-2 h-2 rounded-full"
+                                      style={{ backgroundColor: dept.color }}
+                                    />
+                                    <span className="truncate">{dept.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {selectedDepartmentFilter && (
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-xs text-blue-600">
+                                Filtering by: {departments.find(d => d.id === selectedDepartmentFilter)?.name}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0 text-blue-600 hover:text-blue-800"
+                                onClick={() => setSelectedDepartmentFilter(null)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Sessions List */}
+                  <div className="flex-1 overflow-hidden">
+                    <ScrollArea className="h-full">
+                      <div className="p-2 space-y-1">
+                        {availableSessions.filter(session =>
+                          !activeTabs.some(tab => tab.sessionId === session.id) &&
+                          (!selectedDepartmentFilter || session.departmentId === selectedDepartmentFilter)
+                        ).length === 0 ? (
+                          <div className="text-center py-8">
+                            {showSessionsList ? (
+                              <>
+                                <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                                <p className="text-gray-500 text-xs">No available sessions</p>
+                              </>
+                            ) : (
+                              <MessageCircle className="h-6 w-6 text-gray-300 mx-auto" />
+                            )}
+                          </div>
+                        ) : (
+                          availableSessions
+                            .filter(session =>
+                              !activeTabs.some(tab => tab.sessionId === session.id) &&
+                              (!selectedDepartmentFilter || session.departmentId === selectedDepartmentFilter)
+                            )
+                            .map((session) => {
+                              const department = departments.find(d => d.id === session.departmentId);
+
+                              return (
+                                <div
+                                  key={session.id}
+                                  className={cn(
+                                    "p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50 bg-white border border-gray-100",
+                                    !showSessionsList && "p-2"
+                                  )}
+                                  onClick={() => openTab(session)}
+                                >
+                                  <div className="flex items-start space-x-3">
+                                    {/* Avatar */}
+                                    <div className="flex-shrink-0">
+                                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                        <User className="h-4 w-4 text-gray-600" />
+                                      </div>
+                                    </div>
+
+                                    {showSessionsList && (
+                                      <div className="flex-1 min-w-0">
+                                        {/* Header */}
+                                        <div className="flex items-center justify-between mb-1">
+                                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                                            {session.user?.fullName || 'Anonymous'}
+                                          </h4>
+                                          <div className="flex items-center space-x-1">
+                                            <div className={cn("w-2 h-2 rounded-full", getStatusColor(session.status))} />
+                                            <span className="text-xs text-gray-500">
+                                              {new Date(session.startedAt).toLocaleTimeString()}
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        {/* Subject */}
+                                        <p className="text-xs text-gray-600 truncate mb-2">
+                                          {session.subject || 'General Support'}
+                                        </p>
+
+                                        {/* Footer */}
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center space-x-2">
+                                            {department ? (
+                                              <Badge
+                                                variant="outline"
+                                                className="text-xs px-2 py-0.5 border font-medium"
+                                                style={{
+                                                  borderColor: department.color,
+                                                  color: department.color,
+                                                  backgroundColor: `${department.color}15`
+                                                }}
+                                              >
+                                                {department.name}
+                                              </Badge>
+                                            ) : (
+                                              <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                                                General
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <span className="text-xs text-gray-400">#{session.id}</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </div>
+
+                {/* Main Chat Area */}
+                <div className="flex-1 flex flex-col bg-white">
+                  {/* Tab Headers */}
+                  {activeTabs.length > 0 && (
+                    <div className="border-b border-gray-200">
+                      <div className="flex items-center justify-between px-6 py-3">
+                        <div className="flex items-center space-x-2">
+                          <MessageSquare className="h-5 w-5" style={{ color: brandColors.secondary.full }} />
+                          <span className="font-semibold text-gray-900">Active Chats</span>
+                          <Badge variant="secondary" className="text-xs">
+                            {activeTabs.length}/{MAX_TABS}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Tab Navigation */}
+                      <div className="flex items-center overflow-hidden">
+                        <div
+                          ref={tabsContainerRef}
+                          className="flex overflow-x-auto scrollbar-hide"
+                          style={{ scrollBehavior: 'smooth' }}
+                        >
+                          {activeTabs.map((tab) => {
+                            const department = departments.find(d => d.id === tab.session.departmentId);
+                            return (
+                              <div
+                                key={tab.sessionId}
+                                className={cn(
+                                  "flex items-center space-x-2 px-4 py-3 border-b-2 cursor-pointer transition-all duration-200 min-w-[200px] max-w-[250px]",
+                                  activeTabId === tab.sessionId
+                                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                                    : "border-transparent hover:bg-gray-50 text-gray-600"
+                                )}
+                                onClick={() => switchTab(tab.sessionId)}
+                              >
+                                <div className={cn("w-2 h-2 rounded-full", getStatusColor(tab.session.status))} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-medium text-sm truncate">
+                                      {tab.session.user?.fullName || 'Anonymous'}
+                                    </span>
+                                    {tab.unreadCount > 0 && (
+                                      <Badge variant="destructive" className="text-xs px-1.5 py-0.5 min-w-[20px] h-5">
+                                        {tab.unreadCount > 99 ? '99+' : tab.unreadCount}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center space-x-2 text-xs text-gray-500 truncate">
+                                    <span>#{tab.sessionId}</span>
+                                    <span>•</span>
+                                    <span>{tab.session.priority}</span>
+                                    {department && (
+                                      <>
+                                        <span>•</span>
+                                        <div className="flex items-center space-x-1">
+                                          <div
+                                            className="w-2 h-2 rounded-full"
+                                            style={{ backgroundColor: department.color }}
+                                          />
+                                          <span className="truncate max-w-16">{department.name}</span>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    closeTab(tab.sessionId, true);
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Tab Overflow Controls */}
+                        {activeTabs.length > 4 && (
+                          <div className="flex items-center border-l border-gray-200 px-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => {
+                                if (tabsContainerRef.current) {
+                                  tabsContainerRef.current.scrollLeft -= TAB_WIDTH;
+                                }
+                              }}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => {
+                                if (tabsContainerRef.current) {
+                                  tabsContainerRef.current.scrollLeft += TAB_WIDTH;
+                                }
+                              }}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chat Content */}
+                  <div className="flex-1 flex flex-col">
+                    {activeTab && activeTabState ? (
+                      <>
+                        {/* Chat Header */}
+                        <div className="border-b border-gray-100 px-6 py-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                <User className="h-5 w-5 text-gray-600" />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-gray-900">
+                                  {activeTab.session.user?.fullName || 'Anonymous User'}
+                                </h3>
+                                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                                  <span>{activeTab.session.user?.email}</span>
+                                  <span>•</span>
+                                  <span>#{activeTab.session.id}</span>
+                                  <span>•</span>
+                                  <div className="flex items-center space-x-1">
+                                    <div className={cn("w-2 h-2 rounded-full", getStatusColor(activeTab.session.status))} />
+                                    <span className="capitalize">{activeTab.session.status}</span>
+                                  </div>
+                                  {(() => {
+                                    const department = departments.find(d => d.id === activeTab.session.departmentId);
+                                    return department && (
+                                      <>
+                                        <span>•</span>
+                                        <div className="flex items-center space-x-1">
+                                          <div
+                                            className="w-2 h-2 rounded-full"
+                                            style={{ backgroundColor: department.color }}
+                                          />
+                                          <span>{department.name}</span>
+                                        </div>
+                                      </>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {(() => {
+                                const department = departments.find(d => d.id === activeTab.session.departmentId);
+                                return department ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs px-2 py-0.5 border font-medium"
+                                    style={{
+                                      borderColor: department.color,
+                                      color: department.color,
+                                      backgroundColor: `${department.color}15`
+                                    }}
+                                  >
+                                    {department.name}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs px-2 py-0.5">
+                                    General
+                                  </Badge>
+                                );
+                              })()}
+
+                              <Badge variant={getStatusBadgeVariant(activeTab.session.status)} className="text-xs">
+                                {activeTab.session.status}
+                              </Badge>
+
+                              {/* Convert to Ticket Button */}
+                              {activeTab.session.status === 'active' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleConvertToTicket(activeTab.sessionId)}
+                                  className="text-xs px-3 py-1 h-7 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                                  disabled={convertToTicketMutation.isPending}
+                                >
+                                  <Ticket className="h-3 w-3 mr-1" />
+                                  Convert to Ticket
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Messages Area */}
+                        <div className="flex-1 overflow-hidden">
+                          <ScrollArea className="h-full p-6">
+                            <div className="space-y-4">
+                              {activeTabState.messages.length === 0 ? (
+                                <div className="text-center py-12">
+                                  <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                                  <h3 className="text-lg font-medium text-gray-900 mb-2">Start the conversation</h3>
+                                  <p className="text-gray-500">
+                                    Send a message to begin chatting with {activeTab.session.user?.fullName || 'the customer'}
+                                  </p>
+                                </div>
+                              ) : (
+                                activeTabState.messages.map((msg) => (
+                                  <div
+                                    key={msg.id}
+                                    className={cn(
+                                      "flex",
+                                      msg.isFromAdmin ? "justify-end" : "justify-start"
+                                    )}
+                                  >
+                                    <div
+                                      className={cn(
+                                        "max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm",
+                                        msg.isFromAdmin
+                                          ? "bg-blue-600 text-white rounded-br-md"
+                                          : "bg-gray-100 text-gray-900 rounded-bl-md"
+                                      )}
+                                    >
+                                      <div className="flex items-center space-x-2 mb-1">
+                                        {msg.isFromAdmin ? (
+                                          <Bot className="h-3 w-3 opacity-70" />
+                                        ) : (
+                                          <User className="h-3 w-3 opacity-70" />
+                                        )}
+                                        <span className="text-xs opacity-70 font-medium">
+                                          {msg.user?.fullName || 'User'}
+                                        </span>
+                                        <span className="text-xs opacity-50">
+                                          {new Date(msg.createdAt).toLocaleTimeString()}
+                                        </span>
+                                      </div>
+                                      <p className="leading-relaxed">{msg.message}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                              <div ref={(el) => messagesEndRefs.current[activeTab.sessionId] = el} />
+                            </div>
+                          </ScrollArea>
+                        </div>
+
+                        {/* Input Area */}
+                        <div className="border-t border-gray-100 p-6">
+                          <div className="flex space-x-3">
+                            <Input
+                              value={activeTabState.messageInput || ''}
+                              onChange={(e) => updateMessageInput(activeTab.sessionId, e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  sendMessage(activeTab.sessionId, activeTabState.messageInput || '');
+                                }
+                              }}
+                              placeholder="Type your message..."
+                              className="flex-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                              disabled={!isConnected}
+                            />
+                            <Button
+                              onClick={() => sendMessage(activeTab.sessionId, activeTabState.messageInput || '')}
+                              disabled={!activeTabState.messageInput?.trim() || !isConnected}
+                              className="px-6"
+                              style={{ backgroundColor: brandColors.primary.full }}
+                            >
+                              <Send className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {/* Connection Status */}
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center space-x-2 text-xs text-gray-500">
+                              <div className={cn(
+                                "w-2 h-2 rounded-full",
+                                isConnected ? "bg-green-500" : "bg-red-500"
+                              )} />
+                              <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              Press Enter to send
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      /* No Session Selected */
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="text-center">
+                          <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Chat</h3>
+                          <p className="text-gray-500 max-w-sm">
+                            Choose a chat session from the sidebar to start messaging with customers
+                          </p>
+                          {!showSessionsList && (
+                            <Button
+                              onClick={() => setShowSessionsList(true)}
+                              className="mt-4"
+                              variant="outline"
+                            >
+                              <Users className="h-4 w-4 mr-2" />
+                              Show Sessions
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </TabsContent>
 
@@ -952,11 +1442,150 @@ export default function AdminChatManagement() {
             </TabsContent>
 
             <TabsContent value="settings" className="flex-1 mt-6">
-              <div className="text-center py-12">
-                <Settings className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">Settings</h3>
-                <p className="text-gray-500">Admin chat settings will be available here</p>
-              </div>
+              <Card className="border-0 shadow-lg bg-white">
+                <CardHeader className="pb-6">
+                  <CardTitle className="text-xl font-semibold text-gray-900 flex items-center">
+                    <Settings className="h-5 w-5 mr-2" style={{ color: brandColors.accent.full }} />
+                    Admin Chat Settings
+                  </CardTitle>
+                  <p className="text-gray-600 mt-2">
+                    Configure your chat availability and preferences
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="status" className="text-sm font-medium text-gray-700">
+                        Availability Status
+                      </Label>
+                      <Select
+                        key={`status-${adminStatus}`}
+                        value={adminStatus}
+                        onValueChange={(value) => {
+                          console.log('Status changed to:', value);
+                          setAdminStatus(value);
+                        }}
+                      >
+                        <SelectTrigger className="border-gray-200 focus:border-blue-500 focus:ring-blue-500">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="online">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 rounded-full bg-green-500" />
+                              <span>Online</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="away">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                              <span>Away</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="busy">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 rounded-full bg-red-500" />
+                              <span>Busy</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="offline">
+                            <div className="flex items-center space-x-2">
+                              <div className="w-2 h-2 rounded-full bg-gray-400" />
+                              <span>Offline</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500">
+                        Your availability status for new chat requests
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="maxChats" className="text-sm font-medium text-gray-700">
+                        Max Concurrent Chats
+                      </Label>
+                      <Input
+                        id="maxChats"
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={maxConcurrentChats}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 1;
+                          console.log('Max concurrent chats changed to:', value);
+                          setMaxConcurrentChats(value);
+                        }}
+                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Maximum number of simultaneous chat sessions
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="statusMessage" className="text-sm font-medium text-gray-700">
+                      Status Message
+                    </Label>
+                    <Input
+                      id="statusMessage"
+                      value={statusMessage}
+                      onChange={(e) => {
+                        console.log('Status message changed to:', e.target.value);
+                        setStatusMessage(e.target.value);
+                      }}
+                      placeholder="Optional status message for customers"
+                      className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <p className="text-xs text-gray-500">
+                      This message will be visible to customers when they start a chat
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="autoAssign"
+                        checked={autoAssign}
+                        onChange={(e) => {
+                          console.log('Auto assign changed to:', e.target.checked);
+                          setAutoAssign(e.target.checked);
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <Label htmlFor="autoAssign" className="text-sm font-medium text-gray-700">
+                        Auto-assign new chats
+                      </Label>
+                    </div>
+                    <p className="text-xs text-gray-500 ml-6">
+                      Automatically assign new chat sessions to available admins
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100">
+                    <Button
+                      onClick={handleUpdateStatus}
+                      disabled={updateStatusMutation.isPending}
+                      className="w-full"
+                      style={{ backgroundColor: brandColors.primary.full }}
+                    >
+                      {updateStatusMutation.isPending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Settings
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
@@ -1130,14 +1759,17 @@ export default function AdminChatManagement() {
                         ).length}
                       </Badge>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowSessionsList(!showSessionsList)}
-                      className="h-6 w-6 p-0"
-                    >
-                      {showSessionsList ? <X className="h-3 w-3" /> : <Users className="h-3 w-3" />}
-                    </Button>
+                    {showSessionsList && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowSessionsList(false)}
+                        className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+                        title="Collapse sidebar"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                      </Button>
+                    )}
                   </div>
 
                   {showSessionsList && (
@@ -1700,20 +2332,25 @@ export default function AdminChatManagement() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="space-y-1">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="autoAssign"
+                      checked={autoAssign}
+                      onChange={(e) => {
+                        console.log('Auto assign changed to:', e.target.checked);
+                        setAutoAssign(e.target.checked);
+                      }}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
                     <Label htmlFor="autoAssign" className="text-sm font-medium text-gray-700">
-                      Auto-assign new sessions
+                      Auto-assign new chats
                     </Label>
-                    <p className="text-xs text-gray-500">
-                      Automatically assign new chat sessions to available admins
-                    </p>
                   </div>
-                  <Switch
-                    id="autoAssign"
-                    checked={autoAssign}
-                    onCheckedChange={setAutoAssign}
-                  />
+                  <p className="text-xs text-gray-500 ml-6">
+                    Automatically assign new chat sessions to available admins
+                  </p>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100">
