@@ -31,6 +31,17 @@
   word-wrap: break-word;
   word-break: break-word;
   hyphens: auto;
+  /* Force strict width constraints */
+  width: fit-content;
+  box-sizing: border-box;
+}
+
+/* More aggressive word breaking for client chat */
+.client-chat-bubble {
+  max-width: 70% !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
+  white-space: pre-wrap !important;
 }
 
 .chat-messages-area {
@@ -56,6 +67,42 @@
 .overflow-wrap-anywhere {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+/* Ensure ScrollArea respects height constraints */
+[data-radix-scroll-area-root] {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Force proper height inheritance in chat containers */
+.chat-messages-area [data-radix-scroll-area-viewport] {
+  max-height: 100% !important;
+  height: 100% !important;
+}
+
+/* Specific styles for chat history messages to prevent overflow */
+.chat-history-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.chat-history-message {
+  max-width: 70% !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  hyphens: auto !important;
+  box-sizing: border-box !important;
+}
+
+.chat-history-message p {
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  white-space: pre-wrap !important;
 }
 
 /* Global override for Input focus styles using brand colors */

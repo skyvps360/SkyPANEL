@@ -480,7 +480,7 @@ export default function LiveChat() {
           </TabsList>
 
           <TabsContent value="chat" className="space-y-0">
-            <Card className="h-[calc(100vh-250px)] flex flex-col">
+            <Card className="h-[calc(100vh-250px)] flex flex-col overflow-hidden">
               <CardHeader className="flex-shrink-0">
                 <CardTitle className="flex items-center justify-between">
                   <span>Support Chat</span>
@@ -511,7 +511,7 @@ export default function LiveChat() {
                 </CardTitle>
               </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
+          <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0">
             {!session ? (
               <div className="flex-1 flex items-center justify-center p-8">
                 <div className="text-center max-w-lg w-full">
@@ -598,9 +598,9 @@ export default function LiveChat() {
             ) : (
               <>
                 {/* Messages Area */}
-                <div className="flex-1 overflow-hidden min-h-0 chat-messages-area">
-                  <ScrollArea className="h-full w-full">
-                    <div className="p-6 space-y-4 w-full">
+                <div className="flex-1 overflow-hidden min-h-0 max-h-full chat-messages-area">
+                  <ScrollArea className="h-full w-full max-h-full">
+                    <div className="p-6 space-y-4 w-full min-h-0">
                       {messages.map((msg) => (
                         <div
                           key={msg.id}
@@ -702,7 +702,7 @@ export default function LiveChat() {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-0">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-250px)]">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-250px)] w-full max-w-full overflow-hidden">
               {/* History List */}
               <div className="lg:col-span-1">
                 <Card className="h-full flex flex-col">
@@ -791,8 +791,8 @@ export default function LiveChat() {
               </div>
 
               {/* History Messages */}
-              <div className="lg:col-span-2">
-                <Card className="h-full flex flex-col chat-container">
+              <div className="lg:col-span-2 min-w-0 max-w-full overflow-hidden">
+                <Card className="h-full flex flex-col chat-container w-full max-w-full">
                   {selectedHistorySession ? (
                     <>
                       <CardHeader className="flex-shrink-0 border-b border-gray-100">
@@ -836,9 +836,9 @@ export default function LiveChat() {
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="flex-1 overflow-hidden p-0 flex flex-col min-h-0">
-                        <ScrollArea className="flex-1 w-full chat-messages-area">
-                          <div className="p-6 space-y-4 w-full">
+                      <CardContent className="flex-1 overflow-hidden p-0 flex flex-col min-h-0 max-h-full w-full max-w-full">
+                        <ScrollArea className="flex-1 w-full max-h-full chat-messages-area max-w-full overflow-hidden">
+                          <div className="p-6 space-y-4 w-full min-h-0 max-w-full overflow-hidden chat-history-container">
                             {historyMessages.length === 0 ? (
                               <div className="text-center py-12">
                                 <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -852,13 +852,13 @@ export default function LiveChat() {
                                 <div
                                   key={msg.id}
                                   className={cn(
-                                    "flex chat-message-container",
+                                    "flex chat-message-container w-full max-w-full overflow-hidden",
                                     msg.isFromAdmin ? "justify-start" : "justify-end"
                                   )}
                                 >
                                   <div
                                     className={cn(
-                                      "max-w-[70%] min-w-0 rounded-lg px-4 py-3 text-sm chat-message-bubble",
+                                      "max-w-[70%] min-w-0 rounded-lg px-4 py-3 text-sm chat-message-bubble chat-history-message overflow-hidden",
                                       msg.user?.role === 'system'
                                         ? "bg-amber-50 border border-amber-200 text-amber-800"
                                         : msg.isFromAdmin
@@ -881,7 +881,7 @@ export default function LiveChat() {
                                         {new Date(msg.createdAt).toLocaleTimeString()}
                                       </span>
                                     </div>
-                                    <p className="leading-relaxed break-words whitespace-pre-wrap overflow-wrap-anywhere">{msg.message}</p>
+                                    <p className="leading-relaxed break-words whitespace-pre-wrap overflow-wrap-anywhere word-break max-w-full overflow-hidden">{msg.message}</p>
                                   </div>
                                 </div>
                               ))

@@ -932,7 +932,7 @@ export default function AdminChatManagement() {
 
             <TabsContent value="sessions" className="flex-1 mt-6">
               {/* Fullscreen Sidebar Layout Chat Interface */}
-              <div className="flex h-[calc(100vh-300px)] bg-gray-50 rounded-lg overflow-hidden">
+              <div className="flex h-[calc(100vh-300px)] bg-gray-50 rounded-lg overflow-hidden chat-container">
                 {/* Sidebar - Available Sessions */}
                 <div className={cn(
                   "flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
@@ -1119,7 +1119,7 @@ export default function AdminChatManagement() {
                 </div>
 
                 {/* Main Chat Area */}
-                <div className="flex-1 flex flex-col bg-white">
+                <div className="flex-1 flex flex-col bg-white min-w-0 overflow-hidden">
                   {/* Tab Headers */}
                   {activeTabs.length > 0 && (
                     <div className="border-b border-gray-200">
@@ -1233,7 +1233,7 @@ export default function AdminChatManagement() {
                   )}
 
                   {/* Chat Content */}
-                  <div className="flex-1 flex flex-col">
+                  <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                     {activeTab && activeTabState ? (
                       <>
                         {/* Chat Header */}
@@ -1318,9 +1318,9 @@ export default function AdminChatManagement() {
                         </div>
 
                         {/* Messages Area */}
-                        <div className="flex-1 overflow-hidden min-h-0 chat-messages-area">
-                          <ScrollArea className="h-full w-full">
-                            <div className="p-6 space-y-4 w-full">
+                        <div className="flex-1 overflow-hidden min-h-0 max-h-full chat-messages-area">
+                          <ScrollArea className="h-full w-full max-h-full">
+                            <div className="p-6 space-y-4 w-full min-h-0">
                               {activeTabState.messages.length === 0 ? (
                                 <div className="text-center py-12">
                                   <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
