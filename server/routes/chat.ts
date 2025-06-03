@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { chatService } from '../chat-service';
 import { storage } from '../storage';
 import { requireAuth, requireAdmin } from '../middleware/auth';
+import { emailService } from '../email';
 
 const router = Router();
 
@@ -302,6 +303,126 @@ router.get('/admin/available', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error getting available admins:', error);
     res.status(500).json({ error: 'Failed to get available admins' });
+  }
+});
+
+// Convert chat session to ticket (admin only)
+router.post('/admin/:sessionId/convert-to-ticket', requireAdmin, async (req, res) => {
+  try {
+    const sessionId = parseInt(req.params.sessionId);
+    const adminId = req.user!.id;
+    const { subject, priority, departmentId } = req.body;
+
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ error: 'Invalid session ID' });
+    }
+
+    if (!subject || !subject.trim()) {
+      return res.status(400).json({ error: 'Subject is required' });
+    }
+
+    // Get the chat session
+    const session = await storage.getChatSession(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Chat session not found' });
+    }
+
+    // Check if session is already converted
+    if (session.convertedToTicketId) {
+      return res.status(400).json({ error: 'Chat session has already been converted to a ticket' });
+    }
+
+    // Get chat messages to include in the ticket
+    const chatMessages = await storage.getChatMessagesWithUsers(sessionId);
+
+    // Determine the ticket department
+    let ticketDepartmentId = departmentId;
+
+    // If no department specified, try to map from chat department
+    if (!ticketDepartmentId && session.departmentId) {
+      const chatDepartment = await storage.getChatDepartment(session.departmentId);
+      if (chatDepartment) {
+        // Try to find a ticket department with the same name
+        const ticketDepartments = await storage.getActiveTicketDepartments();
+        const matchingDept = ticketDepartments.find(td => td.name === chatDepartment.name);
+        if (matchingDept) {
+          ticketDepartmentId = matchingDept.id;
+        }
+      }
+    }
+
+    // If still no department, use the default ticket department
+    if (!ticketDepartmentId) {
+      const ticketDepartments = await storage.getActiveTicketDepartments();
+      const defaultDept = ticketDepartments.find(td => td.isDefault);
+      if (defaultDept) {
+        ticketDepartmentId = defaultDept.id;
+      }
+    }
+
+    // Create the ticket (NOTE: This does NOT trigger Discord webhooks as per requirements)
+    const ticket = await storage.createTicket({
+      userId: session.userId,
+      subject: subject.trim(),
+      priority: priority || 'medium',
+      departmentId: ticketDepartmentId
+    });
+
+    // Create initial ticket message with chat history
+    let ticketContent = 'This ticket was converted from a live chat session.\n\n';
+    ticketContent += '--- Chat History ---\n\n';
+
+    for (const msg of chatMessages) {
+      const timestamp = new Date(msg.createdAt).toLocaleString();
+      const sender = msg.isFromAdmin ? `Admin (${msg.user?.fullName || 'Unknown'})` : `${msg.user?.fullName || 'User'}`;
+      ticketContent += `[${timestamp}] ${sender}: ${msg.message}\n`;
+    }
+
+    await storage.createTicketMessage({
+      ticketId: ticket.id,
+      userId: adminId,
+      message: ticketContent
+    });
+
+    // Update chat session to mark as converted
+    await storage.updateChatSession(sessionId, {
+      status: 'converted_to_ticket',
+      convertedToTicketId: ticket.id,
+      convertedAt: new Date(),
+      convertedByAdminId: adminId,
+      endedAt: new Date()
+    });
+
+    // Send email notification to client about the conversion
+    try {
+      const user = await storage.getUser(session.userId);
+      if (user && user.email) {
+        await emailService.sendChatToTicketNotification(
+          user.email,
+          user.fullName || user.username,
+          ticket.id,
+          ticket.subject,
+          sessionId
+        );
+        console.log(`Chat-to-ticket notification sent to ${user.email} for ticket #${ticket.id}`);
+      }
+    } catch (emailError) {
+      // Log but don't fail the conversion if email fails
+      console.error('Error sending chat-to-ticket notification email:', emailError);
+    }
+
+    // End the chat session via chat service
+    await chatService.endChatSession(sessionId);
+
+    res.json({
+      success: true,
+      ticketId: ticket.id,
+      message: 'Chat session successfully converted to ticket'
+    });
+
+  } catch (error) {
+    console.error('Error converting chat to ticket:', error);
+    res.status(500).json({ error: 'Failed to convert chat to ticket' });
   }
 });
 
