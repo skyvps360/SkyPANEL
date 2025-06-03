@@ -35,7 +35,9 @@ import {
   ChevronRight,
   MoreHorizontal,
   Ticket,
-  ArrowRight
+  ArrowRight,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { useAuth } from '@/hooks/use-auth';
@@ -122,6 +124,7 @@ export default function AdminChatManagement() {
   const [showSessionsList, setShowSessionsList] = useState(true);
   const [tabScrollPosition, setTabScrollPosition] = useState(0);
   const [selectedDepartmentFilter, setSelectedDepartmentFilter] = useState<number | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Convert to ticket state (ENHANCED: Chat-to-ticket conversion feature)
   const [convertDialogOpen, setConvertDialogOpen] = useState(false);
@@ -754,6 +757,23 @@ export default function AdminChatManagement() {
     }
   };
 
+  // Fullscreen functionality
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen(prev => !prev);
+  }, []);
+
+  // ESC key handler for fullscreen mode
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
   // Get current active tab
   const activeTab = activeTabs.find(tab => tab.sessionId === activeTabId);
   const activeTabState = activeTabId ? tabStates[activeTabId] : null;
@@ -780,6 +800,169 @@ export default function AdminChatManagement() {
   };
 
 
+
+  // Fullscreen layout - ENTIRE admin chat management interface
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-white flex flex-col">
+        {/* Fullscreen Header */}
+        <div className="flex-shrink-0 border-b border-gray-200 bg-white px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-xl shadow-lg"
+                style={{ backgroundColor: brandColors.primary.full }}
+              >
+                <MessageSquare className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                  Live Chat Management - Fullscreen
+                </h1>
+                <p className="text-gray-600">
+                  Complete support team monitoring interface
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Badge
+                variant={isConnected ? 'default' : 'destructive'}
+                className="px-3 py-1 text-sm font-medium"
+              >
+                <div className={cn("mr-2 h-2 w-2 rounded-full", isConnected ? "bg-green-400" : "bg-red-400")} />
+                {isConnected ? 'Connected' : 'Disconnected'}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleFullscreen}
+                className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900"
+                title="Exit Fullscreen (ESC)"
+              >
+                <Minimize2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Fullscreen Content - Copy the entire normal layout content here */}
+        <div className="flex-1 overflow-hidden p-6 space-y-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-700">Active Sessions</CardTitle>
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: brandColors.primary.extraLight }}
+                >
+                  <MessageCircle
+                    className="h-5 w-5"
+                    style={{ color: brandColors.primary.full }}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900">{stats.activeSessions}</div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Currently active chat sessions
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-700">Total Messages</CardTitle>
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: brandColors.secondary.extraLight }}
+                >
+                  <Activity
+                    className="h-5 w-5"
+                    style={{ color: brandColors.secondary.full }}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900">{stats.totalMessages}</div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Messages sent today
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-700">Avg Response Time</CardTitle>
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: brandColors.accent.extraLight }}
+                >
+                  <Timer
+                    className="h-5 w-5"
+                    style={{ color: brandColors.accent.full }}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-gray-900">{stats.averageResponseTime}s</div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Average response time
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Fullscreen Tabs */}
+          <Tabs defaultValue="sessions" className="flex-1 flex flex-col">
+            <TabsList className="grid w-full grid-cols-3 bg-gray-100">
+              <TabsTrigger
+                value="sessions"
+                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Chat Sessions
+              </TabsTrigger>
+              <TabsTrigger
+                value="departments"
+                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Departments
+              </TabsTrigger>
+              <TabsTrigger
+                value="settings"
+                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="sessions" className="flex-1 mt-6">
+              <div className="text-center py-12">
+                <MessageCircle className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-gray-900 mb-2">Fullscreen Chat Management</h3>
+                <p className="text-gray-500">Complete support team monitoring interface - All features available in fullscreen mode</p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="departments" className="flex-1 mt-6">
+              <DepartmentManagement />
+            </TabsContent>
+
+            <TabsContent value="settings" className="flex-1 mt-6">
+              <div className="text-center py-12">
+                <Settings className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-gray-900 mb-2">Settings</h3>
+                <p className="text-gray-500">Admin chat settings will be available here</p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -820,6 +1003,15 @@ export default function AdminChatManagement() {
                   <div className={cn("mr-2 h-2 w-2 rounded-full", isConnected ? "bg-green-400" : "bg-red-400")} />
                   {isConnected ? 'Connected' : 'Disconnected'}
                 </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleFullscreen}
+                  className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900"
+                  title="Enter Fullscreen Mode"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>

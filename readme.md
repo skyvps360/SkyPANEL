@@ -5,7 +5,6 @@
 
   <div align="center">
 
-  [![GitHub Stars](https://img.shields.io/github/stars/skyvps360/SkyPANEL?style=social)](https://github.com/skyvps360/SkyPANEL)
   [![Discord](https://img.shields.io/discord/1310474963865833483?style=social&logo=discord)](https://skyvps360.xyz/discord)
 
   </div>
