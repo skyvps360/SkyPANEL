@@ -140,7 +140,9 @@ export default function AdminTicketsPage() {
     const matchesSearch = !searchQuery || 
       ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (ticket.user?.fullName && ticket.user.fullName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (ticket.user?.email && ticket.user.email.toLowerCase().includes(searchQuery.toLowerCase()));
+      (ticket.user?.email && ticket.user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      // Add ticket ID search
+      ticket.id.toString().includes(searchQuery);
     
     return matchesSearch;
   });
@@ -186,7 +188,7 @@ export default function AdminTicketsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input 
-                  placeholder="Search tickets by subject, user name, or email..." 
+                  placeholder="Search tickets by ID, subject, user name, or email..." 
                   className="pl-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}

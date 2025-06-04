@@ -11,7 +11,7 @@ export default defineConfig(async ({ mode }) => {
     plugins: [
       react(),
       runtimeErrorOverlay(),
-      ...(env.NODE_ENV !== "production" &&
+      ...(env.NODE_ENV !== "development" &&
       env.REPL_ID !== undefined
         ? [
             await import("@replit/vite-plugin-cartographer").then((m) =>
