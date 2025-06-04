@@ -6354,17 +6354,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reference: reference || null
       });
 
-      // Also update the user's local credits
-      const dollarAmount = Number(amount) / 100; // Convert tokens to dollars (100 tokens = $1)
-      await storage.updateUser(user.id, {
-        credits: user.credits + dollarAmount
-      });
-
-      console.log(`Updated local credits balance for user ${user.id} by adding $${dollarAmount}`);
+      // Legacy local credit update removed. VirtFusion tokens are the source of truth.
+      // If needed, you can trigger a frontend refresh or re-fetch VirtFusion balance here.
 
       return res.json({
         success: true,
-        message: "Credits added successfully to VirtFusion and local platform",
+        message: "Credits added successfully to VirtFusion.",
         creditId: result.data.id
       });
 
@@ -6473,32 +6468,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           httpsAgent: new https.Agent({ rejectUnauthorized: true })
         });
 
-        console.log(`Response status: ${response.status}`);
-        console.log(`Response data: ${JSON.stringify(response.data || {})}`);
-
-        // Update the user's local credits to match VirtFusion
-        // Deduct the dollar equivalent amount from local credits
-        await storage.updateUser(user.id, {
-          credits: Math.max(0, user.credits - dollarAmount)  // Prevent negative balance
-        });
-
-        console.log(`Updated local credits balance for user ${user.id} by removing $${dollarAmount}`);
-
-        // Add a record to our local transactions table for reference
-        // For consistency with how the frontend displays transactions:
-        // 1. Use a positive amount value with type "debit" for things that reduce account balance
-        // 2. Use a positive amount value with type "credit" for things that increase account balance
+        // Legacy local credit update removed. VirtFusion tokens are the source of truth.
+        // Optionally, log a transaction for history
         await storage.createTransaction({
           userId: user.id,
-          amount: Math.abs(dollarAmount), // Make positive for consistent display
-          description: `Removed credit from VirtFusion (Credit ID: ${creditId}, Amount: ${creditAmount} tokens = $${dollarAmount})`,
-          type: "debit", // Using "debit" type means it will display as negative in the frontend
+          amount: -Math.abs(Number(dollarAmount)),
+          description: `Removed ${creditAmount} tokens from VirtFusion (Credit ID: ${creditId})`,
+          type: "debit",
           status: "completed"
         });
 
         return res.json({
           success: true,
-          message: `Credit ID ${creditId} removed successfully and local credits updated`
+          message: "VirtFusion credit removed successfully.",
+          creditId: creditId
         });
       } catch (apiError: any) {
         console.error("Error calling VirtFusion API:", apiError);
