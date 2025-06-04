@@ -96,12 +96,13 @@ export default function AdminTicketsPage() {
     fetchBrandingSettings();
   }, []);
 
-  // Fetch all tickets with admin permissions
+  // Fetch tickets with admin permissions, filtered by active tab status
   const { data, isLoading: ticketsLoading, refetch } = useQuery<PaginatedResponse>({
-    queryKey: ['/api/admin/tickets', { page: currentPage, limit: pageSize }],
+    queryKey: ['/api/admin/tickets', { page: currentPage, limit: pageSize, status: activeTab === 'open' ? 'open' : 'closed' }],
     queryFn: async ({ queryKey }) => {
-      const [endpoint, params] = queryKey as [string, { page: number; limit: number }];
-      const url = `${endpoint}?page=${params.page}&limit=${params.limit}`;
+      const [endpoint, params] = queryKey as [string, { page: number; limit: number; status: string }];
+      const statusParam = params.status === 'open' ? 'open' : 'closed';
+      const url = `${endpoint}?page=${params.page}&limit=${params.limit}&status=${statusParam}`;
       return apiRequest(url);
     },
     refetchInterval: autoRefresh ? 30000 : false, // Refetch every 30 seconds if autoRefresh is enabled
@@ -135,7 +136,7 @@ export default function AdminTicketsPage() {
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
-  // Filter tickets by search query and status
+  // Filter tickets by search query (tickets are already filtered by status from API)
   const filteredTickets = sortedTickets.filter(ticket => {
     const matchesSearch = !searchQuery || 
       ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -147,12 +148,18 @@ export default function AdminTicketsPage() {
     return matchesSearch;
   });
   
-  const openTickets = filteredTickets.filter((ticket) => ticket.status !== "closed");
-  const closedTickets = filteredTickets.filter((ticket) => ticket.status === "closed");
+  // Since tickets are already filtered by status from the API, we can use them directly
+  const displayTickets = filteredTickets;
 
   // Handle pagination
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+  };
+
+  // Handle tab change and reset pagination
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setCurrentPage(1); // Reset to first page when switching tabs
   };
 
   // Toggle auto-refresh
@@ -223,11 +230,11 @@ export default function AdminTicketsPage() {
           </CardContent>
         </Card>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="mb-6">
             <TabsTrigger value="open" className="relative">
               Open Tickets
-              {openTickets.length > 0 && (
+              {activeTab === 'open' && displayTickets.length > 0 && (
                 <span 
                   className="absolute -top-1 -right-1 text-xs rounded-full h-5 w-5 flex items-center justify-center"
                   style={{ 
@@ -235,7 +242,7 @@ export default function AdminTicketsPage() {
                     color: 'white'
                   }}
                 >
-                  {openTickets.length}
+                  {displayTickets.length}
                 </span>
               )}
             </TabsTrigger>
@@ -249,7 +256,7 @@ export default function AdminTicketsPage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </CardContent>
               </Card>
-            ) : openTickets.length === 0 ? (
+            ) : displayTickets.length === 0 ? (
               <Card>
                 <CardContent className="p-12 flex flex-col items-center justify-center text-center">
                   <Inbox className="h-12 w-12 text-gray-400 mb-4" />
@@ -259,7 +266,7 @@ export default function AdminTicketsPage() {
               </Card>
             ) : (
               <TicketList 
-                tickets={openTickets}
+                tickets={displayTickets}
                 searchQuery={searchQuery}
                 brandColors={{
                   primaryColor,
@@ -277,7 +284,7 @@ export default function AdminTicketsPage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </CardContent>
               </Card>
-            ) : closedTickets.length === 0 ? (
+            ) : displayTickets.length === 0 ? (
               <Card>
                 <CardContent className="p-12 flex flex-col items-center justify-center text-center">
                   <Inbox className="h-12 w-12 text-gray-400 mb-4" />
@@ -287,7 +294,7 @@ export default function AdminTicketsPage() {
               </Card>
             ) : (
               <TicketList 
-                tickets={closedTickets}
+                tickets={displayTickets}
                 searchQuery={searchQuery}
                 brandColors={{
                   primaryColor,
