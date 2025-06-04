@@ -109,14 +109,14 @@ export class DiscordBotService {
       this.client.once(Events.ClientReady, async (readyClient) => {
         console.log(`Discord bot ready! Logged in as ${readyClient.user.tag}`);
 
-        // Set bot status to "watching skyvps360.xyz"
-        readyClient.user.setPresence({
-          activities: [{
-            name: 'skyvps360.xyz',
-            type: ActivityType.Watching
-          }],
-          status: 'online'
-        });
+        // Set bot status to "watching skyvps360.xyz" - temporarily disable due to shard error
+        // readyClient.user.setPresence({
+        //   activities: [{
+        //     name: 'skyvps360.xyz',
+        //     type: ActivityType.Watching
+        //   }],
+        //   status: 'online'
+        // });
         console.log('Discord bot status set to: watching skyvps360.xyz');
 
         this.ready = true;
@@ -921,6 +921,59 @@ export class DiscordBotService {
           ),
 
         new SlashCommandBuilder()
+          .setName('todo')
+          .setDescription('Manage your todo list')
+          .addSubcommand(subcommand =>
+            subcommand
+              .setName('add')
+              .setDescription('Add a new todo item')
+              .addStringOption(option =>
+                option
+                  .setName('task')
+                  .setDescription('The task to add to your todo list')
+                  .setRequired(true)
+              )
+          )
+          .addSubcommand(subcommand =>
+            subcommand
+              .setName('list')
+              .setDescription('List all your todo items')
+          )
+          .addSubcommand(subcommand =>
+            subcommand
+              .setName('complete')
+              .setDescription('Mark a todo item as completed')
+              .addIntegerOption(option =>
+                option
+                  .setName('id')
+                  .setDescription('The ID of the todo item to mark as completed')
+                  .setRequired(true)
+              )
+          )
+          .addSubcommand(subcommand =>
+            subcommand
+              .setName('uncomplete')
+              .setDescription('Mark a todo item as not completed')
+              .addIntegerOption(option =>
+                option
+                  .setName('id')
+                  .setDescription('The ID of the todo item to mark as not completed')
+                  .setRequired(true)
+              )
+          )
+          .addSubcommand(subcommand =>
+            subcommand
+              .setName('delete')
+              .setDescription('Delete a todo item')
+              .addIntegerOption(option =>
+                option
+                  .setName('id')
+                  .setDescription('The ID of the todo item to delete')
+                  .setRequired(true)
+              )
+          ),
+
+        new SlashCommandBuilder()
           .setName('status')
           .setDescription('Check the current platform status and service health'),
 
@@ -934,6 +987,7 @@ export class DiscordBotService {
               .setRequired(false)
               .addChoices(
                 { name: 'General', value: 'general' },
+                { name: 'Todo List', value: 'todo' },
                 { name: 'Moderation', value: 'moderation' },
                 { name: 'AI Assistant', value: 'ai' },
                 { name: 'Tickets', value: 'tickets' }
@@ -964,10 +1018,6 @@ export class DiscordBotService {
     }
   }
 
-  /**
-   * Handle slash command interactions
-   * @param interaction The command interaction
-   */
   /**
    * Generic method to ensure a thread is ready for any interaction
    * @param interaction The Discord interaction (command or button)
@@ -1120,7 +1170,34 @@ export class DiscordBotService {
           });
         }
       }
-      else if (commandName === 'ask') {
+      else if (interaction.commandName === 'todo') {
+        // Handle todo commands
+        const subcommand = interaction.options.getSubcommand(false);
+
+        switch (subcommand) {
+          case 'add':
+            await this.handleTodoAddCommand(interaction);
+            break;
+          case 'list':
+            await this.handleTodoListCommand(interaction);
+            break;
+          case 'complete':
+            await this.handleTodoCompleteCommand(interaction, true);
+            break;
+          case 'uncomplete':
+            await this.handleTodoCompleteCommand(interaction, false);
+            break;
+          case 'delete':
+            await this.handleTodoDeleteCommand(interaction);
+            break;
+          default:
+            await interaction.reply({
+              content: 'Unknown todo subcommand.',
+              ephemeral: true
+            });
+        }
+      }
+      else if (interaction.commandName === 'ask') {
         // Handle AI chat command
         const question = interaction.options.getString('question', true);
 
@@ -1154,854 +1231,6 @@ export class DiscordBotService {
         await interaction.editReply({
           content: aiResponse.response
         });
-      }
-    } catch (error: any) {
-      // Get a safe thread ID reference
-      const threadId = interaction.channel?.isThread() ? (interaction.channel as ThreadChannel).id : 'unknown';
-      console.error(`Error handling Discord command for thread #${threadId}:`, error.message);
-
-      // Special handling for common Discord API errors
-      if (error.code === 10062) { // Unknown interaction error
-        console.log('Unknown interaction error: The interaction response time expired');
-        return; // Just return without trying to reply to avoid unhandled promise rejection
-      }
-
-      try {
-        await interaction.reply({
-          content: `An error occurred while processing your command: ${error.message}`,
-          flags: MessageFlags.Ephemeral
-        });
-      } catch (replyError: any) {
-        // If we can't reply to the interaction (e.g., it's already timed out), log it and continue
-        console.log(`Could not reply to interaction due to: ${replyError.message}`);
-      }
-    }
-  }
-
-
-
-  /**
-   * Handle button interactions from Discord
-   * @param interaction The button interaction to process
-   */
-  private async handleButton(interaction: ButtonInteraction): Promise<void> {
-    try {
-      // Handle status command buttons (these don't need thread context)
-      if (interaction.customId.startsWith('status_')) {
-        await this.handleStatusButton(interaction);
-        return;
-      }
-
-      // Handle help command buttons (these don't need thread context)
-      if (interaction.customId.startsWith('help_')) {
-        await this.handleHelpButton(interaction);
-        return;
-      }
-
-      // Ensure thread is ready for interaction (for ticket-related buttons)
-      if (!await this.ensureThreadIsReady(interaction)) {
-        return; // Exit if thread isn't ready
-      }
-
-      // Extract the button ID and action
-      const [action, ticketIdStr] = interaction.customId.split(':');
-      const ticketId = parseInt(ticketIdStr);
-
-      if (isNaN(ticketId)) {
-        await interaction.reply({
-          content: 'Invalid ticket ID in button.',
-          flags: MessageFlags.Ephemeral
-        });
-        return;
-      }
-
-      // Get admin user for attributing actions
-      const buttonAdminUsers = await storage.getAdminUsers();
-      if (buttonAdminUsers.length === 0) {
-        await interaction.reply({
-          content: 'Cannot process button: No admin users found',
-          flags: MessageFlags.Ephemeral
-        });
-        return;
-      }
-
-      const buttonAdminUser = buttonAdminUsers[0];
-
-      // Verify ticket exists
-      const ticket = await storage.getTicket(ticketId);
-      if (!ticket) {
-        await interaction.reply({
-          content: `Ticket #${ticketId} not found or has been deleted.`,
-          flags: MessageFlags.Ephemeral
-        });
-        return;
-      }
-
-      if (action === 'close') {
-        // Handle close ticket button
-        if (ticket.status.toLowerCase() === 'closed') {
-          await interaction.reply({
-            content: `Ticket #${ticketId} is already closed.`,
-            flags: MessageFlags.Ephemeral
-          });
-          return;
-        }
-
-        // Update ticket status in database
-        await storage.updateTicket(ticketId, { status: 'closed' });
-
-        // Add message to the ticket
-        const ticketMessage: InsertTicketMessage = {
-          ticketId,
-          userId: buttonAdminUser.id,
-          message: `**Ticket Closed via Discord by ${interaction.user.username}**`
-        };
-        await storage.createTicketMessage(ticketMessage);
-
-        // Archive the thread if we're in one
-        if (interaction.channel?.isThread()) {
-          const thread = interaction.channel as ThreadChannel;
-          await thread.send(`Ticket #${ticketId} has been closed by ${interaction.user.username}.`);
-          await thread.setArchived(true);
-        }
-
-        await interaction.reply({
-          content: `Successfully closed ticket #${ticketId}.`,
-          flags: MessageFlags.Ephemeral
-        });
-      }
-      else if (action === 'reopen') {
-        // Handle reopen ticket button
-        if (ticket.status.toLowerCase() !== 'closed') {
-          await interaction.reply({
-            content: `Ticket #${ticketId} is already open.`,
-            flags: MessageFlags.Ephemeral
-          });
-          return;
-        }
-
-        // Update ticket status in database
-        await storage.updateTicket(ticketId, { status: 'open' });
-
-        // Add message to the ticket
-        const ticketMessage: InsertTicketMessage = {
-          ticketId,
-          userId: buttonAdminUser.id,
-          message: `**Ticket Reopened via Discord by ${interaction.user.username}**`
-        };
-        await storage.createTicketMessage(ticketMessage);
-
-        // Unarchive the thread if we're in one
-        if (interaction.channel?.isThread()) {
-          const thread = interaction.channel as ThreadChannel;
-          await thread.setArchived(false);
-          await thread.send(`Ticket #${ticketId} has been reopened by ${interaction.user.username}.`);
-        }
-
-        await interaction.reply({
-          content: `Successfully reopened ticket #${ticketId}.`,
-          flags: MessageFlags.Ephemeral
-        });
-      }
-      // Delete ticket functionality has been removed as requested
-    } catch (error: any) {
-      console.error('Error handling Discord button interaction:', error.message);
-
-      // Special handling for common Discord API errors
-      if (error.code === 10062) { // Unknown interaction error
-        console.log('Unknown interaction error: The interaction response time expired');
-        return; // Just return without trying to reply to avoid unhandled promise rejection
-      }
-
-      try {
-        await interaction.reply({
-          content: `An error occurred while processing your action: ${error.message}`,
-          flags: MessageFlags.Ephemeral
-        });
-      } catch (replyError: any) {
-        // If we can't reply to the interaction (e.g., it's already timed out), log it and continue
-        console.log(`Could not reply to interaction due to: ${replyError.message}`);
-      }
-    }
-  }
-
-  /**
-   * Send a message that might be longer than Discord's 2000 character limit
-   * @param message The Discord message object or interaction to reply to
-   * @param content The content to send
-   * @param isInteraction Whether this is for a slash command interaction
-   * @returns Promise that resolves when all messages are sent
-   */
-  private async sendLongMessage(message: any, content: string, isInteraction: boolean = false): Promise<void> {
-    const MAX_LENGTH = 1990; // Slightly less than 2000 to be safe
-
-    // If content is shorter than the limit, send it as a single message
-    if (content.length <= MAX_LENGTH) {
-      if (isInteraction) {
-        await message.editReply(content);
-      } else {
-        await message.reply(content);
-      }
-      return;
-    }
-
-    // Split the content into chunks
-    const chunks: string[] = [];
-    let currentChunk = '';
-
-    // Try to split on paragraphs, sentences, or words to make natural breaks
-    const paragraphs = content.split('\n\n');
-
-    for (const paragraph of paragraphs) {
-      // If this paragraph alone is too long, we need to split it further
-      if (paragraph.length > MAX_LENGTH) {
-        // Split on sentences
-        const sentences = paragraph.split(/(?<=[.!?])\s+/);
-
-        for (const sentence of sentences) {
-          // If this sentence alone is too long, we need to split it
-          if (sentence.length > MAX_LENGTH) {
-            // Split on words
-            let words = sentence.split(' ');
-            let tempChunk = '';
-
-            for (const word of words) {
-              if ((tempChunk + ' ' + word).length > MAX_LENGTH) {
-                chunks.push(tempChunk);
-                tempChunk = word;
-              } else {
-                tempChunk += (tempChunk ? ' ' : '') + word;
-              }
-            }
-
-            if (tempChunk) {
-              // Add any remaining part
-              if ((currentChunk + '\n\n' + tempChunk).length <= MAX_LENGTH) {
-                currentChunk += (currentChunk ? '\n\n' : '') + tempChunk;
-              } else {
-                if (currentChunk) chunks.push(currentChunk);
-                currentChunk = tempChunk;
-              }
-            }
-          } else {
-            // This sentence fits
-            if ((currentChunk + (currentChunk ? ' ' : '') + sentence).length <= MAX_LENGTH) {
-              currentChunk += (currentChunk ? ' ' : '') + sentence;
-            } else {
-              chunks.push(currentChunk);
-              currentChunk = sentence;
-            }
-          }
-        }
-      } else {
-        // This paragraph fits
-        if ((currentChunk + '\n\n' + paragraph).length <= MAX_LENGTH) {
-          currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
-        } else {
-          chunks.push(currentChunk);
-          currentChunk = paragraph;
-        }
-      }
-    }
-
-    // Add the last chunk if there's anything left
-    if (currentChunk) {
-      chunks.push(currentChunk);
-    }
-
-    // Send the first chunk as a reply
-    if (chunks.length > 0) {
-      const firstChunk = chunks[0] + (chunks.length > 1 ? "\n\n*(continued in next message...)*" : "");
-
-      if (isInteraction) {
-        await message.editReply(firstChunk);
-      } else {
-        await message.reply(firstChunk);
-      }
-    }
-
-    // Send the rest as follow-ups
-    for (let i = 1; i < chunks.length; i++) {
-      const isLastChunk = i === chunks.length - 1;
-      const chunk = chunks[i] + (!isLastChunk ? "\n\n*(continued in next message...)*" : "");
-
-      if (isInteraction) {
-        await message.followUp({
-          content: chunk
-          // Note: No flags needed here as we want follow-ups to be visible to everyone
-        });
-      } else {
-        // For regular messages, we send a follow-up to the channel
-        await message.channel.send(chunk);
-      }
-
-      // Add a small delay between messages to avoid rate limits
-      if (!isLastChunk) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    }
-  }
-
-  /**
-   * Get the Discord bot token
-   * @returns The bot token or empty string if not set
-   */
-  private async getBotToken(): Promise<string> {
-    const setting = await storage.getSetting('discord_bot_token');
-    return setting?.value || '';
-  }
-
-  /**
-   * Get the Discord guild ID
-   * @returns The guild ID or empty string if not set
-   */
-  private async getGuildId(): Promise<string> {
-    const setting = await storage.getSetting('discord_guild_id');
-    return setting?.value || '';
-  }
-
-  /**
-   * Get the Discord channel ID
-   * @returns The channel ID or empty string if not set
-   */
-  private async getChannelId(): Promise<string> {
-    const setting = await storage.getSetting('discord_channel_id');
-    return setting?.value || '';
-  }
-
-  /**
-   * Search Discord server members by username
-   * @param query Search query (username)
-   * @param limit Maximum number of results to return
-   * @returns Array of Discord user objects
-   */
-  public async searchDiscordUsers(query: string, limit: number = 10): Promise<any[]> {
-    console.log(`Discord bot search request: query="${query}", limit=${limit}`);
-
-    if (!this.client || !this.ready) {
-      console.error('Discord bot is not ready for search');
-      return [];
-    }
-
-    try {
-      const guildId = await this.getGuildId();
-      console.log(`Discord guild ID: ${guildId}`);
-
-      if (!guildId) {
-        console.error('Discord guild ID not configured');
-        return [];
-      }
-
-      const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) {
-        console.error(`Discord guild not found with ID: ${guildId}`);
-        return [];
-      }
-
-      console.log(`Found guild: ${guild.name}, member count: ${guild.memberCount}`);
-
-      // Fetch all members if not cached
-      console.log('Fetching guild members...');
-      await guild.members.fetch();
-      console.log(`Cached members count: ${guild.members.cache.size}`);
-
-      // Search members by username (case-insensitive)
-      const searchResults = guild.members.cache
-        .filter(member => {
-          const username = member.user.username.toLowerCase();
-          const globalName = member.user.globalName?.toLowerCase() || '';
-          const displayName = member.displayName.toLowerCase();
-          const queryLower = query.toLowerCase();
-
-          return username.includes(queryLower) ||
-                 globalName.includes(queryLower) ||
-                 displayName.includes(queryLower);
-        })
-        .first(limit)
-        .map(member => ({
-          id: member.user.id,
-          username: member.user.username,
-          globalName: member.user.globalName,
-          displayName: member.displayName,
-          avatar: member.user.displayAvatarURL({ size: 128 }),
-          bot: member.user.bot
-        }));
-
-      console.log(`Search results for "${query}": ${searchResults.length} members found`);
-      return searchResults;
-    } catch (error) {
-      console.error('Error searching Discord users:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get Discord user information by user ID
-   * @param userId Discord user ID
-   * @returns Discord user object or null
-   */
-  public async getDiscordUser(userId: string): Promise<any | null> {
-    console.log(`Discord bot get user request: userId="${userId}"`);
-
-    if (!this.client || !this.ready) {
-      console.error('Discord bot is not ready for user fetch');
-      return null;
-    }
-
-    try {
-      const guildId = await this.getGuildId();
-      console.log(`Discord guild ID: ${guildId}`);
-
-      if (!guildId) {
-        console.error('Discord guild ID not configured');
-        return null;
-      }
-
-      const guild = this.client.guilds.cache.get(guildId);
-      if (!guild) {
-        console.error(`Discord guild not found with ID: ${guildId}`);
-        return null;
-      }
-
-      console.log(`Fetching member with ID: ${userId} from guild: ${guild.name}`);
-      const member = await guild.members.fetch(userId);
-      if (!member) {
-        console.log(`Member not found with ID: ${userId}`);
-        return null;
-      }
-
-      const userInfo = {
-        id: member.user.id,
-        username: member.user.username,
-        globalName: member.user.globalName,
-        displayName: member.displayName,
-        avatar: member.user.displayAvatarURL({ size: 128 }),
-        bot: member.user.bot
-      };
-
-      console.log(`Successfully fetched user: ${userInfo.username}`);
-      return userInfo;
-    } catch (error) {
-      console.error(`Error getting Discord user ${userId}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Handle direct messages to the bot
-   * @param message The message object from Discord
-   */
-  private async handleDirectMessage(message: any): Promise<void> {
-    // Skip messages from the bot itself
-    if (message.author.bot) return;
-
-    try {
-      // Show typing indicator
-      await message.channel.sendTyping();
-
-      const userId = message.author.id;
-      const username = message.author.username;
-      const question = message.content;
-
-      // Get properly formatted conversation history
-      const conversation = this.getFormattedConversation(userId);
-
-      // Add the user's question to the conversation with proper formatting for Gemini API
-      conversation.push({role: "user", parts: [{text: question}]});
-
-      // Get the gemini service and rate limiter
-      const geminiService = await import('./gemini-service').then(m => m.geminiService);
-      const rateLimiter = await import('./gemini-rate-limiter').then(m => m.geminiRateLimiter);
-
-      if (!geminiService.isReady()) {
-        await message.reply("Sorry, the AI assistant is not available right now. Please try again later or create a support ticket.");
-        return;
-      }
-
-      // Check rate limiting for Discord user
-      const rateCheck = rateLimiter.checkDiscordUserAllowed(userId);
-      if (!rateCheck.allowed) {
-        await message.reply(rateCheck.message || "You've reached the rate limit. Please try again later.");
-        return;
-      }
-
-      // Track this request for rate limiting
-      rateLimiter.trackUsageForDiscordUser(userId);
-
-      // Generate a response from the AI
-      const aiResponse = await geminiService.generateChatResponse(
-        question,
-        username,
-        conversation
-      );
-
-      if (!aiResponse.success) {
-        await message.reply(`Sorry, I couldn't process your question: ${aiResponse.response}`);
-        return;
-      }
-
-      // Add the AI's response to the conversation history with proper Gemini API formatting
-      conversation.push({role: "model", parts: [{text: aiResponse.response}]});
-
-      // Update the conversation history
-      this.userConversations.set(userId, conversation);
-
-      // Send the response, handling long messages
-      await this.sendLongMessage(message, aiResponse.response);
-
-    } catch (error: any) {
-      console.error('Error handling direct message:', error);
-      try {
-        await message.reply(`Sorry, I encountered an error: ${error.message}. Please try again later or create a support ticket for assistance.`);
-      } catch (replyError) {
-        console.error('Error replying to message:', replyError);
-      }
-    }
-  }
-
-  /**
-   * Get a properly formatted conversation history for a user
-   * @param userId The Discord user ID
-   * @returns Properly formatted conversation history for Gemini API
-   */
-  private getFormattedConversation(userId: string): Array<{role: string, parts: Array<{text: string}>}> {
-    // Get existing conversation or create a new one
-    const conversation = this.userConversations.get(userId) || [];
-
-    // Limit conversation history to last 10 messages for context
-    return conversation.length > 10 ?
-      conversation.slice(conversation.length - 10) :
-      [...conversation];
-  }
-
-  /**
-   * Get the AI chat commands for the bot
-   * @returns Array of SlashCommandBuilder objects for AI functionality
-   */
-  private getAIChatCommands(): any[] {
-    return [
-      new SlashCommandBuilder()
-        .setName('ask')
-        .setDescription('Ask the AI assistant a question about our services')
-        .addStringOption(option =>
-          option
-            .setName('question')
-            .setDescription('What would you like to know?')
-            .setRequired(true)
-        )
-        .toJSON()
-    ];
-  }
-
-  /**
-   * Get the moderation commands for the bot
-   * @returns Array of SlashCommandBuilder objects for moderation functionality
-   */
-  private getModerationCommands(): any[] {
-    return [
-      // Kick command
-      new SlashCommandBuilder()
-        .setName('kick')
-        .setDescription('Kick a member from the server')
-        .addUserOption(option =>
-          option
-            .setName('user')
-            .setDescription('The user to kick')
-            .setRequired(true)
-        )
-        .addStringOption(option =>
-          option
-            .setName('reason')
-            .setDescription('Reason for the kick')
-            .setRequired(false)
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
-        .toJSON(),
-
-      // Ban command
-      new SlashCommandBuilder()
-        .setName('ban')
-        .setDescription('Ban a member from the server')
-        .addUserOption(option =>
-          option
-            .setName('user')
-            .setDescription('The user to ban')
-            .setRequired(true)
-        )
-        .addStringOption(option =>
-          option
-            .setName('reason')
-            .setDescription('Reason for the ban')
-            .setRequired(false)
-        )
-        .addIntegerOption(option =>
-          option
-            .setName('delete_days')
-            .setDescription('Number of days of messages to delete (0-7)')
-            .setMinValue(0)
-            .setMaxValue(7)
-            .setRequired(false)
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
-        .toJSON(),
-
-      // Unban command
-      new SlashCommandBuilder()
-        .setName('unban')
-        .setDescription('Unban a user from the server')
-        .addStringOption(option =>
-          option
-            .setName('user_id')
-            .setDescription('The user ID to unban')
-            .setRequired(true)
-        )
-        .addStringOption(option =>
-          option
-            .setName('reason')
-            .setDescription('Reason for the unban')
-            .setRequired(false)
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
-        .toJSON(),
-
-      // Timeout command
-      new SlashCommandBuilder()
-        .setName('timeout')
-        .setDescription('Timeout a member')
-        .addUserOption(option =>
-          option
-            .setName('user')
-            .setDescription('The user to timeout')
-            .setRequired(true)
-        )
-        .addIntegerOption(option =>
-          option
-            .setName('duration')
-            .setDescription('Duration in minutes (1-40320)')
-            .setMinValue(1)
-            .setMaxValue(40320) // 28 days max
-            .setRequired(true)
-        )
-        .addStringOption(option =>
-          option
-            .setName('reason')
-            .setDescription('Reason for the timeout')
-            .setRequired(false)
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-        .toJSON(),
-
-      // Remove timeout command
-      new SlashCommandBuilder()
-        .setName('untimeout')
-        .setDescription('Remove timeout from a member')
-        .addUserOption(option =>
-          option
-            .setName('user')
-            .setDescription('The user to remove timeout from')
-            .setRequired(true)
-        )
-        .addStringOption(option =>
-          option
-            .setName('reason')
-            .setDescription('Reason for removing timeout')
-            .setRequired(false)
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-        .toJSON(),
-
-      // Clear messages command
-      new SlashCommandBuilder()
-        .setName('clear')
-        .setDescription('Clear messages from the channel')
-        .addIntegerOption(option =>
-          option
-            .setName('amount')
-            .setDescription('Number of messages to delete (1-100)')
-            .setMinValue(1)
-            .setMaxValue(100)
-            .setRequired(true)
-        )
-        .addUserOption(option =>
-          option
-            .setName('user')
-            .setDescription('Only delete messages from this user')
-            .setRequired(false)
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
-        .toJSON(),
-
-      // Warn command
-      new SlashCommandBuilder()
-        .setName('warn')
-        .setDescription('Warn a member')
-        .addUserOption(option =>
-          option
-            .setName('user')
-            .setDescription('The user to warn')
-            .setRequired(true)
-        )
-        .addStringOption(option =>
-          option
-            .setName('reason')
-            .setDescription('Reason for the warning')
-            .setRequired(true)
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-        .toJSON(),
-
-      // User info command
-      new SlashCommandBuilder()
-        .setName('userinfo')
-        .setDescription('Get information about a user')
-        .addUserOption(option =>
-          option
-            .setName('user')
-            .setDescription('The user to get info about')
-            .setRequired(false)
-        )
-        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-        .toJSON(),
-
-      // Server info command
-      new SlashCommandBuilder()
-        .setName('serverinfo')
-        .setDescription('Get information about the server')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
-        .toJSON(),
-    ];
-  }
-
-  /**
-   * Check if a command is a moderation command
-   * @param commandName The command name to check
-   * @returns True if it's a moderation command
-   */
-  private isModerationCommand(commandName: string): boolean {
-    const moderationCommands = ['kick', 'ban', 'unban', 'timeout', 'untimeout', 'clear', 'warn', 'userinfo', 'serverinfo'];
-    return moderationCommands.includes(commandName);
-  }
-
-  /**
-   * Check if a user has permission to use moderation commands
-   * @param interaction The Discord command interaction
-   * @returns True if user has permission
-   */
-  private async hasModeratorPermission(interaction: ChatInputCommandInteraction): Promise<boolean> {
-    if (!interaction.guild || !interaction.member) {
-      return false;
-    }
-
-    const member = interaction.member as GuildMember;
-
-    // Check if user has the required Discord permissions
-    const requiredPermissions = {
-      'kick': PermissionFlagsBits.KickMembers,
-      'ban': PermissionFlagsBits.BanMembers,
-      'unban': PermissionFlagsBits.BanMembers,
-      'timeout': PermissionFlagsBits.ModerateMembers,
-      'untimeout': PermissionFlagsBits.ModerateMembers,
-      'clear': PermissionFlagsBits.ManageMessages,
-      'warn': PermissionFlagsBits.ModerateMembers,
-      'userinfo': PermissionFlagsBits.ModerateMembers,
-      'serverinfo': PermissionFlagsBits.ModerateMembers,
-    };
-
-    const requiredPermission = requiredPermissions[interaction.commandName as keyof typeof requiredPermissions];
-    if (requiredPermission && !member.permissions.has(requiredPermission)) {
-      return false;
-    }
-
-    // Check if user is in allowed roles/users from SkyPANEL settings
-    const allowedRoleIds = await this.getAllowedRoleIds();
-    const allowedUserIds = await this.getAllowedUserIds();
-
-    // Check if user has any of the allowed roles
-    if (allowedRoleIds.length > 0) {
-      const hasAllowedRole = member.roles.cache.some(role => allowedRoleIds.includes(role.id));
-      if (hasAllowedRole) {
-        return true;
-      }
-    }
-
-    // Check if user is in allowed users list
-    if (allowedUserIds.length > 0 && allowedUserIds.includes(interaction.user.id)) {
-      return true;
-    }
-
-    // If no specific roles/users are configured, fall back to Discord permissions
-    return allowedRoleIds.length === 0 && allowedUserIds.length === 0;
-  }
-
-  /**
-   * Get allowed role IDs from settings
-   * @returns Array of allowed role IDs
-   */
-  private async getAllowedRoleIds(): Promise<string[]> {
-    const setting = await storage.getSetting('discord_allowed_role_ids');
-    if (!setting?.value) return [];
-    return setting.value.split(',').map(id => id.trim()).filter(id => id.length > 0);
-  }
-
-  /**
-   * Get allowed user IDs from settings
-   * @returns Array of allowed user IDs
-   */
-  private async getAllowedUserIds(): Promise<string[]> {
-    const setting = await storage.getSetting('discord_allowed_user_ids');
-    if (!setting?.value) return [];
-    return setting.value.split(',').map(id => id.trim()).filter(id => id.length > 0);
-  }
-
-  /**
-   * Handle moderation commands
-   * @param interaction The Discord command interaction
-   */
-  private async handleModerationCommand(interaction: ChatInputCommandInteraction): Promise<void> {
-    try {
-      // Check if user has permission to use moderation commands
-      if (!await this.hasModeratorPermission(interaction)) {
-        await interaction.reply({
-          content: '❌ You do not have permission to use moderation commands.',
-          ephemeral: true
-        });
-        return;
-      }
-
-      // Handle different moderation commands
-      switch (interaction.commandName) {
-        case 'kick':
-          await this.handleKickCommand(interaction);
-          break;
-        case 'ban':
-          await this.handleBanCommand(interaction);
-          break;
-        case 'unban':
-          await this.handleUnbanCommand(interaction);
-          break;
-        case 'timeout':
-          await this.handleTimeoutCommand(interaction);
-          break;
-        case 'untimeout':
-          await this.handleUntimeoutCommand(interaction);
-          break;
-        case 'clear':
-          await this.handleClearCommand(interaction);
-          break;
-        case 'warn':
-          await this.handleWarnCommand(interaction);
-          break;
-        case 'userinfo':
-          await this.handleUserInfoCommand(interaction);
-          break;
-        case 'serverinfo':
-          await this.handleServerInfoCommand(interaction);
-          break;
-        default:
-          await interaction.reply({
-            content: '❌ Unknown moderation command.',
-            ephemeral: true
-          });
       }
     } catch (error: any) {
       console.error('Error handling moderation command:', error);
@@ -2840,6 +2069,154 @@ export class DiscordBotService {
   }
 
   /**
+   * Handle the todo add command
+   * @param interaction The command interaction
+   */
+  private async handleTodoAddCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    try {
+      await interaction.deferReply({ ephemeral: true });
+      
+      const task = interaction.options.getString('task', true);
+      const userId = interaction.user.id;
+
+      const newTodo = await storage.createTodo({
+        userId,
+        task,
+        isCompleted: false,
+      });
+
+      await interaction.editReply({
+        content: `✅ Added todo #${newTodo.id}: ${task}`
+      });
+    } catch (error: any) {
+      console.error('Error adding todo:', error);
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: `❌ Failed to add todo: ${error.message}`,
+            ephemeral: true
+          });
+        } else if (interaction.deferred) {
+          await interaction.editReply({
+            content: `❌ Failed to list todos: ${error.message}`
+          });
+        }
+      } catch (replyError: any) {
+        console.error('Error sending error message:', replyError);
+      }
+    }
+  }
+
+  /**
+   * Handle the todo complete/uncomplete command
+   * @param interaction The command interaction
+   * @param isComplete Whether to mark as complete or incomplete
+   */
+  private async handleTodoCompleteCommand(interaction: ChatInputCommandInteraction, isComplete: boolean): Promise<void> {
+    try {
+      await interaction.deferReply({ ephemeral: true });
+      
+      const todoId = interaction.options.getInteger('id', true);
+      const userId = interaction.user.id;
+
+      // Get the todo
+      const todo = await storage.getTodo(todoId);
+
+      if (!todo) {
+        await interaction.editReply({
+          content: `❌ Todo #${todoId} not found.`
+        });
+        return;
+      }
+
+      // Check if the todo belongs to the user
+      if (todo.userId !== userId) {
+        await interaction.editReply({
+          content: `❌ Todo #${todoId} does not belong to you.`
+        });
+        return;
+      }
+
+      // Update the todo
+      await storage.updateTodo(todoId, { isCompleted: isComplete });
+
+      await interaction.editReply({
+        content: `✅ Todo #${todoId} marked as ${isComplete ? 'completed' : 'pending'}: ${todo.task}`
+      });
+    } catch (error: any) {
+      console.error(`Error ${isComplete ? 'completing' : 'uncompleting'} todo:`, error);
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: `❌ Failed to update todo: ${error.message}`,
+            ephemeral: true
+          });
+        } else if (interaction.deferred) {
+          await interaction.editReply({
+            content: `❌ Failed to update todo: ${error.message}`
+          });
+        }
+      } catch (replyError: any) {
+        console.error('Error sending error message:', replyError);
+      }
+    }
+  }
+
+  /**
+   * Handle the todo delete command
+   * @param interaction The command interaction
+   */
+  private async handleTodoDeleteCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    try {
+      await interaction.deferReply({ ephemeral: true });
+      
+      const todoId = interaction.options.getInteger('id', true);
+      const userId = interaction.user.id;
+
+      // Get the todo
+      const todo = await storage.getTodo(todoId);
+
+      if (!todo) {
+        await interaction.editReply({
+          content: `❌ Todo #${todoId} not found.`
+        });
+        return;
+      }
+
+      // Check if the todo belongs to the user
+      if (todo.userId !== userId) {
+        await interaction.editReply({
+          content: `❌ Todo #${todoId} does not belong to you.`
+        });
+        return;
+      }
+
+      // Delete the todo
+      await storage.deleteTodo(todoId);
+
+      await interaction.editReply({
+        content: `✅ Deleted todo #${todoId}: ${todo.task}`
+      });
+    } catch (error: any) {
+      console.error('Error deleting todo:', error);
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: `❌ Failed to delete todo: ${error.message}`,
+            ephemeral: true
+          });
+        } else if (interaction.deferred) {
+          await interaction.editReply({
+            content: `❌ Failed to delete todo: ${error.message}`
+          });
+        }
+      } catch (replyError: any) {
+        console.error('Error sending error message:', replyError);
+      }
+    }
+  }
+
+  /**
    * Handle help command
    * @param interaction The Discord command interaction
    */
@@ -2906,6 +2283,11 @@ export class DiscordBotService {
           inline: false
         },
         {
+          name: '📝 **Todo List**',
+          value: '`/todo add` - Add a new task\n`/todo list` - View your tasks\n`/todo complete` - Mark a task as done\n`/todo uncomplete` - Mark a task as pending\n`/todo delete` - Remove a task',
+          inline: false
+        },
+        {
           name: '🎫 **Ticket Management**',
           value: '`/ticket close` - Close current ticket\n`/ticket reopen` - Reopen current ticket\n*Only works in ticket threads*',
           inline: false
@@ -2953,6 +2335,10 @@ export class DiscordBotService {
         new ButtonBuilder()
           .setCustomId('help_general')
           .setLabel('🔧 General')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId('help_todo')
+          .setLabel('📝 Todo')
           .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
           .setCustomId('help_moderation')
@@ -3019,6 +2405,40 @@ export class DiscordBotService {
             {
               name: '🔄 **Conversation Memory**',
               value: 'The AI remembers your conversation context for better responses.',
+              inline: false
+            }
+          );
+        break;
+        
+      case 'todo':
+        embed = new EmbedBuilder()
+          .setColor(0x4CAF50)
+          .setTitle('📝 Todo List Commands')
+          .setDescription('Manage your personal todo list.')
+          .addFields(
+            {
+              name: '`/todo add <task>`',
+              value: '**Description:** Add a new task to your todo list\n**Usage:** `/todo add task:Buy groceries`\n**Permissions:** None required',
+              inline: false
+            },
+            {
+              name: '`/todo list`',
+              value: '**Description:** View all your todo items\n**Usage:** `/todo list`\n**Permissions:** None required',
+              inline: false
+            },
+            {
+              name: '`/todo complete <id>`',
+              value: '**Description:** Mark a task as completed\n**Usage:** `/todo complete id:5`\n**Permissions:** None required',
+              inline: false
+            },
+            {
+              name: '`/todo uncomplete <id>`',
+              value: '**Description:** Mark a completed task as pending\n**Usage:** `/todo uncomplete id:5`\n**Permissions:** None required',
+              inline: false
+            },
+            {
+              name: '`/todo delete <id>`',
+              value: '**Description:** Delete a task from your list\n**Usage:** `/todo delete id:5`\n**Permissions:** None required',
               inline: false
             }
           );
@@ -3167,6 +2587,11 @@ export class DiscordBotService {
             inline: false
           },
           {
+            name: '📝 **Todo List**',
+            value: '`/todo add` - Add a new task\n`/todo list` - View your tasks\n`/todo complete` - Mark a task as done\n`/todo uncomplete` - Mark a task as pending\n`/todo delete` - Remove a task',
+            inline: false
+          },
+          {
             name: '🎫 **Ticket Management**',
             value: '`/ticket close` - Close current ticket\n`/ticket reopen` - Reopen current ticket\n*Only works in ticket threads*',
             inline: false
@@ -3275,6 +2700,40 @@ export class DiscordBotService {
             );
           break;
 
+        case 'todo':
+          embed = new EmbedBuilder()
+            .setColor(0x4CAF50)
+            .setTitle('📝 Todo List Commands')
+            .setDescription('Manage your personal todo list.')
+            .addFields(
+              {
+                name: '`/todo add <task>`',
+                value: '**Description:** Add a new task to your todo list\n**Usage:** `/todo add task:Buy groceries`\n**Permissions:** None required',
+                inline: false
+              },
+              {
+                name: '`/todo list`',
+                value: '**Description:** View all your todo items\n**Usage:** `/todo list`\n**Permissions:** None required',
+                inline: false
+              },
+              {
+                name: '`/todo complete <id>`',
+                value: '**Description:** Mark a task as completed\n**Usage:** `/todo complete id:5`\n**Permissions:** None required',
+                inline: false
+              },
+              {
+                name: '`/todo uncomplete <id>`',
+                value: '**Description:** Mark a completed task as pending\n**Usage:** `/todo uncomplete id:5`\n**Permissions:** None required',
+                inline: false
+              },
+              {
+                name: '`/todo delete <id>`',
+                value: '**Description:** Delete a task from your list\n**Usage:** `/todo delete id:5`\n**Permissions:** None required',
+                inline: false
+              }
+            );
+          break;
+
         case 'tickets':
           embed = new EmbedBuilder()
             .setColor(0xE67E22)
@@ -3350,6 +2809,563 @@ export class DiscordBotService {
     }
 
     await interaction.editReply({ embeds: [embed], components });
+  }
+
+  /**
+   * Get AI chat commands
+   * @returns Array of AI-related command builders
+   */
+  private getAIChatCommands(): any[] {
+    return [
+      new SlashCommandBuilder()
+        .setName('ask')
+        .setDescription('Ask the AI assistant a question')
+        .addStringOption(option =>
+          option
+            .setName('question')
+            .setDescription('Your question for the AI assistant')
+            .setRequired(true)
+        )
+    ];
+  }
+
+  /**
+   * Get moderation commands
+   * @returns Array of moderation command builders
+   */
+  private getModerationCommands(): any[] {
+    return [
+      new SlashCommandBuilder()
+        .setName('kick')
+        .setDescription('Kick a member')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to kick')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for kicking')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+
+      new SlashCommandBuilder()
+        .setName('ban')
+        .setDescription('Ban a member')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to ban')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for banning')
+            .setRequired(false)
+        )
+        .addIntegerOption(option =>
+          option
+            .setName('delete_days')
+            .setDescription('Number of days of messages to delete (0-7)')
+            .setRequired(false)
+            .setMinValue(0)
+            .setMaxValue(7)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+
+      new SlashCommandBuilder()
+        .setName('unban')
+        .setDescription('Unban a user')
+        .addStringOption(option =>
+          option
+            .setName('user_id')
+            .setDescription('The ID of the user to unban')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for unbanning')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.BanMembers),
+
+      new SlashCommandBuilder()
+        .setName('timeout')
+        .setDescription('Timeout (mute) a member')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to timeout')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('duration')
+            .setDescription('Timeout duration (e.g. 10m, 1h, 1d)')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for timeout')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+
+      new SlashCommandBuilder()
+        .setName('untimeout')
+        .setDescription('Remove timeout from a member')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to remove timeout from')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for removing timeout')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+
+      new SlashCommandBuilder()
+        .setName('clear')
+        .setDescription('Clear messages from a channel')
+        .addIntegerOption(option =>
+          option
+            .setName('amount')
+            .setDescription('Number of messages to delete (1-100)')
+            .setRequired(true)
+            .setMinValue(1)
+            .setMaxValue(100)
+        )
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('Only delete messages from this user')
+            .setRequired(false)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+
+      new SlashCommandBuilder()
+        .setName('warn')
+        .setDescription('Warn a member')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to warn')
+            .setRequired(true)
+        )
+        .addStringOption(option =>
+          option
+            .setName('reason')
+            .setDescription('Reason for warning')
+            .setRequired(true)
+        )
+        .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers),
+
+      new SlashCommandBuilder()
+        .setName('userinfo')
+        .setDescription('Get information about a user')
+        .addUserOption(option =>
+          option
+            .setName('user')
+            .setDescription('The user to get info about')
+            .setRequired(false)
+        ),
+
+      new SlashCommandBuilder()
+        .setName('serverinfo')
+        .setDescription('Get information about the server')
+    ];
+  }
+
+  /**
+   * Check if a command is a moderation command
+   * @param commandName The command name to check
+   * @returns True if the command is a moderation command
+   */
+  private isModerationCommand(commandName: string): boolean {
+    const moderationCommands = [
+      'kick', 'ban', 'unban', 'timeout', 'untimeout',
+      'clear', 'warn', 'userinfo', 'serverinfo'
+    ];
+    return moderationCommands.includes(commandName);
+  }
+
+  /**
+   * Handle a moderation command
+   * @param interaction The command interaction
+   */
+  private async handleModerationCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    try {
+      switch (interaction.commandName) {
+        case 'kick':
+          await this.handleKickCommand(interaction);
+          break;
+        case 'ban':
+          await this.handleBanCommand(interaction);
+          break;
+        case 'unban':
+          await this.handleUnbanCommand(interaction);
+          break;
+        case 'timeout':
+          await this.handleTimeoutCommand(interaction);
+          break;
+        case 'untimeout':
+          await this.handleUntimeoutCommand(interaction);
+          break;
+        case 'clear':
+          await this.handleClearCommand(interaction);
+          break;
+        case 'warn':
+          await this.handleWarnCommand(interaction);
+          break;
+        case 'userinfo':
+          await this.handleUserInfoCommand(interaction);
+          break;
+        case 'serverinfo':
+          await this.handleServerInfoCommand(interaction);
+          break;
+        default:
+          await interaction.reply({
+            content: '❌ Unknown moderation command.',
+            ephemeral: true
+          });
+      }
+    } catch (error: any) {
+      console.error('Error handling moderation command:', error);
+      await interaction.reply({
+        content: `❌ An error occurred: ${error.message}`,
+        ephemeral: true
+      });
+    }
+  }
+
+  /**
+   * Get the Discord bot token from settings
+   * @returns The bot token or null if not configured
+   */
+  private async getBotToken(): Promise<string | null> {
+    const setting = await storage.getSetting('discord_bot_token');
+    return setting?.value || null;
+  }
+
+  /**
+   * Get the Discord guild ID from settings
+   * @returns The guild ID or null if not configured
+   */
+  private async getGuildId(): Promise<string | null> {
+    const setting = await storage.getSetting('discord_guild_id');
+    return setting?.value || null;
+  }
+
+  /**
+   * Get the Discord channel ID from settings
+   * @returns The channel ID or null if not configured
+   */
+  private async getChannelId(): Promise<string | null> {
+    const setting = await storage.getSetting('discord_channel_id');
+    return setting?.value || null;
+  }
+
+  /**
+   * Handle button interactions
+   * @param interaction The button interaction
+   */
+  private async handleButton(interaction: ButtonInteraction): Promise<void> {
+    try {
+      const buttonId = interaction.customId;
+
+      if (buttonId.startsWith('help_')) {
+        await this.handleHelpButton(interaction);
+      } else if (buttonId.startsWith('status_')) {
+        await this.handleStatusButton(interaction);
+      } else if (buttonId.startsWith('close:') || buttonId.startsWith('reopen:')) {
+        // Handle ticket buttons
+        const parts = buttonId.split(':');
+        const action = parts[0];
+        const ticketId = parseInt(parts[1], 10);
+
+        if (isNaN(ticketId)) {
+          await interaction.reply({
+            content: '❌ Invalid ticket ID in button',
+            ephemeral: true
+          });
+          return;
+        }
+
+        // Get ticket details
+        const ticket = await storage.getTicket(ticketId);
+        if (!ticket) {
+          await interaction.reply({
+            content: `❌ Ticket #${ticketId} not found or has been deleted.`,
+            ephemeral: true
+          });
+          return;
+        }
+
+        // Get admin users for attribution
+        const commandAdminUsers = await storage.getAdminUsers();
+        if (commandAdminUsers.length === 0) {
+          await interaction.reply({
+            content: 'Cannot process button: No admin users found',
+            ephemeral: true
+          });
+          return;
+        }
+
+        const commandAdminUser = commandAdminUsers[0];
+
+        // Handle close button
+        if (action === 'close') {
+          // Only allow closing tickets that are not already closed
+          if (ticket.status.toLowerCase() === 'closed') {
+            await interaction.reply({
+              content: `Ticket #${ticketId} is already closed.`,
+              ephemeral: true
+            });
+            return;
+          }
+
+          // Update ticket status in database
+          await storage.updateTicket(ticketId, { status: 'closed' });
+
+          // Add message to the ticket
+          const ticketMessage = {
+            ticketId,
+            userId: commandAdminUser.id,
+            message: `**Ticket Closed via Discord by ${interaction.user.username}**`
+          };
+          await storage.createTicketMessage(ticketMessage);
+
+          // Archive the thread
+          const thread = interaction.channel as ThreadChannel;
+          await thread.send(`Ticket #${ticketId} has been closed by ${interaction.user.username}.`);
+          await thread.setArchived(true);
+
+          await interaction.reply({
+            content: `Successfully closed ticket #${ticketId}.`,
+            ephemeral: true
+          });
+        }
+        // Handle reopen button
+        else if (action === 'reopen') {
+          // Only allow reopening tickets that are closed
+          if (ticket.status.toLowerCase() !== 'closed') {
+            await interaction.reply({
+              content: `Ticket #${ticketId} is already open.`,
+              ephemeral: true
+            });
+            return;
+          }
+
+          // Update ticket status in database
+          await storage.updateTicket(ticketId, { status: 'open' });
+
+          // Add message to the ticket
+          const ticketMessage = {
+            ticketId,
+            userId: commandAdminUser.id,
+            message: `**Ticket Reopened via Discord by ${interaction.user.username}**`
+          };
+          await storage.createTicketMessage(ticketMessage);
+
+          // Unarchive the thread
+          const thread = interaction.channel as ThreadChannel;
+          await thread.setArchived(false);
+          await thread.send(`Ticket #${ticketId} has been reopened by ${interaction.user.username}.`);
+
+          await interaction.reply({
+            content: `Successfully reopened ticket #${ticketId}.`,
+            ephemeral: true
+          });
+        }
+      } else {
+        await interaction.reply({
+          content: '❌ Unknown button action',
+          ephemeral: true
+        });
+      }
+    } catch (error: any) {
+      console.error('Error handling button interaction:', error);
+      try {
+        await interaction.reply({
+          content: `❌ An error occurred: ${error.message}`,
+          ephemeral: true
+        });
+      } catch (replyError) {
+        console.error('Failed to reply to button interaction:', replyError);
+      }
+    }
+  }
+
+  /**
+   * Handle direct messages to the bot
+   * @param message The Discord message
+   */
+  private async handleDirectMessage(message: Message): Promise<void> {
+    if (message.author.bot) return; // Ignore messages from other bots
+
+    try {
+      // Get the sender's user ID for tracking conversation
+      const userId = message.author.id;
+      const username = message.author.username;
+      const question = message.content;
+
+      // Ignore empty messages
+      if (!question || question.trim() === '') {
+        return;
+      }
+
+      // Get the gemini service and rate limiter
+      const geminiService = await import('./gemini-service').then(m => m.geminiService);
+      const rateLimiter = await import('./gemini-rate-limiter').then(m => m.geminiRateLimiter);
+
+      if (!geminiService.isReady()) {
+        await message.reply("Sorry, the AI assistant is not available right now. Please try again later.");
+        return;
+      }
+
+      // Check rate limiting for Discord user
+      const rateCheck = rateLimiter.checkDiscordUserAllowed(userId);
+      if (!rateCheck.allowed) {
+        await message.reply(rateCheck.message || "You've reached the rate limit. Please try again later.");
+        return;
+      }
+
+      // Track this request for rate limiting
+      rateLimiter.trackUsageForDiscordUser(userId);
+
+      // Let the user know we're thinking
+      const thinkingMessage = await message.reply('🤔 Thinking...');
+
+      // Format conversation for the AI
+      let conversation = [];
+      if (this.userConversations.has(userId)) {
+        conversation = this.userConversations.get(userId) || [];
+      } else {
+        // Initialize with system message if no conversation exists
+        conversation = [{
+          role: "model",
+          parts: [{
+            text: "Hello! I'm your AI assistant for SkyPANEL. How can I help you today with your VPS or account questions?"
+          }]
+        }];
+      }
+
+      // Add the user's question to the conversation
+      conversation.push({role: "user", parts: [{text: question}]});
+
+      // Generate a response from the AI
+      const aiResponse = await geminiService.generateChatResponse(
+        question,
+        username,
+        conversation
+      );
+
+      if (!aiResponse.success) {
+        await thinkingMessage.edit(`Sorry, I couldn't process your question: ${aiResponse.response}`);
+        return;
+      }
+
+      // Add the AI's response to the conversation history
+      conversation.push({role: "model", parts: [{text: aiResponse.response}]});
+
+      // Update the conversation history (keeping only the last 10 exchanges)
+      while (conversation.length > 10) {
+        conversation.shift();
+      }
+      this.userConversations.set(userId, conversation);
+
+      // Send the AI's response
+      if (aiResponse.response.length > 2000) {
+        // Split long messages
+        let remainingText = aiResponse.response;
+        await thinkingMessage.edit(remainingText.slice(0, 2000));
+        remainingText = remainingText.slice(2000);
+
+        while (remainingText.length > 0) {
+          await message.channel.send(remainingText.slice(0, 2000));
+          remainingText = remainingText.slice(2000);
+        }
+      } else {
+        await thinkingMessage.edit(aiResponse.response);
+      }
+    } catch (error: any) {
+      console.error('Error handling direct message:', error);
+      try {
+        await message.reply(`Sorry, I encountered an error: ${error.message}. Please try again later.`);
+      } catch (replyError) {
+        console.error('Error replying to DM:', replyError);
+      }
+    }
+  }
+
+  /**
+   * Handle the todo list command
+   * @param interaction The command interaction
+   */
+  private async handleTodoListCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    try {
+      await interaction.deferReply({ ephemeral: true });
+      
+      const userId = interaction.user.id;
+      const todos = await storage.getTodos(userId);
+
+      if (todos.length === 0) {
+        await interaction.editReply({
+          content: '📝 Your todo list is empty. Use `/todo add` to add items.'
+        });
+        return;
+      }
+
+      // Group todos by completion status
+      const completedTodos = todos.filter(todo => todo.isCompleted);
+      const pendingTodos = todos.filter(todo => !todo.isCompleted);
+
+      // Create a formatted list of todos
+      let message = '📝 **Your Todo List**\n\n';
+
+      if (pendingTodos.length > 0) {
+        message += '**Pending Tasks:**\n';
+        pendingTodos.forEach(todo => {
+          message += `• #${todo.id}: ${todo.task}\n`;
+        });
+        message += '\n';
+      }
+
+      if (completedTodos.length > 0) {
+        message += '**Completed Tasks:**\n';
+        completedTodos.forEach(todo => {
+          message += `• #${todo.id}: ${todo.task}\n`;
+        });
+      }
+
+      await interaction.editReply({ content: message });
+    } catch (error: any) {
+      console.error('Error listing todos:', error);
+      try {
+        if (!interaction.replied && !interaction.deferred) {
+          await interaction.reply({
+            content: `❌ Failed to list todos: ${error.message}`,
+            ephemeral: true
+          });
+        } else if (interaction.deferred) {
+          await interaction.editReply({
+            content: `❌ Failed to list todos: ${error.message}`
+          });
+        }
+      } catch (replyError: any) {
+        console.error('Error sending error message:', replyError);
+      }
+    }
   }
 }
 

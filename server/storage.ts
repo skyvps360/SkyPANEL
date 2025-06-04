@@ -32,6 +32,7 @@ import {
   chatTypingIndicators,
   chatDepartments,
   chatDepartmentAdmins,
+  todos,
   type User,
   type InsertUser,
   type Transaction,
@@ -52,7 +53,6 @@ import {
   type InsertNotification,
   type TeamMember,
   type InsertTeamMember,
-
   type PasswordResetToken,
   type InsertPasswordResetToken,
   type EmailVerificationToken,
@@ -94,7 +94,9 @@ import {
   type ChatDepartment,
   type InsertChatDepartment,
   type ChatDepartmentAdmin,
-  type InsertChatDepartmentAdmin
+  type InsertChatDepartmentAdmin,
+  type Todo,
+  type InsertTodo
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, gte, lte, count, inArray, or, ilike, lt, sql, not } from "drizzle-orm";
@@ -398,6 +400,13 @@ export interface IStorage {
   getChatSessionsWithDepartments(): Promise<(ChatSession & { user: User; assignedAdmin?: User; department?: ChatDepartment })[]>;
   getChatSessionsByDepartment(departmentId: number): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]>;
   getUserChatHistory(userId: number, limit?: number, offset?: number): Promise<(ChatSession & { department?: ChatDepartment })[]>;
+
+  // Todo operations
+  getTodos(userId: string): Promise<Todo[]>;
+  getTodo(id: number): Promise<Todo | undefined>;
+  createTodo(todo: InsertTodo): Promise<Todo>;
+  updateTodo(id: number, updates: Partial<Todo>): Promise<void>;
+  deleteTodo(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2546,6 +2555,54 @@ export class DatabaseStorage implements IStorage {
       ...session,
       department: session.chatDepartment
     })));
+  }
+
+  // Todo operations
+  async getTodos(userId: string): Promise<Todo[]> {
+    try {
+      return await db.select().from(todos).where(eq(todos.userId, userId)).orderBy(todos.createdAt);
+    } catch (error) {
+      console.error('Error fetching todos:', error);
+      return [];
+    }
+  }
+
+  async getTodo(id: number): Promise<Todo | undefined> {
+    try {
+      const result = await db.select().from(todos).where(eq(todos.id, id)).limit(1);
+      return result.length > 0 ? result[0] : undefined;
+    } catch (error) {
+      console.error(`Error fetching todo with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async createTodo(todo: InsertTodo): Promise<Todo> {
+    try {
+      const result = await db.insert(todos).values(todo).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error creating todo:', error);
+      throw error;
+    }
+  }
+
+  async updateTodo(id: number, updates: Partial<Todo>): Promise<void> {
+    try {
+      await db.update(todos).set(updates).where(eq(todos.id, id));
+    } catch (error) {
+      console.error(`Error updating todo with ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteTodo(id: number): Promise<void> {
+    try {
+      await db.delete(todos).where(eq(todos.id, id));
+    } catch (error) {
+      console.error(`Error deleting todo with ID ${id}:`, error);
+      throw error;
+    }
   }
 }
 
