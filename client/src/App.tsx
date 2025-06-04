@@ -308,6 +308,16 @@ function Router() {
         <AdminProtectedRoute path="/admin/users/:id" component={UserEditPage} />
         <AdminProtectedRoute path="/admin/users" component={UsersPage} />
         <AdminProtectedRoute path="/admin/settings" component={SettingsPage} />
+        
+        {/* Routes for admin/tickets/ are accessible but we redirect users to admin/settings
+            since we use the unified department system - tickets tab is hidden but still functional */}
+        <Route path="/admin/settings/tickets">
+          {() => {
+            const [, navigate] = useLocation();
+            useEffect(() => { navigate('/admin/settings'); }, [navigate]);
+            return null;
+          }}
+        </Route>
         <AdminProtectedRoute path="/admin/tickets/:id" component={AdminTicketDetailPage} />
         <AdminProtectedRoute path="/admin/tickets" component={AdminTicketsPage} />
         <AdminProtectedRoute path="/admin/mail" component={EmailLogsPage} />

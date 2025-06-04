@@ -1682,7 +1682,10 @@ export default function SettingsPage() {
                     <SelectValue placeholder="Select a setting category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {settingsOptions.map((option) => (
+                    {settingsOptions
+                      // Filter out the tickets option from the dropdown but keep it in the array for the tab
+                      .filter((option) => option.value !== "tickets")
+                      .map((option) => (
                       <SelectItem
                         key={option.value}
                         value={option.value}
