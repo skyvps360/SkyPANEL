@@ -1,18 +1,18 @@
 module.exports = {
   apps: [
     {
-      name: "skypanel-dev",
+      name: "skypanel-prod",
       script: "npm",
-      args: "run dev",
+      args: "run start",
       env: {
-        NODE_ENV: "development"
+        NODE_ENV: "production"
       },
-      exec_mode: "cluster", // Use fork mode for development
+      exec_mode: "cluster", // Using cluster mode for high availability
       instances: "max",
       autorestart: true,
-      watch: true, // tsx already handles file watching
+      watch: false, // Disable watch mode in production
       max_memory_restart: "1G",
-      // Development specific settings
+      // Production specific settings
       merge_logs: true,
       time: true,
       log_date_format: "YYYY-MM-DD HH:mm:ss Z"
