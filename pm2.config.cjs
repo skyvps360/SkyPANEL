@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "skypanel-prod",
+      name: "skypanel",
       script: "npm",
       args: "run start",
       env: {

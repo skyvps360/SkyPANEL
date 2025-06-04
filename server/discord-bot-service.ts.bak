@@ -110,13 +110,13 @@ export class DiscordBotService {
         console.log(`Discord bot ready! Logged in as ${readyClient.user.tag}`);
 
         // Set bot status to "watching skyvps360.xyz" - temporarily disable due to shard error
-        readyClient.user.setPresence({
-          activities: [{
-            name: 'skyvps360.xyz',
-            type: ActivityType.Watching
-          }],
-          status: 'online'
-        });
+        // readyClient.user.setPresence({
+        //   activities: [{
+        //     name: 'skyvps360.xyz',
+        //     type: ActivityType.Watching
+        //   }],
+        //   status: 'online'
+        // });
         console.log('Discord bot status set to: watching skyvps360.xyz');
 
         this.ready = true;
