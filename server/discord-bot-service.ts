@@ -1270,10 +1270,10 @@ export class DiscordBotService {
       }
 
       // Get properly formatted conversation history
-      const conversation = this.getFormattedConversation(userId);
+      const conversationHistory = this.getFormattedConversation(userId);
 
       // Add the user's question to the conversation with proper formatting for Gemini API
-      conversation.push({role: "user", parts: [{text: question}]});
+      conversationHistory.push({role: "user", content: question});
 
       // Get the gemini service and rate limiter
       const geminiService = await import('./gemini-service').then(m => m.geminiService);
@@ -1298,7 +1298,7 @@ export class DiscordBotService {
       const aiResponse = await geminiService.generateChatResponse(
         question,
         username,
-        conversation
+        conversationHistory
       );
 
       if (!aiResponse.success) {
@@ -1306,11 +1306,17 @@ export class DiscordBotService {
         return;
       }
 
-      // Add the AI's response to the conversation history with proper Gemini API formatting
-      conversation.push({role: "model", parts: [{text: aiResponse.response}]});
+      // Get the internal conversation format for storage
+      const internalConversation = this.userConversations.get(userId) || [];
+      
+      // Add the user's question to the internal conversation
+      internalConversation.push({role: "user", parts: [{text: question}]});
+      
+      // Add the AI's response to the internal conversation history
+      internalConversation.push({role: "model", parts: [{text: aiResponse.response}]});
 
       // Update the conversation history
-      this.userConversations.set(userId, conversation);
+      this.userConversations.set(userId, internalConversation);
 
       // Send the response, handling long messages
       await this.sendLongMessage(interaction, aiResponse.response, true);
@@ -2103,7 +2109,7 @@ export class DiscordBotService {
       const embed = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle('👤 User Information')
-        .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+        .setThumbnail(targetUser.displayAvatarURL())
         .addFields(
           { name: 'Username', value: targetUser.tag, inline: true },
           { name: 'ID', value: targetUser.id, inline: true },
@@ -2147,7 +2153,7 @@ export class DiscordBotService {
       const embed = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle('🏰 Server Information')
-        .setThumbnail(guild.iconURL({ dynamic: true }))
+        .setThumbnail(guild.iconURL())
         .addFields(
           { name: 'Server Name', value: guild.name, inline: true },
           { name: 'Server ID', value: guild.id, inline: true },
@@ -3369,11 +3375,17 @@ export class DiscordBotService {
       // Add the user's question to the conversation
       conversation.push({role: "user", parts: [{text: question}]});
 
+      // Format conversation for Gemini API
+      const formattedConversation = conversation.map(msg => ({
+        role: msg.role,
+        content: msg.parts.map(part => part.text).join('')
+      }));
+
       // Generate a response from the AI
       const aiResponse = await geminiService.generateChatResponse(
         question,
         username,
-        conversation
+        formattedConversation
       );
 
       if (!aiResponse.success) {
@@ -3398,7 +3410,9 @@ export class DiscordBotService {
         remainingText = remainingText.slice(2000);
 
         while (remainingText.length > 0) {
-          await message.channel.send(remainingText.slice(0, 2000));
+          if (message.channel.isTextBased() && 'send' in message.channel) {
+            await (message.channel as any).send(remainingText.slice(0, 2000));
+          }
           remainingText = remainingText.slice(2000);
         }
       } else {
@@ -3471,6 +3485,193 @@ export class DiscordBotService {
       } catch (replyError: any) {
         console.error('Error sending error message:', replyError);
       }
+    }
+  }
+
+  /**
+   * Get formatted conversation history for Gemini API
+   * @param userId - The Discord user ID
+   * @returns Formatted conversation history
+   */
+  private getFormattedConversation(userId: string): Array<{role: string, content: string}> {
+    const conversation = this.userConversations.get(userId) || [];
+    return conversation.map(msg => ({
+      role: msg.role,
+      content: msg.parts.map(part => part.text).join('')
+    }));
+  }
+
+  /**
+   * Send a long message by splitting it into chunks if necessary
+   * @param interaction - The Discord interaction
+   * @param message - The message to send
+   * @param isEdit - Whether to edit the reply or send new messages
+   */
+  private async sendLongMessage(interaction: any, message: string, isEdit: boolean = false): Promise<void> {
+    if (message.length <= 2000) {
+      if (isEdit) {
+        await interaction.editReply(message);
+      } else {
+        await interaction.reply(message);
+      }
+      return;
+    }
+
+    // Split long messages
+    let remainingText = message;
+    if (isEdit) {
+      await interaction.editReply(remainingText.slice(0, 2000));
+    } else {
+      await interaction.reply(remainingText.slice(0, 2000));
+    }
+    remainingText = remainingText.slice(2000);
+
+    while (remainingText.length > 0) {
+      await interaction.followUp(remainingText.slice(0, 2000));
+      remainingText = remainingText.slice(2000);
+    }
+  }
+
+  /**
+   * Search for Discord users by username or user ID
+   * @param query - The search query (username or user ID)
+   * @param limit - Maximum number of results to return
+   * @returns Array of Discord user objects
+   */
+  public async searchDiscordUsers(query: string, limit: number = 10): Promise<any[]> {
+    try {
+      if (!this.client || !this.ready) {
+        throw new Error('Discord bot is not initialized or ready');
+      }
+
+      const guildId = await this.getGuildId();
+      if (!guildId) {
+        throw new Error('Discord guild ID not configured');
+      }
+
+      const guild = this.client.guilds.cache.get(guildId);
+      if (!guild) {
+        throw new Error('Discord guild not found');
+      }
+
+      // Fetch guild members if not cached
+      await guild.members.fetch();
+
+      const results: any[] = [];
+      const searchLower = query.toLowerCase();
+
+      // If query looks like a user ID (numeric), try exact match first
+      if (/^\d+$/.test(query)) {
+        try {
+          const member = await guild.members.fetch(query);
+          if (member) {
+            results.push({
+              id: member.user.id,
+              username: member.user.username,
+              globalName: member.user.globalName,
+              displayName: member.displayName,
+              avatar: member.user.displayAvatarURL(),
+              discriminator: member.user.discriminator,
+              isBot: member.user.bot,
+              joinedAt: member.joinedAt?.toISOString(),
+              roles: member.roles.cache
+                .filter(role => role.name !== '@everyone')
+                .map(role => ({ id: role.id, name: role.name, color: role.hexColor }))
+            });
+          }
+        } catch (error) {
+          // User not found by ID, continue with text search
+        }
+      }
+
+      // Search by username/display name if we don't have enough results
+      if (results.length < limit) {
+        guild.members.cache.forEach(member => {
+          if (results.length >= limit) return;
+          
+          // Skip if already added
+          if (results.some(r => r.id === member.user.id)) return;
+          
+          const username = member.user.username.toLowerCase();
+          const globalName = member.user.globalName?.toLowerCase() || '';
+          const displayName = member.displayName.toLowerCase();
+          
+          // Check if query matches username, global name, or display name
+          if (username.includes(searchLower) || 
+              globalName.includes(searchLower) || 
+              displayName.includes(searchLower)) {
+            
+            results.push({
+              id: member.user.id,
+              username: member.user.username,
+              globalName: member.user.globalName,
+              displayName: member.displayName,
+              avatar: member.user.displayAvatarURL(),
+              discriminator: member.user.discriminator,
+              isBot: member.user.bot,
+              joinedAt: member.joinedAt?.toISOString(),
+              roles: member.roles.cache
+                .filter(role => role.name !== '@everyone')
+                .map(role => ({ id: role.id, name: role.name, color: role.hexColor }))
+            });
+          }
+        });
+      }
+
+      return results.slice(0, limit);
+    } catch (error: any) {
+      console.error('Error searching Discord users:', error);
+      throw new Error(`Failed to search Discord users: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get a specific Discord user by ID
+   * @param userId - The Discord user ID
+   * @returns Discord user object or null if not found
+   */
+  public async getDiscordUser(userId: string): Promise<any | null> {
+    try {
+      if (!this.client || !this.ready) {
+        throw new Error('Discord bot is not initialized or ready');
+      }
+
+      const guildId = await this.getGuildId();
+      if (!guildId) {
+        throw new Error('Discord guild ID not configured');
+      }
+
+      const guild = this.client.guilds.cache.get(guildId);
+      if (!guild) {
+        throw new Error('Discord guild not found');
+      }
+
+      try {
+        const member = await guild.members.fetch(userId);
+        if (!member) {
+          return null;
+        }
+
+        return {
+          id: member.user.id,
+          username: member.user.username,
+          globalName: member.user.globalName,
+          displayName: member.displayName,
+          avatar: member.user.displayAvatarURL(),
+          discriminator: member.user.discriminator,
+          isBot: member.user.bot,
+          joinedAt: member.joinedAt?.toISOString(),
+          roles: member.roles.cache
+            .filter(role => role.name !== '@everyone')
+            .map(role => ({ id: role.id, name: role.name, color: role.hexColor }))
+        };
+      } catch (error) {
+        // User not found in guild
+        return null;
+      }
+    } catch (error: any) {
+      console.error('Error fetching Discord user:', error);
+      throw new Error(`Failed to fetch Discord user: ${error.message}`);
     }
   }
 }
