@@ -906,7 +906,7 @@ export default function AdminChatManagement() {
 
           {/* Fullscreen Tabs */}
           <Tabs defaultValue="sessions" className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 bg-gray-100">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-100">
               <TabsTrigger
                 value="sessions"
                 className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
@@ -914,13 +914,7 @@ export default function AdminChatManagement() {
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Chat Sessions
               </TabsTrigger>
-              <TabsTrigger
-                value="departments"
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Departments
-              </TabsTrigger>
+              {/* Departments tab hidden in fullscreen mode - we use the unified departments system in settings */}
               <TabsTrigger
                 value="settings"
                 className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
@@ -1437,7 +1431,8 @@ export default function AdminChatManagement() {
               </div>
             </TabsContent>
 
-            <TabsContent value="departments" className="flex-1 mt-6">
+            {/* Departments tab content hidden in fullscreen mode - we use the unified departments system in settings */}
+            <TabsContent value="departments" className="hidden flex-1 mt-6">
               <DepartmentManagement />
             </TabsContent>
 
@@ -1701,7 +1696,7 @@ export default function AdminChatManagement() {
         </div>
 
         <Tabs defaultValue="sessions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-100">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-100">
             <TabsTrigger
               value="sessions"
               className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
@@ -1709,13 +1704,7 @@ export default function AdminChatManagement() {
               <MessageSquare className="h-4 w-4 mr-2" />
               Chat Sessions
             </TabsTrigger>
-            <TabsTrigger
-              value="departments"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Departments
-            </TabsTrigger>
+            {/* Departments tab hidden - we use the unified departments system in settings */}
             <TabsTrigger
               value="settings"
               className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
@@ -2233,7 +2222,8 @@ export default function AdminChatManagement() {
             </div>
         </TabsContent>
 
-          <TabsContent value="departments" className="space-y-6">
+          {/* Departments tab content hidden - we use the unified departments system in settings */}
+          <TabsContent value="departments" className="hidden space-y-6">
             <DepartmentManagement />
           </TabsContent>
 
