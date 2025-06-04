@@ -12,10 +12,9 @@ import { TicketForm } from "@/components/tickets/TicketForm";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MessageSquare, ExternalLink, ChevronLeft, ChevronRight, BookOpen, Grid3X3, List, TicketIcon, Clock, AlertCircle } from "lucide-react";
+import { Plus, MessageSquare, ExternalLink, ChevronLeft, ChevronRight, BookOpen, TicketIcon, AlertCircle } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
 
 interface Ticket {
   id: number;
@@ -44,7 +43,6 @@ export default function TicketsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(5); // Set to 5 tickets per page
   const [statusFilter, setStatusFilter] = useState<string>("open"); // "all", "open", "closed"
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('table'); // Default to table view
 
   // Reset page when filter changes
   const handleStatusFilterChange = (value: string) => {
@@ -267,26 +265,6 @@ export default function TicketsPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
-                <div className="flex rounded-lg border border-border bg-muted p-1">
-                  <Button
-                    variant={viewMode === 'table' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('table')}
-                    className="flex items-center gap-2"
-                  >
-                    <List className="h-4 w-4" />
-                    Table
-                  </Button>
-                  <Button
-                    variant={viewMode === 'cards' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('cards')}
-                    className="flex items-center gap-2"
-                  >
-                    <Grid3X3 className="h-4 w-4" />
-                    Cards
-                  </Button>
-                </div>
                 <Button
                   variant="outline"
                   onClick={() => window.open('/docs', '_blank')}
@@ -359,56 +337,14 @@ export default function TicketsPage() {
                 )}
               </div>
             ) : (
-              <>
-                {viewMode === 'table' ? (
-                  /* Table View */
-                  <DataTable
-                    data={tickets}
-                    columns={columns}
-                    searchKey="subject"
-                    onRowClick={(ticket) => navigate(`/tickets/${ticket.id}`)}
-                    actions={renderActions}
-                  />
-                ) : (
-                  /* Card View */
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {tickets.map((ticket) => (
-                      <Card key={ticket.id} className="bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer" onClick={() => navigate(`/tickets/${ticket.id}`)}>
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <CardTitle className="text-base font-semibold text-foreground line-clamp-1">
-                                {ticket.subject}
-                              </CardTitle>
-                              <div className="flex items-center gap-2 mt-2">
-                                <span className="text-sm text-muted-foreground">#{ticket.id}</span>
-                                <Separator orientation="vertical" className="h-4" />
-                                <span className="text-sm text-muted-foreground">
-                                  {format(new Date(ticket.createdAt), 'MMM d, yyyy')}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {getStatusBadge(ticket.status)}
-                              {getPriorityBadge(ticket.priority)}
-                            </div>
-                            <div className="flex items-center text-muted-foreground">
-                              <Clock className="h-4 w-4 mr-1" />
-                              <span className="text-xs">
-                                {format(new Date(ticket.updatedAt), 'MMM d')}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </>
+              /* Table View */
+              <DataTable
+                data={tickets}
+                columns={columns}
+                searchKey="subject"
+                onRowClick={(ticket) => navigate(`/tickets/${ticket.id}`)}
+                actions={renderActions}
+              />
             )}
 
             {/* Pagination Controls */}
