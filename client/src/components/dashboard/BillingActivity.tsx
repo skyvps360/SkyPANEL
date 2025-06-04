@@ -176,13 +176,11 @@ export function BillingActivity() {
             </Link>
           </div>
         ) : (
-          <div className="bg-gray-50 rounded-lg p-1">
-            <DataTable
-              data={transactions}
-              columns={columns}
-              searchKey="description"
-            />
-          </div>
+          <DataTable
+            data={transactions}
+            columns={columns}
+            searchKey="description"
+          />
         )}
       </div>
     </div>
