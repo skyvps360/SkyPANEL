@@ -1372,13 +1372,17 @@ export class DiscordBotService {
           }
         };
 
+        // Get company name from database
+        const companySetting = await storage.getSetting('company_name');
+        const companyName = companySetting?.value || 'SkyVPS360';
+        
         // Create updated embeds
         const statusEmbed = new EmbedBuilder()
-          .setTitle('🖥️ SkyPANEL Platform Status')
+          .setTitle(`🖥️ ${companyName} Platform Status`)
           .setDescription(statusMessage)
           .setColor(statusColor)
           .setTimestamp()
-          .setFooter({ text: 'Status updated' });
+          .setFooter({ text: 'Status updated • Auto-refreshes every 5 minutes' });
 
         statusEmbed.addFields({
           name: '📊 Overall Status',
@@ -1452,6 +1456,10 @@ export class DiscordBotService {
         await interaction.deferReply();
       }
 
+      // Get company name from database
+      const companySetting = await storage.getSetting('company_name');
+      const companyName = companySetting?.value || 'SkyVPS360';
+
       // Fetch status data from APIs
       const [maintenanceStatus, serviceStatus] = await Promise.all([
         getMaintenanceStatus(),
@@ -1490,11 +1498,11 @@ export class DiscordBotService {
 
       // Create main status embed
       const statusEmbed = new EmbedBuilder()
-        .setTitle('🖥️ SkyPANEL Platform Status')
+        .setTitle(`🖥️ ${companyName} Platform Status`)
         .setDescription(statusMessage)
         .setColor(statusColor)
         .setTimestamp()
-        .setFooter({ text: 'Status updated' });
+        .setFooter({ text: 'Status updated • Auto-refreshes every 5 minutes' });
 
       // Add overall status field
       statusEmbed.addFields({
@@ -1584,25 +1592,123 @@ export class DiscordBotService {
       components.push(actionRow);
 
       // Send the response
-      if (interaction.deferred) {
-        await interaction.editReply({
-          embeds: [statusEmbed, servicesEmbed],
-          components
-        });
-      } else {
-        await interaction.reply({
-          embeds: [statusEmbed, servicesEmbed],
-          components
-        });
-      }
+      const reply = interaction.deferred 
+        ? await interaction.editReply({
+            embeds: [statusEmbed, servicesEmbed],
+            components
+          })
+        : await interaction.reply({
+            embeds: [statusEmbed, servicesEmbed],
+            components,
+            fetchReply: true
+          });
 
-      // Store pagination state for this interaction
-      if (totalPages > 1) {
-        // We'll handle pagination in the button handler
-        setTimeout(() => {
-          // Clean up pagination state after 5 minutes
-        }, 5 * 60 * 1000);
-      }
+      // Set up auto-refresh timer for 5 minutes
+      const refreshInterval = 5 * 60 * 1000; // 5 minutes in milliseconds
+      
+      // Store the refresh function so we can call it periodically
+      const refreshStatusEmbed = async () => {
+        try {
+          // Check if message still exists and can be edited
+          const message = await interaction.channel?.messages.fetch(reply.id).catch(() => null);
+          if (!message) {
+            return; // Message was deleted or not found
+          }
+
+          // Get fresh company name from database
+          const refreshedCompanySetting = await storage.getSetting('company_name');
+          const refreshedCompanyName = refreshedCompanySetting?.value || 'SkyVPS360';
+
+          // Fetch updated status data
+          const [refreshedMaintenanceStatus, refreshedServiceStatus] = await Promise.all([
+            getMaintenanceStatus(),
+            betterStackService.getServiceStatusForApi()
+          ]);
+
+          // Update overall status
+          let refreshedOverallStatus: 'operational' | 'degraded' | 'outage' | 'maintenance' = 'operational';
+          let refreshedStatusMessage = 'All Systems Operational';
+          let refreshedStatusColor = 0x00ff00; // Green
+
+          if (refreshedMaintenanceStatus.enabled) {
+            refreshedOverallStatus = 'maintenance';
+            refreshedStatusMessage = `System Maintenance: ${refreshedMaintenanceStatus.message}`;
+            refreshedStatusColor = 0xffa500; // Orange
+          } else if (refreshedServiceStatus.overall === 'outage') {
+            refreshedOverallStatus = 'outage';
+            refreshedStatusMessage = 'Service Disruption Detected';
+            refreshedStatusColor = 0xff0000; // Red
+          } else if (refreshedServiceStatus.overall === 'degraded') {
+            refreshedOverallStatus = 'degraded';
+            refreshedStatusMessage = 'Some Systems Experiencing Issues';
+            refreshedStatusColor = 0xffff00; // Yellow
+          }
+
+          // Create updated status embed
+          const updatedStatusEmbed = new EmbedBuilder()
+            .setTitle(`🖥️ ${refreshedCompanyName} Platform Status`)
+            .setDescription(refreshedStatusMessage)
+            .setColor(refreshedStatusColor)
+            .setTimestamp()
+            .setFooter({ text: 'Status auto-updated • Refreshes every 5 minutes' });
+
+          // Add overall status field
+          updatedStatusEmbed.addFields({
+            name: '📊 Overall Status',
+            value: `${getStatusEmoji(refreshedOverallStatus)} **${refreshedOverallStatus.charAt(0).toUpperCase() + refreshedOverallStatus.slice(1)}**`,
+            inline: true
+          });
+
+          // Add maintenance info if enabled
+          if (refreshedMaintenanceStatus.enabled) {
+            updatedStatusEmbed.addFields({
+              name: '🔧 Maintenance Mode',
+              value: refreshedMaintenanceStatus.message,
+              inline: false
+            });
+
+            if (refreshedMaintenanceStatus.estimatedCompletion) {
+              updatedStatusEmbed.addFields({
+                name: '⏰ Estimated Completion',
+                value: refreshedMaintenanceStatus.estimatedCompletion,
+                inline: true
+              });
+            }
+          }
+
+          // Create updated services embed
+          const updatedServicesEmbed = createServicesEmbed(0); // Reset to first page on auto-refresh
+          updatedServicesEmbed.setColor(refreshedStatusColor);
+
+          // Update the message
+          await message.edit({
+            embeds: [updatedStatusEmbed, updatedServicesEmbed],
+            components // Keep the same components for buttons
+          });
+
+        } catch (refreshError) {
+          // Log error but don't throw - we don't want to crash the bot on auto-refresh errors
+          console.error('Error during status auto-refresh:', refreshError);
+        }
+      };
+
+      // Set up the refresh timer, but limit to 1 hour max (12 refreshes)
+      const maxRefreshes = 12;
+      let refreshCount = 0;
+      
+      const timer = setInterval(() => {
+        refreshCount++;
+        refreshStatusEmbed();
+        
+        if (refreshCount >= maxRefreshes) {
+          clearInterval(timer);
+        }
+      }, refreshInterval);
+
+      // Clean up timer after 1 hour
+      setTimeout(() => {
+        clearInterval(timer);
+      }, maxRefreshes * refreshInterval);
 
     } catch (error: any) {
       console.error('Error handling status command:', error);
