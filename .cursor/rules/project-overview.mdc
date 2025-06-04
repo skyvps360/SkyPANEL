@@ -1,0 +1,28 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# SkyPANEL Project Overview
+
+## What is SkyPANEL?
+
+SkyPANEL is an enterprise-grade VirtFusion management platform for VPS hosting providers. It provides a complete client portal with advanced features for managing virtual servers, user accounts, billing, and support.
+
+## Key Features
+
+- **VirtFusion Integration**: Complete integration with VirtFusion API for server management
+- **User Management**: Secure authentication with role-based access control
+- **Billing System**: Credit-based billing with PayPal integration and transaction management
+- **Support System**: Full-featured ticket management with Discord integration
+- **AI Support**: Google Gemini AI integration for intelligent customer support
+- **VNC Console**: Built-in web-based VNC client for direct server access
+- **Brand Theming**: Dynamic multi-color theming system for white-label deployment
+- **Real-Time Monitoring**: BetterStack integration for infrastructure monitoring
+
+## Important Files
+
+- [readme.md](mdc:readme.md): Complete documentation with setup instructions
+- [package.json](mdc:package.json): Project dependencies and scripts
+- [vite.config.ts](mdc:vite.config.ts): Frontend build configuration
+- [drizzle.config.ts](mdc:drizzle.config.ts): Database ORM configuration
