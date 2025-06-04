@@ -20,28 +20,30 @@ export default defineConfig(async ({ mode }) => {
           ]
         : []),
     ],
-  server: {
-    proxy: {
-      // Proxy WebSocket requests for VNC to the backend server
-      '/vnc-proxy': {
-        target: 'ws://localhost:3000',
-        ws: true,
-        changeOrigin: true,
-      },
-      // Proxy API requests to the backend server
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      // Proxy chat WebSocket requests to the backend server
-      '/chat-ws': {
-        target: 'ws://localhost:3000',
-        ws: true,
-        changeOrigin: true,
+    server: {
+      port: parseInt(env.PORT || '3000'),
+      strictPort: true,
+      proxy: {
+        // Proxy WebSocket requests for VNC to the backend server
+        '/vnc-proxy': {
+          target: 'ws://localhost:3000',
+          ws: true,
+          changeOrigin: true,
+        },
+        // Proxy API requests to the backend server
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+        },
+        // Proxy chat WebSocket requests to the backend server
+        '/chat-ws': {
+          target: 'ws://localhost:3000',
+          ws: true,
+          changeOrigin: true,
+        },
       },
     },
-  },
-  define: {
+    define: {
     // Explicitly define PayPal environment variables for client-side access
     'import.meta.env.VITE_PAYPAL_SANDBOX': JSON.stringify(env.VITE_PAYPAL_SANDBOX),
     'import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID': JSON.stringify(env.VITE_PAYPAL_SANDBOX_CLIENT_ID),
@@ -67,6 +69,6 @@ export default defineConfig(async ({ mode }) => {
     account_id: env.CF_ACCOUNT_ID,
     zone_id: env.CF_ZONE_ID,
     route: env.CF_ROUTE,
-  },
+  }
   };
 });
