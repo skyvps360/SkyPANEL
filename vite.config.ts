@@ -1,21 +1,25 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
-export default defineConfig({
-  plugins: [
-    react(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
-  ],
+export default defineConfig(async ({ mode }) => {
+  // Load environment variables
+  const env = loadEnv(mode, process.cwd(), '');
+
+  return {
+    plugins: [
+      react(),
+      runtimeErrorOverlay(),
+      ...(env.NODE_ENV !== "production" &&
+      env.REPL_ID !== undefined
+        ? [
+            await import("@replit/vite-plugin-cartographer").then((m) =>
+              m.cartographer(),
+            ),
+          ]
+        : []),
+    ],
   server: {
     proxy: {
       // Proxy WebSocket requests for VNC to the backend server
@@ -39,10 +43,12 @@ export default defineConfig({
   },
   define: {
     // Explicitly define PayPal environment variables for client-side access
-    'import.meta.env.VITE_PAYPAL_SANDBOX': JSON.stringify(process.env.VITE_PAYPAL_SANDBOX),
-    'import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID': JSON.stringify(process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID),
-    'import.meta.env.VITE_PAYPAL_CLIENT_ID': JSON.stringify(process.env.VITE_PAYPAL_CLIENT_ID),
-    'import.meta.env.VITE_PAYPAL_CURRENCY': JSON.stringify(process.env.VITE_PAYPAL_CURRENCY),
+    'import.meta.env.VITE_PAYPAL_SANDBOX': JSON.stringify(env.VITE_PAYPAL_SANDBOX),
+    'import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID': JSON.stringify(env.VITE_PAYPAL_SANDBOX_CLIENT_ID),
+    'import.meta.env.VITE_PAYPAL_SANDBOX_SECRET': JSON.stringify(env.VITE_PAYPAL_SANDBOX_SECRET),
+    'import.meta.env.VITE_PAYPAL_CLIENT_ID': JSON.stringify(env.VITE_PAYPAL_CLIENT_ID),
+    'import.meta.env.VITE_PAYPAL_SECRET': JSON.stringify(env.VITE_PAYPAL_SECRET),
+    'import.meta.env.VITE_PAYPAL_CURRENCY': JSON.stringify(env.VITE_PAYPAL_CURRENCY),
   },
   resolve: {
     alias: {
@@ -58,8 +64,9 @@ export default defineConfig({
   },
   // Wrangler configuration
   wrangler: {
-    account_id: process.env.CF_ACCOUNT_ID,
-    zone_id: process.env.CF_ZONE_ID,
-    route: process.env.CF_ROUTE,
+    account_id: env.CF_ACCOUNT_ID,
+    zone_id: env.CF_ZONE_ID,
+    route: env.CF_ROUTE,
   },
+  };
 });
