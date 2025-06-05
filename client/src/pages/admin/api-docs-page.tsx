@@ -1261,7 +1261,459 @@ const adminEndpoints: ApiEndpoint[] = [
     requiresAuth: true,
     requiresAdmin: true,
     tags: ["admin", "system"]
-  }
+  },
+  // Department Management Endpoints
+  {
+    method: "GET",
+    path: "/api/ticket-departments",
+    description: "Get all ticket departments available to users",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "Technical Support",
+        description: "Technical issues and server problems",
+        isActive: true,
+        displayOrder: 1
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["departments", "tickets"]
+  },
+  {
+    method: "GET", 
+    path: "/api/admin/ticket-departments",
+    description: "Get all ticket departments (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "Technical Support", 
+        description: "Technical issues and server problems",
+        isActive: true,
+        displayOrder: 1,
+        createdAt: "2025-01-01T00:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "departments", "tickets"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/ticket-departments", 
+    description: "Create a new ticket department (admin only)",
+    parameters: [
+      { name: "name", type: "string", required: true, description: "Department name", example: "Billing Support" },
+      { name: "description", type: "string", required: false, description: "Department description", example: "Billing and payment issues" },
+      { name: "isActive", type: "boolean", required: false, description: "Whether department is active", example: "true" },
+      { name: "displayOrder", type: "number", required: false, description: "Display order", example: "2" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      department: {
+        id: 2,
+        name: "Billing Support",
+        description: "Billing and payment issues", 
+        isActive: true,
+        displayOrder: 2,
+        createdAt: "2025-06-04T00:00:00Z"
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "departments", "tickets"]
+  },
+  {
+    method: "PUT",
+    path: "/api/admin/ticket-departments/:id",
+    description: "Update a ticket department (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Department ID", example: "1" },
+      { name: "name", type: "string", required: false, description: "Department name", example: "Technical Support" },
+      { name: "description", type: "string", required: false, description: "Department description", example: "Updated description" },
+      { name: "isActive", type: "boolean", required: false, description: "Whether department is active", example: "true" },
+      { name: "displayOrder", type: "number", required: false, description: "Display order", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      department: {
+        id: 1,
+        name: "Technical Support",
+        description: "Updated description",
+        isActive: true,
+        displayOrder: 1
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "departments", "tickets"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/admin/ticket-departments/:id",
+    description: "Delete a ticket department (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Department ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Department deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "departments", "tickets"]
+  },
+  // Blog/CMS Management Endpoints
+  {
+    method: "GET",
+    path: "/api/admin/blog",
+    description: "Get all blog posts (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        title: "Welcome to SkyPANEL",
+        slug: "welcome-to-skypanel",
+        content: "This is the first blog post...",
+        excerpt: "Welcome to our new platform",
+        author: "Admin",
+        categoryId: 1,
+        category: {
+          id: 1,
+          name: "Announcements",
+          slug: "announcements"
+        },
+        isPublished: true,
+        publishedAt: "2025-06-04T00:00:00Z",
+        createdAt: "2025-06-04T00:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "blog", "cms"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/blog",
+    description: "Create a new blog post (admin only)",
+    parameters: [
+      { name: "title", type: "string", required: true, description: "Blog post title", example: "New Feature Release" },
+      { name: "slug", type: "string", required: false, description: "URL slug (auto-generated if not provided)", example: "new-feature-release" },
+      { name: "content", type: "string", required: true, description: "Blog post content", example: "We're excited to announce..." },
+      { name: "excerpt", type: "string", required: false, description: "Post excerpt", example: "Brief description" },
+      { name: "categoryId", type: "number", required: true, description: "Category ID", example: "1" },
+      { name: "isPublished", type: "boolean", required: false, description: "Whether to publish immediately", example: "true" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      post: {
+        id: 2,
+        title: "New Feature Release",
+        slug: "new-feature-release",
+        content: "We're excited to announce...",
+        isPublished: true,
+        createdAt: "2025-06-04T00:00:00Z"
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "blog", "cms"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/blog/:id",
+    description: "Get a specific blog post (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Blog post ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      id: 1,
+      title: "Welcome to SkyPANEL",
+      slug: "welcome-to-skypanel", 
+      content: "This is the first blog post...",
+      excerpt: "Welcome to our new platform",
+      author: "Admin",
+      categoryId: 1,
+      isPublished: true,
+      publishedAt: "2025-06-04T00:00:00Z",
+      createdAt: "2025-06-04T00:00:00Z"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "blog", "cms"]
+  },
+  {
+    method: "PUT",
+    path: "/api/admin/blog/:id",
+    description: "Update a blog post (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Blog post ID", example: "1" },
+      { name: "title", type: "string", required: false, description: "Blog post title", example: "Updated Title" },
+      { name: "content", type: "string", required: false, description: "Blog post content", example: "Updated content..." },
+      { name: "excerpt", type: "string", required: false, description: "Post excerpt", example: "Updated excerpt" },
+      { name: "categoryId", type: "number", required: false, description: "Category ID", example: "2" },
+      { name: "isPublished", type: "boolean", required: false, description: "Publication status", example: "true" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      post: {
+        id: 1,
+        title: "Updated Title",
+        content: "Updated content...",
+        isPublished: true,
+        updatedAt: "2025-06-04T00:00:00Z"
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "blog", "cms"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/admin/blog/:id",
+    description: "Delete a blog post (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Blog post ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Blog post deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "blog", "cms"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/blog-categories",
+    description: "Get all blog categories (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "Announcements",
+        slug: "announcements",
+        description: "Company announcements and news",
+        isActive: true,
+        displayOrder: 1,
+        postCount: 5
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "blog", "categories"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/blog-categories",
+    description: "Create a new blog category (admin only)",
+    parameters: [
+      { name: "name", type: "string", required: true, description: "Category name", example: "News" },
+      { name: "slug", type: "string", required: false, description: "URL slug", example: "news" },
+      { name: "description", type: "string", required: false, description: "Category description", example: "Latest news updates" },
+      { name: "isActive", type: "boolean", required: false, description: "Whether category is active", example: "true" },
+      { name: "displayOrder", type: "number", required: false, description: "Display order", example: "2" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      category: {
+        id: 2,
+        name: "News",
+        slug: "news",
+        description: "Latest news updates",
+        isActive: true,
+        displayOrder: 2
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "blog", "categories"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/admin/blog-categories/:id",
+    description: "Delete a blog category (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Category ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Blog category deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "blog", "categories"]
+  },
+  // Documentation Management Endpoints
+  {
+    method: "GET",
+    path: "/api/admin/docs",
+    description: "Get all documentation articles (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        title: "Getting Started",
+        slug: "getting-started",
+        content: "This guide will help you...",
+        categoryId: 1,
+        category: {
+          id: 1,
+          name: "Tutorials",
+          slug: "tutorials"
+        },
+        isPublished: true,
+        displayOrder: 1,
+        createdAt: "2025-06-04T00:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "documentation", "docs"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/docs",
+    description: "Create a new documentation article (admin only)",
+    parameters: [
+      { name: "title", type: "string", required: true, description: "Document title", example: "Server Management Guide" },
+      { name: "slug", type: "string", required: false, description: "URL slug", example: "server-management-guide" },
+      { name: "content", type: "string", required: true, description: "Document content", example: "This guide covers..." },
+      { name: "categoryId", type: "number", required: true, description: "Category ID", example: "1" },
+      { name: "isPublished", type: "boolean", required: false, description: "Publication status", example: "true" },
+      { name: "displayOrder", type: "number", required: false, description: "Display order", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      doc: {
+        id: 2,
+        title: "Server Management Guide",
+        slug: "server-management-guide",
+        content: "This guide covers...",
+        isPublished: true,
+        createdAt: "2025-06-04T00:00:00Z"
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "documentation", "docs"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/docs/:id",
+    description: "Get a specific documentation article (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Document ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      id: 1,
+      title: "Getting Started",
+      slug: "getting-started",
+      content: "This guide will help you...",
+      categoryId: 1,
+      isPublished: true,
+      displayOrder: 1,
+      createdAt: "2025-06-04T00:00:00Z"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "documentation", "docs"]
+  },
+  {
+    method: "PUT",
+    path: "/api/admin/docs/:id",
+    description: "Update a documentation article (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Document ID", example: "1" },
+      { name: "title", type: "string", required: false, description: "Document title", example: "Updated Guide" },
+      { name: "content", type: "string", required: false, description: "Document content", example: "Updated content..." },
+      { name: "categoryId", type: "number", required: false, description: "Category ID", example: "2" },
+      { name: "isPublished", type: "boolean", required: false, description: "Publication status", example: "true" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      doc: {
+        id: 1,
+        title: "Updated Guide",
+        content: "Updated content...",
+        updatedAt: "2025-06-04T00:00:00Z"
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "documentation", "docs"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/admin/docs/:id",
+    description: "Delete a documentation article (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Document ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Documentation article deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "documentation", "docs"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/doc-categories",
+    description: "Get all documentation categories (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "Tutorials",
+        slug: "tutorials",
+        description: "Step-by-step tutorials",
+        isActive: true,
+        displayOrder: 1,
+        docCount: 5
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "documentation", "categories"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/doc-categories",
+    description: "Create a new documentation category (admin only)",
+    parameters: [
+      { name: "name", type: "string", required: true, description: "Category name", example: "API Reference" },
+      { name: "slug", type: "string", required: false, description: "URL slug", example: "api-reference" },
+      { name: "description", type: "string", required: false, description: "Category description", example: "API documentation and reference" },
+      { name: "isActive", type: "boolean", required: false, description: "Whether category is active", example: "true" },
+      { name: "displayOrder", type: "number", required: false, description: "Display order", example: "2" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      category: {
+        id: 2,
+        name: "API Reference",
+        slug: "api-reference",
+        description: "API documentation and reference",
+        isActive: true,
+        displayOrder: 2
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "documentation", "categories"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/admin/doc-categories/:id",
+    description: "Delete a documentation category (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Category ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Documentation category deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "documentation", "categories"]
+  },
 ];
 
 // Public endpoints
