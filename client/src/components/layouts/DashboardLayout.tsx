@@ -336,7 +336,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       icon: <HardDrive className="h-5 w-5 mr-3" />,
     },
     {
-      name: "Blog",
+      name: `${companyName}'s Blog`,
       href: "/dashboard/blog",
       icon: <FileText className="h-5 w-5 mr-3" />,
     },

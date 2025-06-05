@@ -222,7 +222,7 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
                 </div>
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                    {currentPost ? currentPost.title : `${branding.company_name} Blog`}
+                    {currentPost ? currentPost.title : `${branding.company_name}'s Blog`}
                   </h1>
                   <p className="text-muted-foreground text-lg mt-1">
                     {currentPost ? "Blog Post" : "Latest updates and insights"}
