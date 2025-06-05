@@ -4206,29 +4206,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate the expected balance increase
             const expectedBalance = initialBalance + amount;
             console.log(`Expected balance after adding $${amount}: $${expectedBalance.toFixed(2)}`);
+               // Check if there was a negative balance deduction
+          if (initialBalance < 0) {
+            // When initial balance is negative, calculate how much was actually deducted
+            // If the user had -$3.50 and added $5.00, they should have $1.50
+            // But if VirtFusion deducted the negative balance, they might have less
+            const expectedBalance = initialBalance + amount;
             
-            // Check if there was a negative balance deduction
-            if (updatedBalance < expectedBalance && initialBalance < 0) {
-              // Calculate the deduction amount (how much was used to cover negative balance)
-              const deductionAmount = expectedBalance - updatedBalance;
-              console.log(`Detected negative balance deduction: $${deductionAmount.toFixed(2)}`);
+            // Force the deduction amount to be at least the absolute value of the negative balance
+            // This ensures we always show the proper amount that was deducted to cover the negative balance
+            const deductionAmount = Math.abs(initialBalance); // Use the actual negative balance amount
+            
+            console.log(`Initial balance: $${initialBalance.toFixed(2)}`);
+            console.log(`Added amount: $${amount.toFixed(2)}`);
+            console.log(`Expected balance: $${expectedBalance.toFixed(2)}`);
+            console.log(`Actual balance: $${updatedBalance.toFixed(2)}`);
+            console.log(`Deduction amount: $${deductionAmount.toFixed(2)}`);
+            
+            // Always create the deduction transaction when there was a negative balance
+            if (deductionAmount > 0) {
+              const deductionTransaction: InsertTransaction = {
+                userId: req.user!.id,
+                amount: deductionAmount * -1, // Store as negative amount
+                type: "virtfusion_deduction",
+                description: `Automatic deduction to cover negative balance (linked to transaction #${createdTransaction.id})`,
+                status: "completed", // This is an automatic process that's already completed
+                paymentMethod: "paypal", // Same as the original transaction
+                paymentId: paymentId, // Same as the original transaction
+              };
               
-              // Create a second transaction to record the automatic deduction
-              if (deductionAmount > 0) {
-                const deductionTransaction: InsertTransaction = {
-                  userId: req.user!.id,
-                  amount: deductionAmount * -1, // Store as negative amount
-                  type: "virtfusion_deduction",
-                  description: `Automatic deduction to cover negative balance (linked to transaction #${createdTransaction.id})`,
-                  status: "completed", // This is an automatic process that's already completed
-                  paymentMethod: "paypal", // Same as the original transaction
-                  paymentId: paymentId, // Same as the original transaction
-                };
-                
-                console.log("Creating deduction transaction record:", deductionTransaction);
-                const createdDeductionTransaction = await storage.createTransaction(deductionTransaction);
-                console.log("Deduction transaction created with ID:", createdDeductionTransaction.id);
-              }
+              console.log("Creating deduction transaction record:", deductionTransaction);
+              const createdDeductionTransaction = await storage.createTransaction(deductionTransaction);
+              console.log("Deduction transaction created with ID:", createdDeductionTransaction.id);
+            } else {
+              console.log("No significant negative balance deduction detected");
+            }
             } else {
               console.log("No negative balance deduction detected");
             }
@@ -6455,9 +6467,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Expected balance after adding $${addedAmount}: $${expectedBalance.toFixed(2)}`);
           
           // Check if there was a negative balance deduction
-          if (updatedBalance < expectedBalance && initialBalance < 0) {
-            // Calculate the deduction amount (how much was used to cover negative balance)
-            const deductionAmount = expectedBalance - updatedBalance;
+          if (initialBalance < 0) {
+            // Force the deduction amount to be at least the absolute value of the negative balance
+            // This ensures we always show the proper amount that was deducted to cover the negative balance
+            const deductionAmount = Math.abs(initialBalance); // Use the actual negative balance amount
             console.log(`Detected negative balance deduction: $${deductionAmount.toFixed(2)}`);
             
             // Create a second transaction to record the automatic deduction

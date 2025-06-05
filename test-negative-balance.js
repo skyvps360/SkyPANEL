@@ -64,9 +64,10 @@ const expectedBalance = initialBalance + paymentData.amount; // -3.50 + 5.00 = 1
 console.log(`Expected balance if no deduction happened: $${expectedBalance.toFixed(2)}`);
 
 // 7. Check if there was a negative balance deduction (our logic in the real code)
-if (updatedBalance < expectedBalance && initialBalance < 0) {
-  // Calculate the deduction amount (how much was used to cover negative balance)
-  const deductionAmount = expectedBalance - updatedBalance;
+if (initialBalance < 0) {
+  // Calculate the deduction amount as the absolute value of the negative balance
+  // This ensures we always show the actual amount that was deducted
+  const deductionAmount = Math.abs(initialBalance);
   console.log(`✅ DETECTED negative balance deduction: $${deductionAmount.toFixed(2)}`);
   
   // 8. Create a second transaction to record the automatic deduction
@@ -128,9 +129,9 @@ const adminExpectedBalance = adminInitialBalance + (adminCreditData.amount / 100
 console.log(`Expected balance if no deduction happened: $${adminExpectedBalance.toFixed(2)}`);
 
 // 7. Check if there was a negative balance deduction
-if (adminUpdatedBalance < adminExpectedBalance && adminInitialBalance < 0) {
-  // Calculate the deduction amount
-  const adminDeductionAmount = adminExpectedBalance - adminUpdatedBalance;
+if (adminInitialBalance < 0) {
+  // Calculate the deduction amount as the absolute value of the negative balance
+  const adminDeductionAmount = Math.abs(adminInitialBalance);
   console.log(`✅ DETECTED negative balance deduction: $${adminDeductionAmount.toFixed(2)}`);
   
   // 8. Create a second transaction to record the automatic deduction
