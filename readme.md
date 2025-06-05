@@ -5,6 +5,7 @@
 
   <div align="center">
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/86156339ffcd4a3e95ab0b1ca107d8a7)](https://app.codacy.com/gh/skyvps360/SkyPANEL?utm_source=github.com&utm_medium=referral&utm_content=skyvps360/SkyPANEL&utm_campaign=Badge_Grade)
   [![Discord](https://img.shields.io/discord/1310474963865833483?style=social&logo=discord)](https://skyvps360.xyz/discord)
 
   </div>
