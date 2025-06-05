@@ -109,3 +109,8 @@ SkyPANEL is an enterprise-grade VirtFusion management platform for VPS hosting. 
 - Implement proper database indexes for frequent queries
 
 - Consider caching strategies for frequently accessed data
+
+## Commenting Guidelines
+- Use inline comments sparingly, only for complex logic
+- Use descriptive variable and function names to reduce the need for comments
+- Always comment on additional context or changes that may not be immediately obvious from the code itself
