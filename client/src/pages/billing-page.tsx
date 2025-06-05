@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, ExternalLink, Eye, Receipt, FileText, Edit3 } from "lucide-react";
+import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, ExternalLink, Eye, Receipt, FileText, Edit3, Search } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PayPalCheckout } from "@/components/billing/PayPalCheckout";
 import { useAuth } from "@/hooks/use-auth";
@@ -25,6 +25,7 @@ interface Transaction {
   status: string;
   paymentMethod?: string;
   paymentId?: string;
+  virtFusionCreditId?: string;
   createdAt: string;
 }
 
@@ -37,6 +38,8 @@ export default function BillingPage() {
   const [isCustomAmount, setIsCustomAmount] = useState(false);
   const [customAmountError, setCustomAmountError] = useState("");
   const [activeTab, setActiveTab] = useState("transactions");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
 
   // Fetch branding data
@@ -65,6 +68,36 @@ export default function BillingPage() {
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
   });
+
+  // Filter transactions based on search query and status filter
+  const filteredTransactions = React.useMemo(() => {
+    return transactions.filter(transaction => {
+      // Filter by status
+      if (statusFilter !== 'all' && transaction.status.toLowerCase() !== statusFilter.toLowerCase()) {
+        return false;
+      }
+
+      // Filter by search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const searchInCreditId = (transaction as any).virtFusionCreditId?.toLowerCase?.() || '';
+        const searchInCreditIdNoHyphens = searchInCreditId.replace(/-/g, '');
+        const queryNoHyphens = query.replace(/-/g, '');
+        
+        return (
+          transaction.description.toLowerCase().includes(query) ||
+          transaction.id.toString().includes(query) ||
+          transaction.amount.toString().includes(query) ||
+          transaction.status.toLowerCase().includes(query) ||
+          (transaction.paymentId && transaction.paymentId.toLowerCase().includes(query)) ||
+          searchInCreditId.includes(query) ||
+          searchInCreditIdNoHyphens.includes(queryNoHyphens)
+        );
+      }
+
+      return true;
+    });
+  }, [transactions, searchQuery, statusFilter]);
 
 
 
@@ -486,21 +519,59 @@ export default function BillingPage() {
 
               <TabsContent value="transactions" className="mt-0">
                 <div className="p-0">
+                  {/* Search and Filter Bar */}
+                  <div className="mb-6 p-1 bg-muted/30 rounded-lg">
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder="Search transactions..."
+                          className="pl-9 bg-background"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      <div className="w-full md:w-48">
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                          <option value="all">All Statuses</option>
+                          <option value="completed">Completed</option>
+                          <option value="pending">Pending</option>
+                          <option value="failed">Failed</option>
+                        </select>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={handleExportTransactions}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </Button>
+                    </div>
+                  </div>
+
                   {isLoading ? (
                     <div className="flex justify-center items-center py-12">
                       <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                       <p className="ml-2 font-medium text-muted-foreground">Loading transactions...</p>
                     </div>
-                  ) : transactions.length === 0 ? (
+                  ) : filteredTransactions.length === 0 ? (
                     <div className="text-center py-12 bg-muted/5 rounded-lg border border-border px-6">
                       <div className="p-4 rounded-full mx-auto w-16 h-16 mb-4 bg-primary/10 flex items-center justify-center">
                         <FileText className="h-8 w-8 text-primary" />
                       </div>
-                      <h3 className="text-lg font-medium mb-2 text-foreground">No Transactions Found</h3>
+                      <h3 className="text-lg font-medium mb-2 text-foreground">
+                        {searchQuery || statusFilter !== 'all' 
+                          ? 'No matching transactions found' 
+                          : 'No Transactions Found'}
+                      </h3>
                       <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                        {user?.isActive
-                         ? "You don't have any transactions yet. Add credits to get started with your account."
-                         : "You don't have any transactions yet. Your account is currently suspended."}
+                        {searchQuery || statusFilter !== 'all'
+                          ? 'Try adjusting your search or filter criteria.'
+                          : user?.isActive
+                            ? "You don't have any transactions yet. Add credits to get started with your account."
+                            : "You don't have any transactions yet. Your account is currently suspended."}
                       </p>
                       {user?.isActive ? (
                         <Button
@@ -521,7 +592,7 @@ export default function BillingPage() {
                     </div>
                 ) : (
                   <DataTable
-                    data={transactions}
+                    data={filteredTransactions}
                     columns={[
                       {
                         accessorKey: "description" as keyof Transaction,
