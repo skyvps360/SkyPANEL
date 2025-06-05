@@ -6,7 +6,7 @@
   <div align="center">
 
   [![Discord](https://img.shields.io/discord/1310474963865833483?style=social&logo=discord)](https://skyvps360.xyz/discord)
-
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/ea361b63c5ad4bf5b2e7d534c72ef799)](https://app.codacy.com/gh/skyvps360/SkyPANEL/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
   </div>
 
   ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
