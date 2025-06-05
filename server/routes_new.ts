@@ -4111,6 +4111,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tokens = amount * 100; // $1 = 100 tokens
       console.log(`Converting $${amount} to ${tokens} VirtFusion tokens`);
 
+      // Get user's balance BEFORE adding tokens (to detect negative balance)
+      let initialBalance = 0;
+      try {
+        console.log("Fetching user's initial VirtFusion balance");
+        const balanceData = await virtFusionApi.getUserHourlyStats(req.user!.id);
+        
+        if (balanceData?.data?.credit?.tokens) {
+          const tokenAmount = parseFloat(balanceData.data.credit.tokens);
+          const dollarAmount = tokenAmount / 100; // Convert tokens to dollars
+          initialBalance = dollarAmount;
+          console.log(`User's initial balance: ${initialBalance.toFixed(2)} USD (${tokenAmount} tokens)`);
+        } else {
+          console.log("Could not determine user's initial balance, defaulting to 0");
+        }
+      } catch (balanceError) {
+        console.error("Error fetching initial balance:", balanceError);
+        // Continue with initial balance of 0 if we can't fetch it
+      }
+
       // Create a new transaction locally for record keeping
       const transaction: InsertTransaction = {
         userId: req.user!.id,
@@ -4173,6 +4192,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateTransaction(createdTransaction.id, {
           status: "completed"
         });
+
+        // Get user's balance AFTER adding tokens to detect negative balance deduction
+        try {
+          console.log("Fetching user's updated VirtFusion balance");
+          const updatedBalanceData = await virtFusionApi.getUserHourlyStats(req.user!.id);
+          
+          if (updatedBalanceData?.data?.credit?.tokens) {
+            const updatedTokens = parseFloat(updatedBalanceData.data.credit.tokens);
+            const updatedBalance = updatedTokens / 100; // Convert tokens to dollars
+            console.log(`User's updated balance: ${updatedBalance.toFixed(2)} USD (${updatedTokens} tokens)`);
+            
+            // Calculate the expected balance increase
+            const expectedBalance = initialBalance + amount;
+            console.log(`Expected balance after adding $${amount}: $${expectedBalance.toFixed(2)}`);
+            
+            // Check if there was a negative balance deduction
+            if (updatedBalance < expectedBalance && initialBalance < 0) {
+              // Calculate the deduction amount (how much was used to cover negative balance)
+              const deductionAmount = expectedBalance - updatedBalance;
+              console.log(`Detected negative balance deduction: $${deductionAmount.toFixed(2)}`);
+              
+              // Create a second transaction to record the automatic deduction
+              if (deductionAmount > 0) {
+                const deductionTransaction: InsertTransaction = {
+                  userId: req.user!.id,
+                  amount: deductionAmount * -1, // Store as negative amount
+                  type: "virtfusion_deduction",
+                  description: `Automatic deduction to cover negative balance (linked to transaction #${createdTransaction.id})`,
+                  status: "completed", // This is an automatic process that's already completed
+                  paymentMethod: "paypal", // Same as the original transaction
+                  paymentId: paymentId, // Same as the original transaction
+                };
+                
+                console.log("Creating deduction transaction record:", deductionTransaction);
+                const createdDeductionTransaction = await storage.createTransaction(deductionTransaction);
+                console.log("Deduction transaction created with ID:", createdDeductionTransaction.id);
+              }
+            } else {
+              console.log("No negative balance deduction detected");
+            }
+          } else {
+            console.log("Could not determine user's updated balance");
+          }
+        } catch (balanceError) {
+          console.error("Error fetching updated balance:", balanceError);
+          // Continue without creating deduction record if we can't fetch the updated balance
+        }
 
         res.json({
           success: true,

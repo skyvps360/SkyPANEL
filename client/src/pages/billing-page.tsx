@@ -141,7 +141,8 @@ export default function BillingPage() {
   // Helper function to determine if a transaction is a debit/removal
   const isDebit = (transaction: Transaction) => {
     return transaction.type === 'debit' ||
-           transaction.type === 'virtfusion_credit_removal';
+           transaction.type === 'virtfusion_credit_removal' ||
+           transaction.type === 'virtfusion_deduction';
   };
 
   // Calculate billing summary using VirtFusion data only
