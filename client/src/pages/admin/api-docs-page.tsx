@@ -9,6 +9,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   AlertCircle,
   Copy,
@@ -19,16 +26,14 @@ import {
   User,
   RefreshCw,
   X,
-  ChevronDown
+  ChevronDown,
+  Key,
+  Plus,
+  Trash2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { DocumentTitle } from '@/components/DocumentTitle';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 // Context for API documentation
 interface ApiDocsContextType {
@@ -1860,6 +1865,437 @@ const publicEndpoints: ApiEndpoint[] = [
   }
 ];
 
+// API Key Management Component
+const ApiKeyManagement = () => {
+  const { toast } = useToast();
+  const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
+  const [expirationDays, setExpirationDays] = useState<number | null>(90);
+  const [newApiKey, setNewApiKey] = useState<string | null>(null);
+  const [showNewApiKey, setShowNewApiKey] = useState(false);
+
+  const availableScopes = [
+    { value: "read:user", label: "Read user information", description: "Access user profile and account information" },
+    { value: "read:servers", label: "Read server information", description: "View server details, status, and configurations" },
+    { value: "write:servers", label: "Modify servers", description: "Create, update, restart, and manage servers" },
+    { value: "read:billing", label: "Read billing information", description: "View billing history, invoices, and credit balance" },
+    { value: "write:billing", label: "Modify billing", description: "Add credits and manage billing settings" },
+    { value: "read:tickets", label: "Read support tickets", description: "View support tickets and messages" },
+    { value: "write:tickets", label: "Manage support tickets", description: "Create, update, and respond to support tickets" },
+    { value: "admin:users", label: "Admin - User Management", description: "Administrative access to user accounts (admin only)" },
+    { value: "admin:billing", label: "Admin - Billing Management", description: "Administrative access to billing functions (admin only)" },
+    { value: "admin:system", label: "Admin - System Settings", description: "Administrative access to system settings (admin only)" }
+  ];
+
+  // Fetch API keys
+  const fetchApiKeys = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/user/api-keys');
+      if (!response.ok) {
+        throw new Error('Failed to fetch API keys');
+      }
+      const data = await response.json();
+      setApiKeys(data);
+    } catch (error) {
+      console.error('Error fetching API keys:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load API keys. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Create API key
+  const handleCreateApiKey = async () => {
+    if (!newKeyName.trim()) {
+      toast({
+        title: "Invalid name",
+        description: "Please enter a name for your API key.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedScopes.length === 0) {
+      toast({
+        title: "No scopes selected",
+        description: "Please select at least one scope for your API key.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/user/api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newKeyName,
+          scopes: selectedScopes,
+          expiresIn: expirationDays
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create API key');
+      }
+
+      const data = await response.json();
+      setNewApiKey(data.key || data.apiKey);
+      setShowNewApiKey(true);
+
+      // Reset form
+      setNewKeyName('');
+      setSelectedScopes([]);
+      setExpirationDays(90);
+
+      // Refetch keys
+      await fetchApiKeys();
+
+      toast({
+        title: "API Key Created",
+        description: "Your new API key has been created successfully.",
+      });
+
+    } catch (error) {
+      toast({
+        title: "Error creating API key",
+        description: "Could not create API key. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Delete API key
+  const handleDeleteApiKey = async (keyId: number) => {
+    if (!confirm("Are you sure you want to delete this API key? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/user/api-keys/${keyId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete API key');
+      }
+
+      toast({
+        title: "API Key Deleted",
+        description: "Your API key has been deleted successfully.",
+      });
+
+      await fetchApiKeys();
+
+    } catch (error) {
+      toast({
+        title: "Error deleting API key",
+        description: "Could not delete API key. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Copy API key to clipboard
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied",
+      description: "API key copied to clipboard.",
+    });
+  };
+
+  // Format date
+  const formatDate = (date: Date | null | string) => {
+    if (!date) return 'Never';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+  };
+
+  // Load API keys on component mount
+  React.useEffect(() => {
+    fetchApiKeys();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <RefreshCw className="h-6 w-6 animate-spin" />
+        <span className="ml-2">Loading API keys...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">API Key Management</h2>
+          <p className="text-muted-foreground">
+            Create and manage API keys for secure access to the SkyPANEL API.
+          </p>
+        </div>
+        <Button onClick={() => setIsCreateDialogOpen(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Create API Key
+        </Button>
+      </div>
+
+      {/* API Keys List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Key className="h-5 w-5" />
+            Your API Keys ({apiKeys.length})
+          </CardTitle>
+          <CardDescription>
+            Manage your API keys for accessing the SkyPANEL API programmatically.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {apiKeys.length === 0 ? (
+            <div className="text-center py-8">
+              <Key className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No API Keys</h3>
+              <p className="text-muted-foreground mb-4">
+                You haven't created any API keys yet. Create one to start using the API.
+              </p>
+              <Button onClick={() => setIsCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First API Key
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {apiKeys.map((key) => (
+                <div key={key.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <h4 className="font-medium">{key.name}</h4>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>Created: {formatDate(key.createdAt)}</span>
+                          {key.lastUsed && (
+                            <>
+                              <span>•</span>
+                              <span>Last used: {formatDate(key.lastUsed)}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <Badge variant={key.isActive || key.active ? "default" : "secondary"}>
+                        {key.isActive || key.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeleteApiKey(key.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div>
+                      <Label className="text-sm font-medium">Key Prefix</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
+                          {key.prefix}...
+                        </code>
+                        <span className="text-sm text-muted-foreground">
+                          (Only prefix shown for security)
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {key.scopes && key.scopes.length > 0 && (
+                      <div>
+                        <Label className="text-sm font-medium">Scopes</Label>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {key.scopes.map((scope: string) => (
+                            <Badge key={scope} variant="secondary" className="text-xs">
+                              {scope}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {key.expiresAt && (
+                      <div>
+                        <Label className="text-sm font-medium">Expires</Label>
+                        <div className="text-sm text-muted-foreground">
+                          {formatDate(key.expiresAt)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Create API Key Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New API Key</DialogTitle>
+            <DialogDescription>
+              Create a new API key to access the SkyPANEL API. Choose the appropriate scopes for your use case.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="key-name">API Key Name</Label>
+              <Input
+                id="key-name"
+                placeholder="My Application"
+                value={newKeyName}
+                onChange={(e) => setNewKeyName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                A descriptive name to help you identify this key later.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expiration">Expiration</Label>
+              <Select value={expirationDays?.toString() || "never"} onValueChange={(value) => setExpirationDays(value === "never" ? null : parseInt(value))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="never">Never expires</SelectItem>
+                  <SelectItem value="30">30 days</SelectItem>
+                  <SelectItem value="60">60 days</SelectItem>
+                  <SelectItem value="90">90 days</SelectItem>
+                  <SelectItem value="180">180 days</SelectItem>
+                  <SelectItem value="365">1 year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              <Label>Permissions (Scopes)</Label>
+              <p className="text-sm text-muted-foreground">
+                Select the permissions this API key should have. Only grant the minimum permissions needed.
+              </p>
+              <div className="space-y-3 max-h-60 overflow-y-auto border rounded-md p-3">
+                {availableScopes.map((scope) => (
+                  <div key={scope.value} className="flex items-start space-x-3">
+                    <Checkbox
+                      id={scope.value}
+                      checked={selectedScopes.includes(scope.value)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedScopes([...selectedScopes, scope.value]);
+                        } else {
+                          setSelectedScopes(selectedScopes.filter((s) => s !== scope.value));
+                        }
+                      }}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <label
+                        htmlFor={scope.value}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {scope.label}
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        {scope.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateApiKey} disabled={!newKeyName.trim() || selectedScopes.length === 0}>
+              Create API Key
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* New API Key Display Dialog */}
+      <Dialog open={showNewApiKey} onOpenChange={setShowNewApiKey}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Your New API Key</DialogTitle>
+            <DialogDescription>
+              Please copy your API key now. You won't be able to see it again for security reasons.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Important:</strong> Store this API key securely. It won't be shown again.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label>API Key</Label>
+              <div className="flex items-center space-x-2">
+                <Input
+                  value={newApiKey || ''}
+                  readOnly
+                  className="font-mono text-sm"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => newApiKey && copyToClipboard(newApiKey)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Usage Example</Label>
+              <Textarea
+                value={`curl -H "Authorization: Bearer ${newApiKey || 'YOUR_API_KEY'}" \\
+  ${window.location.origin}/api/user`}
+                readOnly
+                className="font-mono text-sm"
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => {
+              setShowNewApiKey(false);
+              setNewApiKey(null);
+            }}>
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
 // Main API Documentation page for Admin Area
 export default function ApiDocsAdminPage() {
   const { toast } = useToast();
@@ -1984,6 +2420,7 @@ export default function ApiDocsAdminPage() {
           <div className="flex flex-wrap gap-1 items-center">
             <span className="text-sm text-muted-foreground">Filtered by:</span>
             {selectedTags.map(tag => (
+             
               <Badge
                 key={tag}
                 variant="secondary"
@@ -2011,18 +2448,20 @@ export default function ApiDocsAdminPage() {
                     <SelectItem value="servers">Servers</SelectItem>
                     <SelectItem value="billing">Billing</SelectItem>
                     <SelectItem value="api-keys">API Keys</SelectItem>
+                    <SelectItem value="manage-keys">Manage Keys</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="public">Public</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             ) : (
-              <TabsList className="grid grid-cols-3 lg:grid-cols-7 h-auto">
+              <TabsList className="grid grid-cols-4 lg:grid-cols-8 h-auto">
                 <TabsTrigger value="overview" className="py-2">Overview</TabsTrigger>
                 <TabsTrigger value="users" className="py-2">User</TabsTrigger>
                 <TabsTrigger value="servers" className="py-2">Servers</TabsTrigger>
                 <TabsTrigger value="billing" className="py-2">Billing</TabsTrigger>
                 <TabsTrigger value="api-keys" className="py-2">API Keys</TabsTrigger>
+                <TabsTrigger value="manage-keys" className="py-2">Manage Keys</TabsTrigger>
                 <TabsTrigger value="admin" className="py-2">Admin</TabsTrigger>
                 <TabsTrigger value="public" className="py-2">Public</TabsTrigger>
               </TabsList>
@@ -2090,6 +2529,10 @@ export default function ApiDocsAdminPage() {
                 onTagSelect={handleTagSelect}
                 selectedTags={selectedTags}
               />
+            </TabsContent>
+
+            <TabsContent value="manage-keys" className="space-y-6">
+              <ApiKeyManagement />
             </TabsContent>
 
             <TabsContent value="admin" className="space-y-6">
