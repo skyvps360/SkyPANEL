@@ -211,6 +211,12 @@ export default function TransactionDetailPage() {
                 <p className="text-lg font-medium">{transaction.paymentId}</p>
               </div>
             )}
+            {transaction.virtFusionCreditId && (
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">VirtFusion Credit ID</h3>
+                <p className="text-lg font-medium text-primary">{transaction.virtFusionCreditId}</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

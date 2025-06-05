@@ -192,9 +192,17 @@ export default function BillingPage() {
                 {transaction.description}
               </a>
             </div>
-            {transaction.paymentMethod && (
-              <div className="text-xs text-gray-500 capitalize">{transaction.paymentMethod}</div>
-            )}
+            <div className="text-xs text-gray-500 flex items-center gap-2">
+              {transaction.virtFusionCreditId && (
+                <span className="text-primary font-medium">Credit ID: {transaction.virtFusionCreditId}</span>
+              )}
+              {transaction.paymentMethod && (
+                <>
+                  {transaction.virtFusionCreditId && <span className="w-1 h-1 rounded-full bg-gray-400"></span>}
+                  <span className="capitalize">{transaction.paymentMethod}</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       ),
@@ -535,6 +543,12 @@ export default function BillingPage() {
                               <div className="text-sm font-medium text-foreground">{transaction.description}</div>
                               <div className="text-xs text-muted-foreground flex items-center gap-2">
                                 <span>ID: #{transaction.id}</span>
+                                {transaction.virtFusionCreditId && (
+                                  <>
+                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
+                                    <span className="text-primary font-medium">Credit ID: {transaction.virtFusionCreditId}</span>
+                                  </>
+                                )}
                                 {transaction.paymentMethod && (
                                   <>
                                     <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>

@@ -4187,10 +4187,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log("VirtFusion token add response:", virtFusionResult);
 
-        // Mark the transaction as completed
-        console.log(`Updating transaction ${createdTransaction.id} status to completed`);
+        // Extract VirtFusion credit ID from the response
+        const virtFusionCreditId = virtFusionResult?.data?.id;
+        console.log("VirtFusion credit ID:", virtFusionCreditId);
+
+        // Mark the transaction as completed and store the VirtFusion credit ID
+        console.log(`Updating transaction ${createdTransaction.id} status to completed with credit ID: ${virtFusionCreditId}`);
         await storage.updateTransaction(createdTransaction.id, {
-          status: "completed"
+          status: "completed",
+          virtFusionCreditId: virtFusionCreditId ? String(virtFusionCreditId) : null,
+          description: virtFusionCreditId
+            ? `VirtFusion token purchase via PayPal (Credit ID: ${virtFusionCreditId})`
+            : "VirtFusion token purchase via PayPal"
         });
 
         // Get user's balance AFTER adding tokens to detect negative balance deduction
@@ -4569,9 +4577,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         console.log("VirtFusion credit add response:", virtFusionResult);
 
-        // Update transaction status
+        // Extract VirtFusion credit ID from the response
+        const virtFusionCreditId = virtFusionResult?.data?.id;
+        console.log("VirtFusion credit ID:", virtFusionCreditId);
+
+        // Update transaction status and store the VirtFusion credit ID
         await storage.updateTransaction(createdTransaction.id, {
-          status: "completed"
+          status: "completed",
+          virtFusionCreditId: virtFusionCreditId ? String(virtFusionCreditId) : null,
+          description: virtFusionCreditId
+            ? `Admin test credit via VirtFusion API (Credit ID: ${virtFusionCreditId})`
+            : "Admin test credit via VirtFusion API"
         });
 
 
@@ -6448,6 +6464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `Added ${amount} tokens to VirtFusion (Credit ID: ${result.data.id})`,
         type: "credit", // Using "credit" type means it will display as positive in the frontend
         status: "completed",
+        virtFusionCreditId: String(result.data.id), // Store the VirtFusion credit ID
         reference: reference || null
       });
 

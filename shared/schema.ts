@@ -98,6 +98,7 @@ export const transactions = pgTable("transactions", {
   status: text("status").notNull().default("pending"), // pending, completed, failed
   paymentMethod: text("payment_method"),
   paymentId: text("payment_id"),
+  virtFusionCreditId: text("virtfusion_credit_id"), // VirtFusion credit ID for tracking
   createdAt: timestamp("created_at").defaultNow(),
 });
 
