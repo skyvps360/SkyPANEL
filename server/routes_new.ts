@@ -3965,13 +3965,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     doc.font('Helvetica-Bold').text(`Net Balance: $${(totalCredit - totalDebit).toFixed(2)}`, 50, doc.y + 30);
 
     // Footer
-    const pageCount = doc.bufferedPageRange().count;
-    for (let i = 0; i < pageCount; i++) {
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
       doc.switchToPage(i);
 
       // Add page number
       doc.fontSize(8).text(
-        `Page ${i + 1} of ${pageCount}`,
+        `Page ${i - range.start + 1} of ${range.count}`,
         50, 780,
         { align: 'center', width: 500 }
       );
