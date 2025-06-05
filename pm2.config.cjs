@@ -7,8 +7,8 @@ module.exports = {
       env: {
         NODE_ENV: "production"
       },
-      exec_mode: "cluster", // Using cluster mode for high availability
-      instances: "max",
+      exec_mode: "fork", // Using cluster mode for high availability
+      instances: "1",
       autorestart: true,
       watch: false, // Disable watch mode in production
       max_memory_restart: "512M",
