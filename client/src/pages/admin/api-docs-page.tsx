@@ -1375,8 +1375,8 @@ const adminEndpoints: ApiEndpoint[] = [
     responseExample: JSON.stringify([
       {
         id: 1,
-        title: "Welcome to SkyPANEL",
-        slug: "welcome-to-skypanel",
+        title: "Welcome to SkyVPS360",
+        slug: "welcome-to-SkyVPS360",
         content: "This is the first blog post...",
         excerpt: "Welcome to our new platform",
         author: "Admin",
@@ -1431,8 +1431,8 @@ const adminEndpoints: ApiEndpoint[] = [
     ],
     responseExample: JSON.stringify({
       id: 1,
-      title: "Welcome to SkyPANEL",
-      slug: "welcome-to-skypanel", 
+      title: "Welcome to SkyVPS360",
+      slug: "welcome-to-SkyVPS360", 
       content: "This is the first blog post...",
       excerpt: "Welcome to our new platform",
       author: "Admin",
@@ -2041,7 +2041,7 @@ const ApiKeyManagement = () => {
         <div>
           <h2 className="text-2xl font-bold">API Key Management</h2>
           <p className="text-muted-foreground">
-            Create and manage API keys for secure access to the SkyPANEL API.
+            Create and manage API keys for secure access to the SkyVPS360 API.
           </p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)} className="flex items-center gap-2">
@@ -2058,7 +2058,7 @@ const ApiKeyManagement = () => {
             Your API Keys ({apiKeys.length})
           </CardTitle>
           <CardDescription>
-            Manage your API keys for accessing the SkyPANEL API programmatically.
+            Manage your API keys for accessing the SkyVPS360 API programmatically.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -2153,7 +2153,7 @@ const ApiKeyManagement = () => {
           <DialogHeader>
             <DialogTitle>Create New API Key</DialogTitle>
             <DialogDescription>
-              Create a new API key to access the SkyPANEL API. Choose the appropriate scopes for your use case.
+              Create a new API key to access the SkyVPS360 API. Choose the appropriate scopes for your use case.
             </DialogDescription>
           </DialogHeader>
 

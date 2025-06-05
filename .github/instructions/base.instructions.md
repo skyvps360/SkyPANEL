@@ -5,7 +5,7 @@ applyTo: '**'
 
 ## Project Overview
 
-SkyPANEL is an enterprise-grade VirtFusion management platform for VPS hosting. The application provides a comprehensive solution with features including user management, server control, billing systems, support ticketing, AI-powered assistance, and integration with external services like Discord and BetterStack.
+SkyPANEL is used for SkyVPS360.xyz which is an enterprise-grade VirtFusion management platform for VPS hosting. The application provides a comprehensive solution with features including user management, server control, billing systems, support ticketing, AI-powered assistance, and integration with external services like Discord and BetterStack.
 
 
 ## Architecture
