@@ -4623,13 +4623,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ----- Support Ticket Routes -----
 
   // Get user's tickets
-  // Ticket Department Routes
+  // Ticket Department Routes (now using unified support departments)
   app.get("/api/ticket-departments", isAuthenticated, async (req, res) => {
     try {
-      const departments = await storage.getActiveTicketDepartments();
-      res.json(departments);
+      // Use unified support departments instead of legacy ticket departments
+      const departments = await storage.getSupportDepartments();
+      // Filter to only active departments
+      const activeDepartments = departments.filter(dept => dept.isActive);
+      res.json(activeDepartments);
     } catch (error: any) {
-      console.error("Error fetching ticket departments:", error);
+      console.error("Error fetching support departments:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -5145,7 +5148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messages = await storage.getTicketMessages(ticketId);
 
       // Get department info
-      const department = ticket.departmentId ? await storage.getTicketDepartment(ticket.departmentId) : null;
+      const department = ticket.departmentId ? await storage.getSupportDepartment(ticket.departmentId) : null;
 
       // If this is a VPS-related ticket, fetch the VPS information
       let server = null;
@@ -5238,7 +5241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if department exists and is active
-      const department = await storage.getTicketDepartment(req.body.departmentId);
+      const department = await storage.getSupportDepartment(req.body.departmentId);
       if (!department) {
         return res.status(404).json({ error: "Selected department not found" });
       }
