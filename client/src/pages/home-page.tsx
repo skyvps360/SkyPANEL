@@ -45,7 +45,6 @@ export default function HomePage() {
   const { user } = useAuth();
   const [location, navigate] = useLocation();
   const [stats, setStats] = useState({
-    creditBalance: user?.credits || 0,
     openTickets: 0,
     virtFusionTokens: 0,
     virtFusionCredits: 0,
@@ -117,10 +116,9 @@ export default function HomePage() {
     if (balanceData) {
       setStats(prevStats => ({
         ...prevStats,
-        creditBalance: balanceData.credits || 0,
         // Use VirtFusion data from the balance endpoint if available
-        virtFusionCredits: balanceData.virtFusionCredits || 0,
-        virtFusionTokens: balanceData.virtFusionTokens || 0
+        virtFusionCredits: balanceData.virtFusionCredits ?? 0,
+        virtFusionTokens: balanceData.virtFusionTokens ?? 0
       }));
     }
 
@@ -135,9 +133,9 @@ export default function HomePage() {
     }
   }, [tickets, servers, balanceData, usageData, user]);
 
-  // Always prioritize VirtFusion balance for display
-  const hasVirtFusion = stats.virtFusionTokens > 0;
-  const displayCredits = hasVirtFusion ? stats.virtFusionCredits : 0;
+  // Always prioritize VirtFusion balance for display - including negative balances
+  const hasVirtFusion = stats.virtFusionTokens !== 0 || stats.virtFusionCredits !== 0; // Show VirtFusion data for any non-zero amount
+  const displayCredits = stats.virtFusionCredits ?? 0; // Show actual balance including negatives, fallback to 0 only if undefined/null
 
   return (
     <DashboardLayout>
@@ -195,7 +193,7 @@ export default function HomePage() {
                       <p className="text-sm font-medium text-gray-600 mb-2">
                         {hasVirtFusion ? "VirtFusion Balance" : "Credit Balance"}
                       </p>
-                      <h3 className="text-3xl font-bold text-gray-900 mb-3">
+                      <h3 className={`text-3xl font-bold mb-3 ${displayCredits < 0 ? 'text-red-600' : 'text-gray-900'}`}>
                         ${displayCredits.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2
@@ -210,7 +208,10 @@ export default function HomePage() {
                             className="w-2 h-2 rounded-full mr-2"
                             style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
                           />
-                          {stats.virtFusionTokens.toLocaleString()} tokens available
+                          {stats.virtFusionTokens >= 0 
+                            ? `${stats.virtFusionTokens.toLocaleString()} tokens available`
+                            : `${Math.abs(stats.virtFusionTokens).toLocaleString()} tokens overdrawn`
+                          }
                         </div>
                       )}
                     </div>

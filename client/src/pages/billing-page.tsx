@@ -157,9 +157,9 @@ export default function BillingPage() {
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
   const summaryData = {
-    // Use VirtFusion balance only
-    balance: balanceData?.virtFusionCredits || 0,
-    virtFusionTokens: balanceData?.virtFusionTokens || 0,
+    // Use VirtFusion balance only - use nullish coalescing to preserve negative balances
+    balance: balanceData?.virtFusionCredits ?? 0,
+    virtFusionTokens: balanceData?.virtFusionTokens ?? 0,
 
     // Use VirtFusion API data if available, otherwise fall back to transaction calculation
     spent30Days: (usageData && 'usage' in usageData) ? usageData.usage : spentFromTransactions,
@@ -333,9 +333,9 @@ export default function BillingPage() {
                 {/* Billing Stats Summary */}
                 <div className="flex flex-wrap gap-6 mt-6">
                   <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                    <span className="text-sm font-medium text-foreground">
-                      ${summaryData.balance.toFixed(2)} Available
+                    <div className={`w-3 h-3 rounded-full ${summaryData.balance < 0 ? 'bg-red-600' : 'bg-primary'}`} />
+                    <span className={`text-sm font-medium ${summaryData.balance < 0 ? 'text-red-600' : 'text-foreground'}`}>
+                      ${summaryData.balance.toFixed(2)} {summaryData.balance < 0 ? 'Overdrawn' : 'Available'}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -389,7 +389,9 @@ export default function BillingPage() {
             <CardContent className="px-6 py-5">
               <div className="mb-2">
                 <div className="flex items-center gap-1">
-                  <span className="text-3xl font-bold text-foreground">${summaryData.balance.toFixed(2)}</span>
+                  <span className={`text-3xl font-bold ${summaryData.balance < 0 ? 'text-red-600' : 'text-foreground'}`}>
+                    ${summaryData.balance.toFixed(2)}
+                  </span>
                   <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
                 </div>
               </div>
@@ -398,7 +400,9 @@ export default function BillingPage() {
               <div className="mt-3 pt-3 border-t border-border">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">VirtFusion Tokens:</span>
-                  <span className="font-medium text-primary">{summaryData.virtFusionTokens.toLocaleString()}</span>
+                  <span className={`font-medium ${summaryData.virtFusionTokens < 0 ? 'text-red-600' : 'text-primary'}`}>
+                    {summaryData.virtFusionTokens.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
                   <span>100 tokens = $1.00 USD</span>

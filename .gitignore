@@ -8,4 +8,4 @@ attached_assets
 package-lock.json
 .env
 .wrangler
-runtipi
+dnsmasq.conf
