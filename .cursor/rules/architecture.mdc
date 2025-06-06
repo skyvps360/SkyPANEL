@@ -39,3 +39,4 @@ SkyPANEL follows RESTful API design with these key characteristics:
 - Authentication via Bearer token in Authorization header
 - Rate limiting (100 requests/minute per API key)
 - Standard error format with appropriate HTTP status codes
+- ALWAYS use companyName when defining the name of SkyPANEL as this is a SaaS
