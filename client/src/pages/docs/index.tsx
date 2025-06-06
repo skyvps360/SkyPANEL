@@ -178,9 +178,17 @@ export default function DocsPage() {
           
           <div className="max-w-screen-xl mx-auto py-16 px-4 sm:px-6 relative z-10">
             <div className="max-w-3xl">
-              <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">
-                Knowledge Base
-              </h1>
+              <div className="flex items-center mb-6">
+                <div
+                  className="p-3 rounded-full mr-4"
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                >
+                  <FileText className="h-8 w-8 text-white" />
+                </div>
+                <h1 className="text-4xl md:text-5xl font-extrabold text-white">
+                  Knowledge Base
+                </h1>
+              </div>
               <p className="text-white text-lg opacity-90 max-w-xl">
                 Browse our documentation to find answers, guides, and help with our services.
               </p>

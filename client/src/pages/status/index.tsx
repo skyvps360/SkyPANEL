@@ -422,9 +422,17 @@ export default function StatusPage() {
           
           <div className="max-w-screen-xl mx-auto py-12 px-4 sm:px-6 relative z-10">
             <div className="max-w-3xl">
-              <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-white">
-                System Status
-              </h1>
+              <div className="flex items-center mb-6">
+                <div
+                  className="p-3 rounded-full mr-4"
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                >
+                  <Activity className="h-8 w-8 text-white" />
+                </div>
+                <h1 className="text-3xl md:text-4xl font-extrabold text-white">
+                  System Status
+                </h1>
+              </div>
               <p className="text-white text-lg opacity-90">
                 Real-time monitoring and status of our infrastructure and services
               </p>

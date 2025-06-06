@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, Server } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import * as LucideIcons from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -229,14 +229,43 @@ export default function PlansPage() {
   
   return (
     <PublicLayout>
-      <div className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Our VPS Plans</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Choose the perfect VPS plan for your needs with our range of high-performance options.
-            All plans include 24/7 support, 99.9% uptime guarantee, and enterprise-grade security.
-          </p>
+      <div className="w-full">
+        {/* Hero section with colored background - matching blog, docs, status, and speed-test pages */}
+        <div style={{ backgroundColor: brandColors.primary.full }} className="relative overflow-hidden w-full">
+          {/* Decorative bubbles in the background, matching other pages */}
+          <div className="absolute top-0 right-0 opacity-10">
+            <svg width="350" height="350" viewBox="0 0 350 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="175" cy="175" r="175" fill="white" />
+            </svg>
+          </div>
+          <div className="absolute bottom-0 left-0 opacity-10 translate-y-1/2 -translate-x-1/4">
+            <svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="150" cy="150" r="150" fill="white" />
+            </svg>
+          </div>
+
+          <div className="max-w-screen-xl mx-auto py-16 px-4 sm:px-6 relative z-10">
+            <div className="max-w-3xl">
+              <div className="flex items-center mb-6">
+                <div
+                  className="p-3 rounded-full mr-4"
+                  style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+                >
+                  <Server className="h-8 w-8 text-white" />
+                </div>
+                <h1 className="text-4xl md:text-5xl font-extrabold text-white">
+                  Our VPS Plans
+                </h1>
+              </div>
+              <p className="text-white text-lg opacity-90 max-w-xl">
+                Choose the perfect VPS plan for your needs with our range of high-performance options.
+                All plans include 24/7 support, 99.9% uptime guarantee, and enterprise-grade security.
+              </p>
+            </div>
+          </div>
         </div>
+
+      <div className="container mx-auto px-4 py-12">
         
         {/* Filters for VPS Configuration */}
         <div className="mb-16 bg-gray-50 p-6 rounded-lg border border-gray-200">
@@ -778,6 +807,7 @@ export default function PlansPage() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </PublicLayout>
   );

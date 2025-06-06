@@ -104,28 +104,40 @@ export default function teamPage() {
         <meta name="description" content={`Meet the team behind ${companyName} - dedicated professionals providing excellent VPS hosting services.`} />
       </Helmet>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-gray-50 to-gray-100 py-16">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto">
-            <div className="flex items-center justify-center mb-6">
+      {/* Hero Section - matching blog, docs, status, and speed-test pages */}
+      <div style={{ backgroundColor: brandColors.primary.full }} className="relative overflow-hidden w-full">
+        {/* Decorative bubbles in the background, matching other pages */}
+        <div className="absolute top-0 right-0 opacity-10">
+          <svg width="350" height="350" viewBox="0 0 350 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="175" cy="175" r="175" fill="white" />
+          </svg>
+        </div>
+        <div className="absolute bottom-0 left-0 opacity-10 translate-y-1/2 -translate-x-1/4">
+          <svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="150" cy="150" r="150" fill="white" />
+          </svg>
+        </div>
+
+        <div className="max-w-screen-xl mx-auto py-16 px-4 sm:px-6 relative z-10">
+          <div className="max-w-3xl">
+            <div className="flex items-center mb-6">
               <div
                 className="p-3 rounded-full mr-4"
-                style={{ backgroundColor: brandColors.primary.extraLight }}
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
               >
-                <Users className="h-8 w-8" style={{ color: brandColors.primary.full }} />
+                <Users className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-white">
                 Meet Our Team
               </h1>
             </div>
-            <p className="text-xl text-gray-600 leading-relaxed">
+            <p className="text-white text-lg opacity-90 max-w-xl leading-relaxed">
               Get to know the dedicated professionals behind {companyName} who work tirelessly
               to provide you with exceptional VPS hosting services and support.
             </p>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Team Members Section */}
       <section className="py-16 bg-white">

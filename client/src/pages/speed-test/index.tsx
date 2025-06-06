@@ -9,7 +9,8 @@ import {
   Gauge,
   Server,
   ArrowRight,
-  Clock
+  Clock,
+  Zap
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -263,9 +264,17 @@ export default function SpeedTestPage() {
         
         <div className="max-w-screen-xl mx-auto py-12 px-4 sm:px-6 relative z-10">
           <div className="max-w-3xl">
-            <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-white">
-              Network Speed Test
-            </h1>
+            <div className="flex items-center mb-6">
+              <div
+                className="p-3 rounded-full mr-4"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
+              >
+                <Zap className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-white">
+                Network Speed Test
+              </h1>
+            </div>
             <p className="text-white text-lg opacity-90">
               Test your connection speed to our global server network. Verify download and upload speeds, latency, and overall connection quality.
             </p>
