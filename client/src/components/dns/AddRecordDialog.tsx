@@ -43,7 +43,9 @@ import {
 // Form validation schema
 const recordSchema = z.object({
   name: z.string().min(1, "Record name is required"),
-  type: z.enum(VALID_DNS_RECORD_TYPES as [string, ...string[]]),
+  // VALID_DNS_RECORD_TYPES is exported as a `readonly [...]` tuple – pass it
+  // directly so Zod can infer the literal union.
+  type: z.enum(VALID_DNS_RECORD_TYPES),
   content: z.string().min(1, "Record content is required").refine((content, ctx) => {
     const type = ctx.parent.type;
     if (type && !validateDnsRecordContent(type, content)) {

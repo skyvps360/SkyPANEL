@@ -201,7 +201,7 @@ export default function DnsDomainsPage() {
                       DNS Management
                     </h1>
                     <p className="text-gray-600 mt-1 text-lg">
-                      Manage your DNS domains and records through {companyName} InterServer integration
+                      Manage your DNS domains and records through {companyName}'s InterServer DNS API Integration
                     </p>
                     <p className="text-sm text-muted-foreground mt-2">
                       DNS services provided free courtesy of{' '}
@@ -239,7 +239,7 @@ export default function DnsDomainsPage() {
               DNS Server Configuration
             </CardTitle>
             <CardDescription>
-              Point your domain to these {companyName} DNS servers to use our DNS management service
+              Point your domain to these InterServer DNS servers to use our DNS management service
             </CardDescription>
           </CardHeader>
           <CardContent>

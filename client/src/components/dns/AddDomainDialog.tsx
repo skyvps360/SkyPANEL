@@ -100,7 +100,7 @@ export function AddDomainDialog({ open, onOpenChange, onSuccess }: AddDomainDial
             Add DNS Domain
           </DialogTitle>
           <DialogDescription>
-            Add a new domain to be managed through InterServer DNS. The domain will be configured
+            Add a new domain to be managed through InterServer API DNS System. The domain will be configured
             with basic DNS records pointing to the specified IP address.
           </DialogDescription>
         </DialogHeader>
@@ -121,7 +121,7 @@ export function AddDomainDialog({ open, onOpenChange, onSuccess }: AddDomainDial
                     />
                   </FormControl>
                   <FormDescription>
-                    Enter the domain name without www or any subdomain
+                    Enter the domain name without www or any subdomain.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -142,7 +142,7 @@ export function AddDomainDialog({ open, onOpenChange, onSuccess }: AddDomainDial
                     />
                   </FormControl>
                   <FormDescription>
-                    The IP address where the domain should point (IPv4 or IPv6)
+                    The IP address where the domain should point IPv4 only.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
