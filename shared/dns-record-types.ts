@@ -462,3 +462,101 @@ export function requiresPriority(type: string): boolean {
   const recordType = getDnsRecordType(type);
   return recordType?.requiresPriority || false;
 }
+
+/**
+ * Validates DNS record name format
+ * Supports @ symbol notation for root domain and subdomain references
+ */
+export function validateRecordName(name: string): boolean {
+  // Allow "@" for root domain
+  if (name === '@') return true;
+  // Allow empty string for root domain
+  if (name.trim() === '') return true;
+
+  const trimmed = name.trim();
+
+  // Allow @ symbol notation formats:
+  // - "subdomain.@" for subdomain of root domain
+  // - "subdomain@" for subdomain of root domain (alternative notation)
+  if (trimmed.includes('@')) {
+    // Check for valid @ symbol usage patterns
+    if (trimmed === '@') return true; // Root domain
+    if (trimmed.endsWith('.@')) {
+      // Format: "subdomain.@" - validate the subdomain part
+      const subdomain = trimmed.slice(0, -2);
+      return validateSubdomainPart(subdomain);
+    }
+    if (trimmed.endsWith('@')) {
+      // Format: "subdomain@" - validate the subdomain part
+      const subdomain = trimmed.slice(0, -1);
+      return validateSubdomainPart(subdomain);
+    }
+    // Invalid @ symbol usage
+    return false;
+  }
+
+  // Regular subdomain validation
+  return validateSubdomainPart(trimmed);
+}
+
+/**
+ * Validates a subdomain part (without @ symbols)
+ */
+function validateSubdomainPart(subdomain: string): boolean {
+  if (!subdomain || subdomain.trim() === '') return false;
+
+  const trimmed = subdomain.trim();
+
+  // Basic validation: only alphanumeric, dots, and hyphens allowed
+  if (!/^[a-zA-Z0-9.-]+$/.test(trimmed)) return false;
+
+  // Cannot start or end with hyphen or dot
+  if (trimmed.startsWith('-') || trimmed.endsWith('-') ||
+      trimmed.startsWith('.') || trimmed.endsWith('.')) return false;
+
+  // Cannot have consecutive dots
+  if (trimmed.includes('..')) return false;
+
+  // Each label (part between dots) must be valid
+  const labels = trimmed.split('.');
+  for (const label of labels) {
+    // Each label must be 1-63 characters
+    if (label.length === 0 || label.length > 63) return false;
+    // Cannot start or end with hyphen
+    if (label.startsWith('-') || label.endsWith('-')) return false;
+    // Must contain at least one character
+    if (!/^[a-zA-Z0-9-]+$/.test(label)) return false;
+  }
+
+  return true;
+}
+
+/**
+ * Processes record name for InterServer API
+ * Converts @ symbol notation to full domain names
+ */
+export function processRecordName(recordName: string, domainName: string): string {
+  const trimmed = recordName.trim();
+
+  // Convert "@" to domain name for root domain
+  if (trimmed === '@' || trimmed === '') {
+    return domainName;
+  }
+
+  // Convert "subdomain.@" to "subdomain.domain.com"
+  if (trimmed.endsWith('.@')) {
+    const subdomain = trimmed.slice(0, -2);
+    return `${subdomain}.${domainName}`;
+  }
+
+  // Convert "subdomain@" to "subdomain.domain.com"
+  if (trimmed.endsWith('@')) {
+    const subdomain = trimmed.slice(0, -1);
+    return `${subdomain}.${domainName}`;
+  }
+
+  // Return as-is for regular subdomain names
+  return trimmed;
+}
+
+

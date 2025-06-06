@@ -4,7 +4,11 @@ import { dnsDomains, dnsRecords, insertDnsDomainSchema, insertDnsRecordSchema } 
 import { eq, and } from 'drizzle-orm';
 import { interServerApi, InterServerApi } from '../interserver-api';
 import { dnsAuthorityMonitor } from '../dns-authority-monitor';
-import { VALID_DNS_RECORD_TYPES } from '@shared/dns-record-types';
+import {
+  VALID_DNS_RECORD_TYPES,
+  processRecordName,
+  validateRecordName
+} from '@shared/dns-record-types';
 import { z } from 'zod';
 
 const router = Router();
@@ -203,7 +207,7 @@ router.get('/domains/:id/records', async (req: Request, res: Response) => {
           id: parseInt(record.id) || 0,
           domainId: domainId,
           interserverId: record.id,
-          name: record.name,
+          name: record.name, // Show actual domain names as they exist in InterServer
           type: record.type,
           content: record.content,
           ttl: parseInt(record.ttl) || 86400,
@@ -302,7 +306,9 @@ router.post('/domains/:id/records', async (req: Request, res: Response) => {
 
     // Validate input
     const recordSchema = z.object({
-      name: z.string().min(1, 'Record name is required'),
+      name: z.string().refine((name) => validateRecordName(name), {
+        message: 'Invalid record name format'
+      }),
       type: z.enum(VALID_DNS_RECORD_TYPES as [string, ...string[]]),
       content: z.string().min(1, 'Record content is required'),
       ttl: z.number().min(60).max(86400).default(86400),
@@ -332,10 +338,13 @@ router.post('/domains/:id/records', async (req: Request, res: Response) => {
       });
     }
 
+    // Process record name (convert "@" or empty string to domain name)
+    const processedRecordName = processRecordName(recordData.name, domain.name);
+
     // Add record to InterServer
     try {
       const interServerResult = await interServerApi.addDnsRecord(domain.interserverId, {
-        name: recordData.name,
+        name: processedRecordName,
         type: recordData.type,
         content: recordData.content,
         ttl: recordData.ttl.toString(),
@@ -386,7 +395,9 @@ router.put('/domains/:domainId/records/:recordId', async (req: Request, res: Res
 
     // Validate input
     const recordSchema = z.object({
-      name: z.string().min(1, 'Record name is required'),
+      name: z.string().refine((name) => validateRecordName(name), {
+        message: 'Invalid record name format'
+      }),
       type: z.enum(VALID_DNS_RECORD_TYPES as [string, ...string[]]),
       content: z.string().min(1, 'Record content is required'),
       ttl: z.number().min(60).max(86400),
@@ -417,13 +428,16 @@ router.put('/domains/:domainId/records/:recordId', async (req: Request, res: Res
       });
     }
 
+    // Process record name (convert "@" or empty string to domain name)
+    const processedRecordName = processRecordName(recordData.name, domain.name);
+
     // Update record in InterServer
     try {
       const updateResult = await interServerApi.updateDnsRecord(
         domain.interserverId,
         recordId, // Use the InterServer record ID directly
         {
-          name: recordData.name,
+          name: processedRecordName,
           type: recordData.type,
           content: recordData.content,
           ttl: recordData.ttl.toString(),

@@ -116,7 +116,7 @@ export default function DnsRecordsPage() {
       header: "Name",
       accessorKey: "name" as keyof DnsRecord,
       cell: (record: DnsRecord) => (
-        <span className="font-mono text-sm">{record.name || "@"}</span>
+        <span className="font-mono text-sm">{record.name}</span>
       ),
     },
     {
