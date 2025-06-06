@@ -1,24 +1,47 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig(async ({ mode }) => {
   // Load environment variables
   const env = loadEnv(mode, process.cwd(), '');
 
+  // Helper function to safely load Replit plugins
+  const loadReplitPlugins = async () => {
+    const plugins = [];
+
+    // Only load Replit plugins in development or when REPL_ID is present
+    const isReplitEnvironment = env.REPL_ID !== undefined || mode === 'development';
+
+    if (isReplitEnvironment) {
+      try {
+        // Load runtime error overlay plugin
+        const runtimeErrorOverlay = await import("@replit/vite-plugin-runtime-error-modal").then((m) => m.default);
+        plugins.push(runtimeErrorOverlay());
+      } catch (error) {
+        console.warn("Replit runtime error overlay plugin not available:", error.message);
+      }
+
+      try {
+        // Load cartographer plugin (only in non-development with REPL_ID)
+        if (env.NODE_ENV !== "development" && env.REPL_ID !== undefined) {
+          const cartographer = await import("@replit/vite-plugin-cartographer").then((m) => m.cartographer);
+          plugins.push(cartographer());
+        }
+      } catch (error) {
+        console.warn("Replit cartographer plugin not available:", error.message);
+      }
+    }
+
+    return plugins;
+  };
+
+  const replitPlugins = await loadReplitPlugins();
+
   return {
     plugins: [
       react(),
-      runtimeErrorOverlay(),
-      ...(env.NODE_ENV !== "development" &&
-      env.REPL_ID !== undefined
-        ? [
-            await import("@replit/vite-plugin-cartographer").then((m) =>
-              m.cartographer(),
-            ),
-          ]
-        : []),
+      ...replitPlugins,
     ],
     server: {
       port: parseInt(process.env.PORT || '3000'),
