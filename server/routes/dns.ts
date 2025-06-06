@@ -3,6 +3,8 @@ import { db } from '../db';
 import { dnsDomains, dnsRecords, insertDnsDomainSchema, insertDnsRecordSchema } from '@shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { interServerApi, InterServerApi } from '../interserver-api';
+import { dnsAuthorityMonitor } from '../dns-authority-monitor';
+import { VALID_DNS_RECORD_TYPES } from '@shared/dns-record-types';
 import { z } from 'zod';
 
 const router = Router();
@@ -123,19 +125,14 @@ router.post('/domains', async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Domain already exists' });
     }
 
-    // Add domain to InterServer with white-labeled nameservers
-    const whitelabelResult = await interServerApi.addDnsDomainWithWhiteLabel(name, ip);
+    // Add domain to InterServer
+    const interServerResult = await interServerApi.addDnsDomain(name, ip);
 
     // Extract InterServer domain ID from the result
-    const interserverId = whitelabelResult.domainResult?.id || null;
+    const interserverId = interServerResult?.id || null;
 
     if (interserverId) {
       console.log(`Successfully created domain ${name} in InterServer with ID: ${interserverId}`);
-      if (whitelabelResult.nameserverResult?.success) {
-        console.log(`Successfully replaced ${whitelabelResult.nameserverResult.replacedRecords.length} nameserver records with SkyPANEL branding`);
-      } else {
-        console.warn(`Domain created but nameserver replacement had issues: ${whitelabelResult.nameserverResult?.errors.join(', ')}`);
-      }
     } else {
       console.warn(`Domain ${name} was created in InterServer but ID could not be retrieved`);
     }
@@ -151,23 +148,12 @@ router.post('/domains', async (req: Request, res: Response) => {
       })
       .returning();
 
-    // Prepare response with detailed information about the white-labeling process
-    const responseData = {
+    res.status(201).json({
       domain: newDomain,
-      message: whitelabelResult.message,
+      message: 'Domain added successfully',
       interServerStatus: interserverId ? 'linked' : 'created_but_not_linked',
-      whitelabelStatus: {
-        success: whitelabelResult.success,
-        nameserversReplaced: whitelabelResult.nameserverResult?.replacedRecords.length || 0,
-        replacedRecords: whitelabelResult.nameserverResult?.replacedRecords || [],
-        errors: whitelabelResult.nameserverResult?.errors || []
-      },
-      interServerResult: whitelabelResult.domainResult
-    };
-
-    // Return appropriate status code based on overall success
-    const statusCode = whitelabelResult.success ? 201 : 206; // 206 = Partial Content (domain created but nameserver replacement had issues)
-    res.status(statusCode).json(responseData);
+      interServerResult: interServerResult
+    });
   } catch (error) {
     console.error('Error adding DNS domain:', error);
     if (error instanceof z.ZodError) {
@@ -317,7 +303,7 @@ router.post('/domains/:id/records', async (req: Request, res: Response) => {
     // Validate input
     const recordSchema = z.object({
       name: z.string().min(1, 'Record name is required'),
-      type: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV', 'CAA']),
+      type: z.enum(VALID_DNS_RECORD_TYPES as [string, ...string[]]),
       content: z.string().min(1, 'Record content is required'),
       ttl: z.number().min(60).max(86400).default(86400),
       priority: z.number().min(0).max(65535).default(0)
@@ -401,7 +387,7 @@ router.put('/domains/:domainId/records/:recordId', async (req: Request, res: Res
     // Validate input
     const recordSchema = z.object({
       name: z.string().min(1, 'Record name is required'),
-      type: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV', 'CAA']),
+      type: z.enum(VALID_DNS_RECORD_TYPES as [string, ...string[]]),
       content: z.string().min(1, 'Record content is required'),
       ttl: z.number().min(60).max(86400),
       priority: z.number().min(0).max(65535),

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Globe, Plus, Server, Info } from "lucide-react";
+import { Globe, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,13 +24,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { addDnsDomain } from "@/lib/api";
-
-// SkyPANEL Nameservers
-const SKYPANEL_NAMESERVERS = [
-  'cdns.ns1.skyvps360.xyz',
-  'cdns.ns2.skyvps360.xyz',
-  'cdns.ns3.skyvps360.xyz'
-];
 
 // Form validation schema
 const domainSchema = z.object({
@@ -72,48 +65,18 @@ export function AddDomainDialog({ open, onOpenChange, onSuccess }: AddDomainDial
 
   const addMutation = useMutation({
     mutationFn: ({ name, ip }: { name: string; ip: string }) => addDnsDomain(name, ip),
-    onSuccess: (responseData: any) => {
-      console.log('Domain creation response:', responseData);
-
-      // The axios interceptor already extracts response.data, so responseData is the actual data
-      const { whitelabelStatus, message, domain } = responseData;
-
-      if (whitelabelStatus?.success) {
-        // Full success - domain created and nameservers replaced
-        toast({
-          title: "Success",
-          description: `${message || 'Domain created successfully with SkyPANEL nameservers'} Your domain is now using SkyPANEL nameservers.`,
-        });
-      } else if (whitelabelStatus?.nameserversReplaced > 0) {
-        // Partial success - domain created but some nameserver replacement issues
-        toast({
-          title: "Domain Created",
-          description: `Domain added successfully, but some nameserver records couldn't be replaced. ${whitelabelStatus.nameserversReplaced} records were updated.`,
-          variant: "default",
-        });
-      } else if (domain) {
-        // Domain created but no nameserver replacement
-        toast({
-          title: "Domain Created",
-          description: "Domain added successfully, but nameserver replacement failed. You may need to manually update DNS records.",
-          variant: "default",
-        });
-      } else {
-        // Fallback success message
-        toast({
-          title: "Success",
-          description: message || "Domain created successfully",
-        });
-      }
-
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Domain added successfully",
+      });
       form.reset();
       onSuccess();
     },
     onError: (error: any) => {
-      console.error('Domain creation error:', error);
       toast({
         title: "Error",
-        description: error.data?.error || error.message || "Failed to add domain",
+        description: error.response?.data?.error || "Failed to add domain",
         variant: "destructive",
       });
     },
@@ -137,8 +100,8 @@ export function AddDomainDialog({ open, onOpenChange, onSuccess }: AddDomainDial
             Add DNS Domain
           </DialogTitle>
           <DialogDescription>
-            Add a new domain to be managed through SkyPANEL DNS. After adding, you'll need to update
-            your domain's nameservers at your registrar to point to SkyPANEL nameservers.
+            Add a new domain to be managed through InterServer DNS. The domain will be configured
+            with basic DNS records pointing to the specified IP address.
           </DialogDescription>
         </DialogHeader>
 
@@ -185,37 +148,6 @@ export function AddDomainDialog({ open, onOpenChange, onSuccess }: AddDomainDial
                 </FormItem>
               )}
             />
-
-            {/* Nameserver Information */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Server className="h-4 w-4 text-blue-600" />
-                <h4 className="text-sm font-semibold text-blue-900">Required: Update Nameservers at Your Registrar</h4>
-              </div>
-              <p className="text-sm text-blue-700 mb-3">
-                After adding your domain here, you must update your domain's nameservers at your registrar to:
-              </p>
-              <div className="space-y-1">
-                {SKYPANEL_NAMESERVERS.map((ns, index) => (
-                  <div key={ns} className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                      <span className="text-xs font-semibold text-blue-600">
-                        {index + 1}
-                      </span>
-                    </div>
-                    <code className="text-xs font-mono text-blue-800 bg-blue-100 px-2 py-1 rounded">
-                      {ns}
-                    </code>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-start gap-2 mt-3 p-2 bg-blue-100 rounded">
-                <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-blue-700">
-                  DNS changes may take 24-48 hours to propagate globally. Your domain won't resolve until nameservers are updated.
-                </p>
-              </div>
-            </div>
 
             <div className="flex justify-end gap-3">
               <Button

@@ -67,13 +67,13 @@ export default function DnsRecordsPage() {
   const companyName = brandingData?.company_name || 'SkyVPS360';
 
   // Fetch DNS records
-  const { 
-    data: recordsData, 
-    isLoading, 
-    error 
+  const {
+    data: recordsData,
+    isLoading,
+    error
   } = useQuery<DnsRecordsResponse>({
-    queryKey: ["/api/dns/records", domainId],
-    queryFn: () => getDnsRecords(domainId),
+    queryKey: ["dns-records", domainId],
+    queryFn: () => getDnsRecords(domainId) as any,
     enabled: !!domainId && domainId > 0,
   });
 
@@ -81,7 +81,7 @@ export default function DnsRecordsPage() {
   const deleteMutation = useMutation({
     mutationFn: (recordId: number) => deleteDnsRecord(domainId, recordId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/dns/records", domainId] });
+      queryClient.invalidateQueries({ queryKey: ["dns-records", domainId] });
       toast({
         title: "Success",
         description: "DNS record deleted successfully from InterServer",
@@ -172,9 +172,9 @@ export default function DnsRecordsPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDeleteRecord(parseInt(record.interserverId || '0'))}
+            onClick={() => handleDeleteRecord(record.id)}
             className="hover:bg-destructive hover:text-destructive-foreground"
-            disabled={deleteMutation.isPending || !record.interserverId}
+            disabled={deleteMutation.isPending}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -242,9 +242,10 @@ export default function DnsRecordsPage() {
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-4">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     onClick={handleBackToDomains}
-                    className="hover:bg-muted mr-2"
+                    className="hover:bg-primary hover:text-primary-foreground mr-2"
+                    style={{ borderColor: brandColors.primary.border }}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Domains
@@ -263,7 +264,7 @@ export default function DnsRecordsPage() {
                       {recordsData?.domain?.name || "Loading..."}
                     </h1>
                     <p className="text-gray-600 mt-1 text-lg">
-                      Manage DNS records for {recordsData?.domain?.name} via {companyName}
+                      Manage DNS records for {recordsData?.domain?.name} via {companyName} InterServer integration
                     </p>
                   </div>
                 </div>
@@ -300,7 +301,7 @@ export default function DnsRecordsPage() {
             DNS Records ({recordsData?.records?.length || 0})
           </CardTitle>
           <CardDescription>
-            Manage DNS records for {recordsData?.domain?.name} via {companyName}
+            Manage DNS records for {recordsData?.domain?.name} via {companyName} InterServer integration
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -341,7 +342,7 @@ export default function DnsRecordsPage() {
           domainId={domainId}
           domainName={recordsData.domain.name}
           onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["/api/dns/records", domainId] });
+            queryClient.invalidateQueries({ queryKey: ["dns-records", domainId] });
             setIsAddDialogOpen(false);
           }}
         />
@@ -356,7 +357,7 @@ export default function DnsRecordsPage() {
           domainName={recordsData.domain.name}
           record={editingRecord}
           onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ["/api/dns/records", domainId] });
+            queryClient.invalidateQueries({ queryKey: ["dns-records", domainId] });
             setEditingRecord(null);
           }}
         />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Globe, Trash2, Settings, AlertCircle, Copy, Check, Server } from "lucide-react";
+import { Plus, Globe, Trash2, Settings, AlertCircle, Server, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -10,101 +10,6 @@ import { getDnsDomains, deleteDnsDomain } from "@/lib/api";
 import { AddDomainDialog } from "@/components/dns/AddDomainDialog";
 import { getBrandColors } from "@/lib/brand-theme";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
-
-// SkyPANEL Nameservers
-const SKYPANEL_NAMESERVERS = [
-  'cdns.ns1.skyvps360.xyz',
-  'cdns.ns2.skyvps360.xyz',
-  'cdns.ns3.skyvps360.xyz'
-];
-
-// Nameserver Information Component
-function NameserverInfoCard({ companyName, brandColors }: { companyName: string; brandColors: any }) {
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-
-  const copyToClipboard = async (text: string, index: number) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-    }
-  };
-
-  return (
-    <Card className="border-blue-200 bg-blue-50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-blue-900">
-          <Server className="h-5 w-5" />
-          {companyName} Nameservers
-        </CardTitle>
-        <CardDescription className="text-blue-700">
-          Point your domain to these nameservers at your registrar to use {companyName} DNS management
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          {SKYPANEL_NAMESERVERS.map((nameserver, index) => (
-            <div
-              key={nameserver}
-              className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-blue-600">
-                    NS{index + 1}
-                  </span>
-                </div>
-                <code className="text-sm font-mono text-gray-800 bg-gray-100 px-2 py-1 rounded">
-                  {nameserver}
-                </code>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => copyToClipboard(nameserver, index)}
-                className="flex items-center gap-2 border-blue-200 transition-all duration-200"
-                style={{
-                  color: '#2563eb',
-                  borderColor: '#bfdbfe',
-                  backgroundColor: 'transparent'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#eff6ff';
-                  e.currentTarget.style.borderColor = '#93c5fd';
-                  e.currentTarget.style.color = '#1d4ed8';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'transparent';
-                  e.currentTarget.style.borderColor = '#bfdbfe';
-                  e.currentTarget.style.color = '#2563eb';
-                }}
-              >
-                {copiedIndex === index ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </>
-                )}
-              </Button>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 p-3 bg-blue-100 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <strong>Instructions:</strong> Log into your domain registrar's control panel and update your domain's nameservers to the three addresses above. DNS changes may take up to 24-48 hours to propagate globally.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 interface DnsDomain {
   id: number;
@@ -145,20 +50,20 @@ export default function DnsDomainsPage() {
   const companyName = brandingData?.company_name || 'SkyVPS360';
 
   // Fetch DNS domains
-  const { 
-    data: domainsData, 
-    isLoading, 
-    error 
+  const {
+    data: domainsData,
+    isLoading,
+    error
   } = useQuery<DnsDomainsResponse>({
-    queryKey: ["/api/dns/domains"],
-    queryFn: getDnsDomains,
+    queryKey: ["dns-domains"],
+    queryFn: () => getDnsDomains() as any,
   });
 
   // Delete domain mutation
   const deleteMutation = useMutation({
     mutationFn: deleteDnsDomain,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/dns/domains"] });
+      queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
       toast({
         title: "Success",
         description: "Domain deleted successfully",
@@ -296,7 +201,18 @@ export default function DnsDomainsPage() {
                       DNS Management
                     </h1>
                     <p className="text-gray-600 mt-1 text-lg">
-                      Manage your DNS domains and records through {companyName}
+                      Manage your DNS domains and records through {companyName} InterServer integration
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      DNS services provided free courtesy of{' '}
+                      <a
+                        href="https://www.interserver.net/r/1037557"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
+                      >
+                        InterServer
+                      </a>
                     </p>
                   </div>
                 </div>
@@ -315,8 +231,73 @@ export default function DnsDomainsPage() {
           </div>
         </div>
 
-        {/* Nameserver Information Card */}
-        <NameserverInfoCard companyName={companyName} brandColors={brandColors} />
+        {/* DNS Server Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-5 w-5" />
+              DNS Server Configuration
+            </CardTitle>
+            <CardDescription>
+              Point your domain to these {companyName} DNS servers to use our DNS management service
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Primary DNS</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText('cdns1.interserver.net')}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="font-mono text-sm">cdns1.interserver.net</div>
+                <div className="text-xs text-muted-foreground">216.158.228.164</div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Secondary DNS</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText('cdns2.interserver.net')}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="font-mono text-sm">cdns2.interserver.net</div>
+                <div className="text-xs text-muted-foreground">216.158.234.243</div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">Tertiary DNS</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText('cdns3.interserver.net')}
+                    className="h-6 w-6 p-0"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="font-mono text-sm">cdns3.interserver.net</div>
+                <div className="text-xs text-muted-foreground">199.231.191.75</div>
+              </div>
+            </div>
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Configure these nameservers at your domain registrar to use {companyName} DNS management.
+                Changes may take up to 24-48 hours to propagate globally.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Warning message if InterServer API has issues */}
       {domainsData?.warning && (
@@ -374,7 +355,7 @@ export default function DnsDomainsPage() {
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["/api/dns/domains"] });
+          queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
           setIsAddDialogOpen(false);
         }}
       />

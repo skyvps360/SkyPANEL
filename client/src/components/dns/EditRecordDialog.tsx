@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Edit } from "lucide-react";
+import { Edit, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,27 +29,29 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { updateDnsRecord } from "@/lib/api";
-
-// DNS record types
-const DNS_RECORD_TYPES = [
-  { value: "A", label: "A - IPv4 Address" },
-  { value: "AAAA", label: "AAAA - IPv6 Address" },
-  { value: "CNAME", label: "CNAME - Canonical Name" },
-  { value: "MX", label: "MX - Mail Exchange" },
-  { value: "TXT", label: "TXT - Text Record" },
-  { value: "NS", label: "NS - Name Server" },
-  { value: "PTR", label: "PTR - Pointer Record" },
-  { value: "SRV", label: "SRV - Service Record" },
-  { value: "CAA", label: "CAA - Certificate Authority Authorization" },
-];
+import {
+  DNS_RECORD_CATEGORIES,
+  VALID_DNS_RECORD_TYPES,
+  getContentPlaceholder,
+  getContentDescription,
+  requiresPriority,
+  validateDnsRecordContent
+} from "@shared/dns-record-types";
 
 // Form validation schema
 const recordSchema = z.object({
   name: z.string().min(1, "Record name is required"),
-  type: z.enum(["A", "AAAA", "CNAME", "MX", "TXT", "NS", "PTR", "SRV", "CAA"]),
-  content: z.string().min(1, "Record content is required"),
+  type: z.enum(VALID_DNS_RECORD_TYPES as [string, ...string[]]),
+  content: z.string().min(1, "Record content is required").refine((content, ctx) => {
+    const type = ctx.parent.type;
+    if (type && !validateDnsRecordContent(type, content)) {
+      return false;
+    }
+    return true;
+  }, "Invalid content format for this record type"),
   ttl: z.number().min(60, "TTL must be at least 60 seconds").max(86400, "TTL cannot exceed 24 hours"),
   priority: z.number().min(0).max(65535),
 });
@@ -143,59 +145,7 @@ export function EditRecordDialog({
     onOpenChange(false);
   };
 
-  // Get placeholder text based on record type
-  const getContentPlaceholder = (type: string) => {
-    switch (type) {
-      case "A":
-        return "192.168.1.1";
-      case "AAAA":
-        return "2001:db8::1";
-      case "CNAME":
-        return "example.com";
-      case "MX":
-        return "mail.example.com";
-      case "TXT":
-        return "v=spf1 include:_spf.google.com ~all";
-      case "NS":
-        return "ns1.example.com";
-      case "PTR":
-        return "example.com";
-      case "SRV":
-        return "10 5 443 target.example.com";
-      case "CAA":
-        return "0 issue \"letsencrypt.org\"";
-      default:
-        return "";
-    }
-  };
-
-  // Get description based on record type
-  const getContentDescription = (type: string) => {
-    switch (type) {
-      case "A":
-        return "IPv4 address (e.g., 192.168.1.1)";
-      case "AAAA":
-        return "IPv6 address (e.g., 2001:db8::1)";
-      case "CNAME":
-        return "Canonical name (domain name)";
-      case "MX":
-        return "Mail server hostname";
-      case "TXT":
-        return "Text content (often used for verification)";
-      case "NS":
-        return "Name server hostname";
-      case "PTR":
-        return "Pointer to hostname";
-      case "SRV":
-        return "Service record (weight port target)";
-      case "CAA":
-        return "Certificate authority authorization";
-      default:
-        return "Record content";
-    }
-  };
-
-  const showPriorityField = selectedType === "MX" || selectedType === "SRV";
+  const showPriorityField = requiresPriority(selectedType);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -249,10 +199,114 @@ export function EditRecordDialog({
                         <SelectValue placeholder="Select record type" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      {DNS_RECORD_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                    <SelectContent className="max-h-80">
+                      {/* Basic Records */}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30">
+                        Basic Records
+                      </div>
+                      {DNS_RECORD_CATEGORIES.Basic.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="pl-4">
+                          <div className="flex items-center gap-2">
+                            <span>{type.label}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <p className="text-sm">{type.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </SelectItem>
+                      ))}
+
+                      {/* Mail Records */}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30 mt-2">
+                        Mail Records
+                      </div>
+                      {DNS_RECORD_CATEGORIES.Mail.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="pl-4">
+                          <div className="flex items-center gap-2">
+                            <span>{type.label}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <p className="text-sm">{type.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </SelectItem>
+                      ))}
+
+                      {/* Security Records */}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30 mt-2">
+                        Security Records
+                      </div>
+                      {DNS_RECORD_CATEGORIES.Security.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="pl-4">
+                          <div className="flex items-center gap-2">
+                            <span>{type.label}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <p className="text-sm">{type.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </SelectItem>
+                      ))}
+
+                      {/* Advanced Records */}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30 mt-2">
+                        Advanced Records
+                      </div>
+                      {DNS_RECORD_CATEGORIES.Advanced.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="pl-4">
+                          <div className="flex items-center gap-2">
+                            <span>{type.label}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <p className="text-sm">{type.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </SelectItem>
+                      ))}
+
+                      {/* Legacy Records */}
+                      <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider bg-muted/30 mt-2">
+                        Legacy Records
+                      </div>
+                      {DNS_RECORD_CATEGORIES.Legacy.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="pl-4">
+                          <div className="flex items-center gap-2">
+                            <span>{type.label}</span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <p className="text-sm">{type.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
