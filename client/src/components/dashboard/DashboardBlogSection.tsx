@@ -90,7 +90,7 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
 
   // Generate brand colors
   const brandColors = getBrandColors({
-    primaryColor: branding.primary_color || branding.company_color,
+    primaryColor: branding.primary_color ?? branding.company_color,
     secondaryColor: branding.secondary_color,
     accentColor: branding.accent_color
   });
@@ -129,9 +129,9 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
     ? publishedPosts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.snippet.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (post.content && post.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (post.categoryName && post.categoryName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (post.tags && post.tags.toLowerCase().includes(searchQuery.toLowerCase()))
+        (post.content?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (post.categoryName?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (post.tags?.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     : publishedPosts;
 
@@ -370,8 +370,8 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
                   {/* Category filter */}
                   {categoriesData.length > 0 && (
                     <select
-                      value={selectedCategory || ''}
-                      onChange={(e) => handleCategorySelect(e.target.value || null)}
+                      value={selectedCategory ?? ''}
+                      onChange={(e) => { handleCategorySelect(e.target.value || null); }}
                       className="px-3 py-2 border border-border rounded-md text-sm bg-background text-foreground"
                     >
                       <option value="">All Categories</option>
@@ -385,7 +385,7 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
                   <Button
                     variant={selectedView === 'grid' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setSelectedView('grid')}
+                    onClick={() => { setSelectedView('grid'); }}
                     className="hover:bg-primary hover:text-primary-foreground transition-all duration-200"
                   >
                     <Grid3X3 className="h-4 w-4" />
@@ -393,7 +393,7 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
                   <Button
                     variant={selectedView === 'list' ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => setSelectedView('list')}
+                    onClick={() => { setSelectedView('list'); }}
                     className="hover:bg-primary hover:text-primary-foreground transition-all duration-200"
                   >
                     <List className="h-4 w-4" />
@@ -410,7 +410,7 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
                 <Card
                   key={post.id}
                   className="group cursor-pointer bg-card border border-border shadow-sm hover:shadow-xl hover:border-border/80 transition-all duration-300"
-                  onClick={() => handlePostSelect(post)}
+                  onClick={() => { handlePostSelect(post); }}
                 >
                   {post.featuredImageUrl && (
                     <div className="h-48 overflow-hidden rounded-t-xl">
@@ -491,7 +491,7 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
+                  onClick={() => { handlePageChange(currentPage - 1); }}
                   disabled={currentPage === 1}
                   className="disabled:opacity-50 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
                 >
@@ -504,7 +504,7 @@ export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSe
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
+                  onClick={() => { handlePageChange(currentPage + 1); }}
                   disabled={currentPage === totalPages}
                   className="disabled:opacity-50 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
                 >

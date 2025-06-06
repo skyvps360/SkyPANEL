@@ -124,7 +124,7 @@ export default function TransactionDetailPage() {
     );
   }
 
-  if (error || !transaction) {
+  if (error ?? !transaction) {
     return (
       <DashboardLayout>
         <Card>

@@ -217,7 +217,7 @@ A specific styling pattern has been implemented for action buttons (like edit, d
 ```
 
 This pattern uses the following key CSS classes:
-- `hover:bg-primary`: Changes the button background to the primary brand color on hover
+
 - `hover:text-primary-foreground`: Changes the icon to white on hover
 
 For secondary action buttons (in sections that use secondary color), use:

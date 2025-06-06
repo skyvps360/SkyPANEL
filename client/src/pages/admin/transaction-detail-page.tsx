@@ -84,7 +84,7 @@ export default function AdminTransactionDetailPage() {
     );
   }
 
-  if (error || !transaction) {
+  if (error ?? !transaction) {
     return (
       <AdminLayout>
         <Card>
@@ -133,7 +133,7 @@ export default function AdminTransactionDetailPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">User</h3>
-              <p className="text-lg font-medium">{transaction.user?.username} ({transaction.user?.email})</p>
+              <p className="text-lg font-medium">{transaction.user.username} ({transaction.user?.email})</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>

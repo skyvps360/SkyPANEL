@@ -1,0 +1,590 @@
+diff --git a/scripts/fix-ticket-department-migration.ts b/scripts/fix-ticket-department-migration.ts
+--- a/scripts/fix-ticket-department-migration.ts
++++ b/scripts/fix-ticket-department-migration.ts
+@@ -16,1 +16,1 @@
+-    supportDepts.rows.forEach((dept: any) => {
++    supportDepts.rows.forEach((dept: unknown) => {
+@@ -24,1 +24,1 @@
+-    ticketDepts.rows.forEach((dept: any) => {
++    ticketDepts.rows.forEach((dept: unknown) => {
+@@ -40,1 +40,1 @@
+-      tickets.rows.forEach((row: any) => {
++      tickets.rows.forEach((row: unknown) => {
+@@ -53,1 +53,1 @@
+-      const matchingSupportDept = supportDepts.rows.find((supportDept: any) => 
++      const matchingSupportDept = supportDepts.rows.find((supportDept: unknown) => 
+@@ -89,1 +89,1 @@
+-      updatedTickets.rows.forEach((row: any) => {
++      updatedTickets.rows.forEach((row: unknown) => {
+@@ -104,1 +104,1 @@
+-      problematicTickets.rows.forEach((ticket: any) => {
++      problematicTickets.rows.forEach((ticket: unknown) => {
+@@ -116,1 +116,1 @@
+-      const ticketDept = ticketDepts.rows.find((d: any) => d.id === legacyId);
++      const ticketDept = ticketDepts.rows.find((d: unknown) => d.id === legacyId);
+diff --git a/client/src/components/ui/sidebar.tsx b/client/src/components/ui/sidebar.tsx
+--- a/client/src/components/ui/sidebar.tsx
++++ b/client/src/components/ui/sidebar.tsx
+@@ -33,1 +33,1 @@
+-type SidebarContextProps = {
++interface SidebarContextProps {
+@@ -99,1 +99,1 @@
+-        ? setOpenMobile((open) => !open)
++        ? setOpenMobile((open) => !open)
+@@ -100,1 +100,1 @@
+-        : setOpen((open) => !open)
++        : setOpen((open) => !open);
+@@ -116,1 +116,1 @@
+-      return () => window.removeEventListener("keydown", handleKeyDown)
++      return () => { window.removeEventListener("keydown", handleKeyDown); }
+diff --git a/scripts/add-virtfusion-credit-id.ts b/scripts/add-virtfusion-credit-id.ts
+--- a/scripts/add-virtfusion-credit-id.ts
++++ b/scripts/add-virtfusion-credit-id.ts
+@@ -41,1 +41,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/client/src/components/ui/form.tsx b/client/src/components/ui/form.tsx
+--- a/client/src/components/ui/form.tsx
++++ b/client/src/components/ui/form.tsx
+@@ -20,1 +20,1 @@
+-type FormFieldContextValue<
++interface FormFieldContextValue<
+@@ -67,1 +67,1 @@
+-type FormItemContextValue = {
++interface FormItemContextValue {
+diff --git a/client/src/components/dashboard/DashboardBlogSection.tsx b/client/src/components/dashboard/DashboardBlogSection.tsx
+--- a/client/src/components/dashboard/DashboardBlogSection.tsx
++++ b/client/src/components/dashboard/DashboardBlogSection.tsx
+@@ -93,1 +93,1 @@
+-    primaryColor: branding.primary_color || branding.company_color,
++    primaryColor: branding.primary_color ?? branding.company_color,
+@@ -132,1 +132,1 @@
+-        (post.content && post.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
++        (post.content?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+@@ -133,1 +133,1 @@
+-        (post.categoryName && post.categoryName.toLowerCase().includes(searchQuery.toLowerCase())) ||
++        (post.categoryName?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+@@ -134,1 +134,1 @@
+-        (post.tags && post.tags.toLowerCase().includes(searchQuery.toLowerCase()))
++        (post.tags?.toLowerCase().includes(searchQuery.toLowerCase()))
+@@ -373,1 +373,1 @@
+-                      value={selectedCategory || ''}
++                      value={selectedCategory ?? ''}
+@@ -374,1 +374,1 @@
+-                      onChange={(e) => handleCategorySelect(e.target.value || null)}
++                      onChange={(e) => { handleCategorySelect(e.target.value || null); }}
+@@ -388,1 +388,1 @@
+-                    onClick={() => setSelectedView('grid')}
++                    onClick={() => { setSelectedView('grid'); }}
+@@ -396,1 +396,1 @@
+-                    onClick={() => setSelectedView('list')}
++                    onClick={() => { setSelectedView('list'); }}
+@@ -413,1 +413,1 @@
+-                  onClick={() => handlePostSelect(post)}
++                  onClick={() => { handlePostSelect(post); }}
+@@ -494,1 +494,1 @@
+-                  onClick={() => handlePageChange(currentPage - 1)}
++                  onClick={() => { handlePageChange(currentPage - 1); }}
+@@ -507,1 +507,1 @@
+-                  onClick={() => handlePageChange(currentPage + 1)}
++                  onClick={() => { handlePageChange(currentPage + 1); }}
+diff --git a/md-docs/VNC_WEBSOCKET_FIX_SUMMARY.md b/md-docs/VNC_WEBSOCKET_FIX_SUMMARY.md
+--- a/md-docs/VNC_WEBSOCKET_FIX_SUMMARY.md
++++ b/md-docs/VNC_WEBSOCKET_FIX_SUMMARY.md
+@@ -5,1 +5,1 @@
+-### ð¨ **Issue Description**
++### ð¨ **Issue Description**
+
+@@ -7,1 +7,1 @@
+-- WebSocket connection failures to `ws://localhost:3000/vnc-proxy`
++
+- WebSocket connection failures to `ws://localhost:3000/vnc-proxy`
+@@ -12,1 +12,1 @@
+-### ð **Root Cause Analysis**
++### ð **Root Cause Analysis**
+
+@@ -21,1 +21,1 @@
+-#### 1. **Manual WebSocket Routing System**
++#### 1. **Manual WebSocket Routing System**
+
+@@ -44,1 +44,1 @@
+-#### 2. **ChatService Refactoring**
++#### 2. **ChatService Refactoring**
+
+@@ -64,1 +64,1 @@
+-#### 3. **VirtFusion API Integration**
++#### 3. **VirtFusion API Integration**
+
+@@ -80,1 +80,1 @@
+-#### 4. **Enhanced Error Handling**
++#### 4. **Enhanced Error Handling**
+
+@@ -119,1 +119,1 @@
+-### ð **Backward Compatibility**
++### ð **Backward Compatibility**
+
+@@ -120,1 +120,1 @@
+-- â All existing chat functionality preserved
++
+- â All existing chat functionality preserved
+@@ -133,1 +133,1 @@
+-### ð **Impact Assessment**
++### ð **Impact Assessment**
+
+@@ -134,1 +134,1 @@
+-- **High Priority Issue**: â Resolved
++
+- **High Priority Issue**: â Resolved
+diff --git a/client/src/components/ui/chart.tsx b/client/src/components/ui/chart.tsx
+--- a/client/src/components/ui/chart.tsx
++++ b/client/src/components/ui/chart.tsx
+@@ -21,1 +21,1 @@
+-type ChartContextProps = {
++interface ChartContextProps {
+@@ -47,1 +47,1 @@
+-  const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`
++  const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
+@@ -72,1 +72,1 @@
+-    ([, config]) => config.theme || config.color
++    ([, config]) => config.theme ?? config.color
+@@ -89,1 +89,1 @@
+-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
++      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ??
+@@ -146,1 +146,1 @@
+-          ? config[label as keyof typeof config]?.label || label
++          ? config[label]?.label || label
+@@ -238,1 +238,1 @@
+-                          {itemConfig?.label || item.name}
++                          {itemConfig?.label ?? item.name}
+@@ -289,1 +289,1 @@
+-          const key = `${nameKey || item.dataKey || "value"}`
++          const key = `${(nameKey ?? item.dataKey) || "value"}`
+@@ -355,1 +355,1 @@
+-    : config[key as keyof typeof config]
++    : config[key]
+diff --git a/client/src/pages/transaction-detail-page.tsx b/client/src/pages/transaction-detail-page.tsx
+--- a/client/src/pages/transaction-detail-page.tsx
++++ b/client/src/pages/transaction-detail-page.tsx
+@@ -127,1 +127,1 @@
+-  if (error || !transaction) {
++  if (error ?? !transaction) {
+diff --git a/scripts/quick-department-check.ts b/scripts/quick-department-check.ts
+--- a/scripts/quick-department-check.ts
++++ b/scripts/quick-department-check.ts
+@@ -20,1 +20,1 @@
+-    supportDepts.rows.forEach((dept: any) => {
++    supportDepts.rows.forEach((dept: unknown) => {
+@@ -25,1 +25,1 @@
+-    ticketDepts.rows.forEach((dept: any) => {
++    ticketDepts.rows.forEach((dept: unknown) => {
+@@ -40,1 +40,1 @@
+-      ticketsByDept.rows.forEach((row: any) => {
++      ticketsByDept.rows.forEach((row: unknown) => {
+@@ -41,1 +41,1 @@
+-        const supportDept = supportDepts.rows.find((d: any) => d.id === row.department_id);
++        const supportDept = supportDepts.rows.find((d: unknown) => d.id === row.department_id);
+@@ -52,1 +52,1 @@
+-      const matchingSupportDept = supportDepts.rows.find((supportDept: any) => 
++      const matchingSupportDept = supportDepts.rows.find((supportDept: unknown) => 
+@@ -70,1 +70,1 @@
+-quickDepartmentCheck();
++void quickDepartmentCheck();
+diff --git a/md-docs/test-sync-functionality.md b/md-docs/test-sync-functionality.md
+--- a/md-docs/test-sync-functionality.md
++++ b/md-docs/test-sync-functionality.md
+@@ -5,1 +5,1 @@
+-### **Problem Resolved**
++### **Problem Resolved**
+
+@@ -6,1 +6,1 @@
+-- **Error**: `cn is not defined` runtime error in admin settings page
++
+- **Error**: `cn is not defined` runtime error in admin settings page
+@@ -10,1 +10,1 @@
+-### **Solution Applied**
++### **Solution Applied**
+
+@@ -11,1 +11,1 @@
+-1. **Added Missing Import**: Added `import { cn } from "@/lib/utils";` to the settings page
++
+1. **Added Missing Import**: Added `import { cn } from "@/lib/utils";` to the settings page
+@@ -17,1 +17,1 @@
+-#### **1. Runtime Error Resolution**
++#### **1. Runtime Error Resolution**
+
+@@ -18,1 +18,1 @@
+-- â **No More `cn is not defined` Error**: The page now loads without runtime errors
++
+- â **No More `cn is not defined` Error**: The page now loads without runtime errors
+@@ -22,1 +22,1 @@
+-#### **2. Sync Functionality Testing**
++#### **2. Sync Functionality Testing**
+
+@@ -34,1 +34,1 @@
+-#### **3. API Endpoints Working**
++#### **3. API Endpoints Working**
+
+@@ -35,1 +35,1 @@
+-- â **Status Check**: `GET /api/admin/department-migration/status` returns correct sync status
++
+- â **Status Check**: `GET /api/admin/department-migration/status` returns correct sync status
+@@ -39,1 +39,1 @@
+-#### **4. UI Components Working**
++#### **4. UI Components Working**
+
+@@ -40,1 +40,1 @@
+-- â **Sync Interface**: Orange "New Departments Detected" section displays correctly
++
+- â **Sync Interface**: Orange "New Departments Detected" section displays correctly
+@@ -57,1 +57,1 @@
+-#### **Before Fix**
++#### **Before Fix**
+
+@@ -63,1 +63,1 @@
+-#### **After Fix**
++#### **After Fix**
+
+@@ -70,1 +70,1 @@
+-### **Performance Impact**
++### **Performance Impact**
+
+@@ -71,1 +71,1 @@
+-- **Minimal**: Adding the import has negligible performance impact
++
+- **Minimal**: Adding the import has negligible performance impact
+@@ -75,1 +75,1 @@
+-### **Browser Compatibility**
++### **Browser Compatibility**
+
+@@ -76,1 +76,1 @@
+-- â **Chrome**: Working correctly
++
+- â **Chrome**: Working correctly
+@@ -90,1 +90,1 @@
+-- â **Error-free runtime execution**
++
+- â **Error-free runtime execution**
+diff --git a/client/src/pages/billing-page.tsx b/client/src/pages/billing-page.tsx
+--- a/client/src/pages/billing-page.tsx
++++ b/client/src/pages/billing-page.tsx
+@@ -83,1 +83,1 @@
+-        const searchInCreditId = (transaction as any).virtFusionCreditId?.toLowerCase?.() || '';
++        const searchInCreditId = (transaction as unknown).virtFusionCreditId?.toLowerCase?.() || '';
+@@ -92,1 +92,1 @@
+-          (transaction.paymentId && transaction.paymentId.toLowerCase().includes(query)) ||
++          (transaction.paymentId?.toLowerCase().includes(query)) ||
+@@ -110,1 +110,1 @@
+-  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: any }>({
++  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: unknown }>({
+@@ -316,1 +316,1 @@
+-    const decimalCount = (sanitizedValue.match(/\./g) || []).length;
++    const decimalCount = (sanitizedValue.match(/\./g) ?? []).length;
+@@ -409,1 +409,1 @@
+-                    onClick={() => handleTabChange("addCredits")}
++                    onClick={() => { handleTabChange("addCredits"); }}
+@@ -532,1 +532,1 @@
+-                          onChange={(e) => setSearchQuery(e.target.value)}
++                          onChange={(e) => { setSearchQuery(e.target.value); }}
+@@ -539,1 +539,1 @@
+-                          onChange={(e) => setStatusFilter(e.target.value)}
++                          onChange={(e) => { setStatusFilter(e.target.value); }}
+@@ -673,1 +673,1 @@
+-                            <Badge variant={variant as any} className="capitalize font-normal">
++                            <Badge variant={variant as unknown} className="capitalize font-normal">
+@@ -736,1 +736,1 @@
+-                          onClick={() => handlePredefinedAmountSelect(amount)}
++                          onClick={() => { handlePredefinedAmountSelect(amount); }}
+@@ -764,1 +764,1 @@
+-                            onChange={(e) => handleCustomAmountChange(e.target.value)}
++                            onChange={(e) => { handleCustomAmountChange(e.target.value); }}
+diff --git a/readme.md b/readme.md
+--- a/readme.md
++++ b/readme.md
+@@ -1,1 +1,1 @@
+-# ð SkyPANEL - Enterprise VirtFusion Management Platform
++# ð SkyPANEL - Enterprise VirtFusion Management Platform
+
+@@ -23,1 +23,1 @@
+-## ð Support My Work
++## ð Support My Work
+
+@@ -82,1 +82,1 @@
+-### Frontend
++### Frontend
+
+@@ -83,1 +83,1 @@
+-- **React 18**: Modern UI library with hooks and concurrent features
++
+- **React 18**: Modern UI library with hooks and concurrent features
+@@ -98,1 +98,1 @@
+-### Backend
++### Backend
+
+@@ -99,1 +99,1 @@
+-- **Node.js**: JavaScript runtime for server-side development
++
+- **Node.js**: JavaScript runtime for server-side development
+@@ -112,1 +112,1 @@
+-### AI & Integrations
++### AI & Integrations
+
+@@ -113,1 +113,1 @@
+-- **Google Gemini 2.5 Flash**: Advanced AI for customer support
++
+- **Google Gemini 2.5 Flash**: Advanced AI for customer support
+@@ -119,1 +119,1 @@
+-### DevOps & Tooling
++### DevOps & Tooling
+
+@@ -120,1 +120,1 @@
+-- **ESBuild**: Fast JavaScript bundler for production
++
+- **ESBuild**: Fast JavaScript bundler for production
+@@ -130,1 +130,1 @@
+-### ð¥ User Management
++### ð¥ User Management
+
+@@ -131,1 +131,1 @@
+-- **Secure Authentication**: Email verification, password reset, and account recovery
++
+- **Secure Authentication**: Email verification, password reset, and account recovery
+@@ -137,1 +137,1 @@
+-### ð³ Billing System
++### ð³ Billing System
+
+@@ -138,1 +138,1 @@
+-- **Credit-Based Billing**: Flexible credit system with real-time balance tracking
++
+- **Credit-Based Billing**: Flexible credit system with real-time balance tracking
+@@ -145,1 +145,1 @@
+-### ð¤ VirtFusion Integration
++### ð¤ VirtFusion Integration
+
+@@ -146,1 +146,1 @@
+-- **Direct API Integration**: Complete VirtFusion API integration for all operations
++
+- **Direct API Integration**: Complete VirtFusion API integration for all operations
+@@ -153,1 +153,1 @@
+-### ð« Support System
++### ð« Support System
+
+@@ -154,1 +154,1 @@
+-- **Ticket Management**: Full-featured support ticket system with departments
++
+- **Ticket Management**: Full-featured support ticket system with departments
+@@ -161,1 +161,1 @@
+-### ð Admin Dashboard
++### ð Admin Dashboard
+
+@@ -162,1 +162,1 @@
+-- **User Management**: Comprehensive user administration with VirtFusion sync
++
+- **User Management**: Comprehensive user administration with VirtFusion sync
+@@ -169,1 +169,1 @@
+-### ð Notifications
++### ð Notifications
+
+@@ -170,1 +170,1 @@
+-- **Email Notifications**: Automated emails for account events and transactions
++
+- **Email Notifications**: Automated emails for account events and transactions
+@@ -184,1 +184,1 @@
+-#### API Key Authentication
++#### API Key Authentication
+
+@@ -190,1 +190,1 @@
+-#### Available Scopes
++#### Available Scopes
+
+@@ -191,1 +191,1 @@
+-- `read:user` - Read user profile information
++
+- `read:user` - Read user profile information
+@@ -201,1 +201,1 @@
+-#### Rate Limiting
++#### Rate Limiting
+
+@@ -202,1 +202,1 @@
+-- **100 requests per minute** per API key
++
+- **100 requests per minute** per API key
+@@ -208,1 +208,1 @@
+-#### User Management
++#### User Management
+
+@@ -216,1 +216,1 @@
+-#### Authentication
++#### Authentication
+
+@@ -231,1 +231,1 @@
+-#### User Server Operations
++#### User Server Operations
+
+@@ -242,1 +242,1 @@
+-#### Server Packages & Plans
++#### Server Packages & Plans
+
+@@ -251,1 +251,1 @@
+-#### User Billing
++#### User Billing
+
+@@ -262,1 +262,1 @@
+-#### PayPal Integration
++#### PayPal Integration
+
+@@ -269,1 +269,1 @@
+-#### Ticket Management
++#### Ticket Management
+
+@@ -283,1 +283,1 @@
+-#### Personal API Keys
++#### Personal API Keys
+
+@@ -292,1 +292,1 @@
+-#### User Administration
++#### User Administration
+
+@@ -302,1 +302,1 @@
+-#### Server Administration
++#### Server Administration
+
+@@ -316,1 +316,1 @@
+-#### Billing Administration
++#### Billing Administration
+
+@@ -324,1 +324,1 @@
+-#### Support Administration
++#### Support Administration
+
+@@ -330,1 +330,1 @@
+-#### System Administration
++#### System Administration
+
+@@ -341,1 +341,1 @@
+-#### Content Management
++#### Content Management
+
+@@ -363,1 +363,1 @@
+-#### Public Information
++#### Public Information
+
+@@ -377,1 +377,1 @@
+-#### Maintenance Management
++#### Maintenance Management
+
+@@ -388,1 +388,1 @@
+-#### User Profile Management
++#### User Profile Management
+
+@@ -395,1 +395,1 @@
+-#### Password & Authentication Management
++#### Password & Authentication Management
+
+@@ -403,1 +403,1 @@
+-#### Server Management (User Access)
++#### Server Management (User Access)
+
+diff --git a/client/src/pages/admin/transaction-detail-page.tsx b/client/src/pages/admin/transaction-detail-page.tsx
+--- a/client/src/pages/admin/transaction-detail-page.tsx
++++ b/client/src/pages/admin/transaction-detail-page.tsx
+@@ -87,1 +87,1 @@
+-  if (error || !transaction) {
++  if (error ?? !transaction) {
+@@ -136,1 +136,1 @@
+-              <p className="text-lg font-medium">{transaction.user?.username} ({transaction.user?.email})</p>
++              <p className="text-lg font-medium">{transaction.user.username} ({transaction.user?.email})</p>
+diff --git a/md-docs/brand-theme.md b/md-docs/brand-theme.md
+--- a/md-docs/brand-theme.md
++++ b/md-docs/brand-theme.md
+@@ -220,1 +220,1 @@
+-- `hover:bg-primary`: Changes the button background to the primary brand color on hover
++
+- `hover:bg-primary`: Changes the button background to the primary brand color on hover
+@@ -248,1 +248,1 @@
+-### Issue Identified
++### Issue Identified
+
+@@ -251,1 +251,1 @@
+-### Root Cause
++### Root Cause
+
+@@ -252,1 +252,1 @@
+-1. The docs page wasn't importing the `getBrandColors` utility from `@/lib/brand-theme`
++
+1. The docs page wasn't importing the `getBrandColors` utility from `@/lib/brand-theme`
+@@ -256,1 +256,1 @@
+-### Solution Implemented
++### Solution Implemented
+
+@@ -257,1 +257,1 @@
+-1. Added the proper import for brand utilities:
++
+1. Added the proper import for brand utilities:
+@@ -285,1 +285,1 @@
+-### Best Practice for Color Consistency
++### Best Practice for Color Consistency
+
+@@ -287,1 +287,1 @@
+-1. Import the brand utilities (`getBrandColors`)
++
+1. Import the brand utilities (`getBrandColors`)
+diff --git a/client/src/components/layouts/DashboardLayout.tsx b/client/src/components/layouts/DashboardLayout.tsx
+--- a/client/src/components/layouts/DashboardLayout.tsx
++++ b/client/src/components/layouts/DashboardLayout.tsx
+@@ -48,1 +48,1 @@
+-type NavigationItem = {
++interface NavigationItem {
+@@ -148,1 +148,1 @@
+-    } else if (settings?.company_name) {
++    } else if (settings.company_name) {
+@@ -151,1 +151,1 @@
+-  }, [brandingSettings?.company_name, settings?.company_name]);
++  }, [brandingSettings?.company_name, settings.company_name]);
+@@ -155,1 +155,1 @@
+-    primaryColor: brandingSettings?.primary_color || brandingSettings?.company_color || '2563eb',  // Fallback to company_color for backward compatibility
++    primaryColor: (brandingSettings?.primary_color ?? brandingSettings?.company_color) || '2563eb',  // Fallback to company_color for backward compatibility
+@@ -156,1 +156,1 @@
+-    secondaryColor: brandingSettings?.secondary_color || '10b981',
++    secondaryColor: brandingSettings?.secondary_color ?? '10b981',
+@@ -157,1 +157,1 @@
+-    accentColor: brandingSettings?.accent_color || 'f59e0b'
++    accentColor: brandingSettings?.accent_color ?? 'f59e0b'
+@@ -170,1 +170,1 @@
+-        primaryColor: brandingSettings?.primary_color || brandingSettings?.company_color || '2563eb',
++        primaryColor: brandingSettings.primary_color || brandingSettings?.company_color || '2563eb',
+@@ -171,1 +171,1 @@
+-        secondaryColor: brandingSettings?.secondary_color || '10b981',
++        secondaryColor: brandingSettings.secondary_color || '10b981',
+@@ -172,1 +172,1 @@
+-        accentColor: brandingSettings?.accent_color || 'f59e0b'
++        accentColor: brandingSettings.accent_color || 'f59e0b'
+@@ -204,1 +204,1 @@
+-  const { data: ticketsResponse } = useQuery<{ data: TicketType[], pagination: any }>({
++  const { data: ticketsResponse } = useQuery<{ data: TicketType[], pagination: unknown }>({
+@@ -226,1 +226,1 @@
+-  const tickets = ticketsResponse?.data || [];
++  const tickets = ticketsResponse?.data ?? [];
+@@ -365,1 +365,1 @@
+-    if (!query || !query.trim()) {
++    if (!query?.trim()) {
+@@ -458,1 +458,1 @@
+-          const paymentId = (tx.paymentId || "").toLowerCase();
++          const paymentId = (tx.paymentId ?? "").toLowerCase();
+@@ -471,1 +471,1 @@
+-            const userName = users.find(u => u.id === tx.userId)?.fullName || `User #${tx.userId}`;
++            const userName = users.find(u => u.id === tx.userId)?.fullName ?? `User #${tx.userId}`;
+@@ -489,1 +489,1 @@
+-              description: `User: ${userName} | Amount: $${tx.amount?.toFixed(2) || '0.00'} | Status: ${tx.status || 'Unknown'}${additionalInfo}`,
++              description: `User: ${userName} | Amount: $${tx.amount.toFixed(2) || '0.00'} | Status: ${tx.status || 'Unknown'}${additionalInfo}`,
+@@ -582,1 +582,1 @@
+-              description: `Amount: $${tx.amount?.toFixed(2) || '0.00'} | Status: ${tx.status || 'Unknown'}${additionalInfo}`,
++              description: `Amount: $${tx.amount.toFixed(2) || '0.00'} | Status: ${tx.status || 'Unknown'}${additionalInfo}`,
+@@ -639,1 +639,1 @@
+-      return () => clearTimeout(delaySearch);
++      return () => { clearTimeout(delaySearch); };
+@@ -708,1 +708,1 @@
+-    return () => window.removeEventListener("keydown", handleKeyDown);
++    return () => { window.removeEventListener("keydown", handleKeyDown); };
+@@ -750,1 +750,1 @@
+-              {companyName?.charAt(0) || "S"}
++              {companyName.charAt(0) || "S"}

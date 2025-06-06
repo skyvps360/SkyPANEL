@@ -17,12 +17,12 @@ async function quickDepartmentCheck() {
 
     console.log('📊 Current state:');
     console.log('Support departments (unified):');
-    supportDepts.rows.forEach((dept: any) => {
+    supportDepts.rows.forEach((dept: unknown) => {
       console.log(`  ID: ${dept.id} | Name: "${dept.name}" | Active: ${dept.is_active} | Requires VPS: ${dept.requires_vps}`);
     });
     
     console.log('\nTicket departments (legacy):');
-    ticketDepts.rows.forEach((dept: any) => {
+    ticketDepts.rows.forEach((dept: unknown) => {
       console.log(`  ID: ${dept.id} | Name: "${dept.name}" | Active: ${dept.is_active} | Requires VPS: ${dept.requires_vps}`);
     });
 
@@ -37,8 +37,8 @@ async function quickDepartmentCheck() {
 
     console.log('\n📋 Tickets by department_id:');
     if (ticketsByDept.rows.length > 0) {
-      ticketsByDept.rows.forEach((row: any) => {
-        const supportDept = supportDepts.rows.find((d: any) => d.id === row.department_id);
+      ticketsByDept.rows.forEach((row: unknown) => {
+        const supportDept = supportDepts.rows.find((d: unknown) => d.id === row.department_id);
         const status = supportDept ? '✅' : '❌';
         console.log(`  ${status} dept_id: ${row.department_id}, tickets: ${row.count}${supportDept ? ` ("${supportDept.name}")` : ' (NOT FOUND in support_departments)'}`);
       });
@@ -49,7 +49,7 @@ async function quickDepartmentCheck() {
     // Create a mapping based on name matching
     console.log('\n🔄 Department name mapping:');
     for (const ticketDept of ticketDepts.rows) {
-      const matchingSupportDept = supportDepts.rows.find((supportDept: any) => 
+      const matchingSupportDept = supportDepts.rows.find((supportDept: unknown) => 
         supportDept.name.toLowerCase() === ticketDept.name.toLowerCase()
       );
       
@@ -67,4 +67,4 @@ async function quickDepartmentCheck() {
   }
 }
 
-quickDepartmentCheck();
+void quickDepartmentCheck();

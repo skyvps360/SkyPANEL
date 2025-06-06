@@ -80,7 +80,7 @@ export default function BillingPage() {
       // Filter by search query
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const searchInCreditId = (transaction as any).virtFusionCreditId?.toLowerCase?.() || '';
+        const searchInCreditId = (transaction as unknown).virtFusionCreditId?.toLowerCase?.() || '';
         const searchInCreditIdNoHyphens = searchInCreditId.replace(/-/g, '');
         const queryNoHyphens = query.replace(/-/g, '');
         
@@ -89,7 +89,7 @@ export default function BillingPage() {
           transaction.id.toString().includes(query) ||
           transaction.amount.toString().includes(query) ||
           transaction.status.toLowerCase().includes(query) ||
-          (transaction.paymentId && transaction.paymentId.toLowerCase().includes(query)) ||
+          (transaction.paymentId?.toLowerCase().includes(query)) ||
           searchInCreditId.includes(query) ||
           searchInCreditIdNoHyphens.includes(queryNoHyphens)
         );
@@ -107,7 +107,7 @@ export default function BillingPage() {
   });
 
   // Fetch VirtFusion usage data for last 30 days
-  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: any }>({
+  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: unknown }>({
     queryKey: ["/api/billing/usage/last30days"],
     staleTime: 300000, // 5 minutes
   });
@@ -313,7 +313,7 @@ export default function BillingPage() {
     const sanitizedValue = value.replace(/[^0-9.]/g, '');
 
     // Prevent multiple decimal points
-    const decimalCount = (sanitizedValue.match(/\./g) || []).length;
+    const decimalCount = (sanitizedValue.match(/\./g) ?? []).length;
     if (decimalCount > 1) return;
 
     setCustomAmount(sanitizedValue);
@@ -406,7 +406,7 @@ export default function BillingPage() {
                 </Button>
                 {user?.isActive && (
                   <Button
-                    onClick={() => handleTabChange("addCredits")}
+                    onClick={() => { handleTabChange("addCredits"); }}
                     className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                   >
                     <PlusCircle className="h-4 w-4 mr-2" />
@@ -529,14 +529,14 @@ export default function BillingPage() {
                           placeholder="Search transactions..."
                           className="pl-9 bg-background"
                           value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onChange={(e) => { setSearchQuery(e.target.value); }}
                         />
                       </div>
                       <div className="w-full md:w-48">
                         <select
                           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                           value={statusFilter}
-                          onChange={(e) => setStatusFilter(e.target.value)}
+                          onChange={(e) => { setStatusFilter(e.target.value); }}
                         >
                           <option value="all">All Statuses</option>
                           <option value="completed">Completed</option>
@@ -670,7 +670,7 @@ export default function BillingPage() {
                           }
 
                           return (
-                            <Badge variant={variant as any} className="capitalize font-normal">
+                            <Badge variant={variant as unknown} className="capitalize font-normal">
                               {transaction.status}
                             </Badge>
                           );
@@ -733,7 +733,7 @@ export default function BillingPage() {
                         <Button
                           key={amount}
                           variant={!isCustomAmount && creditAmount === amount ? "default" : "outline"}
-                          onClick={() => handlePredefinedAmountSelect(amount)}
+                          onClick={() => { handlePredefinedAmountSelect(amount); }}
                           className={`font-medium transition-all ${
                             !isCustomAmount && creditAmount === amount
                               ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg'
@@ -761,7 +761,7 @@ export default function BillingPage() {
                             type="text"
                             placeholder="0.00"
                             value={customAmount}
-                            onChange={(e) => handleCustomAmountChange(e.target.value)}
+                            onChange={(e) => { handleCustomAmountChange(e.target.value); }}
                             className={`pl-8 ${customAmountError ? 'border-destructive' : ''} ${isCustomAmount ? 'ring-2 ring-primary/20 border-primary' : ''}`}
                           />
                         </div>

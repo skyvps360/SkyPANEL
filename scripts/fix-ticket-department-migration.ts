@@ -13,7 +13,7 @@ async function fixTicketDepartmentMigration() {
       SELECT id, name, is_active FROM support_departments ORDER BY id
     `);
     console.log('Support departments (unified):');
-    supportDepts.rows.forEach((dept: any) => {
+    supportDepts.rows.forEach((dept: unknown) => {
       console.log(`  ID: ${dept.id} | Name: "${dept.name}" | Active: ${dept.is_active}`);
     });
     
@@ -21,7 +21,7 @@ async function fixTicketDepartmentMigration() {
       SELECT id, name, is_active FROM ticket_departments ORDER BY id
     `);
     console.log('\nTicket departments (legacy):');
-    ticketDepts.rows.forEach((dept: any) => {
+    ticketDepts.rows.forEach((dept: unknown) => {
       console.log(`  ID: ${dept.id} | Name: "${dept.name}" | Active: ${dept.is_active}`);
     });
 
@@ -37,7 +37,7 @@ async function fixTicketDepartmentMigration() {
     
     if (tickets.rows.length > 0) {
       console.log('Tickets by department:');
-      tickets.rows.forEach((row: any) => {
+      tickets.rows.forEach((row: unknown) => {
         console.log(`  department_id: ${row.department_id}, legacy_department_id: ${row.legacy_department_id}, count: ${row.count}`);
       });
     } else {
@@ -50,7 +50,7 @@ async function fixTicketDepartmentMigration() {
     
     // Map by name (case insensitive)
     for (const ticketDept of ticketDepts.rows) {
-      const matchingSupportDept = supportDepts.rows.find((supportDept: any) => 
+      const matchingSupportDept = supportDepts.rows.find((supportDept: unknown) => 
         supportDept.name.toLowerCase() === ticketDept.name.toLowerCase()
       );
       
@@ -86,7 +86,7 @@ async function fixTicketDepartmentMigration() {
     
     if (updatedTickets.rows.length > 0) {
       console.log('Tickets by support department:');
-      updatedTickets.rows.forEach((row: any) => {
+      updatedTickets.rows.forEach((row: unknown) => {
         console.log(`  Support dept ${row.department_id} ("${row.support_dept_name}"): ${row.count} tickets`);
       });
     }
@@ -101,7 +101,7 @@ async function fixTicketDepartmentMigration() {
     
     if (problematicTickets.rows.length > 0) {
       console.log('\n⚠️  Remaining problematic tickets:');
-      problematicTickets.rows.forEach((ticket: any) => {
+      problematicTickets.rows.forEach((ticket: unknown) => {
         console.log(`  Ticket ${ticket.id}: department_id=${ticket.department_id} (not found in support_departments)`);
       });
     } else {
@@ -113,7 +113,7 @@ async function fixTicketDepartmentMigration() {
     console.log('For frontend/API usage:');
     console.log('Legacy ticket_departments ID → Current support_departments ID');
     for (const [legacyId, supportId] of departmentMapping) {
-      const ticketDept = ticketDepts.rows.find((d: any) => d.id === legacyId);
+      const ticketDept = ticketDepts.rows.find((d: unknown) => d.id === legacyId);
       console.log(`  ${legacyId} ("${ticketDept?.name}") → ${supportId}`);
     }
 

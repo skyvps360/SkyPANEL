@@ -9,3 +9,6 @@ package-lock.json
 .env
 .wrangler
 dnsmasq.conf
+
+#Ignore cursor AI rules
+.cursor\rules\codacy.mdc
