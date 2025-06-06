@@ -116,7 +116,16 @@
     "wrangler": "^4.13.2",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
-    "zod-validation-error": "^3.4.0"
+    "zod-validation-error": "^3.4.0",
+    "@vitejs/plugin-react": "^4.3.2",
+    "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
+    "esbuild": "^0.25.0",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.4",
+    "typescript": "5.6.3",
+    "vite": "^6.3.5"
   },
   "devDependencies": {
     "@replit/vite-plugin-cartographer": "^0.0.11",
@@ -131,18 +140,9 @@
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.5.13",
-    "@vitejs/plugin-react": "^4.3.2",
-    "autoprefixer": "^10.4.20",
-    "cross-env": "^7.0.3",
     "drizzle-kit": "^0.30.6",
-    "esbuild": "^0.25.0",
     "husky": "^8.0.3",
-    "npm-check-updates": "^16.8.0",
-    "postcss": "^8.4.47",
-    "tailwindcss": "^3.4.17",
-    "tsx": "^4.19.4",
-    "typescript": "5.6.3",
-    "vite": "^6.3.5"
+    "npm-check-updates": "^16.8.0"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
