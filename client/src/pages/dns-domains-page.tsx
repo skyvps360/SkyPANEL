@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Globe, Trash2, Settings, AlertCircle } from "lucide-react";
+import { Plus, Globe, Trash2, Settings, AlertCircle, Copy, Check, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -10,6 +10,101 @@ import { getDnsDomains, deleteDnsDomain } from "@/lib/api";
 import { AddDomainDialog } from "@/components/dns/AddDomainDialog";
 import { getBrandColors } from "@/lib/brand-theme";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
+
+// SkyPANEL Nameservers
+const SKYPANEL_NAMESERVERS = [
+  'cdns.ns1.skyvps360.xyz',
+  'cdns.ns2.skyvps360.xyz',
+  'cdns.ns3.skyvps360.xyz'
+];
+
+// Nameserver Information Component
+function NameserverInfoCard({ companyName, brandColors }: { companyName: string; brandColors: any }) {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const copyToClipboard = async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  return (
+    <Card className="border-blue-200 bg-blue-50">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-blue-900">
+          <Server className="h-5 w-5" />
+          {companyName} Nameservers
+        </CardTitle>
+        <CardDescription className="text-blue-700">
+          Point your domain to these nameservers at your registrar to use {companyName} DNS management
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {SKYPANEL_NAMESERVERS.map((nameserver, index) => (
+            <div
+              key={nameserver}
+              className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <span className="text-sm font-semibold text-blue-600">
+                    NS{index + 1}
+                  </span>
+                </div>
+                <code className="text-sm font-mono text-gray-800 bg-gray-100 px-2 py-1 rounded">
+                  {nameserver}
+                </code>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => copyToClipboard(nameserver, index)}
+                className="flex items-center gap-2 border-blue-200 transition-all duration-200"
+                style={{
+                  color: '#2563eb',
+                  borderColor: '#bfdbfe',
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#eff6ff';
+                  e.currentTarget.style.borderColor = '#93c5fd';
+                  e.currentTarget.style.color = '#1d4ed8';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = '#bfdbfe';
+                  e.currentTarget.style.color = '#2563eb';
+                }}
+              >
+                {copiedIndex === index ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>Instructions:</strong> Log into your domain registrar's control panel and update your domain's nameservers to the three addresses above. DNS changes may take up to 24-48 hours to propagate globally.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface DnsDomain {
   id: number;
@@ -201,7 +296,7 @@ export default function DnsDomainsPage() {
                       DNS Management
                     </h1>
                     <p className="text-gray-600 mt-1 text-lg">
-                      Manage your DNS domains and records through {companyName} InterServer integration
+                      Manage your DNS domains and records through {companyName}
                     </p>
                   </div>
                 </div>
@@ -219,6 +314,9 @@ export default function DnsDomainsPage() {
             </div>
           </div>
         </div>
+
+        {/* Nameserver Information Card */}
+        <NameserverInfoCard companyName={companyName} brandColors={brandColors} />
 
         {/* Warning message if InterServer API has issues */}
       {domainsData?.warning && (

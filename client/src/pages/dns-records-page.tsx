@@ -263,7 +263,7 @@ export default function DnsRecordsPage() {
                       {recordsData?.domain?.name || "Loading..."}
                     </h1>
                     <p className="text-gray-600 mt-1 text-lg">
-                      Manage DNS records for {recordsData?.domain?.name} via {companyName} InterServer integration
+                      Manage DNS records for {recordsData?.domain?.name} via {companyName}
                     </p>
                   </div>
                 </div>
@@ -300,7 +300,7 @@ export default function DnsRecordsPage() {
             DNS Records ({recordsData?.records?.length || 0})
           </CardTitle>
           <CardDescription>
-            Manage DNS records for {recordsData?.domain?.name} via {companyName} InterServer integration
+            Manage DNS records for {recordsData?.domain?.name} via {companyName}
           </CardDescription>
         </CardHeader>
         <CardContent>

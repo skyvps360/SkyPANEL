@@ -37,6 +37,20 @@ export interface DnsUpdateRecord {
   auth?: string;
 }
 
+// SkyPANEL White-labeled Nameserver Configuration
+export const SKYPANEL_NAMESERVERS = {
+  NS1: 'cdns.ns1.skyvps360.xyz',
+  NS2: 'cdns.ns2.skyvps360.xyz',
+  NS3: 'cdns.ns3.skyvps360.xyz'
+} as const;
+
+// Default InterServer nameservers to replace
+export const INTERSERVER_NAMESERVERS = {
+  NS1: 'cdns1.interserver.net',
+  NS2: 'cdns2.interserver.net',
+  NS3: 'cdns3.interserver.net'
+} as const;
+
 export interface InterServerApiError {
   error: string;
   message?: string;
@@ -326,6 +340,209 @@ export class InterServerApi {
    */
   static getValidRecordTypes(): string[] {
     return ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'PTR', 'SRV', 'CAA'];
+  }
+
+  /**
+   * Replace default InterServer nameservers with SkyPANEL white-labeled nameservers
+   * This method should be called after successful domain creation to provide
+   * a seamless white-labeled DNS experience.
+   */
+  async replaceNameserverRecords(domainId: number, domainName: string): Promise<{
+    success: boolean;
+    replacedRecords: Array<{ type: string; old: string; new: string; recordId: string }>;
+    errors: string[];
+  }> {
+    const result = {
+      success: true,
+      replacedRecords: [] as Array<{ type: string; old: string; new: string; recordId: string }>,
+      errors: [] as string[]
+    };
+
+    try {
+      console.log(`Starting nameserver replacement for domain ${domainName} (ID: ${domainId})`);
+
+      // Get current DNS records for the domain
+      const records = await this.getDnsDomain(domainId);
+      console.log(`Found ${records.length} DNS records for domain ${domainName}`);
+
+      // Find NS records that need to be replaced
+      const nsRecords = records.filter(record =>
+        record.type === 'NS' &&
+        Object.values(INTERSERVER_NAMESERVERS).includes(record.content)
+      );
+
+      // Find SOA record that needs to be updated (contains any InterServer nameserver references)
+      const soaRecords = records.filter(record =>
+        record.type === 'SOA' &&
+        (record.content.includes('cdns1.interserver.net') || record.content.includes('dns.interserver.net'))
+      );
+
+      console.log(`Found ${nsRecords.length} NS records and ${soaRecords.length} SOA records to replace`);
+
+      // Replace NS records
+      for (const nsRecord of nsRecords) {
+        try {
+          let newNameserver: string;
+
+          // Map InterServer nameservers to SkyPANEL nameservers
+          switch (nsRecord.content) {
+            case INTERSERVER_NAMESERVERS.NS1:
+              newNameserver = SKYPANEL_NAMESERVERS.NS1;
+              break;
+            case INTERSERVER_NAMESERVERS.NS2:
+              newNameserver = SKYPANEL_NAMESERVERS.NS2;
+              break;
+            case INTERSERVER_NAMESERVERS.NS3:
+              newNameserver = SKYPANEL_NAMESERVERS.NS3;
+              break;
+            default:
+              console.warn(`Unknown InterServer nameserver: ${nsRecord.content}`);
+              continue;
+          }
+
+          // Update the NS record
+          await this.updateDnsRecord(domainId, parseInt(nsRecord.id), {
+            name: nsRecord.name,
+            type: nsRecord.type,
+            content: newNameserver,
+            ttl: nsRecord.ttl,
+            prio: nsRecord.prio,
+            disabled: nsRecord.disabled,
+            ordername: nsRecord.ordername,
+            auth: nsRecord.auth
+          });
+
+          result.replacedRecords.push({
+            type: 'NS',
+            old: nsRecord.content,
+            new: newNameserver,
+            recordId: nsRecord.id
+          });
+
+          console.log(`Successfully replaced NS record: ${nsRecord.content} → ${newNameserver}`);
+        } catch (error) {
+          const errorMsg = `Failed to replace NS record ${nsRecord.content}: ${error.message}`;
+          console.error(errorMsg);
+          result.errors.push(errorMsg);
+          result.success = false;
+        }
+      }
+
+      // Replace SOA record
+      for (const soaRecord of soaRecords) {
+        try {
+          // Update SOA record to use SkyPANEL nameservers for both primary and admin contact
+          let newSoaContent = soaRecord.content;
+
+          // Replace primary nameserver (cdns1.interserver.net)
+          newSoaContent = newSoaContent.replace(
+            'cdns1.interserver.net',
+            SKYPANEL_NAMESERVERS.NS1
+          );
+
+          // Replace administrative contact (dns.interserver.net with cdns.ns2.skyvps360.xyz)
+          newSoaContent = newSoaContent.replace(
+            'dns.interserver.net',
+            SKYPANEL_NAMESERVERS.NS2
+          );
+
+          console.log(`SOA record replacement: ${soaRecord.content} → ${newSoaContent}`);
+
+          await this.updateDnsRecord(domainId, parseInt(soaRecord.id), {
+            name: soaRecord.name,
+            type: soaRecord.type,
+            content: newSoaContent,
+            ttl: soaRecord.ttl,
+            prio: soaRecord.prio,
+            disabled: soaRecord.disabled,
+            ordername: soaRecord.ordername,
+            auth: soaRecord.auth
+          });
+
+          result.replacedRecords.push({
+            type: 'SOA',
+            old: soaRecord.content,
+            new: newSoaContent,
+            recordId: soaRecord.id
+          });
+
+          console.log(`Successfully replaced SOA record with SkyPANEL nameservers (primary and admin contact)`);
+        } catch (error) {
+          const errorMsg = `Failed to replace SOA record: ${error.message}`;
+          console.error(errorMsg);
+          result.errors.push(errorMsg);
+          result.success = false;
+        }
+      }
+
+      console.log(`Nameserver replacement completed for ${domainName}. Success: ${result.success}, Replaced: ${result.replacedRecords.length}, Errors: ${result.errors.length}`);
+
+      return result;
+    } catch (error) {
+      console.error(`Error during nameserver replacement for domain ${domainName}:`, error);
+      result.success = false;
+      result.errors.push(`Failed to fetch domain records: ${error.message}`);
+      return result;
+    }
+  }
+
+  /**
+   * Enhanced domain creation with automatic nameserver replacement
+   * This method combines domain creation with white-labeled nameserver setup
+   */
+  async addDnsDomainWithWhiteLabel(domain: string, ip: string): Promise<{
+    domainResult: { id: number; domain: string } | null;
+    nameserverResult: {
+      success: boolean;
+      replacedRecords: Array<{ type: string; old: string; new: string; recordId: string }>;
+      errors: string[];
+    } | null;
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      console.log(`Creating domain ${domain} with white-labeled nameservers`);
+
+      // Step 1: Create the domain normally
+      const domainResult = await this.addDnsDomain(domain, ip);
+
+      if (!domainResult || !domainResult.id) {
+        return {
+          domainResult: null,
+          nameserverResult: null,
+          success: false,
+          message: 'Failed to create domain in InterServer'
+        };
+      }
+
+      console.log(`Domain ${domain} created successfully with ID: ${domainResult.id}`);
+
+      // Step 2: Wait a moment for DNS records to be fully created
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Step 3: Replace nameserver records
+      const nameserverResult = await this.replaceNameserverRecords(domainResult.id, domain);
+
+      const success = nameserverResult.success;
+      const message = success
+        ? `Domain created successfully with SkyPANEL nameservers (${nameserverResult.replacedRecords.length} records replaced)`
+        : `Domain created but nameserver replacement had issues: ${nameserverResult.errors.join(', ')}`;
+
+      return {
+        domainResult,
+        nameserverResult,
+        success,
+        message
+      };
+    } catch (error) {
+      console.error(`Error in addDnsDomainWithWhiteLabel for ${domain}:`, error);
+      return {
+        domainResult: null,
+        nameserverResult: null,
+        success: false,
+        message: `Failed to create domain with white-labeled nameservers: ${error.message}`
+      };
+    }
   }
 }
 

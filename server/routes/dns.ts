@@ -123,14 +123,19 @@ router.post('/domains', async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Domain already exists' });
     }
 
-    // Add domain to InterServer
-    const interServerResult = await interServerApi.addDnsDomain(name, ip);
+    // Add domain to InterServer with white-labeled nameservers
+    const whitelabelResult = await interServerApi.addDnsDomainWithWhiteLabel(name, ip);
 
     // Extract InterServer domain ID from the result
-    const interserverId = interServerResult?.id || null;
+    const interserverId = whitelabelResult.domainResult?.id || null;
 
     if (interserverId) {
       console.log(`Successfully created domain ${name} in InterServer with ID: ${interserverId}`);
+      if (whitelabelResult.nameserverResult?.success) {
+        console.log(`Successfully replaced ${whitelabelResult.nameserverResult.replacedRecords.length} nameserver records with SkyPANEL branding`);
+      } else {
+        console.warn(`Domain created but nameserver replacement had issues: ${whitelabelResult.nameserverResult?.errors.join(', ')}`);
+      }
     } else {
       console.warn(`Domain ${name} was created in InterServer but ID could not be retrieved`);
     }
@@ -146,12 +151,23 @@ router.post('/domains', async (req: Request, res: Response) => {
       })
       .returning();
 
-    res.status(201).json({
+    // Prepare response with detailed information about the white-labeling process
+    const responseData = {
       domain: newDomain,
-      message: 'Domain added successfully',
+      message: whitelabelResult.message,
       interServerStatus: interserverId ? 'linked' : 'created_but_not_linked',
-      interServerResult: interServerResult
-    });
+      whitelabelStatus: {
+        success: whitelabelResult.success,
+        nameserversReplaced: whitelabelResult.nameserverResult?.replacedRecords.length || 0,
+        replacedRecords: whitelabelResult.nameserverResult?.replacedRecords || [],
+        errors: whitelabelResult.nameserverResult?.errors || []
+      },
+      interServerResult: whitelabelResult.domainResult
+    };
+
+    // Return appropriate status code based on overall success
+    const statusCode = whitelabelResult.success ? 201 : 206; // 206 = Partial Content (domain created but nameserver replacement had issues)
+    res.status(statusCode).json(responseData);
   } catch (error) {
     console.error('Error adding DNS domain:', error);
     if (error instanceof z.ZodError) {
