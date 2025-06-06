@@ -17,6 +17,7 @@ import { VirtFusionApi as ImportedVirtFusionApi } from "./virtfusion-api";
 import { emailService } from "./email";
 import { betterStackService } from "./betterstack-service";
 import { geminiService } from "./gemini-service";
+import { cacheService } from "./cache-service";
 import { serverLoggingService } from "./server-logging-service";
 import { setLocationStatus, getLocationStatus, removeLocationStatus } from "./location-status-manager";
 import { getMaintenanceStatus, getMaintenanceToken, regenerateMaintenanceToken, toggleMaintenanceMode, validateMaintenanceToken } from "./middleware";
@@ -5869,6 +5870,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error fetching admin billing data:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ----- Cache Management Routes (Admin Only) -----
+
+  // Get cache status
+  app.get("/api/admin/cache/status", isAdmin, async (req, res) => {
+    try {
+      const cacheStatus = await cacheService.getCacheStatus();
+      res.json({
+        success: true,
+        data: cacheStatus
+      });
+    } catch (error: any) {
+      console.error("Error getting cache status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Clear all caches
+  app.post("/api/admin/cache/clear", isAdmin, async (req, res) => {
+    try {
+      const result = await cacheService.clearAllCaches();
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: "All caches cleared successfully",
+          clearedCaches: result.clearedCaches
+        });
+      } else {
+        res.status(207).json({
+          success: false,
+          message: "Some caches could not be cleared",
+          clearedCaches: result.clearedCaches,
+          errors: result.errors
+        });
+      }
+    } catch (error: any) {
+      console.error("Error clearing caches:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Clear specific cache type
+  app.post("/api/admin/cache/clear/:type", isAdmin, async (req, res) => {
+    try {
+      const cacheType = req.params.type as 'betterstack' | 'gemini' | 'modules';
+
+      if (!['betterstack', 'gemini', 'modules'].includes(cacheType)) {
+        return res.status(400).json({ error: "Invalid cache type" });
+      }
+
+      await cacheService.clearSpecificCache(cacheType);
+
+      res.json({
+        success: true,
+        message: `${cacheType} cache cleared successfully`
+      });
+    } catch (error: any) {
+      console.error(`Error clearing ${req.params.type} cache:`, error);
       res.status(500).json({ error: error.message });
     }
   });

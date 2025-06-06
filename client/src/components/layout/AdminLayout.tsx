@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ui/theme-toggle";
+import { CacheClearButton } from "@/components/ui/cache-clear-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -720,6 +721,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             {/* User Actions */}
             <div className="flex items-center space-x-2">
               <ThemeToggle />
+              <CacheClearButton />
               <Button
                 variant="ghost"
                 size="icon"

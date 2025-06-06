@@ -70,11 +70,17 @@ export const closeTicket = (id: number) => api.post(`/tickets/${id}/close`);
 
 // Admin Operations
 export const getUsers = () => api.get('/admin/users');
-export const updateUserRole = (userId: number, role: string) => 
+export const updateUserRole = (userId: number, role: string) =>
   api.patch(`/admin/users/${userId}/role`, { role });
 export const getAllServers = () => api.get('/admin/servers');
 export const getAllTickets = () => api.get('/admin/tickets');
 export const syncHypervisors = () => api.post('/admin/hypervisors/sync');
+
+// Cache Management (Admin Only)
+export const getCacheStatus = () => api.get('/admin/cache/status');
+export const clearAllCaches = () => api.post('/admin/cache/clear');
+export const clearSpecificCache = (cacheType: 'betterstack' | 'gemini' | 'modules') =>
+  api.post(`/admin/cache/clear/${cacheType}`);
 
 // Get Hypervisors
 export const getHypervisors = () => api.get('/hypervisors');

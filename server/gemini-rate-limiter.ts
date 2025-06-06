@@ -327,6 +327,37 @@ export class GeminiRateLimiter {
     
     this.userUsage.set(trackingId, usage);
   }
+
+  /**
+   * Clear all usage data (for cache clearing)
+   */
+  public clearAllUsage(): void {
+    this.userUsage.clear();
+    this.discordUsers.clear();
+    console.log('Gemini rate limiter usage data cleared');
+  }
+
+  /**
+   * Get the number of active users being tracked
+   */
+  public getActiveUserCount(): number {
+    return this.userUsage.size + this.discordUsers.size;
+  }
+
+  /**
+   * Get detailed cache statistics
+   */
+  public getCacheStats(): {
+    webUsers: number;
+    discordUsers: number;
+    totalUsers: number;
+  } {
+    return {
+      webUsers: this.userUsage.size,
+      discordUsers: this.discordUsers.size,
+      totalUsers: this.userUsage.size + this.discordUsers.size
+    };
+  }
 }
 
 export const geminiRateLimiter = GeminiRateLimiter.getInstance();
