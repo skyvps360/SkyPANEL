@@ -26,6 +26,7 @@ import apiOnlyRoutes from "./routes/api-only-routes";
 import adminSettingsRoutes from "./routes/admin-settings";
 import chatRoutes from "./routes/chat";
 import chatDepartmentsRoutes from "./routes/chat-departments";
+import dnsRoutes from "./routes/dns";
 import { chatService } from "./chat-service";
 import { departmentMigrationService } from "./services/department-migration";
 import { eq, and, desc, isNull, gte, lte, sql } from "drizzle-orm";
@@ -11868,6 +11869,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Chat Departments routes
   app.use("/api/chat", chatDepartmentsRoutes);
+
+  // Register DNS routes
+  app.use("/api/dns", isAuthenticated, dnsRoutes);
 
 
 

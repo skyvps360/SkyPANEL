@@ -123,7 +123,6 @@ export default function AdminBillingPage() {
             <TooltipTrigger asChild>
               <div className="flex items-center gap-1 cursor-help">
                 {item.paymentMethod === 'paypal' && <CreditCard className="h-4 w-4 text-blue-500" />}
-                {item.paymentMethod === 'stripe' && <CreditCard className="h-4 w-4 text-purple-500" />}
                 {item.paymentMethod === 'credit' && (
                   <DollarSign
                     className="h-4 w-4"

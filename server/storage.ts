@@ -33,6 +33,8 @@ import {
   chatDepartments,
   chatDepartmentAdmins,
   todos,
+  dnsDomains,
+  dnsRecords,
   type User,
   type InsertUser,
   type Transaction,

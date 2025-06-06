@@ -61,6 +61,8 @@ import ServersListPage from "@/pages/admin/servers-page";
 import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
 import VNCConsole from "@/pages/vnc-console";
 import LiveChat from "@/pages/LiveChat";
+import DnsDomainsPage from "@/pages/dns-domains-page";
+import DnsRecordsPage from "@/pages/dns-records-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { VirtFusionSsoHandler } from "@/components/VirtFusionSsoHandler";
@@ -302,6 +304,10 @@ function Router() {
 
         {/* VNC Console - User access allowed */}
         <ProtectedRoute path="/vnc-console" component={VNCConsole} />
+
+        {/* DNS Management - User access allowed */}
+        <ProtectedRoute path="/dns" component={DnsDomainsPage} />
+        <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage} />
 
         {/* Admin Routes */}
         <AdminProtectedRoute path="/admin" component={AdminDashboard} />

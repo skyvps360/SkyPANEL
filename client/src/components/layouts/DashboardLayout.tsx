@@ -29,6 +29,7 @@ import {
   Activity,
   Zap,
   MessageSquare,
+  Globe,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -292,6 +293,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       url: "/speed-test",
       icon: <Zap className="h-4 w-4" />
     },
+    {
+      id: "dns",
+      name: "DNS Management",
+      description: "Manage your DNS domains and records",
+      url: "/dns",
+      icon: <Globe className="h-4 w-4" />
+    },
     // {
     //   id: "api-docs",
     //   name: "API Documentation",
@@ -349,6 +357,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: "Live Support",
       href: "/live-chat",
       icon: <MessageSquare className="h-5 w-5 mr-3" />,
+    },
+    {
+      name: "DNS Management",
+      href: "/dns",
+      icon: <Globe className="h-5 w-5 mr-3" />,
     },
    // {
    //   name: "API Documentation",

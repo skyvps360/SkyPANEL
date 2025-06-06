@@ -35,6 +35,31 @@ export const getVirtFusionBalance = () => api.get('/billing/balance');
 export const addVirtFusionTokens = (amount: number, paymentId: string, verificationData: any) =>
   api.post('/billing/add-credits', { amount, paymentId, verificationData });
 
+// DNS Management
+export const getDnsDomains = () => api.get('/dns/domains');
+export const addDnsDomain = (domain: string, ip: string) =>
+  api.post('/dns/domains', { name: domain, ip });
+export const deleteDnsDomain = (domainId: number) =>
+  api.delete(`/dns/domains/${domainId}`);
+export const getDnsRecords = (domainId: number) =>
+  api.get(`/dns/domains/${domainId}/records`);
+export const addDnsRecord = (domainId: number, record: {
+  name: string;
+  type: string;
+  content: string;
+  ttl?: number;
+  priority?: number;
+}) => api.post(`/dns/domains/${domainId}/records`, record);
+export const updateDnsRecord = (domainId: number, recordId: number, record: {
+  name: string;
+  type: string;
+  content: string;
+  ttl: number;
+  priority: number;
+}) => api.put(`/dns/domains/${domainId}/records/${recordId}`, record);
+export const deleteDnsRecord = (domainId: number, recordId: number) =>
+  api.delete(`/dns/domains/${domainId}/records/${recordId}`);
+
 // Support Tickets
 export const getTickets = () => api.get('/tickets');
 export const getTicket = (id: number) => api.get(`/tickets/${id}`);

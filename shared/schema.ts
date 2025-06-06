@@ -789,3 +789,47 @@ export const insertTodoSchema = createInsertSchema(todos).omit({
 
 export type InsertTodo = z.infer<typeof insertTodoSchema>;
 export type Todo = typeof todos.$inferSelect;
+
+// DNS Domains
+export const dnsDomains = pgTable("dns_domains", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  interserverId: integer("interserver_id"), // ID from InterServer API
+  name: text("name").notNull(), // Domain name (e.g., example.com)
+  status: text("status").notNull().default("active"), // active, inactive, pending
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDnsDomainSchema = createInsertSchema(dnsDomains).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type DnsDomain = typeof dnsDomains.$inferSelect;
+export type InsertDnsDomain = z.infer<typeof insertDnsDomainSchema>;
+
+// DNS Records
+export const dnsRecords = pgTable("dns_records", {
+  id: serial("id").primaryKey(),
+  domainId: integer("domain_id").notNull().references(() => dnsDomains.id, { onDelete: 'cascade' }),
+  interserverId: text("interserver_id"), // ID from InterServer API
+  name: text("name").notNull(), // Record name (e.g., www, mail, @)
+  type: text("type").notNull(), // A, AAAA, CNAME, MX, TXT, NS, etc.
+  content: text("content").notNull(), // Record content (IP, hostname, etc.)
+  ttl: integer("ttl").notNull().default(86400), // Time to live in seconds
+  priority: integer("priority").default(0), // For MX records
+  disabled: boolean("disabled").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDnsRecordSchema = createInsertSchema(dnsRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type DnsRecord = typeof dnsRecords.$inferSelect;
+export type InsertDnsRecord = z.infer<typeof insertDnsRecordSchema>;
