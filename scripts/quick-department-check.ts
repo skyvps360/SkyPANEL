@@ -2,6 +2,11 @@ import 'dotenv/config';
 import { db } from '../server/db';
 import { sql } from 'drizzle-orm';
 
+/**
+ * Performs a diagnostic and synchronization check between support and legacy ticket department tables, including ticket counts and department name mappings.
+ *
+ * Logs the current state of both department tables, verifies ticket department references, and attempts to map legacy ticket departments to support departments by name. Exits the process with status 0 on success or 1 on error.
+ */
 async function quickDepartmentCheck() {
   console.log('🔍 Quick department check and synchronization...\n');
 

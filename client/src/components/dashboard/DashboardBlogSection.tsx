@@ -73,6 +73,13 @@ interface DashboardBlogSectionProps {
   onNavigateBack: () => void;
 }
 
+/**
+ * Renders a blog dashboard section with listing and detailed post views, supporting search, category filtering, pagination, and brand theming.
+ *
+ * Displays a paginated list of published blog posts with search and filter controls, or a detailed view of a selected post. Integrates branding settings for color theming and supports both grid and list layouts. Handles loading and empty states, and allows navigation back to the main dashboard.
+ *
+ * @param onNavigateBack - Callback invoked when the user navigates back from the blog section.
+ */
 export default function DashboardBlogSection({ onNavigateBack }: DashboardBlogSectionProps) {
   const [location, setLocation] = useLocation();
   const [currentPage, setCurrentPage] = useState(1);

@@ -316,7 +316,16 @@ const ChartLegendContent = React.forwardRef<
 )
 ChartLegendContent.displayName = "ChartLegend"
 
-// Helper to extract item config from a payload.
+/**
+ * Retrieves the chart configuration entry corresponding to a given payload item and key.
+ *
+ * Attempts to resolve the config key by checking the specified key in the payload and its nested `payload` property, preferring string values if present.
+ *
+ * @param config - The chart configuration mapping.
+ * @param payload - The payload item from Recharts.
+ * @param key - The key used to identify the config entry.
+ * @returns The matching config entry if found, otherwise undefined.
+ */
 function getPayloadConfigFromPayload(
   config: ChartConfig,
   payload: unknown,

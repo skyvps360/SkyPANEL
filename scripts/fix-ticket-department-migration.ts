@@ -2,6 +2,13 @@ import 'dotenv/config';
 import { db } from '../server/db';
 import { sql } from 'drizzle-orm';
 
+/**
+ * Migrates ticket department references from legacy ticket departments to the unified support departments.
+ *
+ * This function analyzes current department data, creates a mapping between legacy and unified departments by name, updates tickets to reference the correct support department, verifies the migration, and logs any remaining inconsistencies. It also outputs the final mapping for use in frontend and API updates.
+ *
+ * @throws {Error} If any database operation fails during the migration process.
+ */
 async function fixTicketDepartmentMigration() {
   console.log('🔧 Fixing ticket department migration issue...\n');
 

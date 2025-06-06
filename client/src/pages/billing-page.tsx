@@ -31,6 +31,13 @@ interface Transaction {
 
 
 
+/**
+ * Displays the billing and payments dashboard, allowing users to view transaction history, check balances, and purchase VirtFusion tokens.
+ *
+ * Provides transaction filtering, searching, and export functionality, as well as a PayPal-based workflow for adding tokens to the account. Shows summary statistics for current balance, tokens, and recent activity.
+ *
+ * @remark The "Add VirtFusion Tokens" tab and purchasing features are only available to active users.
+ */
 export default function BillingPage() {
   const { user } = useAuth();
   const [creditAmount, setCreditAmount] = useState(50);

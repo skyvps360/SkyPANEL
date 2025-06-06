@@ -31,6 +31,13 @@ const isDebit = (transaction: Transaction) => {
          transaction.type === 'virtfusion_credit_removal';
 };
 
+/**
+ * Displays detailed information about a specific transaction and provides an option to download it as a PDF.
+ *
+ * Fetches transaction details based on the transaction ID from the URL, handles loading and error states, and renders transaction attributes such as amount, type, status, and payment information. Includes navigation controls and a download button for exporting the transaction as a PDF.
+ *
+ * @remark If the transaction is not found or the user lacks permission, a "Transaction Not Found" message is shown.
+ */
 export default function TransactionDetailPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();

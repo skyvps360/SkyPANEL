@@ -32,6 +32,11 @@ const isDebit = (transaction: Transaction) => {
   return transaction.type === 'debit' || transaction.type === 'virtfusion_credit_removal';
 };
 
+/**
+ * Displays detailed information about a specific transaction in the admin billing interface.
+ *
+ * Redirects to the billing overview if the transaction ID is invalid or missing. Allows downloading the transaction as a PDF and provides navigation back to the billing page. Handles loading and error states for transaction retrieval.
+ */
 export default function AdminTransactionDetailPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();

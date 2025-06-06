@@ -35,6 +35,22 @@ fi
 version_file="$CODACY_CLI_V2_TMP_FOLDER/version.yaml"
 
 
+# Extracts the version string from the local version.yaml file if it exists.
+#
+# Arguments:
+#
+# None.
+#
+# Returns:
+#
+# * The version string found in version.yaml, printed to STDOUT.
+# * Returns 0 if a version is found, 1 otherwise.
+#
+# Example:
+#
+# ```bash
+# version=$(get_version_from_yaml) || echo "Version not found"
+# ```
 get_version_from_yaml() {
     if [ -f "$version_file" ]; then
         local version=$(grep -o 'version: *"[^"]*"' "$version_file" | cut -d'"' -f2)
@@ -46,6 +62,22 @@ get_version_from_yaml() {
     return 1
 }
 
+# Fetches the latest release version of Codacy CLI v2 from the GitHub API.
+#
+# Globals:
+#
+# * GH_TOKEN: Optional GitHub token for authenticated API requests.
+#
+# Returns:
+#
+# * The latest release version tag as a string.
+#
+# Example:
+#
+# ```bash
+# latest_version=$(get_latest_version)
+# echo "Latest Codacy CLI v2 version: $latest_version"
+# ```
 get_latest_version() {
     local response
     if [ -n "$GH_TOKEN" ]; then
@@ -59,6 +91,22 @@ get_latest_version() {
     echo "$version"
 }
 
+# Checks a GitHub API response for rate limit errors and terminates execution if exceeded.
+#
+# Arguments:
+#
+# * response: The response body from a GitHub API request.
+#
+# Outputs:
+#
+# * Prints an error message to STDERR and exits if the API rate limit is exceeded.
+#
+# Example:
+#
+# ```bash
+# response=$(curl -s https://api.github.com/repos/codacy/codacy-cli-v2/releases/latest)
+# handle_rate_limit "$response"
+# ```
 handle_rate_limit() {
     local response="$1"
     if echo "$response" | grep -q "API rate limit exceeded"; then
@@ -66,6 +114,25 @@ handle_rate_limit() {
     fi
 }
 
+# Downloads a file from the specified URL using curl or wget.
+#
+# Arguments:
+#
+# * URL to download from.
+#
+# Outputs:
+#
+# * The downloaded file is saved in the current working directory.
+#
+# Returns:
+#
+# * None. Exits with an error if neither curl nor wget is available.
+#
+# Example:
+#
+# ```bash
+# download_file "https://example.com/file.tar.gz"
+# ```
 download_file() {
     local url="$1"
 
@@ -79,6 +146,18 @@ download_file() {
     fi
 }
 
+# Downloads a file from a specified URL into a given output folder.
+#
+# Arguments:
+#
+# * url: The URL of the file to download.
+# * output_folder: The directory where the file will be saved.
+#
+# Example:
+#
+# ```bash
+# download "https://example.com/file.tar.gz" "/tmp/downloads"
+# ```
 download() {
     local url="$1"
     local output_folder="$2"
@@ -86,6 +165,19 @@ download() {
     ( cd "$output_folder" && download_file "$url" )
 }
 
+# Downloads and extracts the specified version of the Codacy CLI v2 binary if not already present.
+#
+# Arguments:
+#
+# * bin_folder: Directory where the CLI binary and archive will be stored.
+# * bin_path: Full path to the expected CLI binary.
+# * version: Version of the CLI to download.
+#
+# Example:
+#
+# ```bash
+# download_cli "/tmp/codacy-cli" "/tmp/codacy-cli/codacy-cli-v2" "2.0.0"
+# ```
 download_cli() {
     # OS name lower case
     suffix=$(echo "$os_name" | tr '[:upper:]' '[:lower:]')
