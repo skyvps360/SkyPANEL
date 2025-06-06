@@ -21,23 +21,24 @@ export default defineConfig(async ({ mode }) => {
         : []),
     ],
     server: {
-      port: parseInt(env.PORT || '3000'),
+      port: parseInt(process.env.PORT || '3000'),
       strictPort: true,
+      host: '127.0.0.1',
       proxy: {
         // Proxy WebSocket requests for VNC to the backend server
         '/vnc-proxy': {
-          target: 'ws://localhost:3000',
+          target: `ws://localhost:${process.env.PORT || '3000'}`,
           ws: true,
           changeOrigin: true,
         },
         // Proxy API requests to the backend server
         '/api': {
-          target: 'http://localhost:3000',
+          target: `http://localhost:${process.env.PORT || '3000'}`,
           changeOrigin: true,
         },
         // Proxy chat WebSocket requests to the backend server
         '/chat-ws': {
-          target: 'ws://localhost:3000',
+          target: `ws://localhost:${process.env.PORT || '3000'}`,
           ws: true,
           changeOrigin: true,
         },

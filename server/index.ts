@@ -148,8 +148,8 @@ app.use((req, res, next) => {
   server.listen(
     {
       port,
-      host: "0.0.0.0",
-      reusePort: true,
+      host: "127.0.0.1",
+      reusePort: false,
     },
     async () => {
       log(`serving on port ${port}`);

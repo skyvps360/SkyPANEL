@@ -2,24 +2,18 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
-import { StatCard } from "@/components/dashboard/StatCard";
-import { BillingActivity } from "@/components/dashboard/BillingActivity";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 
 import { getBrandColors } from "@/lib/brand-theme";
-import { usePageLoading } from "@/components/loading/PageLoadingProvider";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
 import {
   DollarSign,
   Ticket,
   Coins,
-  CreditCard,
-  Loader,
   Server,
   Plus,
   MessageSquare,
-  Settings,
   HelpCircle,
   Activity,
   Zap
@@ -466,10 +460,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Enhanced Billing Activity Section */}
-          <div className="bg-white rounded-xl border border-gray-300/60 shadow-md overflow-hidden">
-            <BillingActivity />
-          </div>
         </div>
     </DashboardLayout>
   );
