@@ -2052,7 +2052,7 @@ export default function ServerDetailPage() {
 
         {/* Modern Resource Cards */}
         {!isLoading && !error && server && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Memory Card */}
             <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
               <div className="p-6">
@@ -2122,29 +2122,6 @@ export default function ServerDetailPage() {
                   </div>
                   <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
                     <HardDrive className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Network Card */}
-            <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Network className="h-4 w-4" />
-                      <span>Network</span>
-                    </div>
-                    <div className="text-2xl font-bold text-foreground">
-                      {server?.network?.length || 'N/A'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {server?.network?.length ? `${server.network.length} interface(s)` : 'No interfaces'}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
-                    <Network className="h-6 w-6 text-primary" />
                   </div>
                 </div>
               </div>
