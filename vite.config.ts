@@ -11,7 +11,8 @@ export default defineConfig(async ({ mode }) => {
     const plugins = [];
 
     // Only load Replit plugins in development or when REPL_ID is present
-    const isReplitEnvironment = env.REPL_ID !== undefined || mode === 'development';
+    // Disable in production builds for DigitalOcean compatibility
+    const isReplitEnvironment = env.REPL_ID !== undefined && mode === 'development';
 
     if (isReplitEnvironment) {
       try {
@@ -87,6 +88,23 @@ export default defineConfig(async ({ mode }) => {
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Optimize for DigitalOcean deployment
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split vendor libraries into separate chunks
+          'react-vendor': ['react', 'react-dom'],
+          'ui-vendor': ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-dialog'],
+          'chart-vendor': ['recharts', 'd3-scale', 'd3-shape'],
+          'form-vendor': ['react-hook-form', '@hookform/resolvers'],
+          'query-vendor': ['@tanstack/react-query'],
+        },
+      },
+    },
+    // Increase memory limit for large builds
+    target: 'esnext',
+    minify: 'esbuild',
   },
   // Wrangler configuration
   wrangler: {
