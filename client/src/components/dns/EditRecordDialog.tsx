@@ -43,17 +43,37 @@ import {
 
 // Form validation schema
 const recordSchema = z.object({
-  name: z.string().min(1, "Record name is required"),
-  type: z.enum(VALID_DNS_RECORD_TYPES as [string, ...string[]]),
-  content: z.string().min(1, "Record content is required").refine((content, ctx) => {
-    const type = ctx.parent.type;
-    if (type && !validateDnsRecordContent(type, content)) {
-      return false;
-    }
+  name: z.string().refine((name) => {
+    // Allow "@" for root domain
+    if (name === '@') return true;
+    // Allow empty string for root domain
+    if (name.trim() === '') return true;
+    // Validate subdomain name format
+    const trimmed = name.trim();
+    // Basic validation: no spaces, valid characters
+    if (!/^[a-zA-Z0-9._-]+$/.test(trimmed)) return false;
+    // Cannot start or end with hyphen or dot
+    if (trimmed.startsWith('-') || trimmed.endsWith('-') ||
+        trimmed.startsWith('.') || trimmed.endsWith('.')) return false;
+    // Cannot have consecutive dots
+    if (trimmed.includes('..')) return false;
     return true;
-  }, "Invalid content format for this record type"),
+  }, {
+    message: "Invalid record name format. Use @ for root domain, or a valid subdomain name."
+  }),
+  type: z.enum(VALID_DNS_RECORD_TYPES as [string, ...string[]]),
+  content: z.string().min(1, "Record content is required"),
   ttl: z.number().min(60, "TTL must be at least 60 seconds").max(86400, "TTL cannot exceed 24 hours"),
   priority: z.number().min(0).max(65535),
+}).superRefine((data, ctx) => {
+  // Validate content based on record type
+  if (data.type && data.content && !validateDnsRecordContent(data.type, data.content)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['content'],
+      message: "Invalid content format for this record type"
+    });
+  }
 });
 
 type RecordFormData = z.infer<typeof recordSchema>;
@@ -176,7 +196,7 @@ export function EditRecordDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    Subdomain name (use @ for root domain, or leave empty for root)
+                    Subdomain name or root domain
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
