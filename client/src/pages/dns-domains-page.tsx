@@ -114,7 +114,7 @@ export default function DnsDomainsPage() {
               variant="default"
               className="text-xs"
             >
-              InterServer: {domain.interserverId}
+              {companyName} DNS_ID: {domain.interserverId}
             </Badge>
           )}
         </div>
@@ -201,18 +201,7 @@ export default function DnsDomainsPage() {
                       DNS Management
                     </h1>
                     <p className="text-gray-600 mt-1 text-lg">
-                      Manage your DNS domains and records through {companyName}'s InterServer DNS API Integration
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      DNS services provided free courtesy of{' '}
-                      <a
-                        href="https://www.interserver.net/r/1037557"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
-                      >
-                        InterServer
-                      </a>
+                      Manage your DNS domains and records through {companyName}'s DNS Management Service
                     </p>
                   </div>
                 </div>
@@ -239,7 +228,7 @@ export default function DnsDomainsPage() {
               DNS Server Configuration
             </CardTitle>
             <CardDescription>
-              Point your domain to these InterServer DNS servers to use our DNS management service
+              Point your domain to these {companyName} DNS servers to use our DNS management service
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -250,14 +239,14 @@ export default function DnsDomainsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigator.clipboard.writeText('cdns1.interserver.net')}
+                    onClick={() => navigator.clipboard.writeText('cdns.ns1.skyvps360.xyz')}
                     className="h-6 w-6 p-0"
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="font-mono text-sm">cdns1.interserver.net</div>
-                <div className="text-xs text-muted-foreground">216.158.228.164</div>
+                <div className="font-mono text-sm">cdns.ns1.skyvps360.xyz</div>
+                <div className="text-xs text-muted-foreground">208.73.210.202</div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -265,14 +254,14 @@ export default function DnsDomainsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigator.clipboard.writeText('cdns2.interserver.net')}
+                    onClick={() => navigator.clipboard.writeText('cdns.ns2.skyvps360.xyz')}
                     className="h-6 w-6 p-0"
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="font-mono text-sm">cdns2.interserver.net</div>
-                <div className="text-xs text-muted-foreground">216.158.234.243</div>
+                <div className="font-mono text-sm">cdns.ns2.skyvps360.xyz</div>
+                <div className="text-xs text-muted-foreground">208.73.210.203</div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -280,14 +269,14 @@ export default function DnsDomainsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => navigator.clipboard.writeText('cdns3.interserver.net')}
+                    onClick={() => navigator.clipboard.writeText('cdns.ns3.skyvps360.xyz')}
                     className="h-6 w-6 p-0"
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="font-mono text-sm">cdns3.interserver.net</div>
-                <div className="text-xs text-muted-foreground">199.231.191.75</div>
+                <div className="font-mono text-sm">cdns.ns3.skyvps360.xyz</div>
+                <div className="text-xs text-muted-foreground">208.73.210.204</div>
               </div>
             </div>
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">

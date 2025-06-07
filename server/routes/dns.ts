@@ -13,6 +13,93 @@ import { z } from 'zod';
 
 const router = Router();
 
+// White-labeled nameservers
+const SKYPANEL_NAMESERVERS = [
+  'cdns.ns1.skyvps360.xyz',
+  'cdns.ns2.skyvps360.xyz',
+  'cdns.ns3.skyvps360.xyz'
+];
+
+// InterServer default nameservers to replace
+const INTERSERVER_NAMESERVERS = [
+  'cdns1.interserver.net',
+  'cdns2.interserver.net',
+  'cdns3.interserver.net'
+];
+
+/**
+ * Replace InterServer nameservers with white-labeled SkyPANEL nameservers
+ */
+async function replaceNameservers(domainId: number, domainName: string): Promise<void> {
+  try {
+    // Get current DNS records
+    const records = await interServerApi.getDnsDomain(domainId);
+
+    // Find and delete InterServer NS records
+    for (const record of records) {
+      if (record.type === 'NS' && INTERSERVER_NAMESERVERS.includes(record.content)) {
+        try {
+          await interServerApi.deleteDnsRecord(domainId, parseInt(record.id));
+          console.log(`Deleted InterServer NS record: ${record.content}`);
+        } catch (error) {
+          console.error(`Failed to delete NS record ${record.content}:`, error);
+        }
+      }
+    }
+
+    // Add white-labeled nameservers
+    for (const nameserver of SKYPANEL_NAMESERVERS) {
+      try {
+        await interServerApi.addDnsRecord(domainId, {
+          name: domainName,
+          type: 'NS',
+          content: nameserver,
+          ttl: '86400',
+          prio: '0',
+          disabled: '0',
+          ordername: '',
+          auth: '1'
+        });
+        console.log(`Added white-labeled NS record: ${nameserver}`);
+      } catch (error) {
+        console.error(`Failed to add NS record ${nameserver}:`, error);
+      }
+    }
+
+    // Update SOA record to use SkyPANEL nameserver
+    const soaRecord = records.find(r => r.type === 'SOA');
+    if (soaRecord) {
+      try {
+        // SOA format: primary-ns email serial refresh retry expire minimum
+        const soaParts = soaRecord.content.split(' ');
+        if (soaParts.length >= 7) {
+          // Replace primary nameserver with our white-labeled one
+          soaParts[0] = SKYPANEL_NAMESERVERS[0];
+          // Replace email with SkyPANEL domain
+          soaParts[1] = `admin.skyvps360.xyz`;
+
+          await interServerApi.updateDnsRecord(domainId, parseInt(soaRecord.id), {
+            name: soaRecord.name,
+            type: 'SOA',
+            content: soaParts.join(' '),
+            ttl: soaRecord.ttl,
+            prio: soaRecord.prio,
+            disabled: soaRecord.disabled,
+            ordername: soaRecord.ordername || '',
+            auth: soaRecord.auth || '1'
+          });
+          console.log(`Updated SOA record for ${domainName}`);
+        }
+      } catch (error) {
+        console.error(`Failed to update SOA record:`, error);
+      }
+    }
+  } catch (error) {
+    console.error(`Error replacing nameservers for domain ${domainName}:`, error);
+    throw error;
+  }
+}
+
 // Middleware to check if user is authenticated
 const requireAuth = (req: Request, res: Response, next: Function) => {
   if (!req.user) {
@@ -137,6 +224,15 @@ router.post('/domains', async (req: Request, res: Response) => {
 
     if (interserverId) {
       console.log(`Successfully created domain ${name} in InterServer with ID: ${interserverId}`);
+
+      // Replace InterServer nameservers with white-labeled ones
+      try {
+        await replaceNameservers(interserverId, name);
+        console.log(`Successfully replaced nameservers for domain ${name}`);
+      } catch (nsError) {
+        console.error(`Failed to replace nameservers for domain ${name}:`, nsError);
+        // Continue anyway - domain was created successfully
+      }
     } else {
       console.warn(`Domain ${name} was created in InterServer but ID could not be retrieved`);
     }
