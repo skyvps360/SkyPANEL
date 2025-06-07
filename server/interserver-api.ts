@@ -60,10 +60,6 @@ export class InterServerApi {
       headers: {
         'Content-Type': 'application/json',
         'X-API-KEY': this.apiKey,
-        'User-Agent': 'SkyPANEL/1.0.0',
-        // Add headers that might help with Cloudflare
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache'
       },
     });
 

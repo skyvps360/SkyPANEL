@@ -119,68 +119,8 @@ const requireInterServerConfig = (req: Request, res: Response, next: Function) =
   next();
 };
 
-// Apply middleware to all routes except health check
+// Apply middleware to all routes
 router.use(requireAuth);
-
-/**
- * @route GET /api/dns/health
- * @desc Check InterServer API health and configuration
- */
-router.get('/health', async (req: Request, res: Response) => {
-  try {
-    const apiKey = process.env.INTERSERVER_API_KEY;
-    const healthCheck = {
-      timestamp: new Date().toISOString(),
-      interServerConfigured: interServerApi.isConfigured(),
-      apiKeyPresent: !!apiKey,
-      apiKeyLength: apiKey?.length || 0,
-      apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT_SET',
-      nodeEnv: process.env.NODE_ENV,
-      status: 'unknown'
-    };
-
-    if (!interServerApi.isConfigured()) {
-      return res.status(503).json({
-        ...healthCheck,
-        status: 'error',
-        message: 'InterServer API not configured - API key missing or empty'
-      });
-    }
-
-    // Test actual API connectivity
-    try {
-      console.log('Testing InterServer API connectivity...');
-      const domains = await interServerApi.getDnsList();
-      res.json({
-        ...healthCheck,
-        status: 'healthy',
-        message: 'InterServer API is accessible',
-        domainsCount: domains.length
-      });
-    } catch (apiError: any) {
-      console.error('InterServer API test failed:', apiError.message);
-      res.status(503).json({
-        ...healthCheck,
-        status: 'error',
-        message: 'InterServer API connection failed',
-        error: {
-          type: apiError.code || 'UNKNOWN',
-          message: apiError.message,
-          status: apiError.response?.status
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error in DNS health check:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Health check failed',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Apply InterServer config middleware to all other routes
 router.use(requireInterServerConfig);
 
 /**
