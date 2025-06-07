@@ -1,0 +1,34 @@
+name: skypanel
+services:
+- name: web
+  source_dir: /
+  github:
+    repo: your-repo-name
+    branch: main
+  run_command: npm start
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  http_port: 3000
+  routes:
+  - path: /
+  envs:
+  - key: NODE_ENV
+    value: production
+  - key: INTERSERVER_API_KEY
+    value: ${INTERSERVER_API_KEY}
+  # Network configuration for external API access
+  egress:
+    allow:
+    - protocol: https
+      ports:
+      - 443
+      destinations:
+      - my.interserver.net
+      - "*.interserver.net"
+    - protocol: http
+      ports:
+      - 80
+      destinations:
+      - my.interserver.net
+      - "*.interserver.net"

@@ -119,8 +119,88 @@ const requireInterServerConfig = (req: Request, res: Response, next: Function) =
   next();
 };
 
-// Apply middleware to all routes
+// Apply middleware to all routes except health check
 router.use(requireAuth);
+
+/**
+ * @route GET /api/dns/health
+ * @desc DigitalOcean-specific health check for InterServer API connectivity
+ */
+router.get('/health', async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.INTERSERVER_API_KEY;
+    const healthInfo = {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      platform: process.platform,
+      nodeVersion: process.version,
+      apiKeyPresent: !!apiKey,
+      apiKeyLength: apiKey?.length || 0,
+      apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT_SET',
+      baseUrl: 'https://my.interserver.net/apiv2'
+    };
+
+    if (!apiKey) {
+      return res.status(503).json({
+        ...healthInfo,
+        status: 'error',
+        message: 'InterServer API key not configured',
+        solution: 'Set INTERSERVER_API_KEY environment variable in DigitalOcean App Platform'
+      });
+    }
+
+    // Test connectivity using the enhanced method
+    const connectivityTest = await interServerApi.testConnectivity();
+
+    if (!connectivityTest.success) {
+      return res.status(503).json({
+        ...healthInfo,
+        status: 'connectivity_failed',
+        message: 'Cannot reach InterServer API from DigitalOcean',
+        connectivityDetails: connectivityTest.details,
+        possibleCauses: [
+          'DigitalOcean firewall blocking outbound HTTPS',
+          'DNS resolution issues on DigitalOcean platform',
+          'InterServer API temporarily unavailable',
+          'Network routing issues between DigitalOcean and InterServer'
+        ]
+      });
+    }
+
+    // Test actual API call
+    try {
+      const domains = await interServerApi.getDnsList();
+      res.json({
+        ...healthInfo,
+        status: 'healthy',
+        message: 'InterServer API fully functional',
+        connectivityTest: connectivityTest.details,
+        domainsCount: domains.length
+      });
+    } catch (apiError: any) {
+      res.status(503).json({
+        ...healthInfo,
+        status: 'api_error',
+        message: 'InterServer API connectivity OK but API call failed',
+        connectivityTest: connectivityTest.details,
+        apiError: {
+          message: apiError.message,
+          type: apiError.constructor.name,
+          code: apiError.code
+        }
+      });
+    }
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'health_check_failed',
+      message: 'Health check itself failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Apply InterServer config middleware to all other routes
 router.use(requireInterServerConfig);
 
 /**

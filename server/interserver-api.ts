@@ -53,13 +53,24 @@ export class InterServerApi {
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.INTERSERVER_API_KEY || '';
-    
+
+    // Log environment info for DigitalOcean debugging
+    console.log('=== InterServer API Initialization ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Platform:', process.platform);
+    console.log('API Key present:', !!this.apiKey);
+    console.log('API Key length:', this.apiKey ? this.apiKey.length : 0);
+    console.log('Base URL:', this.baseUrl);
+
     this.client = axios.create({
       baseURL: this.baseUrl,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
         'X-API-KEY': this.apiKey,
+        'User-Agent': 'SkyPANEL/1.0.0 (DigitalOcean)',
+        'Accept': 'application/json',
+        'Connection': 'keep-alive'
       },
     });
 
@@ -104,6 +115,53 @@ export class InterServerApi {
   }
 
   /**
+   * Test basic connectivity to InterServer (for DigitalOcean debugging)
+   */
+  async testConnectivity(): Promise<{ success: boolean; details: any }> {
+    try {
+      console.log('=== Testing InterServer Connectivity ===');
+
+      // Test 1: Basic HTTP connectivity to InterServer domain
+      const basicTest = await axios.get('https://my.interserver.net', {
+        timeout: 10000,
+        headers: { 'User-Agent': 'SkyPANEL-ConnectivityTest/1.0' }
+      });
+
+      console.log('✅ Basic connectivity test passed');
+
+      // Test 2: API endpoint without authentication
+      const apiTest = await axios.get('https://my.interserver.net/apiv2', {
+        timeout: 10000,
+        headers: { 'User-Agent': 'SkyPANEL-ConnectivityTest/1.0' }
+      });
+
+      console.log('✅ API endpoint reachable');
+
+      return {
+        success: true,
+        details: {
+          basicConnectivity: basicTest.status,
+          apiEndpoint: apiTest.status,
+          environment: process.env.NODE_ENV,
+          platform: process.platform
+        }
+      };
+    } catch (error: any) {
+      console.error('❌ Connectivity test failed:', error.message);
+      return {
+        success: false,
+        details: {
+          error: error.message,
+          code: error.code,
+          status: error.response?.status,
+          environment: process.env.NODE_ENV,
+          platform: process.platform
+        }
+      };
+    }
+  }
+
+  /**
    * Get list of DNS domains
    */
   async getDnsList(): Promise<DnsListItem[]> {
@@ -112,6 +170,12 @@ export class InterServerApi {
       console.log('API Key configured:', !!this.apiKey);
       console.log('API Key length:', this.apiKey ? this.apiKey.length : 0);
       console.log('Base URL:', this.baseUrl);
+
+      // Run connectivity test first if this is the first API call
+      const connectivityTest = await this.testConnectivity();
+      if (!connectivityTest.success) {
+        console.error('Connectivity test failed before API call:', connectivityTest.details);
+      }
 
       const response: AxiosResponse<DnsListItem[]> = await this.client.get('/dns');
 
@@ -143,21 +207,43 @@ export class InterServerApi {
         console.error('- Error setting up request:', error.message);
       }
 
-      // Re-throw with more specific error information
+      // Enhanced error handling for DigitalOcean debugging
+      console.error('=== DigitalOcean InterServer API Error Analysis ===');
+      console.error('Error occurred in environment:', process.env.NODE_ENV);
+      console.error('Platform:', process.platform);
+      console.error('Current working directory:', process.cwd());
+
+      // Check network connectivity
       if (error.code === 'ENOTFOUND') {
-        throw new Error(`DNS resolution failed for ${this.baseUrl}`);
+        console.error('DNS RESOLUTION FAILURE - This is common on DigitalOcean App Platform');
+        console.error('Possible causes:');
+        console.error('1. DigitalOcean DNS resolver cannot reach my.interserver.net');
+        console.error('2. Firewall blocking DNS queries');
+        console.error('3. Network policy restrictions');
+        throw new Error(`DNS resolution failed for ${this.baseUrl} - DigitalOcean networking issue`);
       } else if (error.code === 'ECONNREFUSED') {
+        console.error('CONNECTION REFUSED - InterServer API not accepting connections');
         throw new Error(`Connection refused by InterServer API at ${this.baseUrl}`);
       } else if (error.code === 'ETIMEDOUT') {
-        throw new Error(`Timeout connecting to InterServer API (${this.client.defaults.timeout}ms)`);
+        console.error('TIMEOUT - DigitalOcean may have slower network or firewall delays');
+        console.error('Timeout value:', this.client.defaults.timeout, 'ms');
+        throw new Error(`Timeout connecting to InterServer API (${this.client.defaults.timeout}ms) - DigitalOcean network delay`);
       } else if (error.response?.status === 401) {
-        throw new Error('Authentication failed - check InterServer API key');
+        console.error('AUTHENTICATION FAILED - API key issue');
+        console.error('API key length:', this.apiKey ? this.apiKey.length : 0);
+        console.error('API key starts with:', this.apiKey ? this.apiKey.substring(0, 10) + '...' : 'NONE');
+        throw new Error('Authentication failed - check InterServer API key configuration in DigitalOcean');
       } else if (error.response?.status === 403) {
+        console.error('ACCESS FORBIDDEN - API permissions issue');
         throw new Error('Access forbidden - check InterServer API permissions');
       } else if (error.response?.status >= 500) {
+        console.error('INTERSERVER SERVER ERROR');
         throw new Error(`InterServer API server error (${error.response.status})`);
       } else {
-        throw new Error(`Failed to fetch DNS domains: ${error.message}`);
+        console.error('UNKNOWN ERROR TYPE');
+        console.error('Error name:', error.name);
+        console.error('Error constructor:', error.constructor.name);
+        throw new Error(`Failed to fetch DNS domains: ${error.message} (DigitalOcean environment)`);
       }
     }
   }
