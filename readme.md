@@ -567,6 +567,7 @@ DISCORD_ALLOWED_USER_IDS=user_id_1,user_id_2
 
 # Google AI Integration
 GOOGLE_AI_API_KEY=your_google_gemini_api_key
+GEMINI_API_KEY=your_google_gemini_api_key
 
 # BetterStack Monitoring (Optional)
 BETTERSTACK_API_KEY=your_betterstack_api_key
