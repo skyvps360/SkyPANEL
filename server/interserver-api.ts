@@ -60,6 +60,10 @@ export class InterServerApi {
       headers: {
         'Content-Type': 'application/json',
         'X-API-KEY': this.apiKey,
+        'User-Agent': 'SkyPANEL/1.0.0',
+        // Add headers that might help with Cloudflare
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
       },
     });
 
@@ -108,11 +112,57 @@ export class InterServerApi {
    */
   async getDnsList(): Promise<DnsListItem[]> {
     try {
+      console.log('Making request to InterServer API: GET /dns');
+      console.log('API Key configured:', !!this.apiKey);
+      console.log('API Key length:', this.apiKey ? this.apiKey.length : 0);
+      console.log('Base URL:', this.baseUrl);
+
       const response: AxiosResponse<DnsListItem[]> = await this.client.get('/dns');
+
+      console.log('InterServer API response received successfully');
+      console.log('Response status:', response.status);
+      console.log('Response data type:', typeof response.data);
+      console.log('Response data length:', Array.isArray(response.data) ? response.data.length : 'not an array');
+
       return response.data;
-    } catch (error) {
-      console.error('Error fetching DNS list:', error);
-      throw new Error('Failed to fetch DNS domains');
+    } catch (error: any) {
+      console.error('Error fetching DNS list from InterServer:');
+      console.error('- Error type:', error.constructor.name);
+      console.error('- Error message:', error.message);
+      console.error('- Error code:', error.code);
+
+      if (error.response) {
+        console.error('- Response status:', error.response.status);
+        console.error('- Response statusText:', error.response.statusText);
+        console.error('- Response data:', error.response.data);
+        console.error('- Response headers:', error.response.headers);
+      } else if (error.request) {
+        console.error('- Request made but no response received');
+        console.error('- Request details:', {
+          url: error.config?.url,
+          method: error.config?.method,
+          timeout: error.config?.timeout
+        });
+      } else {
+        console.error('- Error setting up request:', error.message);
+      }
+
+      // Re-throw with more specific error information
+      if (error.code === 'ENOTFOUND') {
+        throw new Error(`DNS resolution failed for ${this.baseUrl}`);
+      } else if (error.code === 'ECONNREFUSED') {
+        throw new Error(`Connection refused by InterServer API at ${this.baseUrl}`);
+      } else if (error.code === 'ETIMEDOUT') {
+        throw new Error(`Timeout connecting to InterServer API (${this.client.defaults.timeout}ms)`);
+      } else if (error.response?.status === 401) {
+        throw new Error('Authentication failed - check InterServer API key');
+      } else if (error.response?.status === 403) {
+        throw new Error('Access forbidden - check InterServer API permissions');
+      } else if (error.response?.status >= 500) {
+        throw new Error(`InterServer API server error (${error.response.status})`);
+      } else {
+        throw new Error(`Failed to fetch DNS domains: ${error.message}`);
+      }
     }
   }
 

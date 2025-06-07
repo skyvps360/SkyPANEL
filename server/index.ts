@@ -206,6 +206,20 @@ app.use((req, res, next) => {
       } catch (error) {
         log(`Error initializing Gemini AI service: ${error}`);
       }
+
+      // Check InterServer API configuration
+      try {
+        log('Checking InterServer API configuration...');
+        const interServerApiKey = process.env.INTERSERVER_API_KEY;
+        if (interServerApiKey) {
+          log(`InterServer API key found (length: ${interServerApiKey.length})`);
+          log('InterServer DNS service is available');
+        } else {
+          log('InterServer API key not found - DNS service will be unavailable');
+        }
+      } catch (error) {
+        log(`Error checking InterServer API configuration: ${error}`);
+      }
     },
   );
 })();

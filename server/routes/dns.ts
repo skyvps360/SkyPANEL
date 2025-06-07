@@ -119,8 +119,68 @@ const requireInterServerConfig = (req: Request, res: Response, next: Function) =
   next();
 };
 
-// Apply middleware to all routes
+// Apply middleware to all routes except health check
 router.use(requireAuth);
+
+/**
+ * @route GET /api/dns/health
+ * @desc Check InterServer API health and configuration
+ */
+router.get('/health', async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.INTERSERVER_API_KEY;
+    const healthCheck = {
+      timestamp: new Date().toISOString(),
+      interServerConfigured: interServerApi.isConfigured(),
+      apiKeyPresent: !!apiKey,
+      apiKeyLength: apiKey?.length || 0,
+      apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT_SET',
+      nodeEnv: process.env.NODE_ENV,
+      status: 'unknown'
+    };
+
+    if (!interServerApi.isConfigured()) {
+      return res.status(503).json({
+        ...healthCheck,
+        status: 'error',
+        message: 'InterServer API not configured - API key missing or empty'
+      });
+    }
+
+    // Test actual API connectivity
+    try {
+      console.log('Testing InterServer API connectivity...');
+      const domains = await interServerApi.getDnsList();
+      res.json({
+        ...healthCheck,
+        status: 'healthy',
+        message: 'InterServer API is accessible',
+        domainsCount: domains.length
+      });
+    } catch (apiError: any) {
+      console.error('InterServer API test failed:', apiError.message);
+      res.status(503).json({
+        ...healthCheck,
+        status: 'error',
+        message: 'InterServer API connection failed',
+        error: {
+          type: apiError.code || 'UNKNOWN',
+          message: apiError.message,
+          status: apiError.response?.status
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error in DNS health check:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Health check failed',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Apply InterServer config middleware to all other routes
 router.use(requireInterServerConfig);
 
 /**
@@ -139,6 +199,9 @@ router.get('/domains', async (req: Request, res: Response) => {
 
     // Sync with InterServer API
     try {
+      console.log('Attempting to sync with InterServer API...');
+      console.log('InterServer API configured:', interServerApi.isConfigured());
+
       const interServerDomains = await interServerApi.getDnsList();
 
       console.log('InterServer domains found:', interServerDomains.length);
@@ -164,11 +227,43 @@ router.get('/domains', async (req: Request, res: Response) => {
 
       res.json({ domains: domainsWithStatus });
     } catch (interServerError) {
-      console.error('InterServer API error:', interServerError);
+      console.error('InterServer API error details:');
+      console.error('- Error message:', interServerError.message);
+      console.error('- Error stack:', interServerError.stack);
+      console.error('- Response status:', interServerError.response?.status);
+      console.error('- Response data:', interServerError.response?.data);
+      console.error('- Request config:', {
+        url: interServerError.config?.url,
+        method: interServerError.config?.method,
+        timeout: interServerError.config?.timeout,
+        headers: interServerError.config?.headers ? { ...interServerError.config.headers, 'X-API-KEY': '[REDACTED]' } : undefined
+      });
+
+      // Determine specific error type for better user feedback
+      let errorMessage = 'Failed to fetch DNS domains';
+      if (interServerError.code === 'ENOTFOUND') {
+        errorMessage = 'DNS resolution failed for InterServer API';
+      } else if (interServerError.code === 'ECONNREFUSED') {
+        errorMessage = 'Connection refused by InterServer API';
+      } else if (interServerError.code === 'ETIMEDOUT') {
+        errorMessage = 'Timeout connecting to InterServer API';
+      } else if (interServerError.response?.status === 401) {
+        errorMessage = 'Authentication failed with InterServer API';
+      } else if (interServerError.response?.status === 403) {
+        errorMessage = 'Access forbidden by InterServer API';
+      } else if (interServerError.response?.status >= 500) {
+        errorMessage = 'InterServer API server error';
+      }
+
       // Return local data even if InterServer API fails
       res.json({
         domains: localDomains,
-        warning: `Could not sync with InterServer API: ${interServerError.message}`
+        warning: `Could not sync with InterServer API: ${errorMessage}`,
+        errorDetails: {
+          type: interServerError.code || 'UNKNOWN',
+          status: interServerError.response?.status,
+          message: interServerError.message
+        }
       });
     }
   } catch (error) {

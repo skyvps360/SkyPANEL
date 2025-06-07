@@ -20,7 +20,10 @@
     "db:add-todos": "tsx scripts/add-todos-table.ts",
     "update-packages": "ncu -u",
     "verify-env": "tsx scripts/verify-env.js",
-    "health-check": "curl -f http://localhost:5000/api/health || exit 1"
+    "health-check": "curl -f http://localhost:5000/api/health || exit 1",
+    "diagnose-interserver": "node scripts/diagnose-interserver-api.js",
+    "test-interserver-direct": "node scripts/test-interserver-direct.js",
+    "test-dns-health": "curl -f http://localhost:3333/api/dns/health || exit 1"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
