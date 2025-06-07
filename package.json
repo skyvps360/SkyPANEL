@@ -7,12 +7,18 @@
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "cross-env NODE_ENV=production node dist/index.js",
+    "start:pm2": "pm2 start pm2.config.cjs",
+    "stop:pm2": "pm2 stop skypanel",
+    "restart:pm2": "pm2 restart skypanel",
+    "logs:pm2": "pm2 logs skypanel",
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "db:add-todos": "tsx scripts/add-todos-table.ts",
     "update-packages": "ncu -u",
     "wrangler": "wrangler run",
-    "verify-env": "tsx scripts/verify-env.js"
+    "verify-env": "tsx scripts/verify-env.js",
+    "deploy:vps": "chmod +x deploy-vps.sh && ./deploy-vps.sh",
+    "health-check": "curl -f http://localhost:5000/api/health || exit 1"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

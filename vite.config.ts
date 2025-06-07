@@ -44,24 +44,24 @@ export default defineConfig(async ({ mode }) => {
       ...replitPlugins,
     ],
     server: {
-      port: parseInt(process.env.PORT || '3000'),
+      port: parseInt(process.env.VITE_PORT || '3000'),
       strictPort: true,
-      host: '127.0.0.1',
+      host: '0.0.0.0',
       proxy: {
         // Proxy WebSocket requests for VNC to the backend server
         '/vnc-proxy': {
-          target: `ws://localhost:${process.env.PORT || '3000'}`,
+          target: `ws://localhost:${process.env.PORT || '5000'}`,
           ws: true,
           changeOrigin: true,
         },
         // Proxy API requests to the backend server
         '/api': {
-          target: `http://localhost:${process.env.PORT || '3000'}`,
+          target: `http://localhost:${process.env.PORT || '5000'}`,
           changeOrigin: true,
         },
         // Proxy chat WebSocket requests to the backend server
         '/chat-ws': {
-          target: `ws://localhost:${process.env.PORT || '3000'}`,
+          target: `ws://localhost:${process.env.PORT || '5000'}`,
           ws: true,
           changeOrigin: true,
         },
@@ -88,11 +88,5 @@ export default defineConfig(async ({ mode }) => {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
-  // Wrangler configuration
-  wrangler: {
-    account_id: env.CF_ACCOUNT_ID,
-    zone_id: env.CF_ZONE_ID,
-    route: env.CF_ROUTE,
-  }
   };
 });
