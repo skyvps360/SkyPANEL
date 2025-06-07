@@ -22,7 +22,11 @@ import {
   Message,
   Partials,
   MessageFlags,
-  ActivityType
+  ActivityType,
+  ComponentType,
+  VoiceChannel,
+  CategoryChannel,
+  UserSelectMenuInteraction
 } from 'discord.js';
 import { storage } from './storage';
 import { InsertTicketMessage, InsertDiscordTicketThread } from '../shared/schema';
@@ -3195,7 +3199,10 @@ export class DiscordBotService {
     try {
       const buttonId = interaction.customId;
 
-      if (buttonId.startsWith('help_')) {
+      if (buttonId === 'prev_page' || buttonId === 'next_page' || buttonId === 'toggle_view') {
+        // Todo pagination buttons are handled by collector in handleTodoListCommand
+        return;
+      } else if (buttonId.startsWith('help_')) {
         await this.handleHelpButton(interaction);
       } else if (buttonId.startsWith('status_')) {
         await this.handleStatusButton(interaction);
@@ -3450,25 +3457,186 @@ export class DiscordBotService {
       const completedTodos = todos.filter(todo => todo.isCompleted);
       const pendingTodos = todos.filter(todo => !todo.isCompleted);
 
-      // Create a formatted list of todos
-      let message = '📝 **Your Todo List**\n\n';
+      // Constants for pagination
+      const ITEMS_PER_PAGE = 5;
+      const pendingPages = Math.max(1, Math.ceil(pendingTodos.length / ITEMS_PER_PAGE));
+      const completedPages = Math.max(1, Math.ceil(completedTodos.length / ITEMS_PER_PAGE));
 
+      // Create separate pages arrays for pending and completed todos
+      const pendingEmbeds: EmbedBuilder[] = [];
+      const completedEmbeds: EmbedBuilder[] = [];
+
+      // Create pages for pending todos
       if (pendingTodos.length > 0) {
-        message += '**Pending Tasks:**\n';
-        pendingTodos.forEach(todo => {
-          message += `• #${todo.id}: ${todo.task}\n`;
-        });
-        message += '\n';
+        for (let i = 0; i < pendingPages; i++) {
+          const pageItems = pendingTodos.slice(i * ITEMS_PER_PAGE, (i + 1) * ITEMS_PER_PAGE);
+          const embed = new EmbedBuilder()
+            .setColor(0xFFA500) // Orange for pending
+            .setTitle('📝 Your Todo List - Pending Tasks')
+            .setDescription(`Page ${i + 1}/${pendingPages}`)
+            .setFooter({
+              text: `${pendingTodos.length} pending • ${completedTodos.length} completed`,
+              iconURL: interaction.user.displayAvatarURL()
+            })
+            .setTimestamp();
+
+          // Add each todo as a field
+          pageItems.forEach(todo => {
+            embed.addFields({
+              name: `Task #${todo.id}`,
+              value: todo.task
+            });
+          });
+
+          pendingEmbeds.push(embed);
+        }
+      } else {
+        // Create an empty pending embed if there are no pending todos
+        const embed = new EmbedBuilder()
+          .setColor(0xFFA500)
+          .setTitle('📝 Your Todo List - Pending Tasks')
+          .setDescription('You have no pending tasks.')
+          .setFooter({
+            text: `0 pending • ${completedTodos.length} completed`,
+            iconURL: interaction.user.displayAvatarURL()
+          })
+          .setTimestamp();
+        pendingEmbeds.push(embed);
       }
 
+      // Create pages for completed todos
       if (completedTodos.length > 0) {
-        message += '**Completed Tasks:**\n';
-        completedTodos.forEach(todo => {
-          message += `• #${todo.id}: ${todo.task}\n`;
-        });
+        for (let i = 0; i < completedPages; i++) {
+          const pageItems = completedTodos.slice(i * ITEMS_PER_PAGE, (i + 1) * ITEMS_PER_PAGE);
+          const embed = new EmbedBuilder()
+            .setColor(0x4CAF50) // Green for completed
+            .setTitle('📝 Your Todo List - Completed Tasks')
+            .setDescription(`Page ${i + 1}/${completedPages}`)
+            .setFooter({
+              text: `${pendingTodos.length} pending • ${completedTodos.length} completed`,
+              iconURL: interaction.user.displayAvatarURL()
+            })
+            .setTimestamp();
+
+          // Add each todo as a field
+          pageItems.forEach(todo => {
+            embed.addFields({
+              name: `Task #${todo.id}`,
+              value: todo.task
+            });
+          });
+
+          completedEmbeds.push(embed);
+        }
+      } else {
+        // Create an empty completed embed if there are no completed todos
+        const embed = new EmbedBuilder()
+          .setColor(0x4CAF50)
+          .setTitle('📝 Your Todo List - Completed Tasks')
+          .setDescription('You have no completed tasks.')
+          .setFooter({
+            text: `${pendingTodos.length} pending • 0 completed`,
+            iconURL: interaction.user.displayAvatarURL()
+          })
+          .setTimestamp();
+        completedEmbeds.push(embed);
       }
 
-      await interaction.editReply({ content: message });
+      // State tracking for UI
+      let currentView = 'pending'; // 'pending' or 'completed'
+      let currentPage = 0;
+      let currentEmbeds = pendingEmbeds;
+      
+      // Function to create buttons with proper states
+      const createButtons = () => {
+        // Navigation buttons
+        const prevButton = new ButtonBuilder()
+          .setCustomId('prev_page')
+          .setLabel('Previous')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(currentPage === 0);
+
+        const nextButton = new ButtonBuilder()
+          .setCustomId('next_page')
+          .setLabel('Next')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(currentPage === currentEmbeds.length - 1);
+
+        // Toggle view button
+        const toggleButton = new ButtonBuilder()
+          .setCustomId('toggle_view')
+          .setLabel(currentView === 'pending' ? '📋 Show Completed' : '📝 Show Pending')
+          .setStyle(currentView === 'pending' ? ButtonStyle.Success : ButtonStyle.Primary);
+
+        // Create row of buttons
+        return new ActionRowBuilder<ButtonBuilder>().addComponents(prevButton, toggleButton, nextButton);
+      };
+
+      // Send initial message with first page of pending todos and buttons
+      const response = await interaction.editReply({
+        embeds: [currentEmbeds[currentPage]],
+        components: [createButtons()]
+      });
+
+      // Create button interaction collector
+      const collector = response.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        time: 120000, // 2 minutes before buttons expire
+        filter: i => i.user.id === interaction.user.id // Only the command user can interact
+      });
+
+      collector.on('collect', async (i) => {
+        // Handle button clicks
+        if (i.customId === 'prev_page') {
+          currentPage = Math.max(0, currentPage - 1);
+        } else if (i.customId === 'next_page') {
+          currentPage = Math.min(currentEmbeds.length - 1, currentPage + 1);
+        } else if (i.customId === 'toggle_view') {
+          // Toggle between pending and completed views
+          currentView = currentView === 'pending' ? 'completed' : 'pending';
+          currentEmbeds = currentView === 'pending' ? pendingEmbeds : completedEmbeds;
+          currentPage = 0; // Reset to first page when toggling views
+        }
+
+        // Update message with new page and updated buttons
+        await i.update({
+          embeds: [currentEmbeds[currentPage]],
+          components: [createButtons()]
+        });
+      });
+
+      collector.on('end', async () => {
+        // Disable all buttons when collector ends
+        try {
+          const prevButton = new ButtonBuilder()
+            .setCustomId('prev_page')
+            .setLabel('Previous')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(true);
+
+          const nextButton = new ButtonBuilder()
+            .setCustomId('next_page')
+            .setLabel('Next')
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(true);
+
+          const toggleButton = new ButtonBuilder()
+            .setCustomId('toggle_view')
+            .setLabel(currentView === 'pending' ? '📋 Show Completed' : '📝 Show Pending')
+            .setStyle(currentView === 'pending' ? ButtonStyle.Success : ButtonStyle.Primary)
+            .setDisabled(true);
+
+          const disabledRow = new ActionRowBuilder<ButtonBuilder>().addComponents(prevButton, toggleButton, nextButton);
+
+          await interaction.editReply({
+            embeds: [currentEmbeds[currentPage]],
+            components: [disabledRow]
+          });
+        } catch (error) {
+          // Ignore errors if the message was deleted or is too old
+          console.error('Failed to update buttons after timeout:', error);
+        }
+      });
     } catch (error: any) {
       console.error('Error listing todos:', error);
       try {
