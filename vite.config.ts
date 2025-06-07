@@ -35,33 +35,34 @@ export default defineConfig(async ({ mode }) => {
 
     return plugins;
   };
-
+  
+  // always use port 5000
   const replitPlugins = await loadReplitPlugins();
-
+ 
   return {
     plugins: [
       react(),
       ...replitPlugins,
     ],
     server: {
-      port: parseInt(process.env.VITE_PORT || '3000'),
+      port: parseInt(process.env.PORT || '3000'),
       strictPort: true,
       host: '0.0.0.0',
       proxy: {
         // Proxy WebSocket requests for VNC to the backend server
         '/vnc-proxy': {
-          target: `ws://localhost:${process.env.PORT || '5000'}`,
+          target: `ws://localhost:${process.env.PORT || '3000'}`,
           ws: true,
           changeOrigin: true,
         },
         // Proxy API requests to the backend server
         '/api': {
-          target: `http://localhost:${process.env.PORT || '5000'}`,
+          target: `http://localhost:${process.env.PORT || '3000'}`,
           changeOrigin: true,
         },
         // Proxy chat WebSocket requests to the backend server
         '/chat-ws': {
-          target: `ws://localhost:${process.env.PORT || '5000'}`,
+          target: `ws://localhost:${process.env.PORT || '3000'}`,
           ws: true,
           changeOrigin: true,
         },
