@@ -1,4 +1,4 @@
-import { ReactNode, useState, useRef, useEffect, useCallback } from "react";
+import { ReactNode, useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -175,7 +175,12 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
       console.log('Applied brand colors to Shadcn theme in Dashboard');
     });
-  }, [brandingSettings]); // Use the entire object instead of individual properties
+  }, [
+    brandingSettings?.primary_color,
+    brandingSettings?.company_color,
+    brandingSettings?.secondary_color,
+    brandingSettings?.accent_color
+  ]);
 
   const queryClient = useQueryClient();
 
@@ -717,11 +722,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   }, [searchQuery, searchResults.length, activeResultIndex, showSearchPopup]);
 
   // Handle navigation to search result
-  const navigateToResult = useCallback((result: SearchResult) => {
+  const navigateToResult = (result: SearchResult) => {
     setSearchQuery(''); // Clear search after selecting a result
     setShowSearchPopup(false);
     navigate(result.url);
-  }, [navigate]);
+  };
 
   const handleLogout = async () => {
     try {

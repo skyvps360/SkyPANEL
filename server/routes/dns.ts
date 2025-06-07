@@ -119,88 +119,8 @@ const requireInterServerConfig = (req: Request, res: Response, next: Function) =
   next();
 };
 
-// Apply middleware to all routes except health check
+// Apply middleware to all routes
 router.use(requireAuth);
-
-/**
- * @route GET /api/dns/health
- * @desc DigitalOcean-specific health check for InterServer API connectivity
- */
-router.get('/health', async (req: Request, res: Response) => {
-  try {
-    const apiKey = process.env.INTERSERVER_API_KEY;
-    const healthInfo = {
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      platform: process.platform,
-      nodeVersion: process.version,
-      apiKeyPresent: !!apiKey,
-      apiKeyLength: apiKey?.length || 0,
-      apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT_SET',
-      baseUrl: 'https://my.interserver.net/apiv2'
-    };
-
-    if (!apiKey) {
-      return res.status(503).json({
-        ...healthInfo,
-        status: 'error',
-        message: 'InterServer API key not configured',
-        solution: 'Set INTERSERVER_API_KEY environment variable in DigitalOcean App Platform'
-      });
-    }
-
-    // Test connectivity using the enhanced method
-    const connectivityTest = await interServerApi.testConnectivity();
-
-    if (!connectivityTest.success) {
-      return res.status(503).json({
-        ...healthInfo,
-        status: 'connectivity_failed',
-        message: 'Cannot reach InterServer API from DigitalOcean',
-        connectivityDetails: connectivityTest.details,
-        possibleCauses: [
-          'DigitalOcean firewall blocking outbound HTTPS',
-          'DNS resolution issues on DigitalOcean platform',
-          'InterServer API temporarily unavailable',
-          'Network routing issues between DigitalOcean and InterServer'
-        ]
-      });
-    }
-
-    // Test actual API call
-    try {
-      const domains = await interServerApi.getDnsList();
-      res.json({
-        ...healthInfo,
-        status: 'healthy',
-        message: 'InterServer API fully functional',
-        connectivityTest: connectivityTest.details,
-        domainsCount: domains.length
-      });
-    } catch (apiError: any) {
-      res.status(503).json({
-        ...healthInfo,
-        status: 'api_error',
-        message: 'InterServer API connectivity OK but API call failed',
-        connectivityTest: connectivityTest.details,
-        apiError: {
-          message: apiError.message,
-          type: apiError.constructor.name,
-          code: apiError.code
-        }
-      });
-    }
-  } catch (error: any) {
-    res.status(500).json({
-      status: 'health_check_failed',
-      message: 'Health check itself failed',
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// Apply InterServer config middleware to all other routes
 router.use(requireInterServerConfig);
 
 /**
@@ -219,9 +139,6 @@ router.get('/domains', async (req: Request, res: Response) => {
 
     // Sync with InterServer API
     try {
-      console.log('Attempting to sync with InterServer API...');
-      console.log('InterServer API configured:', interServerApi.isConfigured());
-
       const interServerDomains = await interServerApi.getDnsList();
 
       console.log('InterServer domains found:', interServerDomains.length);
@@ -247,43 +164,11 @@ router.get('/domains', async (req: Request, res: Response) => {
 
       res.json({ domains: domainsWithStatus });
     } catch (interServerError) {
-      console.error('InterServer API error details:');
-      console.error('- Error message:', interServerError.message);
-      console.error('- Error stack:', interServerError.stack);
-      console.error('- Response status:', interServerError.response?.status);
-      console.error('- Response data:', interServerError.response?.data);
-      console.error('- Request config:', {
-        url: interServerError.config?.url,
-        method: interServerError.config?.method,
-        timeout: interServerError.config?.timeout,
-        headers: interServerError.config?.headers ? { ...interServerError.config.headers, 'X-API-KEY': '[REDACTED]' } : undefined
-      });
-
-      // Determine specific error type for better user feedback
-      let errorMessage = 'Failed to fetch DNS domains';
-      if (interServerError.code === 'ENOTFOUND') {
-        errorMessage = 'DNS resolution failed for InterServer API';
-      } else if (interServerError.code === 'ECONNREFUSED') {
-        errorMessage = 'Connection refused by InterServer API';
-      } else if (interServerError.code === 'ETIMEDOUT') {
-        errorMessage = 'Timeout connecting to InterServer API';
-      } else if (interServerError.response?.status === 401) {
-        errorMessage = 'Authentication failed with InterServer API';
-      } else if (interServerError.response?.status === 403) {
-        errorMessage = 'Access forbidden by InterServer API';
-      } else if (interServerError.response?.status >= 500) {
-        errorMessage = 'InterServer API server error';
-      }
-
+      console.error('InterServer API error:', interServerError);
       // Return local data even if InterServer API fails
       res.json({
         domains: localDomains,
-        warning: `Could not sync with InterServer API: ${errorMessage}`,
-        errorDetails: {
-          type: interServerError.code || 'UNKNOWN',
-          status: interServerError.response?.status,
-          message: interServerError.message
-        }
+        warning: `Could not sync with InterServer API: ${interServerError.message}`
       });
     }
   } catch (error) {
