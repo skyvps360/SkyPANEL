@@ -1,3 +1,3 @@
 build: npm run build
-web: npm run dev
+web: npm start
 dev: npm run dev
