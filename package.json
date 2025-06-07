@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
-  // need to use node 22.14.0 if deploying on digitalocean
+ {/* need to use node 22.14.0 if deploying on digitalocean */}
   "engines": {
     "node": "22.14.0",
     "npm": "10.9.2"
