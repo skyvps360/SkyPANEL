@@ -4,9 +4,6 @@ module.exports = {
       name: "skypanel",
       script: "npm",
       args: "run start",
-      env: {
-        NODE_ENV: "production"
-      },
       exec_mode: "fork", // Using cluster mode for high availability
       instances: "1",
       autorestart: true,
