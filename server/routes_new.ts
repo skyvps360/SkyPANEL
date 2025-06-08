@@ -4635,7 +4635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Change DNS plan (upgrade/downgrade) with prorated billing
   app.post("/api/dns-plans/change", isAuthenticated, async (req, res) => {
     try {
-      const { planId } = req.body;
+      const { planId, selectedDomainIds } = req.body;
       const userId = req.user!.id;
 
       if (!planId) {
@@ -4786,6 +4786,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
+        // Handle domain removal for downgrades
+        if (isDowngrade && newPlan.maxDomains < currentPlan.maxDomains) {
+          // Get current user domains
+          const userDomains = await tx.select()
+            .from(dnsDomainsTable)
+            .where(eq(dnsDomainsTable.userId, userId));
+
+          const currentDomainCount = userDomains.length;
+
+          if (currentDomainCount > newPlan.maxDomains) {
+            if (!selectedDomainIds || selectedDomainIds.length !== newPlan.maxDomains) {
+              throw new Error(`Domain selection required. Please select exactly ${newPlan.maxDomains} domain(s) to keep.`);
+            }
+
+            // Validate that all selected domain IDs belong to the user
+            const validSelectedDomains = userDomains.filter(domain => selectedDomainIds.includes(domain.id));
+            if (validSelectedDomains.length !== selectedDomainIds.length) {
+              throw new Error("Invalid domain selection. Some domains don't belong to your account.");
+            }
+
+            // Get domains to remove (not in selectedDomainIds)
+            const domainsToRemove = userDomains.filter(domain => !selectedDomainIds.includes(domain.id));
+
+            console.log(`Downgrade requires removing ${domainsToRemove.length} domains:`, domainsToRemove.map(d => d.name));
+
+            // Remove domains from InterServer and local database
+            const { interServerApi } = await import('./interserver-api');
+
+            for (const domain of domainsToRemove) {
+              try {
+                // Remove from InterServer if it has an InterServer ID
+                if (domain.interserverId) {
+                  console.log(`Removing domain ${domain.name} from InterServer (ID: ${domain.interserverId})`);
+                  await interServerApi.deleteDnsDomain(domain.interserverId);
+                }
+
+                // Remove from local database
+                await tx.delete(dnsDomainsTable)
+                  .where(eq(dnsDomainsTable.id, domain.id));
+
+                console.log(`Successfully removed domain ${domain.name} from local database`);
+              } catch (domainError) {
+                console.error(`Failed to remove domain ${domain.name}:`, domainError);
+                // Continue with other domains but log the error
+              }
+            }
+
+            console.log(`Successfully removed ${domainsToRemove.length} domains for plan downgrade`);
+          }
+        }
+
         // CRITICAL FIX: Cancel ALL existing active subscriptions to enforce single-plan-per-user
         const activeSubscriptionIds = activeSubscriptions.map(sub => sub.id);
         await tx.update(dnsPlanSubscriptionsTable)
@@ -4812,6 +4863,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const actionType = isUpgrade ? 'upgraded' : 'downgraded';
       console.log(`DNS plan ${actionType} successfully: ${currentPlan.name} → ${newPlan.name} for user ${userId}`);
 
+      // Calculate domains removed for response message
+      let domainsRemovedCount = 0;
+      if (isDowngrade && newPlan.maxDomains < currentPlan.maxDomains && selectedDomainIds) {
+        const userDomains = await db.select()
+          .from(dnsDomainsTable)
+          .where(eq(dnsDomainsTable.userId, userId));
+
+        const originalDomainCount = userDomains.length + (selectedDomainIds ? userDomains.length - selectedDomainIds.length : 0);
+        domainsRemovedCount = Math.max(0, originalDomainCount - newPlan.maxDomains);
+      }
+
+      let message = `Successfully ${actionType} to ${newPlan.name}`;
+      if (Math.abs(proratedAmount) > 0.01) {
+        message += ` (${isUpgrade ? 'charged' : 'refunded'} $${Math.abs(proratedAmount).toFixed(2)} prorated)`;
+      }
+      if (domainsRemovedCount > 0) {
+        message += ` and removed ${domainsRemovedCount} domain${domainsRemovedCount !== 1 ? 's' : ''}`;
+      }
+
       res.json({
         success: true,
         action: actionType,
@@ -4821,7 +4891,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isUpgrade: isUpgrade,
         isDowngrade: isDowngrade,
         daysRemaining: daysRemaining,
-        message: `Successfully ${actionType} to ${newPlan.name}${Math.abs(proratedAmount) > 0.01 ? ` (${isUpgrade ? 'charged' : 'refunded'} $${Math.abs(proratedAmount).toFixed(2)} prorated)` : ''}`
+        domainsRemoved: domainsRemovedCount,
+        message: message
       });
 
     } catch (error: any) {
@@ -4927,8 +4998,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(dnsDomainsTable.userId, userId));
 
         // Import InterServer API and DNS utilities
-        const { interServerApi } = await import('../interserver-api');
-        const { getDnsRecordUsageStats } = await import('../../shared/dns-record-utils');
+        const { interServerApi } = await import('./interserver-api');
+        const { getDnsRecordUsageStats } = await import('../shared/dns-record-utils');
 
         for (const domain of userDomains) {
           if (domain.interserverId) {

@@ -19,6 +19,11 @@ interface DnsDomain {
   interServerStatus?: string;
   createdAt: string;
   updatedAt: string;
+  recordUsage?: {
+    total: number;
+    userCreated: number;
+    default: number;
+  };
 }
 
 interface DnsDomainsResponse {
@@ -147,6 +152,35 @@ export default function DnsDomainsPage() {
           )}
         </div>
       ),
+    },
+    {
+      header: "Records Used",
+      accessorKey: "recordUsage" as keyof DnsDomain,
+      cell: (domain: DnsDomain) => {
+        const usage = domain.recordUsage;
+        if (!usage) {
+          return <span className="text-sm text-muted-foreground">-</span>;
+        }
+
+        const maxRecords = planLimits?.limits?.maxRecords || 0;
+        const isNearLimit = usage.userCreated >= maxRecords * 0.8;
+        const isAtLimit = usage.userCreated >= maxRecords;
+
+        return (
+          <div className="flex flex-col gap-1">
+            <span className={`text-sm font-medium ${
+              isAtLimit ? 'text-red-600' :
+              isNearLimit ? 'text-yellow-600' :
+              'text-green-600'
+            }`}>
+              {usage.userCreated}/{maxRecords}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {usage.total} total ({usage.default} system)
+            </span>
+          </div>
+        );
+      },
     },
     {
       header: "Created",

@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Check, Globe, CreditCard, Calendar, AlertCircle, Search, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { getBrandColors } from "@/lib/brand-theme";
+import { DomainSelectionModal } from "@/components/dns/DomainSelectionModal";
+import { getDnsDomains } from "@/lib/api";
 
 interface DnsPlan {
   id: number;
@@ -47,6 +49,23 @@ export default function DnsPlansPage() {
   const itemsPerPage = 5;
   const brandColors = getBrandColors();
 
+  // Domain selection modal state for downgrades
+  const [domainSelectionModal, setDomainSelectionModal] = useState<{
+    isOpen: boolean;
+    planId: number | null;
+    currentPlanName: string;
+    newPlanName: string;
+    currentDomainLimit: number;
+    newDomainLimit: number;
+  }>({
+    isOpen: false,
+    planId: null,
+    currentPlanName: '',
+    newPlanName: '',
+    currentDomainLimit: 0,
+    newDomainLimit: 0,
+  });
+
   // Fetch available DNS plans
   const { data: dnsPlans = [], isLoading: plansLoading } = useQuery<DnsPlan[]>({
     queryKey: ["/api/dns-plans"],
@@ -64,11 +83,11 @@ export default function DnsPlansPage() {
 
   // Change DNS plan mutation (upgrade/downgrade/switch)
   const changePlanMutation = useMutation({
-    mutationFn: async (planId: number) => {
+    mutationFn: async ({ planId, selectedDomainIds }: { planId: number; selectedDomainIds?: number[] }) => {
       const response = await fetch("/api/dns-plans/change", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId }),
+        body: JSON.stringify({ planId, selectedDomainIds }),
       });
 
       if (!response.ok) {
@@ -84,10 +103,14 @@ export default function DnsPlansPage() {
         description: data.message || `DNS plan ${data.action} successfully`,
       });
 
-      // Refresh data
+      // Refresh all DNS-related data for real-time updates
       queryClient.invalidateQueries({ queryKey: ["/api/dns-plans/subscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/billing/balance"] });
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+
+      // CRITICAL: Invalidate DNS domain and plan limit queries for real-time UI updates
+      queryClient.invalidateQueries({ queryKey: ["dns-plan-limits"] });
+      queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
 
       setPurchasingPlanId(null);
     },
@@ -135,15 +158,67 @@ export default function DnsPlansPage() {
     },
   });
 
-  const handleChangePlan = (planId: number) => {
+  const handleChangePlan = async (planId: number) => {
+    const targetPlan = dnsPlans.find(p => p.id === planId);
+    const currentSubscription = subscriptions.length > 0 ? subscriptions[0] : null;
+    const currentPlan = currentSubscription?.plan;
+
+    if (!targetPlan || !currentPlan) {
+      setPurchasingPlanId(planId);
+      changePlanMutation.mutate({ planId });
+      return;
+    }
+
+    // Check if this is a downgrade that requires domain selection
+    const isDowngrade = targetPlan.maxDomains < currentPlan.maxDomains;
+
+    if (isDowngrade) {
+      // Fetch current domain count to check if selection is needed
+      try {
+        const domainsResponse = await getDnsDomains();
+        const currentDomainCount = domainsResponse.domains?.length || 0;
+
+        if (currentDomainCount > targetPlan.maxDomains) {
+          // Show domain selection modal
+          setDomainSelectionModal({
+            isOpen: true,
+            planId: planId,
+            currentPlanName: currentPlan.name,
+            newPlanName: targetPlan.name,
+            currentDomainLimit: currentPlan.maxDomains,
+            newDomainLimit: targetPlan.maxDomains,
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Failed to fetch domains for downgrade check:', error);
+      }
+    }
+
+    // Proceed with normal plan change
     setPurchasingPlanId(planId);
-    changePlanMutation.mutate(planId);
+    changePlanMutation.mutate({ planId });
   };
 
   const handleCancelSubscription = (subscriptionId: number) => {
     if (confirm("Are you sure you want to cancel this subscription? This action cannot be undone.")) {
       cancelSubscriptionMutation.mutate(subscriptionId);
     }
+  };
+
+  const handleDomainSelectionConfirm = (selectedDomainIds: number[]) => {
+    if (domainSelectionModal.planId) {
+      setPurchasingPlanId(domainSelectionModal.planId);
+      changePlanMutation.mutate({
+        planId: domainSelectionModal.planId,
+        selectedDomainIds
+      });
+    }
+    setDomainSelectionModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleDomainSelectionCancel = () => {
+    setDomainSelectionModal(prev => ({ ...prev, isOpen: false }));
   };
 
   // Check if user has active subscription for a plan
@@ -482,6 +557,17 @@ export default function DnsPlansPage() {
           </CardContent>
         </Card>
 
+        {/* Domain Selection Modal for Downgrades */}
+        <DomainSelectionModal
+          isOpen={domainSelectionModal.isOpen}
+          onClose={handleDomainSelectionCancel}
+          onConfirm={handleDomainSelectionConfirm}
+          currentPlanName={domainSelectionModal.currentPlanName}
+          newPlanName={domainSelectionModal.newPlanName}
+          currentDomainLimit={domainSelectionModal.currentDomainLimit}
+          newDomainLimit={domainSelectionModal.newDomainLimit}
+          isLoading={changePlanMutation.isPending}
+        />
 
       </div>
     </DashboardLayout>

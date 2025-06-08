@@ -507,6 +507,18 @@ function validateSubdomainPart(subdomain: string): boolean {
 
   const trimmed = subdomain.trim();
 
+  // Allow wildcard records (starting with *)
+  if (trimmed.startsWith('*')) {
+    // Wildcard can be just "*" or "*.something"
+    if (trimmed === '*') return true;
+    if (trimmed.startsWith('*.')) {
+      const afterWildcard = trimmed.slice(2);
+      if (afterWildcard === '') return true; // "*." is valid
+      return validateSubdomainPart(afterWildcard);
+    }
+    return false; // Invalid wildcard format
+  }
+
   // Basic validation: only alphanumeric, dots, and hyphens allowed
   if (!/^[a-zA-Z0-9.-]+$/.test(trimmed)) return false;
 
@@ -543,6 +555,11 @@ export function processRecordName(recordName: string, domainName: string): strin
     return domainName;
   }
 
+  // Handle wildcard patterns with @ symbols
+  if (trimmed === '*.@' || trimmed === '*@') {
+    return `*.${domainName}`;
+  }
+
   // Convert "subdomain.@" to "subdomain.domain.com"
   if (trimmed.endsWith('.@')) {
     const subdomain = trimmed.slice(0, -2);
@@ -555,7 +572,7 @@ export function processRecordName(recordName: string, domainName: string): strin
     return `${subdomain}.${domainName}`;
   }
 
-  // Return as-is for regular subdomain names
+  // Return as-is for regular subdomain names (including wildcards like *.subdomain)
   return trimmed;
 }
 

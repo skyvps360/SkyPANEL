@@ -145,23 +145,38 @@ router.get('/domains', async (req: Request, res: Response) => {
       console.log('InterServer domains found:', interServerDomains.length);
       console.log('Local domains to match:', localDomains.map(d => ({ id: d.id, name: d.name, interserverId: d.interserverId })));
 
-      // Return combined data with InterServer status
-      const domainsWithStatus = localDomains.map(domain => {
-        const interServerDomain = interServerDomains.find(
-          isd => parseInt(isd.id) === domain.interserverId
-        );
+      // Return combined data with InterServer status and record usage
+      const domainsWithStatus = await Promise.all(
+        localDomains.map(async (domain) => {
+          const interServerDomain = interServerDomains.find(
+            isd => parseInt(isd.id) === domain.interserverId
+          );
 
-        console.log(`Matching domain ${domain.name}: local interserverId=${domain.interserverId}, found=${!!interServerDomain}`);
-        if (interServerDomain) {
-          console.log(`  -> Matched with InterServer domain ID ${interServerDomain.id}`);
-        }
+          console.log(`Matching domain ${domain.name}: local interserverId=${domain.interserverId}, found=${!!interServerDomain}`);
+          if (interServerDomain) {
+            console.log(`  -> Matched with InterServer domain ID ${interServerDomain.id}`);
+          }
 
-        return {
-          ...domain,
-          interServerStatus: interServerDomain ? 'active' : 'not_found',
-          interServerData: interServerDomain || null
-        };
-      });
+          // Get record usage for this domain
+          let recordUsage = { total: 0, userCreated: 0, default: 0 };
+          if (domain.interserverId) {
+            try {
+              const records = await interServerApi.getDnsDomain(domain.interserverId);
+              const { getDnsRecordUsageStats } = await import('../../shared/dns-record-utils');
+              recordUsage = getDnsRecordUsageStats(records, domain.name);
+            } catch (recordError) {
+              console.warn(`Could not fetch record usage for domain ${domain.name}:`, recordError);
+            }
+          }
+
+          return {
+            ...domain,
+            interServerStatus: interServerDomain ? 'active' : 'not_found',
+            interServerData: interServerDomain || null,
+            recordUsage
+          };
+        })
+      );
 
       res.json({ domains: domainsWithStatus });
     } catch (interServerError) {
