@@ -186,32 +186,47 @@ export default function BillingPage() {
 
   // Helper function to format transaction descriptions for better readability
   const formatTransactionDescription = (transaction: Transaction) => {
-    // Handle DNS plan purchases with plan name extraction
-    if (transaction.type === 'dns_plan_purchase' && transaction.description.includes('DNS Plan Purchase:')) {
-      return transaction.description; // Already formatted correctly
+    let description = transaction.description;
+
+    // Replace hardcoded "custom_credits" with branded name in all descriptions
+    if (description && description.includes('custom_credits')) {
+      description = description.replace(/custom_credits/g, brandingData?.custom_credits_name || 'Custom Credits');
+    }
+
+    // Handle DNS plan transactions with plan name extraction
+    if (transaction.type === 'dns_plan_purchase' && description.includes('DNS Plan Purchase:')) {
+      return description;
+    }
+
+    if (transaction.type === 'dns_plan_upgrade' && description.includes('DNS Plan Upgrade:')) {
+      return description;
+    }
+
+    if (transaction.type === 'dns_plan_downgrade' && description.includes('DNS Plan Downgrade:')) {
+      return description;
     }
 
     // Handle admin credit operations
-    if (transaction.type === 'admin_credit_add' && transaction.description.includes('Admin Credit Addition:')) {
-      return transaction.description; // Already formatted correctly
+    if (transaction.type === 'admin_credit_add' && description.includes('Admin Credit Addition:')) {
+      return description;
     }
 
-    if (transaction.type === 'admin_credit_remove' && transaction.description.includes('Admin Credit Removal:')) {
-      return transaction.description; // Already formatted correctly
+    if (transaction.type === 'admin_credit_remove' && description.includes('Admin Credit Removal:')) {
+      return description;
     }
 
     // Handle legacy dns_plan_purchase format
     if (transaction.type === 'dns_plan_purchase') {
       // Try to extract plan name from description
-      const planMatch = transaction.description.match(/DNS Plan Purchase: (.+)/);
+      const planMatch = description.match(/DNS Plan Purchase: (.+)/);
       if (planMatch) {
         return `DNS Plan Purchase: ${planMatch[1]}`;
       }
       return 'DNS Plan Purchase';
     }
 
-    // Return original description for other transaction types
-    return transaction.description;
+    // Return processed description for other transaction types
+    return description;
   };
 
   // Helper function to determine if a transaction is a credit/addition
@@ -228,6 +243,7 @@ export default function BillingPage() {
            transaction.type === 'virtfusion_credit_removal' ||
            transaction.type === 'virtfusion_deduction' ||
            transaction.type === 'dns_plan_purchase' ||
+           transaction.type === 'dns_plan_upgrade' ||
            transaction.type === 'admin_credit_remove' ||
            transaction.amount < 0; // Also include any transaction with negative amount as spending
   };
@@ -544,7 +560,7 @@ export default function BillingPage() {
               <div className="text-sm text-muted-foreground">
                 <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</span>
                 <br />
-                <span className="text-xs">For VPS services</span>
+                <span className="text-xs">For KVM VPS & DKVM Servers</span>
               </div>
             </CardContent>
           </Card>
@@ -773,7 +789,9 @@ export default function BillingPage() {
                                       {transaction.paymentMethod === 'paypal' &&
                                         <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@develop/icons/paypal.svg"
                                              className="h-3 w-3 mr-1 inline opacity-70" alt="PayPal" />}
-                                      {transaction.paymentMethod}
+                                      {transaction.paymentMethod === 'custom_credits' || transaction.paymentMethod?.includes('_credits') || transaction.paymentMethod?.includes('credits')
+                                        ? (brandingData?.custom_credits_name || 'Custom Credits')
+                                        : transaction.paymentMethod}
                                     </span>
                                   </>
                                 )}

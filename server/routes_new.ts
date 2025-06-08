@@ -4606,14 +4606,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
       const nextPaymentDate = new Date(endDate.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days before expiry
 
+      // Get dynamic custom credits name for transaction description
+      const customCreditsName = await getCustomCreditsName();
+
+      // Get dynamic custom credits name for transaction description
+      const customCreditsName = await getCustomCreditsName();
+
       // Create transaction record in main transactions table
       const transaction: InsertTransaction = {
         userId: userId,
         amount: -plan.price, // Negative for debit
         type: "dns_plan_purchase",
-        description: `DNS Plan Purchase: ${plan.name}`,
+        description: `DNS Plan Purchase: ${plan.name} using ${customCreditsName}`,
         status: "completed",
-        paymentMethod: "custom_credits"
+        paymentMethod: customCreditsName.toLowerCase().replace(/\s+/g, '_')
       };
 
       const createdTransaction = await storage.createTransaction(transaction);
@@ -4641,9 +4647,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: userId,
           amount: -plan.price, // Negative for debit
           type: 'dns_plan_purchase',
-          description: `DNS Plan Purchase: ${plan.name}`,
+          description: `DNS Plan Purchase: ${plan.name} using ${customCreditsName}`,
           status: 'completed',
-          paymentMethod: 'custom_credits',
+          paymentMethod: customCreditsName.toLowerCase().replace(/\s+/g, '_'),
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
           metadata: {
@@ -4814,11 +4820,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
 
+          // Get dynamic custom credits name for transaction description
+          const customCreditsName = await getCustomCreditsName();
+
+          // Get dynamic custom credits name for transaction description
+          const customCreditsName = await getCustomCreditsName();
+
           // Create main transaction record
           const transactionType = isUpgrade ? 'dns_plan_upgrade' : 'dns_plan_downgrade';
           const transactionDescription = isUpgrade
-            ? `DNS Plan Upgrade: ${currentPlan.name} → ${newPlan.name}`
-            : `DNS Plan Downgrade: ${currentPlan.name} → ${newPlan.name}`;
+            ? `DNS Plan Upgrade: ${currentPlan.name} → ${newPlan.name} using ${customCreditsName}`
+            : `DNS Plan Downgrade: ${currentPlan.name} → ${newPlan.name} using ${customCreditsName}`;
 
           const createdTransaction = await tx.insert(transactions).values({
             userId: userId,
@@ -4826,7 +4838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: transactionType,
             description: transactionDescription,
             status: 'completed',
-            paymentMethod: 'custom_credits'
+            paymentMethod: customCreditsName.toLowerCase().replace(/\s+/g, '_')
           }).returning();
 
           // Create credit transaction record (audit trail)
@@ -4836,7 +4848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: isUpgrade ? 'dns_plan_upgrade' : 'dns_plan_downgrade',
             description: transactionDescription,
             status: 'completed',
-            paymentMethod: 'custom_credits',
+            paymentMethod: customCreditsName.toLowerCase().replace(/\s+/g, '_'),
             balanceBefore: currentBalance,
             balanceAfter: newBalance,
             metadata: {

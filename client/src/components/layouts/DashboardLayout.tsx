@@ -51,6 +51,7 @@ type NavigationItem = {
   href: string;
   icon: ReactNode;
   adminOnly?: boolean;
+  children?: NavigationItem[];
 };
 
 interface DashboardLayoutProps {
@@ -120,6 +121,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const [isSearching, setIsSearching] = useState(false);
   const [activeResultIndex, setActiveResultIndex] = useState(-1);
   const [showSearchPopup, setShowSearchPopup] = useState(false);
+  const [expandedNavItems, setExpandedNavItems] = useState<Set<string>>(new Set());
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchResultsRef = useRef<HTMLDivElement>(null);
 
@@ -183,6 +185,19 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     brandingSettings?.secondary_color,
     brandingSettings?.accent_color
   ]);
+
+  // Auto-expand navigation items based on current route
+  useEffect(() => {
+    // Check if we're on a submenu page and auto-expand the parent
+    mainNavigation.forEach(item => {
+      if (item.children) {
+        const isOnChildPage = item.children.some(child => location === child.href);
+        if (isOnChildPage) {
+          setExpandedNavItems(prev => new Set(prev).add(item.href));
+        }
+      }
+    });
+  }, [location]);
 
   const queryClient = useQueryClient();
 
@@ -347,14 +362,14 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       icon: <Server className="h-5 w-5 mr-3" />,
     },
     {
-      name: "Billing",
-      href: "/billing",
-      icon: <CreditCard className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "Packages",
+      name: "Server Plans",
       href: "/packages",
       icon: <HardDrive className="h-5 w-5 mr-3" />,
+    },
+    {
+      name: "Billing & Payments",
+      href: "/billing",
+      icon: <CreditCard className="h-5 w-5 mr-3" />,
     },
     {
       name: `${companyName}'s Blog`,
@@ -365,11 +380,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: "DNS Management",
       href: "/dns",
       icon: <Globe className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "DNS Plans",
-      href: "/dns-plans",
-      icon: <CreditCard className="h-5 w-5 mr-3" />,
+      children: [
+        {
+          name: "DNS Plans",
+          href: "/dns-plans",
+          icon: <CreditCard className="h-4 w-4 mr-3" />,
+        },
+      ],
     },
    // {
    //   name: "API Documentation",
@@ -736,6 +753,28 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     navigate(result.url);
   };
 
+  // Toggle expanded state for navigation items with children
+  const toggleNavItem = (href: string) => {
+    setExpandedNavItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(href)) {
+        newSet.delete(href);
+      } else {
+        newSet.add(href);
+      }
+      return newSet;
+    });
+  };
+
+  // Check if a navigation item or its children are active
+  const isNavItemActive = (item: NavigationItem): boolean => {
+    if (location === item.href) return true;
+    if (item.children) {
+      return item.children.some(child => location === child.href);
+    }
+    return false;
+  };
+
   const handleLogout = async () => {
     try {
       await logoutMutation.mutateAsync();
@@ -791,31 +830,88 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         <nav className="flex-1 py-6 px-4 overflow-y-auto">
           <div className="space-y-2">
             {mainNavigation.map((item) => {
-              // Simple route matching - each item is active when the current location matches its href
-              const isActive = location === item.href;
+              const isActive = isNavItemActive(item);
+              const isExpanded = expandedNavItems.has(item.href);
+              const hasChildren = item.children && item.children.length > 0;
 
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-lg"
-                      : "text-gray-300 hover:bg-gray-800 hover:text-white",
-                  )}
-                >
-                  <div className={cn(
-                    "mr-3 transition-colors duration-200",
-                    isActive ? "text-primary-foreground" : "text-gray-400 group-hover:text-gray-200"
-                  )}>
-                    {item.icon}
+                <div key={item.href}>
+                  {/* Main navigation item */}
+                  <div
+                    className={cn(
+                      "flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group cursor-pointer",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-lg"
+                        : "text-gray-300 hover:bg-gray-800 hover:text-white",
+                    )}
+                    onClick={() => {
+                      // Always navigate to the main page
+                      navigate(item.href);
+                      // If it has children, also toggle the submenu
+                      if (hasChildren) {
+                        toggleNavItem(item.href);
+                      }
+                    }}
+                  >
+                    <div className={cn(
+                      "mr-3 transition-colors duration-200",
+                      isActive ? "text-primary-foreground" : "text-gray-400 group-hover:text-gray-200"
+                    )}>
+                      {item.icon}
+                    </div>
+                    <span className="font-medium flex-1">{item.name}</span>
+                    {hasChildren && (
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform duration-200",
+                          isExpanded ? "rotate-180" : "",
+                          isActive ? "text-primary-foreground" : "text-gray-400 group-hover:text-gray-200"
+                        )}
+                        onClick={(e) => {
+                          // Prevent the main click handler from running
+                          e.stopPropagation();
+                          // Only toggle the submenu
+                          toggleNavItem(item.href);
+                        }}
+                      />
+                    )}
+                    {isActive && !hasChildren && (
+                      <div className="w-2 h-2 rounded-full bg-primary-foreground/40" />
+                    )}
                   </div>
-                  <span className="font-medium">{item.name}</span>
-                  {isActive && (
-                    <div className="ml-auto w-2 h-2 rounded-full bg-primary-foreground/40" />
+
+                  {/* Submenu items */}
+                  {hasChildren && isExpanded && (
+                    <div className="ml-6 mt-2 space-y-1">
+                      {item.children!.map((child) => {
+                        const isChildActive = location === child.href;
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={cn(
+                              "flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 group",
+                              isChildActive
+                                ? "bg-primary text-primary-foreground shadow-md"
+                                : "text-gray-400 hover:bg-gray-800 hover:text-white",
+                            )}
+                          >
+                            <div className={cn(
+                              "mr-3 transition-colors duration-200",
+                              isChildActive ? "text-primary-foreground" : "text-gray-500 group-hover:text-gray-300"
+                            )}>
+                              {child.icon}
+                            </div>
+                            <span className="font-medium">{child.name}</span>
+                            {isChildActive && (
+                              <div className="ml-auto w-2 h-2 rounded-full bg-primary-foreground/40" />
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
                   )}
-                </Link>
+                </div>
               );
             })}
           </div>
@@ -839,24 +935,29 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   <Button
                     variant="outline"
                     size="default"
-                    className="w-full justify-between bg-gray-800 text-gray-200 hover:bg-gray-700 border-gray-600"
+                    className="w-full justify-between hover:bg-primary hover:text-primary-foreground transition-colors duration-200"
+                    style={{
+                      backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})`,
+                      borderColor: `var(--brand-primary-medium, ${brandColors.primary.medium})`,
+                      color: `var(--brand-primary, ${brandColors.primary.full})`
+                    }}
                   >
                     <div className="flex items-center">
                       <MessageSquare className="h-4 w-4 mr-2" />
-                      Support Options
+                      Support
                     </div>
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
                   <DropdownMenuItem asChild>
-                    <Link href="/tickets" className="flex items-center w-full">
+                    <Link href="/tickets" className="flex items-center w-full hover:bg-primary hover:text-primary-foreground">
                       <Ticket className="h-4 w-4 mr-2" />
                       Support Tickets
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/live-chat" className="flex items-center w-full">
+                    <Link href="/live-chat" className="flex items-center w-full hover:bg-primary hover:text-primary-foreground">
                       <MessageSquare className="h-4 w-4 mr-2" />
                       Live Support
                     </Link>

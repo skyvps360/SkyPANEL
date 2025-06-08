@@ -251,14 +251,8 @@ export default function DnsDomainsPage() {
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div
-                    className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
-                    style={{ backgroundColor: brandColors.primary.lighter }}
-                  >
-                    <Globe
-                      className="h-6 w-6"
-                      style={{ color: brandColors.primary.full }}
-                    />
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-primary text-primary-foreground">
+                    <Globe className="h-6 w-6" />
                   </div>
                   <div>
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-900">

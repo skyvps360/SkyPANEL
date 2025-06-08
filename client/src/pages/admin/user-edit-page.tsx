@@ -18,6 +18,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { DataTable, DataTableColumn } from "@/components/ui/data-table";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -59,6 +60,24 @@ interface User {
   role: string;
   virtFusionId?: number;
   isActive?: boolean;
+  createdAt: string;
+}
+
+// Credit transaction interface for the enhanced table
+interface CreditTransaction {
+  id: number;
+  userId: number;
+  amount: number;
+  type: string;
+  description: string;
+  status: string;
+  paymentMethod?: string;
+  paymentId?: string;
+  adminUserId?: number;
+  adminReason?: string;
+  balanceBefore: number;
+  balanceAfter: number;
+  metadata?: any;
   createdAt: string;
 }
 
@@ -122,7 +141,10 @@ export default function UserEditPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState("profile");
+
+  // Get URL search params for state persistence
+  const urlParams = new URLSearchParams(window.location.search);
+  const [activeTab, setActiveTab] = useState(urlParams.get('tab') || "profile");
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [tempPassword, setTempPassword] = useState("");
   const [passwordCopied, setPasswordCopied] = useState(false);
@@ -136,6 +158,109 @@ export default function UserEditPage() {
   const [customCreditAddReason, setCustomCreditAddReason] = useState("");
   const [customCreditRemoveAmount, setCustomCreditRemoveAmount] = useState("");
   const [customCreditRemoveReason, setCustomCreditRemoveReason] = useState("");
+
+  // Define transaction table columns
+  const transactionColumns: DataTableColumn<CreditTransaction>[] = [
+    {
+      accessorKey: "id",
+      header: "ID",
+      cell: (transaction: CreditTransaction) => (
+        <span className="font-medium text-muted-foreground">#{transaction.id}</span>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Date",
+      cell: (transaction: CreditTransaction) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-medium">
+            {format(new Date(transaction.createdAt), 'MMM d, yyyy')}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {format(new Date(transaction.createdAt), 'h:mm a')}
+          </span>
+        </div>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: "type",
+      header: "Type",
+      cell: (transaction: CreditTransaction) => (
+        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+          transaction.type === 'admin_add' ? 'bg-green-100 text-green-800' :
+          transaction.type === 'admin_remove' ? 'bg-red-100 text-red-800' :
+          transaction.type === 'purchase' ? 'bg-blue-100 text-blue-800' :
+          transaction.type === 'dns_plan_purchase' ? 'bg-purple-100 text-purple-800' :
+          transaction.type === 'dns_plan_upgrade' ? 'bg-orange-100 text-orange-800' :
+          transaction.type === 'dns_plan_downgrade' ? 'bg-yellow-100 text-yellow-800' :
+          'bg-gray-100 text-gray-800'
+        }`}>
+          {transaction.type?.replace('_', ' ') || 'Unknown'}
+        </span>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: "amount",
+      header: "Amount",
+      cell: (transaction: CreditTransaction) => (
+        <span className={`font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          {transaction.amount >= 0 ? '+' : ''}${transaction.amount?.toFixed(2) || '0.00'}
+        </span>
+      ),
+      enableSorting: true,
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: (transaction: CreditTransaction) => {
+        // Replace hardcoded "custom_credits" with branded name
+        let description = transaction.description || 'No description';
+        if (description.includes('custom_credits')) {
+          description = description.replace(/custom_credits/g, brandingData?.custom_credits_name || 'Custom Credits');
+        }
+
+        return (
+          <div className="max-w-xs">
+            <p className="text-sm truncate" title={description}>
+              {description}
+            </p>
+            {transaction.adminReason && (
+              <p className="text-xs text-muted-foreground mt-1" title={transaction.adminReason}>
+                Admin: {transaction.adminReason}
+              </p>
+            )}
+          </div>
+        );
+      },
+      enableSorting: false,
+    },
+    {
+      accessorKey: "balanceAfter",
+      header: "Balance After",
+      cell: (transaction: CreditTransaction) => (
+        <span className="font-medium">
+          ${transaction.balanceAfter?.toFixed(2) || '0.00'}
+        </span>
+      ),
+      enableSorting: true,
+    },
+  ];
+
+  // Custom search function for transactions
+  const searchTransactions = (transaction: CreditTransaction, query: string): boolean => {
+    const searchTerm = query.toLowerCase();
+    return (
+      transaction.id.toString().includes(searchTerm) ||
+      transaction.amount.toString().includes(searchTerm) ||
+      (transaction.description && transaction.description.toLowerCase().includes(searchTerm)) ||
+      (transaction.adminReason && transaction.adminReason.toLowerCase().includes(searchTerm)) ||
+      (transaction.type && transaction.type.toLowerCase().includes(searchTerm)) ||
+      format(new Date(transaction.createdAt), 'MMM d, yyyy').toLowerCase().includes(searchTerm)
+    );
+  };
 
   // Fetch user data
   const { data: user, isLoading, error } = useQuery<User, Error, User>({
@@ -404,6 +529,15 @@ export default function UserEditPage() {
       });
     }
   });
+
+  // Handle tab changes with URL state persistence
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    // Update URL without triggering navigation
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', newTab);
+    window.history.replaceState({}, '', url.toString());
+  };
 
   // Handle form submission
   const onSubmit = (data: UserFormData) => {
@@ -716,7 +850,7 @@ export default function UserEditPage() {
 
       {/* Edit Form */}
       <Card>
-        <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue={activeTab} value={activeTab} onValueChange={handleTabChange}>
           <CardHeader className="border-b px-6">
             <TabsList className="bg-muted/50">
               <TabsTrigger value="profile" className="data-[state=active]:bg-background">
@@ -1353,82 +1487,32 @@ export default function UserEditPage() {
                   </Button>
                 </div>
 
-                {/* Transaction History */}
-                {customCreditsData?.transactions && customCreditsData.transactions.length > 0 && (
-                  <div>
-                    <h4 className="text-base font-medium mb-4">Recent Transactions</h4>
-                    <div className="bg-muted/30 rounded-lg overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-muted/50">
-                          <tr>
-                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                              Date
-                            </th>
-                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                              Type
-                            </th>
-                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                              Amount
-                            </th>
-                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                              Description
-                            </th>
-                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                              Balance After
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {customCreditsData.transactions.slice(0, 10).map((transaction, index) => (
-                            <tr key={transaction.id || index}>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm">
-                                {transaction.createdAt ? format(new Date(transaction.createdAt), 'MMM d, yyyy h:mm a') : 'N/A'}
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm">
-                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                  transaction.type === 'admin_add' ? 'bg-green-100 text-green-800' :
-                                  transaction.type === 'admin_remove' ? 'bg-red-100 text-red-800' :
-                                  transaction.type === 'purchase' ? 'bg-blue-100 text-blue-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {transaction.type?.replace('_', ' ') || 'Unknown'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm">
-                                <span className={`font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {transaction.amount >= 0 ? '+' : ''}${transaction.amount?.toFixed(2) || '0.00'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2 text-sm">
-                                {transaction.description || 'No description'}
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
-                                ${transaction.balanceAfter?.toFixed(2) || '0.00'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {isLoadingCustomCredits && (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    <p className="ml-2 text-muted-foreground">Loading {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} data...</p>
-                  </div>
-                )}
-
-                {customCreditsError && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                      Failed to load {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} data: {customCreditsError.message}
-                    </AlertDescription>
-                  </Alert>
-                )}
+                {/* Enhanced Transaction History */}
+                <div>
+                  <h4 className="text-base font-medium mb-4">Transaction History</h4>
+                  {customCreditsError ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>
+                        Failed to load {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} data: {customCreditsError.message}
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <DataTable<CreditTransaction>
+                      data={customCreditsData?.transactions || []}
+                      columns={transactionColumns}
+                      enableSearch={true}
+                      searchFunction={searchTransactions}
+                      searchPlaceholder="Search by ID, amount, description, or date..."
+                      enablePagination={true}
+                      defaultPageSize={5}
+                      pageSizeOptions={[5, 10, 25, 50, 100]}
+                      isLoading={isLoadingCustomCredits}
+                      emptyMessage={`No ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} transactions found.`}
+                    />
+                  )}
+                </div>
               </div>
             </CardContent>
           </TabsContent>

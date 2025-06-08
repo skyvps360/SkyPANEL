@@ -20,33 +20,48 @@ interface Transaction {
 }
 
 // Helper function to format transaction descriptions for better readability
-const formatTransactionDescription = (transaction: Transaction) => {
-  // Handle DNS plan purchases with plan name extraction
-  if (transaction.type === 'dns_plan_purchase' && transaction.description.includes('DNS Plan Purchase:')) {
-    return transaction.description; // Already formatted correctly
+const formatTransactionDescription = (transaction: Transaction, brandingData?: { custom_credits_name?: string }) => {
+  let description = transaction.description;
+
+  // Replace hardcoded "custom_credits" with branded name in all descriptions
+  if (description && description.includes('custom_credits')) {
+    description = description.replace(/custom_credits/g, brandingData?.custom_credits_name || 'Custom Credits');
+  }
+
+  // Handle DNS plan transactions with plan name extraction
+  if (transaction.type === 'dns_plan_purchase' && description.includes('DNS Plan Purchase:')) {
+    return description;
+  }
+
+  if (transaction.type === 'dns_plan_upgrade' && description.includes('DNS Plan Upgrade:')) {
+    return description;
+  }
+
+  if (transaction.type === 'dns_plan_downgrade' && description.includes('DNS Plan Downgrade:')) {
+    return description;
   }
 
   // Handle admin credit operations
-  if (transaction.type === 'admin_credit_add' && transaction.description.includes('Admin Credit Addition:')) {
-    return transaction.description; // Already formatted correctly
+  if (transaction.type === 'admin_credit_add' && description.includes('Admin Credit Addition:')) {
+    return description;
   }
 
-  if (transaction.type === 'admin_credit_remove' && transaction.description.includes('Admin Credit Removal:')) {
-    return transaction.description; // Already formatted correctly
+  if (transaction.type === 'admin_credit_remove' && description.includes('Admin Credit Removal:')) {
+    return description;
   }
 
   // Handle legacy dns_plan_purchase format
   if (transaction.type === 'dns_plan_purchase') {
     // Try to extract plan name from description
-    const planMatch = transaction.description.match(/DNS Plan Purchase: (.+)/);
+    const planMatch = description.match(/DNS Plan Purchase: (.+)/);
     if (planMatch) {
       return `DNS Plan Purchase: ${planMatch[1]}`;
     }
     return 'DNS Plan Purchase';
   }
 
-  // Return original description for other transaction types
-  return transaction.description;
+  // Return processed description for other transaction types
+  return description;
 };
 
 // Helper function to determine if a transaction is a credit/addition
@@ -63,6 +78,7 @@ const isDebit = (transaction: Transaction) => {
          transaction.type === 'virtfusion_credit_removal' ||
          transaction.type === 'virtfusion_deduction' ||
          transaction.type === 'dns_plan_purchase' ||
+         transaction.type === 'dns_plan_upgrade' ||
          transaction.type === 'admin_credit_remove' ||
          transaction.amount < 0; // Also include any transaction with negative amount as spending
 };
@@ -78,6 +94,10 @@ const formatTransactionType = (transaction: Transaction, brandingData?: { custom
       return 'VirtFusion Credit';
     case 'dns_plan_purchase':
       return 'DNS Plan Purchase';
+    case 'dns_plan_upgrade':
+      return 'DNS Plan Upgrade';
+    case 'dns_plan_downgrade':
+      return 'DNS Plan Downgrade';
     case 'admin_credit_add':
       return `Admin ${brandingData?.custom_credits_name || 'Custom Credit'} Addition`;
     case 'admin_credit_remove':
@@ -247,7 +267,7 @@ export default function TransactionDetailPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-              <p className="text-lg font-medium">{formatTransactionDescription(transaction)}</p>
+              <p className="text-lg font-medium">{formatTransactionDescription(transaction, brandingData)}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Amount</h3>
@@ -266,7 +286,11 @@ export default function TransactionDetailPage() {
             {transaction.paymentMethod && (
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Payment Method</h3>
-                <p className="text-lg font-medium capitalize">{transaction.paymentMethod}</p>
+                <p className="text-lg font-medium capitalize">
+                  {transaction.paymentMethod === 'custom_credits' || transaction.paymentMethod?.includes('_credits') || transaction.paymentMethod?.includes('credits')
+                    ? (brandingData?.custom_credits_name || 'Custom Credits')
+                    : transaction.paymentMethod}
+                </p>
               </div>
             )}
             {transaction.paymentId && (

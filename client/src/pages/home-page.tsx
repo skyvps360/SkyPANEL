@@ -196,14 +196,8 @@ export default function HomePage() {
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm"
-                      style={{ backgroundColor: brandColors.primary.lighter }}
-                    >
-                      <div
-                        className="text-xl font-bold"
-                        style={{ color: brandColors.primary.full }}
-                      >
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-primary text-primary-foreground">
+                      <div className="text-xl font-bold">
                         {user?.fullName?.charAt(0) || 'U'}
                       </div>
                     </div>
@@ -249,19 +243,25 @@ export default function HomePage() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col className="w-2/5" />
+                    <col className="w-1/4" />
+                    <col className="w-1/6" />
+                    <col className="w-1/6" />
+                  </colgroup>
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Service</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Current Value</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600">Action</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-600">Service</th>
+                      <th className="text-right py-3 px-6 font-medium text-gray-600">Current Value</th>
+                      <th className="text-center py-3 px-6 font-medium text-gray-600">Status</th>
+                      <th className="text-center py-3 px-6 font-medium text-gray-600">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {/* VirtFusion Credits Row */}
                     <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
@@ -275,7 +275,7 @@ export default function HomePage() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="text-right">
                           <p className={`text-lg font-semibold ${displayCredits < 0 ? 'text-red-600' : 'text-gray-900'}`}>
                             ${displayCredits.toLocaleString(undefined, {
@@ -293,28 +293,30 @@ export default function HomePage() {
                           )}
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center space-x-2">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-center space-x-2">
                           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
                           <span className="text-sm text-gray-600">Active</span>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <Link href="/billing">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                          >
-                            Manage
-                          </Button>
-                        </Link>
+                      <td className="py-4 px-6">
+                        <div className="flex justify-center">
+                          <Link href="/billing">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                            >
+                              Manage
+                            </Button>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
 
                     {/* Custom Credits Row */}
                     <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
@@ -328,7 +330,7 @@ export default function HomePage() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="text-right">
                           <p className={`text-lg font-semibold ${(balanceData?.customCredits || 0) < 0 ? 'text-red-600' : 'text-gray-900'}`}>
                             ${(balanceData?.customCredits || 0).toLocaleString(undefined, {
@@ -339,28 +341,30 @@ export default function HomePage() {
                           <p className="text-xs text-gray-500">Available balance</p>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center space-x-2">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-center space-x-2">
                           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
                           <span className="text-sm text-gray-600">Active</span>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <Link href="/billing">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                          >
-                            Manage
-                          </Button>
-                        </Link>
+                      <td className="py-4 px-6">
+                        <div className="flex justify-center">
+                          <Link href="/billing">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                            >
+                              Manage
+                            </Button>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
 
                     {/* DNS Domains Row */}
                     <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
@@ -374,7 +378,7 @@ export default function HomePage() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="text-right">
                           <p className="text-lg font-semibold text-gray-900">{stats.dnsDomains}</p>
                           <p className="text-xs text-gray-500">
@@ -382,28 +386,30 @@ export default function HomePage() {
                           </p>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center space-x-2">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-center space-x-2">
                           <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
                           <span className="text-sm text-gray-600">Active</span>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <Link href="/dns">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                          >
-                            Manage
-                          </Button>
-                        </Link>
+                      <td className="py-4 px-6">
+                        <div className="flex justify-center">
+                          <Link href="/dns">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                            >
+                              Manage
+                            </Button>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
 
                     {/* Support Tickets Row */}
                     <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
@@ -417,7 +423,7 @@ export default function HomePage() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="text-right">
                           <p className="text-lg font-semibold text-gray-900">{stats.openTickets}</p>
                           <p className="text-xs text-gray-500">
@@ -425,30 +431,32 @@ export default function HomePage() {
                           </p>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center space-x-2">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-center space-x-2">
                           <div className={`w-2 h-2 rounded-full ${stats.openTickets > 0 ? 'bg-red-400 animate-pulse' : 'bg-green-400'}`}></div>
                           <span className="text-sm text-gray-600">
                             {stats.openTickets > 0 ? 'Pending' : 'Good'}
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <Link href="/tickets">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                          >
-                            View
-                          </Button>
-                        </Link>
+                      <td className="py-4 px-6">
+                        <div className="flex justify-center">
+                          <Link href="/tickets">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                            >
+                              View
+                            </Button>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
 
                     {/* Active Servers Row */}
                     <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
@@ -462,7 +470,7 @@ export default function HomePage() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-6">
                         <div className="text-right">
                           <p className="text-lg font-semibold text-gray-900">{stats.totalServers}</p>
                           <p className="text-xs text-gray-500">
@@ -470,24 +478,26 @@ export default function HomePage() {
                           </p>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center space-x-2">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center justify-center space-x-2">
                           <div className={`w-2 h-2 rounded-full ${stats.totalServers > 0 ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
                           <span className="text-sm text-gray-600">
                             {stats.totalServers > 0 ? 'Running' : 'None'}
                           </span>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
-                        <Link href="/servers">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                          >
-                            View
-                          </Button>
-                        </Link>
+                      <td className="py-4 px-6">
+                        <div className="flex justify-center">
+                          <Link href="/servers">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                            >
+                              View
+                            </Button>
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   </tbody>
