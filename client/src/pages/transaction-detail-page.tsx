@@ -67,15 +67,43 @@ const isDebit = (transaction: Transaction) => {
          transaction.amount < 0; // Also include any transaction with negative amount as spending
 };
 
+// Helper function to format transaction type for display
+const formatTransactionType = (transaction: Transaction, brandingData?: { custom_credits_name?: string }) => {
+  switch (transaction.type) {
+    case 'virtfusion_credit':
+      return 'VirtFusion Credit';
+    case 'custom_credit':
+      return brandingData?.custom_credits_name || 'Custom Credit';
+    case 'credit':
+      return 'VirtFusion Credit';
+    case 'dns_plan_purchase':
+      return 'DNS Plan Purchase';
+    case 'admin_credit_add':
+      return `Admin ${brandingData?.custom_credits_name || 'Custom Credit'} Addition`;
+    case 'admin_credit_remove':
+      return `Admin ${brandingData?.custom_credits_name || 'Custom Credit'} Removal`;
+    default:
+      return transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1).replace(/_/g, ' ');
+  }
+};
+
 export default function TransactionDetailPage() {
   const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const transactionId = params?.id && !isNaN(parseInt(params.id, 10)) ? parseInt(params.id, 10) : null;
-  
+
   // Log params for debugging
   console.log("Transaction ID from URL:", params?.id);
   console.log("Parsed Transaction ID:", transactionId);
-  
+
+  // Fetch branding data for dynamic custom credits naming
+  const { data: brandingData } = useQuery<{
+    company_name: string;
+    custom_credits_name?: string;
+  }>({
+    queryKey: ['/api/settings/branding'],
+  });
+
   // Fetch transaction details with improved debugging
   const { data: transaction, isLoading, error } = useQuery<Transaction>({
     queryKey: [`/api/transactions/${transactionId}`],
@@ -229,7 +257,7 @@ export default function TransactionDetailPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Type</h3>
-              <p className="text-lg font-medium capitalize">{transaction.type}</p>
+              <p className="text-lg font-medium">{formatTransactionType(transaction, brandingData)}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Status</h3>

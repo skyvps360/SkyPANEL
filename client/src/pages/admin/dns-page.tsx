@@ -64,6 +64,9 @@ export default function AdminDnsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<DnsPlan | null>(null);
+
+  // State for features management
+  const [newFeature, setNewFeature] = useState("");
   
   // Form state
   const [formData, setFormData] = useState({
@@ -189,6 +192,7 @@ export default function AdminDnsPage() {
       isActive: true,
       displayOrder: 0
     });
+    setNewFeature("");
   };
 
   const handleAdd = () => {
@@ -264,6 +268,30 @@ export default function AdminDnsPage() {
       accessorKey: "maxRecords",
       header: "Max Records",
       cell: (plan: DnsPlan) => plan.maxRecords,
+    },
+    {
+      accessorKey: "features",
+      header: "Features",
+      cell: (plan: DnsPlan) => (
+        <div className="max-w-xs">
+          {plan.features && plan.features.length > 0 ? (
+            <div className="space-y-1">
+              {plan.features.slice(0, 2).map((feature, index) => (
+                <div key={index} className="text-xs bg-muted px-2 py-1 rounded">
+                  {feature}
+                </div>
+              ))}
+              {plan.features.length > 2 && (
+                <div className="text-xs text-muted-foreground">
+                  +{plan.features.length - 2} more
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className="text-muted-foreground text-sm">No features</span>
+          )}
+        </div>
+      ),
     },
     {
       accessorKey: "subscriptions",
@@ -364,7 +392,7 @@ export default function AdminDnsPage() {
             setSelectedPlan(null);
           }
         }}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {selectedPlan ? "Edit DNS Plan" : "Add DNS Plan"}
@@ -442,6 +470,71 @@ export default function AdminDnsPage() {
                     value={formData.maxRecords}
                     onChange={(e) => setFormData({ ...formData, maxRecords: parseInt(e.target.value) || 1 })}
                   />
+                </div>
+              </div>
+
+              {/* Features Configuration Section */}
+              <div className="space-y-3">
+                <Label>Plan Features</Label>
+                <div className="space-y-2">
+                  {formData.features.map((feature, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-muted rounded-md">
+                      <span className="flex-1 text-sm">{feature}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newFeatures = formData.features.filter((_, i) => i !== index);
+                          setFormData({ ...formData, features: newFeatures });
+                        }}
+                        className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a new feature..."
+                      value={newFeature}
+                      onChange={(e) => setNewFeature(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (newFeature.trim() && !formData.features.includes(newFeature.trim())) {
+                            setFormData({
+                              ...formData,
+                              features: [...formData.features, newFeature.trim()]
+                            });
+                            setNewFeature("");
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (newFeature.trim() && !formData.features.includes(newFeature.trim())) {
+                          setFormData({
+                            ...formData,
+                            features: [...formData.features, newFeature.trim()]
+                          });
+                          setNewFeature("");
+                        }
+                      }}
+                      disabled={!newFeature.trim() || formData.features.includes(newFeature.trim())}
+                    >
+                      Add
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Add features that describe what this plan includes (e.g., "Basic DNS management", "24/7 support", "Advanced analytics")
+                  </p>
                 </div>
               </div>
 

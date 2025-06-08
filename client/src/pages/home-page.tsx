@@ -16,7 +16,6 @@ import {
   MessageSquare,
   HelpCircle,
   Activity,
-  Zap,
   Globe,
   BarChart3
 } from "lucide-react";
@@ -423,7 +422,7 @@ export default function HomePage() {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">Active Servers</p>
-                            <p className="text-sm text-gray-500">VPS hosting services</p>
+                            <p className="text-sm text-gray-500">KVM hosting services</p>
                           </div>
                         </div>
                       </td>
@@ -432,7 +431,7 @@ export default function HomePage() {
                           <p className="text-lg font-semibold text-gray-900">{stats.totalServers}</p>
                           <p className="text-xs text-gray-500">
                             {stats.totalServers > 0
-                              ? `${stats.totalServers === 1 ? 'server' : 'servers'} running`
+                              ? `${stats.totalServers === 1 ? 'server' : 'servers'} deployed`
                               : 'no servers deployed'
                             }
                           </p>
@@ -477,27 +476,12 @@ export default function HomePage() {
                   >
                     <div className="flex items-center space-x-3">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
-                        style={{
-                          backgroundColor: brandColors.primary.lighter,
-                          '--hover-bg': brandColors.secondary.full
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
-                        }}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
+                        style={{ backgroundColor: brandColors.primary.lighter }}
                       >
                         <Plus
-                          className="w-4 h-4 transition-colors duration-200"
+                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
                           style={{ color: brandColors.primary.full }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = brandColors.primary.full;
-                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">New Server</span>
@@ -512,24 +496,12 @@ export default function HomePage() {
                   >
                     <div className="flex items-center space-x-3">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
                         style={{ backgroundColor: brandColors.primary.lighter }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
-                        }}
                       >
                         <MessageSquare
-                          className="w-4 h-4 transition-colors duration-200"
+                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
                           style={{ color: brandColors.primary.full }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = brandColors.primary.full;
-                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">Get Support</span>
@@ -544,24 +516,12 @@ export default function HomePage() {
                   >
                     <div className="flex items-center space-x-3">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
                         style={{ backgroundColor: brandColors.primary.lighter }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
-                        }}
                       >
                         <Coins
-                          className="w-4 h-4 transition-colors duration-200"
+                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
                           style={{ color: brandColors.primary.full }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = brandColors.primary.full;
-                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">Add Funds</span>
@@ -576,24 +536,12 @@ export default function HomePage() {
                   >
                     <div className="flex items-center space-x-3">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
                         style={{ backgroundColor: brandColors.primary.lighter }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
-                        }}
                       >
                         <MessageSquare
-                          className="w-4 h-4 transition-colors duration-200"
+                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
                           style={{ color: brandColors.primary.full }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = brandColors.primary.full;
-                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">Live Chat</span>
@@ -608,24 +556,12 @@ export default function HomePage() {
                   >
                     <div className="flex items-center space-x-3">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
                         style={{ backgroundColor: brandColors.primary.lighter }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
-                        }}
                       >
                         <Globe
-                          className="w-4 h-4 transition-colors duration-200"
+                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
                           style={{ color: brandColors.primary.full }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = brandColors.primary.full;
-                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">DNS Management</span>
@@ -640,24 +576,12 @@ export default function HomePage() {
                   >
                     <div className="flex items-center space-x-3">
                       <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
                         style={{ backgroundColor: brandColors.primary.lighter }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
-                        }}
                       >
                         <Activity
-                          className="w-4 h-4 transition-colors duration-200"
+                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
                           style={{ color: brandColors.primary.full }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = 'white';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = brandColors.primary.full;
-                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">Latest News</span>
@@ -698,12 +622,12 @@ export default function HomePage() {
                       className="w-8 h-8 rounded-lg flex items-center justify-center"
                       style={{ backgroundColor: `var(--brand-secondary-lighter, ${brandColors.secondary.lighter})` }}
                     >
-                      <Zap
+                      <Server
                         className="w-4 h-4"
                         style={{ color: `var(--brand-secondary, ${brandColors.secondary.full})` }}
                       />
                     </div>
-                    <span className="text-sm font-medium text-gray-700">Services Running</span>
+                    <span className="text-sm font-medium text-gray-700">Active Servers</span>
                   </div>
                   <span className="text-sm font-semibold text-gray-900">{stats.totalServers}</span>
                 </div>

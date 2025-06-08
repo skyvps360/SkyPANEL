@@ -127,15 +127,16 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
             <span>Loading PayPal...</span>
           </div>
         ) : (
-          <PayPalButtons
-            style={{
-              layout: "vertical",
-              color: "blue",
-              shape: "rect",
-              label: "pay", // Use "Pay with PayPal" for digital goods
-              tagline: false, // Remove "Pay in 4" tagline for digital services
-              height: 45, // Consistent button height
-            }}
+          <div className="paypal-buttons-container">
+            <PayPalButtons
+              style={{
+                layout: "vertical",
+                color: "blue",
+                shape: "rect",
+                label: "pay", // Use "Pay with PayPal" for digital goods
+                tagline: false, // Remove "Pay in 4" tagline for digital services
+                height: 45, // Consistent button height
+              }}
             disabled={isProcessing}
             forceReRender={[amount]} // Re-render when amount changes
             createOrder={(data, actions) => {
@@ -195,6 +196,7 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
               setIsProcessing(false);
             }}
           />
+          </div>
         )}
 
         {isProcessing && (

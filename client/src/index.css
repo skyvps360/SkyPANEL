@@ -196,6 +196,33 @@
   margin: 0 auto;
 }
 
+/* Enhanced PayPal Button Hover Visibility */
+.paypal-buttons-container iframe {
+  transition: all 0.2s ease-in-out !important;
+}
+
+.paypal-buttons-container:hover iframe {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* PayPal Button Focus and Active States */
+.paypal-buttons-container iframe:focus {
+  outline: 2px solid hsl(var(--primary)) !important;
+  outline-offset: 2px !important;
+}
+
+/* Improve PayPal button container visibility */
+.paypal-buttons-container {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.paypal-buttons-container:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
 /* Brand Color Utilities - Updated to use HSL primary color variables */
 .text-brand {
   color: hsl(var(--primary)) !important;

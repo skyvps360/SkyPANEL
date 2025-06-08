@@ -129,7 +129,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     company_color?: string,  // Keep for backward compatibility
     primary_color?: string,
     secondary_color?: string,
-    accent_color?: string
+    accent_color?: string,
+    custom_credits_name?: string,
+    custom_credits_symbol?: string
   }>({
     queryKey: ["/api/settings/branding"],
     enabled: !!user,
@@ -928,7 +930,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                 href="/billing"
                 className="hidden sm:flex items-center px-3 py-2 rounded-xl hover:shadow-sm transition-all duration-200 group"
                 style={{ backgroundColor: `var(--brand-secondary-lighter, ${brandColors.secondary.lighter})` }}
-                title="Custom Credits - Go to Billing"
+                title={`${brandingSettings?.custom_credits_name || 'Custom Credits'} - Go to Billing`}
               >
                 <CreditCard
                   className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200"

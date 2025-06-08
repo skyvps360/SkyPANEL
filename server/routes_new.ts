@@ -4834,19 +4834,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             for (const domain of domainsToRemove) {
               try {
+                console.log(`Starting removal of domain ${domain.name} (ID: ${domain.id}, InterServer ID: ${domain.interserverId})`);
+
                 // Remove from InterServer if it has an InterServer ID
                 if (domain.interserverId) {
                   console.log(`Removing domain ${domain.name} from InterServer (ID: ${domain.interserverId})`);
                   await interServerApi.deleteDnsDomain(domain.interserverId);
+                  console.log(`Successfully removed domain ${domain.name} from InterServer`);
+                } else {
+                  console.log(`Domain ${domain.name} has no InterServer ID, skipping InterServer deletion`);
                 }
 
                 // Remove from local database
-                await tx.delete(dnsDomainsTable)
-                  .where(eq(dnsDomainsTable.id, domain.id));
+                console.log(`Removing domain ${domain.name} from local database`);
+                const deleteResult = await tx.delete(dnsDomainsTable)
+                  .where(eq(dnsDomainsTable.id, domain.id))
+                  .returning();
 
-                console.log(`Successfully removed domain ${domain.name} from local database`);
+                console.log(`Successfully removed domain ${domain.name} from local database. Deleted rows:`, deleteResult.length);
               } catch (domainError) {
                 console.error(`Failed to remove domain ${domain.name}:`, domainError);
+                // Log the full error details for debugging
+                console.error(`Domain deletion error details:`, {
+                  domainId: domain.id,
+                  domainName: domain.name,
+                  interserverId: domain.interserverId,
+                  error: domainError
+                });
                 // Continue with other domains but log the error
               }
             }

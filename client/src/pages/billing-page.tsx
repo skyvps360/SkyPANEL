@@ -840,7 +840,7 @@ export default function BillingPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => window.location.href = `/billing/transactions/${transaction.id}`}
-                            className="hover:bg-primary/5 text-primary transition-colors"
+                            className="hover:bg-primary hover:text-primary-foreground text-primary transition-colors"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             View

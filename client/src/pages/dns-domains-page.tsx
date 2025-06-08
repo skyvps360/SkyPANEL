@@ -96,7 +96,9 @@ export default function DnsDomainsPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteDnsDomain,
     onSuccess: () => {
+      // Invalidate both domains and plan limits for real-time updates
       queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
+      queryClient.invalidateQueries({ queryKey: ["dns-plan-limits"] });
       toast({
         title: "Success",
         description: "Domain deleted successfully",
@@ -521,7 +523,9 @@ export default function DnsDomainsPage() {
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onSuccess={() => {
+          // Invalidate both domains and plan limits for real-time updates
           queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
+          queryClient.invalidateQueries({ queryKey: ["dns-plan-limits"] });
           setIsAddDialogOpen(false);
         }}
       />

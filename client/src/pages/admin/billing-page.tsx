@@ -34,11 +34,13 @@ export default function AdminBillingPage() {
   const { toast } = useToast();
   
   // Fetch branding data
-  const { data: brandingData } = useQuery<{ 
-    company_name: string; 
+  const { data: brandingData } = useQuery<{
+    company_name: string;
     primary_color: string;
     secondary_color: string;
     accent_color: string;
+    custom_credits_name?: string;
+    custom_credits_symbol?: string;
   }>({
     queryKey: ['/api/settings/branding'],
   });
@@ -102,7 +104,7 @@ export default function AdminBillingPage() {
       cell: (item: Transaction) => {
         const isCredit = item.type === 'virtfusion_credit' || item.type === 'custom_credit' || item.type === 'admin_credit_add' || item.amount > 0;
         const displayType = item.type === 'virtfusion_credit' ? 'VirtFusion Credit' :
-                           item.type === 'custom_credit' ? 'Custom Credit' :
+                           item.type === 'custom_credit' ? (brandingData?.custom_credits_name || 'Custom Credit') :
                            item.type === 'credit' ? 'VirtFusion Credit' :
                            item.type;
         return (
@@ -145,7 +147,10 @@ export default function AdminBillingPage() {
             </TooltipTrigger>
             <TooltipContent>
               <p>Payment ID: {item.paymentId || 'None'}</p>
-              <p>Type: {item.type}</p>
+              <p>Type: {item.type === 'virtfusion_credit' ? 'VirtFusion Credit' :
+                       item.type === 'custom_credit' ? (brandingData?.custom_credits_name || 'Custom Credit') :
+                       item.type === 'credit' ? 'VirtFusion Credit' :
+                       item.type}</p>
               <p>Status: {item.status}</p>
             </TooltipContent>
           </Tooltip>
@@ -323,7 +328,7 @@ export default function AdminBillingPage() {
                 <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                Unified billing from VirtFusion & custom credits
+                Unified billing from VirtFusion & {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}
               </p>
             </CardContent>
           </Card>

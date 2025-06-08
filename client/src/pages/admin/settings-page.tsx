@@ -2875,7 +2875,24 @@ export default function SettingsPage() {
                             <div>
                               <h6 className="text-xs font-medium mb-1">Primary Presets</h6>
                               <div className="flex flex-wrap gap-1">
-                                {["2563eb", "7c3aed", "0ea5e9", "0d9488", "f97316", "ef4444"].map(
+                                {[
+                                  "2563eb", // Blue (default)
+                                  "7c3aed", // Purple
+                                  "0ea5e9", // Sky Blue
+                                  "0d9488", // Teal
+                                  "f97316", // Orange
+                                  "ef4444", // Red
+                                  "1d4ed8", // Dark Blue
+                                  "9333ea", // Violet
+                                  "059669", // Emerald
+                                  "dc2626", // Dark Red
+                                  "ea580c", // Dark Orange
+                                  "4338ca", // Indigo
+                                  "0891b2", // Cyan
+                                  "16a34a", // Green
+                                  "c2410c", // Amber
+                                  "be123c"  // Rose
+                                ].map(
                                   (color) => (
                                     <div
                                       key={color}
@@ -2891,7 +2908,24 @@ export default function SettingsPage() {
                             <div>
                               <h6 className="text-xs font-medium mb-1">Secondary Presets</h6>
                               <div className="flex flex-wrap gap-1">
-                                {["10b981", "8b5cf6", "06b6d4", "14b8a6", "fb923c", "f87171"].map(
+                                {[
+                                  "10b981", // Emerald (default)
+                                  "8b5cf6", // Violet
+                                  "06b6d4", // Cyan
+                                  "14b8a6", // Teal
+                                  "fb923c", // Orange
+                                  "f87171", // Red
+                                  "059669", // Dark Emerald
+                                  "7c3aed", // Purple
+                                  "0891b2", // Dark Cyan
+                                  "0d9488", // Dark Teal
+                                  "ea580c", // Dark Orange
+                                  "dc2626", // Dark Red
+                                  "16a34a", // Green
+                                  "9333ea", // Dark Violet
+                                  "0284c7", // Blue
+                                  "be123c"  // Rose
+                                ].map(
                                   (color) => (
                                     <div
                                       key={color}
@@ -2907,7 +2941,24 @@ export default function SettingsPage() {
                             <div>
                               <h6 className="text-xs font-medium mb-1">Accent Presets</h6>
                               <div className="flex flex-wrap gap-1">
-                                {["f59e0b", "ec4899", "0284c7", "0f766e", "ea580c", "dc2626"].map(
+                                {[
+                                  "f59e0b", // Amber (default)
+                                  "ec4899", // Pink
+                                  "0284c7", // Blue
+                                  "0f766e", // Teal
+                                  "ea580c", // Orange
+                                  "dc2626", // Red
+                                  "d97706", // Dark Amber
+                                  "db2777", // Dark Pink
+                                  "0369a1", // Dark Blue
+                                  "0d9488", // Dark Teal
+                                  "c2410c", // Dark Orange
+                                  "b91c1c", // Dark Red
+                                  "fbbf24", // Yellow
+                                  "a855f7", // Purple
+                                  "06b6d4", // Cyan
+                                  "84cc16"  // Lime
+                                ].map(
                                   (color) => (
                                     <div
                                       key={color}
