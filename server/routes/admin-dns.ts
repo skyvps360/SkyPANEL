@@ -22,6 +22,8 @@ const dnsPlanSchema = z.object({
 // GET /api/admin/dns-plans - Get all DNS plans with subscription counts
 router.get("/dns-plans", requireAdmin, async (req, res) => {
   try {
+    const { users } = await import('../../shared/schema');
+
     const plans = await db
       .select({
         id: dnsPlans.id,
@@ -35,10 +37,12 @@ router.get("/dns-plans", requireAdmin, async (req, res) => {
         displayOrder: dnsPlans.displayOrder,
         createdAt: dnsPlans.createdAt,
         updatedAt: dnsPlans.updatedAt,
-        subscriptionCount: sql<number>`count(${dnsPlanSubscriptions.id})`.as('subscription_count'),
+        // Count only active subscriptions from non-admin users
+        subscriptionCount: sql<number>`count(case when ${dnsPlanSubscriptions.status} = 'active' and (${users.role} != 'admin' or ${users.role} is null) then 1 end)`.as('subscription_count'),
       })
       .from(dnsPlans)
       .leftJoin(dnsPlanSubscriptions, eq(dnsPlans.id, dnsPlanSubscriptions.planId))
+      .leftJoin(users, eq(dnsPlanSubscriptions.userId, users.id))
       .groupBy(dnsPlans.id)
       .orderBy(dnsPlans.displayOrder, dnsPlans.id);
 
@@ -165,6 +169,8 @@ router.get("/dns-plans/:id", requireAdmin, async (req, res) => {
       return res.status(400).json({ error: "Invalid plan ID" });
     }
 
+    const { users } = await import('../../shared/schema');
+
     const [plan] = await db
       .select({
         id: dnsPlans.id,
@@ -178,10 +184,12 @@ router.get("/dns-plans/:id", requireAdmin, async (req, res) => {
         displayOrder: dnsPlans.displayOrder,
         createdAt: dnsPlans.createdAt,
         updatedAt: dnsPlans.updatedAt,
-        subscriptionCount: sql<number>`count(${dnsPlanSubscriptions.id})`.as('subscription_count'),
+        // Count only active subscriptions from non-admin users
+        subscriptionCount: sql<number>`count(case when ${dnsPlanSubscriptions.status} = 'active' and (${users.role} != 'admin' or ${users.role} is null) then 1 end)`.as('subscription_count'),
       })
       .from(dnsPlans)
       .leftJoin(dnsPlanSubscriptions, eq(dnsPlans.id, dnsPlanSubscriptions.planId))
+      .leftJoin(users, eq(dnsPlanSubscriptions.userId, users.id))
       .where(eq(dnsPlans.id, planId))
       .groupBy(dnsPlans.id);
 

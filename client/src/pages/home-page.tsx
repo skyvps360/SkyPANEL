@@ -17,7 +17,8 @@ import {
   HelpCircle,
   Activity,
   Zap,
-  Globe
+  Globe,
+  BarChart3
 } from "lucide-react";
 
 // Define branding data type with new color system
@@ -196,191 +197,281 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Enhanced Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-            {/* VirtFusion Credits Card */}
-            <Link href="/billing" className="group">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-blue-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-blue-300/60 group-hover:-translate-y-1">
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-blue-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
-                      style={{
-                        background: `linear-gradient(135deg, ${brandColors.primary.full}, ${brandColors.primary.lighter})`,
-                      }}
-                    >
-                      <DollarSign className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-600">
-                      VirtFusion Balance
-                    </p>
-                    <h3 className={`text-2xl font-bold ${displayCredits < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                      ${displayCredits.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
-                    </h3>
-                    {hasVirtFusion && (
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <div className="w-1 h-1 rounded-full bg-gray-400"></div>
-                        {stats.virtFusionTokens >= 0
-                          ? `${stats.virtFusionTokens.toLocaleString()} tokens available`
-                          : `${Math.abs(stats.virtFusionTokens).toLocaleString()} tokens overdrawn`
-                        }
-                      </p>
-                    )}
-                  </div>
+          {/* Account Overview Table */}
+          <div className="rounded-2xl bg-white border border-gray-300/60 shadow-md">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-6">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{ backgroundColor: brandColors.primary.lighter }}
+                >
+                  <BarChart3
+                    className="h-5 w-5"
+                    style={{ color: brandColors.primary.full }}
+                  />
                 </div>
+                <h2 className="text-xl font-semibold text-gray-900">Account Overview</h2>
               </div>
-            </Link>
 
-            {/* Custom Credits Card */}
-            <Link href="/billing" className="group">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-green-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-green-300/60 group-hover:-translate-y-1">
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-green-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
-                      style={{
-                        background: `linear-gradient(135deg, ${brandColors.secondary.full}, ${brandColors.secondary.lighter})`,
-                      }}
-                    >
-                      <Coins className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-600">
-                      {brandingData?.custom_credits_name || 'Custom Credits'}
-                    </p>
-                    <h3 className={`text-2xl font-bold ${(balanceData?.customCredits || 0) < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                      ${(balanceData?.customCredits || 0).toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2
-                      })}
-                    </h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-gray-400"></div>
-                      Available for DNS & other services
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Service</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Current Value</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {/* VirtFusion Credits Row */}
+                    <tr className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                            style={{
+                              background: `linear-gradient(135deg, ${brandColors.primary.full}, ${brandColors.primary.lighter})`
+                            }}
+                          >
+                            <DollarSign className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">VirtFusion Balance</p>
+                            <p className="text-sm text-gray-500">VPS hosting credits</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-right">
+                          <p className={`text-lg font-semibold ${displayCredits < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                            ${displayCredits.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}
+                          </p>
+                          {hasVirtFusion && (
+                            <p className="text-xs text-gray-500">
+                              {stats.virtFusionTokens >= 0
+                                ? `${stats.virtFusionTokens.toLocaleString()} tokens`
+                                : `${Math.abs(stats.virtFusionTokens).toLocaleString()} tokens overdrawn`
+                              }
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                          <span className="text-sm text-gray-600">Active</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Link href="/billing">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                          >
+                            Manage
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
 
-            {/* DNS Management Card */}
-            <Link href="/dns" className="group">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-amber-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-amber-300/60 group-hover:-translate-y-1">
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-amber-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
-                      style={{
-                        background: `linear-gradient(135deg, ${brandColors.accent.full}, ${brandColors.accent.lighter})`,
-                      }}
-                    >
-                      <Globe className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-600">
-                      DNS Domains
-                    </p>
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      {stats.dnsDomains}
-                    </h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-gray-400"></div>
-                      Manage DNS records
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
+                    {/* Custom Credits Row */}
+                    <tr className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                            style={{
+                              background: `linear-gradient(135deg, ${brandColors.secondary.full}, ${brandColors.secondary.lighter})`
+                            }}
+                          >
+                            <Coins className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{brandingData?.custom_credits_name || 'Custom Credits'}</p>
+                            <p className="text-sm text-gray-500">DNS & other services</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-right">
+                          <p className={`text-lg font-semibold ${(balanceData?.customCredits || 0) < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                            ${(balanceData?.customCredits || 0).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2
+                            })}
+                          </p>
+                          <p className="text-xs text-gray-500">Available balance</p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                          <span className="text-sm text-gray-600">Active</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Link href="/billing">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                          >
+                            Manage
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
 
-            {/* Support Tickets Card */}
-            <Link href="/tickets" className="group">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-purple-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-purple-300/60 group-hover:-translate-y-1">
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-purple-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
-                      style={{
-                        background: `linear-gradient(135deg, ${brandColors.secondary.full}, ${brandColors.secondary.lighter})`,
-                      }}
-                    >
-                      <Ticket className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <div className={`w-2 h-2 rounded-full ${stats.openTickets > 0 ? 'bg-red-400 animate-pulse' : 'bg-green-400'}`}></div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-600">
-                      Support Tickets
-                    </p>
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      {stats.openTickets}
-                    </h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-gray-400"></div>
-                      {stats.openTickets > 0 ? `${stats.openTickets} awaiting response` : 'All tickets resolved'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </Link>
+                    {/* DNS Domains Row */}
+                    <tr className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                            style={{
+                              background: `linear-gradient(135deg, ${brandColors.accent.full}, ${brandColors.accent.lighter})`
+                            }}
+                          >
+                            <Globe className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">DNS Domains</p>
+                            <p className="text-sm text-gray-500">Manage DNS records</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-gray-900">{stats.dnsDomains}</p>
+                          <p className="text-xs text-gray-500">
+                            {stats.dnsDomains === 1 ? 'domain' : 'domains'} configured
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+                          <span className="text-sm text-gray-600">Active</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Link href="/dns">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                          >
+                            Manage
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
 
-            {/* Active Servers Card */}
-            <Link href="/servers" className="group">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-indigo-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-indigo-300/60 group-hover:-translate-y-1">
-                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-indigo-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="relative p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
-                      style={{
-                        background: `linear-gradient(135deg, ${brandColors.accent.full}, ${brandColors.accent.lighter})`,
-                      }}
-                    >
-                      <Server className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <div className={`w-2 h-2 rounded-full ${stats.totalServers > 0 ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-600">
-                      Active Servers
-                    </p>
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      {stats.totalServers}
-                    </h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                      <div className="w-1 h-1 rounded-full bg-gray-400"></div>
-                      {stats.totalServers > 0
-                        ? `${stats.totalServers} ${stats.totalServers === 1 ? 'server' : 'servers'} running`
-                        : 'No servers deployed'
-                      }
-                    </p>
-                  </div>
-                </div>
+                    {/* Support Tickets Row */}
+                    <tr className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                            style={{
+                              background: `linear-gradient(135deg, ${brandColors.secondary.full}, ${brandColors.secondary.lighter})`
+                            }}
+                          >
+                            <Ticket className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">Support Tickets</p>
+                            <p className="text-sm text-gray-500">Get help & support</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-gray-900">{stats.openTickets}</p>
+                          <p className="text-xs text-gray-500">
+                            {stats.openTickets > 0 ? 'awaiting response' : 'all resolved'}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${stats.openTickets > 0 ? 'bg-red-400 animate-pulse' : 'bg-green-400'}`}></div>
+                          <span className="text-sm text-gray-600">
+                            {stats.openTickets > 0 ? 'Pending' : 'Good'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Link href="/tickets">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                          >
+                            View
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+
+                    {/* Active Servers Row */}
+                    <tr className="hover:bg-gray-50 transition-colors duration-200">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
+                            style={{
+                              background: `linear-gradient(135deg, ${brandColors.accent.full}, ${brandColors.accent.lighter})`
+                            }}
+                          >
+                            <Server className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">Active Servers</p>
+                            <p className="text-sm text-gray-500">VPS hosting services</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-gray-900">{stats.totalServers}</p>
+                          <p className="text-xs text-gray-500">
+                            {stats.totalServers > 0
+                              ? `${stats.totalServers === 1 ? 'server' : 'servers'} running`
+                              : 'no servers deployed'
+                            }
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${stats.totalServers > 0 ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
+                          <span className="text-sm text-gray-600">
+                            {stats.totalServers > 0 ? 'Running' : 'None'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <Link href="/servers">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                          >
+                            View
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-            </Link>
+            </div>
           </div>
 
           {/* Quick Actions Section */}
