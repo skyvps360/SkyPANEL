@@ -61,10 +61,10 @@ export default function DnsPlansPage() {
     queryKey: ["/api/billing/balance"],
   });
 
-  // Purchase DNS plan mutation
-  const purchasePlanMutation = useMutation({
+  // Change DNS plan mutation (upgrade/downgrade/switch)
+  const changePlanMutation = useMutation({
     mutationFn: async (planId: number) => {
-      const response = await fetch("/api/dns-plans/purchase", {
+      const response = await fetch("/api/dns-plans/change", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId }),
@@ -72,28 +72,28 @@ export default function DnsPlansPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to purchase DNS plan");
+        throw new Error(errorData.error || "Failed to change DNS plan");
       }
 
       return response.json();
     },
     onSuccess: (data) => {
       toast({
-        title: "DNS Plan Purchased!",
-        description: `Successfully purchased ${data.plan.name} plan. Your subscription is now active.`,
+        title: `DNS Plan ${data.action === 'upgraded' ? 'Upgraded' : 'Changed'}`,
+        description: data.message || `DNS plan ${data.action} successfully`,
       });
-      
+
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/dns-plans/subscriptions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/billing/balance"] });
       queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
-      
+
       setPurchasingPlanId(null);
     },
     onError: (error: any) => {
       toast({
-        title: "Purchase Failed",
-        description: error.message || "Failed to purchase DNS plan. Please try again.",
+        title: "Plan Change Failed",
+        description: error.message || "Failed to change DNS plan",
         variant: "destructive",
       });
       setPurchasingPlanId(null);
@@ -134,9 +134,9 @@ export default function DnsPlansPage() {
     },
   });
 
-  const handlePurchasePlan = (planId: number) => {
+  const handleChangePlan = (planId: number) => {
     setPurchasingPlanId(planId);
-    purchasePlanMutation.mutate(planId);
+    changePlanMutation.mutate(planId);
   };
 
   const handleCancelSubscription = (subscriptionId: number) => {
@@ -243,84 +243,50 @@ export default function DnsPlansPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
-                  Your Active DNS Plans ({filteredSubscriptions.length})
+                  Your Current DNS Plan
                 </CardTitle>
-                {subscriptions.length > 5 && (
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search plans..."
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1); // Reset to first page when searching
-                      }}
-                      className="pl-10 w-64"
-                    />
-                  </div>
-                )}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {paginatedSubscriptions.map((subscription) => (
-                  <div key={subscription.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium">{subscription.plan.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {subscription.plan.maxDomains} domains • {subscription.plan.maxRecords} records per domain
+              {/* Show current plan details */}
+              {subscriptions.length > 0 && (
+                <div className="p-6 border rounded-lg bg-primary/5 border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-semibold text-foreground">{subscriptions[0].plan.name}</h3>
+                        <Badge variant={subscriptions[0].status === 'active' ? 'default' : 'secondary'}>
+                          {subscriptions[0].status}
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground mb-3">
+                        {subscriptions[0].plan.maxDomains} domains • {subscriptions[0].plan.maxRecords} records per domain
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Expires: {new Date(subscription.endDate).toLocaleDateString()}
-                      </p>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Next billing date:</span>
+                          <div className="font-medium">
+                            {subscriptions[0].plan.price === 0
+                              ? 'Never (Free Plan)'
+                              : new Date(subscriptions[0].nextPaymentDate).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Days remaining:</span>
+                          <div className="font-medium">
+                            {subscriptions[0].plan.price === 0
+                              ? '∞'
+                              : Math.max(0, Math.ceil((new Date(subscriptions[0].endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
-                        {subscription.status}
-                      </Badge>
-                      {subscription.status === 'active' && subscription.plan.price > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCancelSubscription(subscription.id)}
-                          disabled={cancelSubscriptionMutation.isPending}
-                        >
-                          Cancel
-                        </Button>
-                      )}
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-primary">
+                        ${subscriptions[0].plan.price.toFixed(2)}
+                        <span className="text-sm font-normal text-muted-foreground">/month</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredSubscriptions.length)} of {filteredSubscriptions.length} plans
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </Button>
-                    <span className="text-sm font-medium">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
                   </div>
                 </div>
               )}
@@ -335,9 +301,32 @@ export default function DnsPlansPage() {
             .map((plan) => {
             const isActive = hasActiveSubscription(plan.id);
             const subscription = getActiveSubscription(plan.id);
-            const canAfford = customCredits >= plan.price || plan.price === 0; // Free plans are always affordable
+            const currentSubscription = subscriptions.length > 0 ? subscriptions[0] : null;
+            const currentPlan = currentSubscription?.plan;
             const isPurchasing = purchasingPlanId === plan.id;
             const isFree = plan.price === 0;
+
+            // Calculate prorated cost/refund for plan changes
+            let proratedAmount = 0;
+            let isUpgrade = false;
+            let isDowngrade = false;
+
+            if (currentPlan && currentPlan.id !== plan.id) {
+              const daysRemaining = currentSubscription ?
+                Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+
+              if (plan.price > currentPlan.price) {
+                // Upgrade: charge prorated difference
+                isUpgrade = true;
+                proratedAmount = (plan.price - currentPlan.price) * (daysRemaining / 30);
+              } else if (plan.price < currentPlan.price) {
+                // Downgrade: refund prorated difference
+                isDowngrade = true;
+                proratedAmount = (currentPlan.price - plan.price) * (daysRemaining / 30);
+              }
+            }
+
+            const canAfford = isFree || !isUpgrade || customCredits >= proratedAmount;
 
             return (
               <Card key={plan.id} className={`relative ${isActive ? 'ring-2 ring-primary' : ''} ${isFree ? 'border-green-200 bg-green-50/50' : ''}`}>
@@ -382,11 +371,26 @@ export default function DnsPlansPage() {
                     ))}
                   </div>
 
-                  {!canAfford && !isActive && !isFree && (
+                  {/* Show prorated cost/refund information */}
+                  {!isActive && currentPlan && (isUpgrade || isDowngrade) && (
+                    <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                      isUpgrade ? 'bg-blue-50 border border-blue-200' : 'bg-green-50 border border-green-200'
+                    }`}>
+                      <AlertCircle className={`h-4 w-4 ${isUpgrade ? 'text-blue-600' : 'text-green-600'}`} />
+                      <span className={`text-sm ${isUpgrade ? 'text-blue-700' : 'text-green-700'}`}>
+                        {isUpgrade
+                          ? `Upgrade cost: $${proratedAmount.toFixed(2)} (prorated)`
+                          : `Refund: $${proratedAmount.toFixed(2)} (prorated)`
+                        }
+                      </span>
+                    </div>
+                  )}
+
+                  {!canAfford && !isActive && !isFree && isUpgrade && (
                     <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                       <AlertCircle className="h-4 w-4 text-amber-600" />
                       <span className="text-sm text-amber-700">
-                        Insufficient credits. Need ${(plan.price - customCredits).toFixed(2)} more.
+                        Insufficient credits. Need ${(proratedAmount - customCredits).toFixed(2)} more.
                       </span>
                     </div>
                   )}
@@ -394,22 +398,27 @@ export default function DnsPlansPage() {
                   <Button
                     className="w-full"
                     disabled={isActive || (!canAfford && !isFree) || isPurchasing}
-                    onClick={() => handlePurchasePlan(plan.id)}
+                    onClick={() => handleChangePlan(plan.id)}
+                    variant={isActive ? "outline" : "default"}
                     style={!isActive && canAfford ? {
-                      backgroundColor: isFree ? '#16a34a' : brandColors.primary.full,
+                      backgroundColor: isFree ? '#16a34a' : isUpgrade ? brandColors.primary.full : isDowngrade ? '#16a34a' : brandColors.primary.full,
                       color: 'white'
                     } : undefined}
                   >
                     {isPurchasing ? (
-                      "Activating..."
+                      "Processing..."
                     ) : isActive ? (
                       "Current Plan"
                     ) : !canAfford && !isFree ? (
                       "Insufficient Credits"
                     ) : isFree ? (
-                      "Activate Free Plan"
+                      currentPlan ? "Downgrade to Free" : "Activate Free Plan"
+                    ) : isUpgrade ? (
+                      `Upgrade to ${plan.name}`
+                    ) : isDowngrade ? (
+                      `Downgrade to ${plan.name}`
                     ) : (
-                      "Purchase Plan"
+                      `Switch to ${plan.name}`
                     )}
                   </Button>
 

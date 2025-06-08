@@ -5,9 +5,11 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, dnsPlans, dnsPlanSubscriptions } from "@shared/schema";
 import { VirtFusionApi } from "./routes_new";
 import { EmailVerificationService } from "./email-verification-service";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 declare global {
   namespace Express {
@@ -28,6 +30,73 @@ export async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+// Function to assign free DNS plan to a user
+async function assignFreeDnsPlanToUser(userId: number) {
+  try {
+    // Find or create the free DNS plan
+    let freePlans = await db.select()
+      .from(dnsPlans)
+      .where(and(
+        eq(dnsPlans.name, 'Free'),
+        eq(dnsPlans.price, 0)
+      ))
+      .limit(1);
+
+    let freePlan;
+    if (freePlans.length === 0) {
+      // Create free plan if it doesn't exist
+      const createdPlans = await db.insert(dnsPlans).values({
+        name: 'Free',
+        description: 'Free DNS plan with basic features',
+        price: 0,
+        maxDomains: 1,
+        maxRecords: 10,
+        features: ['1 Domain', '10 DNS Records', 'Basic Support'],
+        isActive: true,
+        displayOrder: 0
+      }).returning();
+
+      freePlan = createdPlans[0];
+    } else {
+      freePlan = freePlans[0];
+    }
+
+    // Check if user already has any DNS plan subscription
+    const existingSubscriptions = await db.select()
+      .from(dnsPlanSubscriptions)
+      .where(and(
+        eq(dnsPlanSubscriptions.userId, userId),
+        eq(dnsPlanSubscriptions.status, 'active')
+      ))
+      .limit(1);
+
+    if (existingSubscriptions.length > 0) {
+      console.log(`User ${userId} already has an active DNS plan subscription`);
+      return;
+    }
+
+    // Create free plan subscription
+    const now = new Date();
+    const endDate = new Date('2099-12-31'); // Never expires for free plan
+
+    await db.insert(dnsPlanSubscriptions).values({
+      userId: userId,
+      planId: freePlan.id,
+      status: 'active',
+      startDate: now,
+      endDate: endDate,
+      autoRenew: false, // Free plan doesn't need renewal
+      lastPaymentDate: now,
+      nextPaymentDate: endDate // Set to far future
+    });
+
+    console.log(`Successfully assigned free DNS plan (ID: ${freePlan.id}) to user ${userId}`);
+  } catch (error) {
+    console.error(`Error assigning free DNS plan to user ${userId}:`, error);
+    throw error;
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -121,6 +190,15 @@ export function setupAuth(app: Express) {
         password: await hashPassword(req.body.password),
         isVerified: false, // Start with unverified account
       });
+
+      // Assign free DNS plan to new user
+      try {
+        await assignFreeDnsPlanToUser(user.id);
+        console.log(`Free DNS plan assigned to new user ${user.id}`);
+      } catch (error) {
+        console.error(`Failed to assign free DNS plan to user ${user.id}:`, error);
+        // Don't fail registration if DNS plan assignment fails
+      }
 
       // Send verification email
       const verificationResult = await EmailVerificationService.sendVerificationEmail(

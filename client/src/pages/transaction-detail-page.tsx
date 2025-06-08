@@ -19,11 +19,43 @@ interface Transaction {
   createdAt: string;
 }
 
+// Helper function to format transaction descriptions for better readability
+const formatTransactionDescription = (transaction: Transaction) => {
+  // Handle DNS plan purchases with plan name extraction
+  if (transaction.type === 'dns_plan_purchase' && transaction.description.includes('DNS Plan Purchase:')) {
+    return transaction.description; // Already formatted correctly
+  }
+
+  // Handle admin credit operations
+  if (transaction.type === 'admin_credit_add' && transaction.description.includes('Admin Credit Addition:')) {
+    return transaction.description; // Already formatted correctly
+  }
+
+  if (transaction.type === 'admin_credit_remove' && transaction.description.includes('Admin Credit Removal:')) {
+    return transaction.description; // Already formatted correctly
+  }
+
+  // Handle legacy dns_plan_purchase format
+  if (transaction.type === 'dns_plan_purchase') {
+    // Try to extract plan name from description
+    const planMatch = transaction.description.match(/DNS Plan Purchase: (.+)/);
+    if (planMatch) {
+      return `DNS Plan Purchase: ${planMatch[1]}`;
+    }
+    return 'DNS Plan Purchase';
+  }
+
+  // Return original description for other transaction types
+  return transaction.description;
+};
+
 // Helper function to determine if a transaction is a credit/addition
 const isCredit = (transaction: Transaction) => {
   return transaction.type === 'credit' ||
          transaction.type === 'virtfusion_credit' ||
-         transaction.type === 'custom_credit';
+         transaction.type === 'custom_credit' ||
+         transaction.type === 'admin_credit_add' ||
+         transaction.amount > 0; // Also include any transaction with positive amount as credit
 };
 
 // Helper function to determine if a transaction is a debit/removal
@@ -32,6 +64,7 @@ const isDebit = (transaction: Transaction) => {
          transaction.type === 'virtfusion_credit_removal' ||
          transaction.type === 'virtfusion_deduction' ||
          transaction.type === 'dns_plan_purchase' ||
+         transaction.type === 'admin_credit_remove' ||
          transaction.amount < 0; // Also include any transaction with negative amount as spending
 };
 
@@ -187,7 +220,7 @@ export default function TransactionDetailPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-              <p className="text-lg font-medium">{transaction.description}</p>
+              <p className="text-lg font-medium">{formatTransactionDescription(transaction)}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Amount</h3>

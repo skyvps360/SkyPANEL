@@ -4623,6 +4623,187 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Change DNS plan (upgrade/downgrade) with prorated billing
+  app.post("/api/dns-plans/change", isAuthenticated, async (req, res) => {
+    try {
+      const { planId } = req.body;
+      const userId = req.user!.id;
+
+      if (!planId) {
+        return res.status(400).json({ error: "Plan ID is required" });
+      }
+
+      // Get the new plan
+      const [newPlan] = await db.select()
+        .from(dnsPlansTable)
+        .where(and(
+          eq(dnsPlansTable.id, planId),
+          eq(dnsPlansTable.isActive, true)
+        ))
+        .limit(1);
+
+      if (!newPlan) {
+        return res.status(404).json({ error: "DNS plan not found or inactive" });
+      }
+
+      // Get user's current active subscription (single plan system)
+      const [currentSubscription] = await db.select({
+        id: dnsPlanSubscriptionsTable.id,
+        planId: dnsPlanSubscriptionsTable.planId,
+        endDate: dnsPlanSubscriptionsTable.endDate,
+        plan: {
+          id: dnsPlansTable.id,
+          name: dnsPlansTable.name,
+          price: dnsPlansTable.price
+        }
+      })
+        .from(dnsPlanSubscriptionsTable)
+        .leftJoin(dnsPlansTable, eq(dnsPlanSubscriptionsTable.planId, dnsPlansTable.id))
+        .where(and(
+          eq(dnsPlanSubscriptionsTable.userId, userId),
+          eq(dnsPlanSubscriptionsTable.status, 'active')
+        ))
+        .limit(1);
+
+      if (!currentSubscription) {
+        return res.status(404).json({ error: "No active DNS plan subscription found" });
+      }
+
+      if (currentSubscription.planId === planId) {
+        return res.status(400).json({ error: "You are already subscribed to this plan" });
+      }
+
+      const currentPlan = currentSubscription.plan!;
+
+      // Calculate prorated amount
+      const daysRemaining = Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+      const proratedAmount = (newPlan.price - currentPlan.price) * (daysRemaining / 30);
+
+      const isUpgrade = newPlan.price > currentPlan.price;
+      const isDowngrade = newPlan.price < currentPlan.price;
+      const isFreeDowngrade = newPlan.price === 0;
+
+      // For upgrades, check if user has sufficient credits
+      if (isUpgrade && proratedAmount > 0) {
+        // Get user credits
+        const [userCredits] = await db.select()
+          .from(userCreditsTable)
+          .where(eq(userCreditsTable.userId, userId))
+          .limit(1);
+
+        const currentBalance = userCredits?.balance || 0;
+
+        if (currentBalance < proratedAmount) {
+          return res.status(400).json({
+            error: "Insufficient custom credits for upgrade",
+            required: proratedAmount,
+            available: currentBalance,
+            shortfall: proratedAmount - currentBalance
+          });
+        }
+      }
+
+      const now = new Date();
+      const endDate = new Date(currentSubscription.endDate); // Keep same billing cycle end date
+      const nextPaymentDate = newPlan.price === 0 ? endDate : new Date(endDate.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days before end
+
+      // Start database transaction
+      await db.transaction(async (tx) => {
+        // Handle credit transactions for upgrades/downgrades
+        if (Math.abs(proratedAmount) > 0.01) { // Only process if amount is significant
+          // Get current balance for transaction records
+          const [userCredits] = await tx.select()
+            .from(userCreditsTable)
+            .where(eq(userCreditsTable.userId, userId))
+            .limit(1);
+
+          const currentBalance = userCredits?.balance || 0;
+          const newBalance = currentBalance - proratedAmount; // Subtract for upgrade, add for downgrade (negative amount)
+
+          // Update user credits balance
+          if (userCredits) {
+            await tx.update(userCreditsTable)
+              .set({
+                balance: newBalance,
+                updatedAt: new Date()
+              })
+              .where(eq(userCreditsTable.userId, userId));
+          } else {
+            // Create user credits record if it doesn't exist
+            await tx.insert(userCreditsTable).values({
+              userId: userId,
+              balance: newBalance
+            });
+          }
+
+          // Create main transaction record
+          const transactionType = isUpgrade ? 'dns_plan_upgrade' : 'dns_plan_downgrade';
+          const transactionDescription = isUpgrade
+            ? `DNS Plan Upgrade: ${currentPlan.name} → ${newPlan.name}`
+            : `DNS Plan Downgrade: ${currentPlan.name} → ${newPlan.name}`;
+
+          const createdTransaction = await tx.insert(transactions).values({
+            userId: userId,
+            amount: -proratedAmount, // Negative for debit (upgrade), positive for credit (downgrade)
+            type: transactionType,
+            description: transactionDescription,
+            status: 'completed',
+            paymentMethod: 'custom_credits'
+          }).returning();
+
+          // Create credit transaction record (audit trail)
+          await tx.insert(creditTransactionsTable).values({
+            userId: userId,
+            amount: -proratedAmount,
+            type: isUpgrade ? 'dns_plan_upgrade' : 'dns_plan_downgrade',
+            description: transactionDescription,
+            status: 'completed',
+            paymentMethod: 'custom_credits',
+            balanceBefore: currentBalance,
+            balanceAfter: newBalance,
+            metadata: {
+              oldPlanId: currentPlan.id,
+              oldPlanName: currentPlan.name,
+              newPlanId: newPlan.id,
+              newPlanName: newPlan.name,
+              daysRemaining: daysRemaining,
+              proratedAmount: proratedAmount,
+              mainTransactionId: createdTransaction[0].id
+            }
+          });
+        }
+
+        // Update the existing subscription to the new plan
+        await tx.update(dnsPlanSubscriptionsTable)
+          .set({
+            planId: newPlan.id,
+            nextPaymentDate: nextPaymentDate,
+            updatedAt: now
+          })
+          .where(eq(dnsPlanSubscriptionsTable.id, currentSubscription.id));
+      });
+
+      const actionType = isUpgrade ? 'upgraded' : 'downgraded';
+      console.log(`DNS plan ${actionType} successfully: ${currentPlan.name} → ${newPlan.name} for user ${userId}`);
+
+      res.json({
+        success: true,
+        action: actionType,
+        oldPlan: currentPlan,
+        newPlan: newPlan,
+        proratedAmount: Math.abs(proratedAmount),
+        isUpgrade: isUpgrade,
+        isDowngrade: isDowngrade,
+        daysRemaining: daysRemaining,
+        message: `Successfully ${actionType} to ${newPlan.name}${Math.abs(proratedAmount) > 0.01 ? ` (${isUpgrade ? 'charged' : 'refunded'} $${Math.abs(proratedAmount).toFixed(2)} prorated)` : ''}`
+      });
+
+    } catch (error: any) {
+      console.error("Error changing DNS plan:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Cancel a DNS plan subscription
   app.post("/api/dns-plans/cancel", isAuthenticated, async (req, res) => {
     try {
@@ -7352,7 +7533,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .where(eq(userCreditsTable.userId, userId));
 
-        // Create credit transaction record
+        // Create main transaction record (unified history)
+        const createdTransaction = await tx.insert(transactions).values({
+          userId: userId,
+          amount: creditAmount, // Positive for credit addition
+          type: 'admin_credit_add',
+          description: `Admin Credit Addition: ${reason}`,
+          status: 'completed',
+          paymentMethod: 'admin'
+        }).returning();
+
+        // Create credit transaction record (audit trail)
         await tx.insert(creditTransactionsTable).values({
           userId: userId,
           amount: creditAmount,
@@ -7364,7 +7555,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           adminReason: reason,
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
-          metadata: { adminUser: { id: adminUser.id, username: adminUser.username } }
+          metadata: {
+            adminUser: { id: adminUser.id, username: adminUser.username },
+            mainTransactionId: createdTransaction[0].id
+          }
         });
       });
 
@@ -7437,7 +7631,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .where(eq(userCreditsTable.userId, userId));
 
-        // Create credit transaction record
+        // Create main transaction record (unified history)
+        const createdTransaction = await tx.insert(transactions).values({
+          userId: userId,
+          amount: -creditAmount, // Negative for credit removal
+          type: 'admin_credit_remove',
+          description: `Admin Credit Removal: ${reason}`,
+          status: 'completed',
+          paymentMethod: 'admin'
+        }).returning();
+
+        // Create credit transaction record (audit trail)
         await tx.insert(creditTransactionsTable).values({
           userId: userId,
           amount: -creditAmount, // Negative amount for removal
@@ -7449,7 +7653,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           adminReason: reason,
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
-          metadata: { adminUser: { id: adminUser.id, username: adminUser.username } }
+          metadata: {
+            adminUser: { id: adminUser.id, username: adminUser.username },
+            mainTransactionId: createdTransaction[0].id
+          }
         });
       });
 
