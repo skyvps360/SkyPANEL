@@ -334,7 +334,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     }
   ];
 
-  // Main navigation items
+  // Main navigation items (removed Support Tickets and Live Support - they'll be under VirtFusion Panel)
   const mainNavigation: NavigationItem[] = [
     {
       name: "Dashboard",
@@ -360,16 +360,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: `${companyName}'s Blog`,
       href: "/dashboard/blog",
       icon: <FileText className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "Support Tickets",
-      href: "/tickets",
-      icon: <Ticket className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "Live Support",
-      href: "/live-chat",
-      icon: <MessageSquare className="h-5 w-5 mr-3" />,
     },
     {
       name: "DNS Management",
@@ -830,7 +820,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             })}
           </div>
 
-          {/* Enhanced VirtFusion Section */}
+          {/* Enhanced VirtFusion Section with Support Options */}
           <div className="mt-8 px-4">
             <div className="mb-4">
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
@@ -839,9 +829,40 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
               <VirtFusionSsoButton
                 variant="outline"
                 size="default"
-                className="w-full justify-center bg-primary text-primary-foreground hover:bg-primary/90 border-primary shadow-lg"
+                className="w-full justify-center bg-primary text-primary-foreground hover:bg-primary/90 border-primary shadow-lg mb-3"
                 text="VirtFusion Panel"
               />
+
+              {/* Support Options Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="default"
+                    className="w-full justify-between bg-gray-800 text-gray-200 hover:bg-gray-700 border-gray-600"
+                  >
+                    <div className="flex items-center">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Support Options
+                    </div>
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link href="/tickets" className="flex items-center w-full">
+                      <Ticket className="h-4 w-4 mr-2" />
+                      Support Tickets
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/live-chat" className="flex items-center w-full">
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Live Support
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </nav>

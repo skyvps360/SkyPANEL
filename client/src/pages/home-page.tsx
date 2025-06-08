@@ -20,6 +20,42 @@ import {
   BarChart3
 } from "lucide-react";
 
+// Helper function to generate category-aware server description
+function generateServerDescription(servers: any[]): string {
+  if (!servers || servers.length === 0) {
+    return "no servers deployed";
+  }
+
+  // Group servers by category
+  const categoryGroups: { [key: string]: number } = {};
+
+  servers.forEach(server => {
+    const categoryName = server.packageCategoryName || "Unknown";
+    categoryGroups[categoryName] = (categoryGroups[categoryName] || 0) + 1;
+  });
+
+  const categories = Object.keys(categoryGroups);
+  const totalServers = servers.length;
+
+  // If all servers are from the same category
+  if (categories.length === 1 && categories[0] !== "Unknown") {
+    const categoryName = categories[0].toLowerCase();
+    return `${totalServers} ${categoryName} ${totalServers === 1 ? 'server' : 'servers'} deployed`;
+  }
+
+  // If servers are from multiple known categories
+  if (categories.length > 1 && !categories.includes("Unknown")) {
+    if (categories.length === 2) {
+      return `${totalServers} ${totalServers === 1 ? 'server' : 'servers'} deployed (${categories.join(', ')})`;
+    } else {
+      return `${totalServers} ${totalServers === 1 ? 'server' : 'servers'} deployed (mixed types)`;
+    }
+  }
+
+  // Fallback for unknown categories or mixed known/unknown
+  return `${totalServers} ${totalServers === 1 ? 'server' : 'servers'} deployed`;
+}
+
 // Define branding data type with new color system
 interface BrandingData {
   company_name: string;
@@ -430,10 +466,7 @@ export default function HomePage() {
                         <div className="text-right">
                           <p className="text-lg font-semibold text-gray-900">{stats.totalServers}</p>
                           <p className="text-xs text-gray-500">
-                            {stats.totalServers > 0
-                              ? `${stats.totalServers === 1 ? 'server' : 'servers'} deployed`
-                              : 'no servers deployed'
-                            }
+                            {generateServerDescription(servers)}
                           </p>
                         </div>
                       </td>

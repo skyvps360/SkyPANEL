@@ -2354,7 +2354,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 primaryIpAddress = server.ipAddresses?.[0]?.address || server.ip || "No IP";
               }
 
-              // Create processed server object with IP information
+              // Get package category information if available
+              let packageCategory = null;
+              let packageCategoryName = "Unknown";
+
+              if (server.package?.id) {
+                try {
+                  // Import database and schema
+                  const { db } = await import('../db');
+                  const { packagePricing, packageCategories } = await import('../../shared/schema');
+                  const { eq } = await import('drizzle-orm');
+
+                  // Look up package pricing and category
+                  const packageInfo = await db
+                    .select({
+                      categoryId: packagePricing.categoryId,
+                      categoryName: packageCategories.name
+                    })
+                    .from(packagePricing)
+                    .leftJoin(packageCategories, eq(packagePricing.categoryId, packageCategories.id))
+                    .where(eq(packagePricing.virtFusionPackageId, server.package.id))
+                    .limit(1);
+
+                  if (packageInfo.length > 0 && packageInfo[0].categoryName) {
+                    packageCategory = packageInfo[0].categoryId;
+                    packageCategoryName = packageInfo[0].categoryName;
+                  }
+                } catch (categoryError) {
+                  console.warn(`Failed to fetch category for package ${server.package.id}:`, categoryError);
+                }
+              }
+
+              // Create processed server object with IP information and package category
               const processedServer = {
                 ...server,
                 id: server.id,
@@ -2369,7 +2400,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 isNat: isNat,
                 status: server.state?.name || server.state || server.status || "Unknown",
                 os: server.os?.name || "Unknown",
-                package: server.package?.name || "Unknown"
+                package: server.package?.name || "Unknown",
+                packageCategory: packageCategory,
+                packageCategoryName: packageCategoryName
               };
 
               detailedServers.push(processedServer);
