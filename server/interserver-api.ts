@@ -199,14 +199,27 @@ export class InterServerApi {
 
   /**
    * Delete a DNS domain
+   * Uses the InterServer API endpoint: DELETE /dns/{id}
    */
   async deleteDnsDomain(domainId: number): Promise<any> {
     try {
+      console.log(`Calling InterServer API to delete domain ID: ${domainId}`);
       const response = await this.client.delete(`/dns/${domainId}`);
+
+      console.log('InterServer delete domain response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error deleting DNS domain:', error);
-      throw new Error('Failed to delete DNS domain');
+      console.error('Error deleting DNS domain from InterServer:', error);
+
+      if (error.response?.status === 401) {
+        throw new Error('Unauthorized access to InterServer API');
+      } else if (error.response?.status === 404) {
+        throw new Error('DNS domain not found in InterServer');
+      } else if (error.response?.data?.error) {
+        throw new Error(`InterServer API error: ${error.response.data.error}`);
+      } else {
+        throw new Error('Failed to delete DNS domain from InterServer');
+      }
     }
   }
 

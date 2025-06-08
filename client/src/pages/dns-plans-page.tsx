@@ -106,10 +106,41 @@ export default function DnsPlansPage() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Show main success message
       toast({
         title: `DNS Plan ${data.action === 'upgraded' ? 'Upgraded' : 'Changed'}`,
         description: data.message || `DNS plan ${data.action} successfully`,
       });
+
+      // Show detailed domain deletion results if available
+      if (data.domainDeletionResults) {
+        const results = data.domainDeletionResults;
+
+        // Show success message for successfully deleted domains
+        if (results.successful.length > 0) {
+          toast({
+            title: "Domains Removed Successfully",
+            description: `Successfully removed ${results.successful.length} domain${results.successful.length !== 1 ? 's' : ''} from both local database and InterServer: ${results.successful.join(', ')}`,
+          });
+        }
+
+        // Show warning for domains that failed to delete from InterServer
+        if (results.failed.length > 0) {
+          toast({
+            title: "Domain Deletion Issues",
+            description: `${results.failed.length} domain${results.failed.length !== 1 ? 's' : ''} had deletion issues: ${results.failed.map(f => `${f.name} (${f.error})`).join(', ')}`,
+            variant: "destructive",
+          });
+        }
+
+        // Show info for domains without InterServer IDs
+        if (results.skippedNoInterServerId.length > 0) {
+          toast({
+            title: "Domains Removed Locally Only",
+            description: `${results.skippedNoInterServerId.length} domain${results.skippedNoInterServerId.length !== 1 ? 's' : ''} removed from local database only (no InterServer ID): ${results.skippedNoInterServerId.join(', ')}`,
+          });
+        }
+      }
 
       // Refresh all DNS-related data for real-time updates
       queryClient.invalidateQueries({ queryKey: ["/api/dns-plans/subscriptions"] });

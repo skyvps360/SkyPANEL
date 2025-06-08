@@ -4689,6 +4689,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { planId, selectedDomainIds } = req.body;
       const userId = req.user!.id;
 
+      console.log(`=== DNS PLAN CHANGE REQUEST ===`);
+      console.log(`User ID: ${userId}`);
+      console.log(`Target Plan ID: ${planId}`);
+      console.log(`Selected Domain IDs:`, selectedDomainIds);
+
       if (!planId) {
         return res.status(400).json({ error: "Plan ID is required" });
       }
@@ -4714,7 +4719,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         plan: {
           id: dnsPlansTable.id,
           name: dnsPlansTable.name,
-          price: dnsPlansTable.price
+          price: dnsPlansTable.price,
+          maxDomains: dnsPlansTable.maxDomains,  // CRITICAL FIX: Include maxDomains for downgrade logic
+          maxRecords: dnsPlansTable.maxRecords
         }
       })
         .from(dnsPlanSubscriptionsTable)
@@ -4770,6 +4777,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const now = new Date();
       const endDate = new Date(currentSubscription.endDate); // Keep same billing cycle end date
       const nextPaymentDate = newPlan.price === 0 ? endDate : new Date(endDate.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days before end
+
+      // Track domain deletion results for user feedback (declare outside transaction scope)
+      let domainDeletionResults = {
+        successful: [] as string[],
+        failed: [] as { name: string; error: string }[],
+        skippedNoInterServerId: [] as string[]
+      };
 
       // Start database transaction
       await db.transaction(async (tx) => {
@@ -4838,15 +4852,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Handle domain removal for downgrades
+        console.log(`=== DOWNGRADE CONDITION CHECK ===`);
+        console.log(`isDowngrade: ${isDowngrade}`);
+        console.log(`newPlan.maxDomains: ${newPlan.maxDomains}`);
+        console.log(`currentPlan.maxDomains: ${currentPlan.maxDomains}`);
+        console.log(`selectedDomainIds:`, selectedDomainIds);
+
         if (isDowngrade && newPlan.maxDomains < currentPlan.maxDomains) {
+          console.log(`DOWNGRADE CONDITION MET - proceeding with domain check`);
+
           // Get current user domains
           const userDomains = await tx.select()
             .from(dnsDomainsTable)
             .where(eq(dnsDomainsTable.userId, userId));
 
           const currentDomainCount = userDomains.length;
+          console.log(`Current domain count: ${currentDomainCount}, New plan max: ${newPlan.maxDomains}`);
 
           if (currentDomainCount > newPlan.maxDomains) {
+            console.log(`DOMAIN REMOVAL REQUIRED - user has ${currentDomainCount} domains, plan allows ${newPlan.maxDomains}`);
             if (!selectedDomainIds || selectedDomainIds.length !== newPlan.maxDomains) {
               throw new Error(`Domain selection required. Please select exactly ${newPlan.maxDomains} domain(s) to keep.`);
             }
@@ -4860,45 +4884,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Get domains to remove (not in selectedDomainIds)
             const domainsToRemove = userDomains.filter(domain => !selectedDomainIds.includes(domain.id));
 
-            console.log(`Downgrade requires removing ${domainsToRemove.length} domains:`, domainsToRemove.map(d => d.name));
+            console.log(`=== DOMAIN DELETION ANALYSIS ===`);
+            console.log(`All user domains:`, userDomains.map(d => `${d.name} (ID: ${d.id}, InterServer: ${d.interserverId})`));
+            console.log(`Selected domain IDs to KEEP:`, selectedDomainIds);
+            console.log(`Domains to KEEP:`, userDomains.filter(d => selectedDomainIds.includes(d.id)).map(d => `${d.name} (ID: ${d.id})`));
+            console.log(`Domains to REMOVE (${domainsToRemove.length}):`, domainsToRemove.map(d => `${d.name} (ID: ${d.id}, InterServer: ${d.interserverId})`));
 
-            // Remove domains from InterServer and local database
+            // Import InterServer API for domain operations
             const { interServerApi } = await import('./interserver-api');
 
-            for (const domain of domainsToRemove) {
-              try {
-                console.log(`Starting removal of domain ${domain.name} (ID: ${domain.id}, InterServer ID: ${domain.interserverId})`);
+            // CRITICAL FIX: Also fetch all domains from InterServer to ensure we delete domains
+            // that might exist in InterServer but not in our local database
+            let interServerDomains: any[] = [];
+            try {
+              console.log(`=== FETCHING ALL DOMAINS FROM INTERSERVER ===`);
+              interServerDomains = await interServerApi.getDnsList();
+              console.log(`Found ${interServerDomains.length} domains in InterServer:`, interServerDomains.map(d => `${d.name} (ID: ${d.id})`));
+            } catch (interServerError) {
+              console.error('Failed to fetch domains from InterServer:', interServerError);
+              // Continue with local domains only if InterServer fetch fails
+            }
 
-                // Remove from InterServer if it has an InterServer ID
-                if (domain.interserverId) {
-                  console.log(`Removing domain ${domain.name} from InterServer (ID: ${domain.interserverId})`);
-                  await interServerApi.deleteDnsDomain(domain.interserverId);
-                  console.log(`Successfully removed domain ${domain.name} from InterServer`);
-                } else {
-                  console.log(`Domain ${domain.name} has no InterServer ID, skipping InterServer deletion`);
+            // Create a comprehensive list of domains to delete from InterServer
+            // This includes both local domains and any InterServer domains not in our selected list
+            const selectedDomainNames = userDomains
+              .filter(d => selectedDomainIds.includes(d.id))
+              .map(d => d.name);
+
+            console.log(`Selected domain NAMES to KEEP:`, selectedDomainNames);
+
+            // Find InterServer domains that should be deleted (not in selected names)
+            const interServerDomainsToDelete = interServerDomains.filter(
+              interServerDomain => !selectedDomainNames.includes(interServerDomain.name)
+            );
+
+            console.log(`=== COMPREHENSIVE DELETION PLAN ===`);
+            console.log(`InterServer domains to DELETE (${interServerDomainsToDelete.length}):`,
+              interServerDomainsToDelete.map(d => `${d.name} (InterServer ID: ${d.id})`));
+            console.log(`Local domains to DELETE (${domainsToRemove.length}):`,
+              domainsToRemove.map(d => `${d.name} (Local ID: ${d.id}, InterServer: ${d.interserverId})`));
+
+            // STEP 1: Delete ALL InterServer domains that are not in the selected list
+            // This ensures we delete domains from InterServer even if they don't exist in our local database
+            for (const interServerDomain of interServerDomainsToDelete) {
+              try {
+                console.log(`=== DELETING FROM INTERSERVER: ${interServerDomain.name} (ID: ${interServerDomain.id}) ===`);
+
+                try {
+                  const interServerResult = await interServerApi.deleteDnsDomain(interServerDomain.id);
+                  console.log(`✅ Successfully removed domain ${interServerDomain.name} from InterServer:`, interServerResult);
+                  domainDeletionResults.successful.push(interServerDomain.name);
+                } catch (interServerError) {
+                  console.error(`❌ Failed to remove domain ${interServerDomain.name} from InterServer:`, interServerError);
+                  domainDeletionResults.failed.push({
+                    name: interServerDomain.name,
+                    error: `InterServer deletion failed: ${interServerError.message}`
+                  });
                 }
 
+              } catch (domainError) {
+                console.error(`❌ Failed to process InterServer domain ${interServerDomain.name}:`, domainError);
+                domainDeletionResults.failed.push({
+                  name: interServerDomain.name,
+                  error: `InterServer domain processing failed: ${domainError.message}`
+                });
+              }
+            }
+
+            // STEP 2: Delete local database entries for domains that should be removed
+            // This handles cleanup of our local database records
+            for (const domain of domainsToRemove) {
+              try {
+                console.log(`=== CLEANING UP LOCAL DATABASE: ${domain.name} (Local ID: ${domain.id}) ===`);
+
                 // Remove from local database
-                console.log(`Removing domain ${domain.name} from local database`);
                 const deleteResult = await tx.delete(dnsDomainsTable)
                   .where(eq(dnsDomainsTable.id, domain.id))
                   .returning();
 
-                console.log(`Successfully removed domain ${domain.name} from local database. Deleted rows:`, deleteResult.length);
+                console.log(`✅ Successfully removed domain ${domain.name} from local database. Deleted rows:`, deleteResult.length);
+
+                // Note: InterServer deletion was already handled in Step 1, so we don't need to do it again here
+                // We only track local database cleanup success here if the domain wasn't already processed above
+
+                const wasAlreadyProcessed = interServerDomainsToDelete.some(isd => isd.name === domain.name);
+                if (!wasAlreadyProcessed) {
+                  // This domain was only in local database, not in InterServer
+                  console.log(`ℹ️  Domain ${domain.name} was only in local database (no InterServer ID: ${domain.interserverId})`);
+                  if (!domain.interserverId) {
+                    domainDeletionResults.skippedNoInterServerId.push(domain.name);
+                  }
+                }
+
               } catch (domainError) {
-                console.error(`Failed to remove domain ${domain.name}:`, domainError);
-                // Log the full error details for debugging
-                console.error(`Domain deletion error details:`, {
+                console.error(`❌ Failed to remove domain ${domain.name} from local database:`, domainError);
+                console.error(`Local database deletion error details:`, {
                   domainId: domain.id,
                   domainName: domain.name,
                   interserverId: domain.interserverId,
                   error: domainError
                 });
-                // Continue with other domains but log the error
+
+                // Only add to failed list if it wasn't already added during InterServer deletion
+                const wasAlreadyFailed = domainDeletionResults.failed.some(f => f.name === domain.name);
+                if (!wasAlreadyFailed) {
+                  domainDeletionResults.failed.push({
+                    name: domain.name,
+                    error: `Local database deletion failed: ${domainError.message}`
+                  });
+                }
               }
             }
 
-            console.log(`Successfully removed ${domainsToRemove.length} domains for plan downgrade`);
+            console.log(`=== DOMAIN DELETION SUMMARY ===`);
+            console.log(`✅ Successfully deleted: ${domainDeletionResults.successful.length} domains`);
+            console.log(`❌ Failed to delete: ${domainDeletionResults.failed.length} domains`);
+            console.log(`⚠️  Skipped (no InterServer ID): ${domainDeletionResults.skippedNoInterServerId.length} domains`);
+            console.log(`📊 Total InterServer domains processed: ${interServerDomainsToDelete.length}`);
+            console.log(`📊 Total local domains processed: ${domainsToRemove.length}`);
+            console.log(`Domain deletion results:`, domainDeletionResults);
           }
         }
 
@@ -4928,8 +5032,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const actionType = isUpgrade ? 'upgraded' : 'downgraded';
       console.log(`DNS plan ${actionType} successfully: ${currentPlan.name} → ${newPlan.name} for user ${userId}`);
 
-      // Calculate domains removed for response message
+      // Calculate domains removed for response message and include detailed results
       let domainsRemovedCount = 0;
+      let domainDeletionSummary = null;
+
       if (isDowngrade && newPlan.maxDomains < currentPlan.maxDomains && selectedDomainIds) {
         const userDomains = await db.select()
           .from(dnsDomainsTable)
@@ -4937,6 +5043,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const originalDomainCount = userDomains.length + (selectedDomainIds ? userDomains.length - selectedDomainIds.length : 0);
         domainsRemovedCount = Math.max(0, originalDomainCount - newPlan.maxDomains);
+
+        // Include domain deletion results if any domains were processed
+        if (domainDeletionResults.successful.length > 0 ||
+            domainDeletionResults.failed.length > 0 ||
+            domainDeletionResults.skippedNoInterServerId.length > 0) {
+          domainDeletionSummary = domainDeletionResults;
+        }
       }
 
       let message = `Successfully ${actionType} to ${newPlan.name}`;
@@ -4945,6 +5058,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (domainsRemovedCount > 0) {
         message += ` and removed ${domainsRemovedCount} domain${domainsRemovedCount !== 1 ? 's' : ''}`;
+
+        // Add warnings for failed deletions
+        if (domainDeletionSummary?.failed?.length > 0) {
+          message += ` (${domainDeletionSummary.failed.length} domain${domainDeletionSummary.failed.length !== 1 ? 's' : ''} had deletion issues)`;
+        }
       }
 
       res.json({
@@ -4957,6 +5075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isDowngrade: isDowngrade,
         daysRemaining: daysRemaining,
         domainsRemoved: domainsRemovedCount,
+        domainDeletionResults: domainDeletionSummary,
         message: message
       });
 
