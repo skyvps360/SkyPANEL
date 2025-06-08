@@ -6,7 +6,7 @@ import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 
 import { getBrandColors } from "@/lib/brand-theme";
 import { Button } from "@/components/ui/button";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import {
   DollarSign,
   Ticket,
@@ -16,7 +16,8 @@ import {
   MessageSquare,
   HelpCircle,
   Activity,
-  Zap
+  Zap,
+  Globe
 } from "lucide-react";
 
 // Define branding data type with new color system
@@ -26,6 +27,8 @@ interface BrandingData {
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
+  custom_credits_name?: string;
+  custom_credits_symbol?: string;
 }
 
 // Define types for the balance data
@@ -33,16 +36,17 @@ interface BalanceData {
   credits: number;
   virtFusionCredits: number | null;
   virtFusionTokens: number | null;
+  customCredits: number;
 }
 
 export default function HomePage() {
   const { user } = useAuth();
-  const [location, navigate] = useLocation();
   const [stats, setStats] = useState({
     openTickets: 0,
     virtFusionTokens: 0,
     virtFusionCredits: 0,
-    totalServers: 0
+    totalServers: 0,
+    dnsDomains: 0
   });
 
   // The blog section is now handled by a separate route (/dashboard/blog)
@@ -91,6 +95,14 @@ export default function HomePage() {
 
   const servers = serversResponse?.data || [];
 
+  // Fetch DNS domains
+  const { data: dnsDomainsResponse } = useQuery<{ domains: any[] }>({
+    queryKey: ["/api/dns/domains"],
+    staleTime: 30 * 1000, // 30 seconds
+  });
+
+  const dnsDomains = dnsDomainsResponse?.domains || [];
+
   // Calculate stats
   useEffect(() => {
     if (tickets) {
@@ -104,6 +116,13 @@ export default function HomePage() {
       setStats(prevStats => ({
         ...prevStats,
         totalServers: servers.length,
+      }));
+    }
+
+    if (dnsDomains) {
+      setStats(prevStats => ({
+        ...prevStats,
+        dnsDomains: dnsDomains.length,
       }));
     }
 
@@ -125,7 +144,7 @@ export default function HomePage() {
         virtFusionCredits: tokens / 100 // Convert tokens to dollars (100 tokens = $1.00)
       }));
     }
-  }, [tickets, servers, balanceData, usageData, user]);
+  }, [tickets, servers, dnsDomains, balanceData, usageData, user]);
 
   // Always prioritize VirtFusion balance for display - including negative balances
   const hasVirtFusion = stats.virtFusionTokens !== 0 || stats.virtFusionCredits !== 0; // Show VirtFusion data for any non-zero amount
@@ -178,114 +197,186 @@ export default function HomePage() {
           </div>
 
           {/* Enhanced Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {/* VirtFusion Credits Card */}
             <Link href="/billing" className="group">
-              <div className="rounded-xl bg-white border border-gray-300/60 shadow-md hover:shadow-xl transition-all duration-300 group-hover:border-gray-400/60">
-                <div className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-600 mb-2">
-                        {hasVirtFusion ? "VirtFusion Balance" : "Credit Balance"}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-blue-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-blue-300/60 group-hover:-translate-y-1">
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-blue-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
+                      style={{
+                        background: `linear-gradient(135deg, ${brandColors.primary.full}, ${brandColors.primary.lighter})`,
+                      }}
+                    >
+                      <DollarSign className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="text-right">
+                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-600">
+                      VirtFusion Balance
+                    </p>
+                    <h3 className={`text-2xl font-bold ${displayCredits < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                      ${displayCredits.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
+                    </h3>
+                    {hasVirtFusion && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <div className="w-1 h-1 rounded-full bg-gray-400"></div>
+                        {stats.virtFusionTokens >= 0
+                          ? `${stats.virtFusionTokens.toLocaleString()} tokens available`
+                          : `${Math.abs(stats.virtFusionTokens).toLocaleString()} tokens overdrawn`
+                        }
                       </p>
-                      <h3 className={`text-3xl font-bold mb-3 ${displayCredits < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                        ${displayCredits.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2
-                        })}
-                      </h3>
-                      {hasVirtFusion && (
-                        <div
-                          className="flex items-center text-sm"
-                          style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
-                        >
-                          <div
-                            className="w-2 h-2 rounded-full mr-2"
-                            style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
-                          />
-                          {stats.virtFusionTokens >= 0 
-                            ? `${stats.virtFusionTokens.toLocaleString()} tokens available`
-                            : `${Math.abs(stats.virtFusionTokens).toLocaleString()} tokens overdrawn`
-                          }
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      className="w-14 h-14 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-300"
-                      style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
-                    >
-                      <DollarSign
-                        className="w-7 h-7"
-                        style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
-                      />
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
             </Link>
 
+            {/* Custom Credits Card */}
+            <Link href="/billing" className="group">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-green-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-green-300/60 group-hover:-translate-y-1">
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-green-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
+                      style={{
+                        background: `linear-gradient(135deg, ${brandColors.secondary.full}, ${brandColors.secondary.lighter})`,
+                      }}
+                    >
+                      <Coins className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="text-right">
+                      <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-600">
+                      {brandingData?.custom_credits_name || 'Custom Credits'}
+                    </p>
+                    <h3 className={`text-2xl font-bold ${(balanceData?.customCredits || 0) < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                      ${(balanceData?.customCredits || 0).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
+                    </h3>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <div className="w-1 h-1 rounded-full bg-gray-400"></div>
+                      Available for DNS & other services
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* DNS Management Card */}
+            <Link href="/dns" className="group">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-amber-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-amber-300/60 group-hover:-translate-y-1">
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-amber-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
+                      style={{
+                        background: `linear-gradient(135deg, ${brandColors.accent.full}, ${brandColors.accent.lighter})`,
+                      }}
+                    >
+                      <Globe className="h-6 w-6 text-white" />
+                    </div>
+                    <div className="text-right">
+                      <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-600">
+                      DNS Domains
+                    </p>
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      {stats.dnsDomains}
+                    </h3>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <div className="w-1 h-1 rounded-full bg-gray-400"></div>
+                      Manage DNS records
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Link>
+
+            {/* Support Tickets Card */}
             <Link href="/tickets" className="group">
-              <div className="rounded-xl bg-white border border-gray-300/60 shadow-md hover:shadow-xl transition-all duration-300 group-hover:border-gray-400/60">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-purple-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-purple-300/60 group-hover:-translate-y-1">
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-purple-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-600 mb-2">Support Tickets</p>
-                      <h3 className="text-3xl font-bold text-gray-900 mb-3">{stats.openTickets}</h3>
-                      {stats.openTickets > 0 && (
-                        <div
-                          className="flex items-center text-sm"
-                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
-                        >
-                          <div
-                            className="w-2 h-2 rounded-full mr-2"
-                            style={{ backgroundColor: `var(--brand-accent, ${brandColors.accent.full})` }}
-                          />
-                          {stats.openTickets} awaiting response
-                        </div>
-                      )}
-                    </div>
+                  <div className="flex items-start justify-between mb-4">
                     <div
-                      className="w-14 h-14 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-300"
-                      style={{ backgroundColor: `var(--brand-secondary-lighter, ${brandColors.secondary.lighter})` }}
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
+                      style={{
+                        background: `linear-gradient(135deg, ${brandColors.secondary.full}, ${brandColors.secondary.lighter})`,
+                      }}
                     >
-                      <Ticket
-                        className="w-7 h-7"
-                        style={{ color: `var(--brand-secondary, ${brandColors.secondary.full})` }}
-                      />
+                      <Ticket className="h-6 w-6 text-white" />
                     </div>
+                    <div className="text-right">
+                      <div className={`w-2 h-2 rounded-full ${stats.openTickets > 0 ? 'bg-red-400 animate-pulse' : 'bg-green-400'}`}></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-600">
+                      Support Tickets
+                    </p>
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      {stats.openTickets}
+                    </h3>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <div className="w-1 h-1 rounded-full bg-gray-400"></div>
+                      {stats.openTickets > 0 ? `${stats.openTickets} awaiting response` : 'All tickets resolved'}
+                    </p>
                   </div>
                 </div>
               </div>
             </Link>
 
+            {/* Active Servers Card */}
             <Link href="/servers" className="group">
-              <div className="rounded-xl bg-white border border-gray-300/60 shadow-md hover:shadow-xl transition-all duration-300 group-hover:border-gray-400/60">
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-indigo-50/30 border border-gray-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:border-indigo-300/60 group-hover:-translate-y-1">
+                <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-indigo-100/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 <div className="relative p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-600 mb-2">Active Servers</p>
-                      <h3 className="text-3xl font-bold text-gray-900 mb-3">{stats.totalServers}</h3>
-                      {stats.totalServers > 0 && (
-                        <div
-                          className="flex items-center text-sm"
-                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
-                        >
-                          <div
-                            className="w-2 h-2 rounded-full mr-2"
-                            style={{ backgroundColor: `var(--brand-accent, ${brandColors.accent.full})` }}
-                          />
-                          {stats.totalServers} {stats.totalServers === 1 ? 'server' : 'servers'} running
-                        </div>
-                      )}
-                    </div>
+                  <div className="flex items-start justify-between mb-4">
                     <div
-                      className="w-14 h-14 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-300"
-                      style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110"
+                      style={{
+                        background: `linear-gradient(135deg, ${brandColors.accent.full}, ${brandColors.accent.lighter})`,
+                      }}
                     >
-                      <Server
-                        className="w-7 h-7"
-                        style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
-                      />
+                      <Server className="h-6 w-6 text-white" />
                     </div>
+                    <div className="text-right">
+                      <div className={`w-2 h-2 rounded-full ${stats.totalServers > 0 ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-600">
+                      Active Servers
+                    </p>
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      {stats.totalServers}
+                    </h3>
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <div className="w-1 h-1 rounded-full bg-gray-400"></div>
+                      {stats.totalServers > 0
+                        ? `${stats.totalServers} ${stats.totalServers === 1 ? 'server' : 'servers'} running`
+                        : 'No servers deployed'
+                      }
+                    </p>
                   </div>
                 </div>
               </div>
@@ -374,6 +465,26 @@ export default function HomePage() {
                         />
                       </div>
                       <span className="text-sm font-medium">Live Chat</span>
+                    </div>
+                  </Button>
+                </Link>
+
+                <Link href="/dns">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
+                        style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
+                      >
+                        <Globe
+                          className="w-4 h-4 transition-colors duration-200"
+                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium">DNS Management</span>
                     </div>
                   </Button>
                 </Link>

@@ -59,6 +59,7 @@ import AdminChatManagement from "@/pages/admin/AdminChatManagement";
 import ServerDetailPage from "@/pages/admin/server-detail-page";
 import ServersListPage from "@/pages/admin/servers-page";
 import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
+import AdminDnsPage from "@/pages/admin/dns-page";
 import VNCConsole from "@/pages/vnc-console";
 import LiveChat from "@/pages/LiveChat";
 import DnsDomainsPage from "@/pages/dns-domains-page";
@@ -349,6 +350,7 @@ function Router() {
         <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage} />
         <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage} />
         <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage} />
+        <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage} />
         <AdminProtectedRoute path="/admin/chat" component={AdminChatManagement} />
 
         {/* Catch-all route for 404 pages */}

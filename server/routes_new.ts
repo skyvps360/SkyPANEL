@@ -28,6 +28,7 @@ import adminSettingsRoutes from "./routes/admin-settings";
 import chatRoutes from "./routes/chat";
 import chatDepartmentsRoutes from "./routes/chat-departments";
 import dnsRoutes from "./routes/dns";
+import adminDnsRoutes from "./routes/admin-dns";
 import { chatService } from "./chat-service";
 import { departmentMigrationService } from "./services/department-migration";
 import { eq, and, desc, isNull, gte, lte, sql, inArray } from "drizzle-orm";
@@ -10183,6 +10184,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'primary_color', 'secondary_color', 'accent_color',
           // Legacy color (for backward compatibility)
           'company_color',
+          // Custom credits settings
+          'custom_credits_name', 'custom_credits_currency', 'custom_credits_symbol',
           // Loading screen settings
           'loading_screen_enabled', 'loading_screen_animation_duration',
           'loading_screen_min_duration', 'loading_screen_show_on_all_pages'
@@ -10217,6 +10220,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // (will be removed in future versions)
       if (!brandingObject.company_color) {
         brandingObject.company_color = brandingObject.primary_color;
+      }
+
+      // Set default custom credits settings if not set
+      if (!brandingObject.custom_credits_name) {
+        brandingObject.custom_credits_name = 'Custom Credits';
+      }
+
+      if (!brandingObject.custom_credits_currency) {
+        brandingObject.custom_credits_currency = 'USD';
+      }
+
+      if (!brandingObject.custom_credits_symbol) {
+        brandingObject.custom_credits_symbol = '$';
       }
 
       res.json(brandingObject);
@@ -13019,8 +13035,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register DNS routes
   app.use("/api/dns", isAuthenticated, dnsRoutes);
 
-
-
+  // Register Admin DNS routes
+  app.use("/api/admin", isAuthenticated, isAdmin, adminDnsRoutes);
 
   // Admin settings routes are defined directly in this file instead of using the separate router
 

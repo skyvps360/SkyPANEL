@@ -84,30 +84,40 @@ export default function AdminBillingPage() {
     {
       accessorKey: "amount",
       header: "Amount",
-      cell: (item: Transaction) => (
-        <span
-          className={`font-medium ${item.type === 'credit' ? 'text-secondary' : 'text-destructive'}`}
-          style={item.type === 'credit' ? { color: `var(--brand-secondary, ${brandColors.secondary.full})` } : undefined}
-        >
-          {item.type === 'credit' ? '+' : '-'}${Math.abs(item.amount).toFixed(2)}
-        </span>
-      )
+      cell: (item: Transaction) => {
+        const isCredit = item.type === 'virtfusion_credit' || item.type === 'custom_credit' || item.type === 'admin_credit_add' || item.amount > 0;
+        return (
+          <span
+            className={`font-medium ${isCredit ? 'text-secondary' : 'text-destructive'}`}
+            style={isCredit ? { color: `var(--brand-secondary, ${brandColors.secondary.full})` } : undefined}
+          >
+            {isCredit ? '+' : '-'}${Math.abs(item.amount).toFixed(2)}
+          </span>
+        );
+      }
     },
     {
       accessorKey: "type",
       header: "Type",
-      cell: (item: Transaction) => (
-        <Badge
-          variant={item.type === 'credit' ? 'default' : 'outline'}
-          className={item.type === 'credit' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
-          style={item.type === 'credit' ? {
-            backgroundColor: `var(--brand-primary, ${brandColors.primary.full})`,
-            color: 'white'
-          } : undefined}
-        >
-          {item.type}
-        </Badge>
-      )
+      cell: (item: Transaction) => {
+        const isCredit = item.type === 'virtfusion_credit' || item.type === 'custom_credit' || item.type === 'admin_credit_add' || item.amount > 0;
+        const displayType = item.type === 'virtfusion_credit' ? 'VirtFusion Credit' :
+                           item.type === 'custom_credit' ? 'Custom Credit' :
+                           item.type === 'credit' ? 'VirtFusion Credit' :
+                           item.type;
+        return (
+          <Badge
+            variant={isCredit ? 'default' : 'outline'}
+            className={isCredit ? 'bg-primary text-primary-foreground hover:bg-primary/90' : ''}
+            style={isCredit ? {
+              backgroundColor: `var(--brand-primary, ${brandColors.primary.full})`,
+              color: 'white'
+            } : undefined}
+          >
+            {displayType}
+          </Badge>
+        );
+      }
     },
     {
       accessorKey: "description",
@@ -216,9 +226,15 @@ export default function AdminBillingPage() {
     },
   ];
 
-  // Calculate statistics
+  // Calculate statistics - unified billing revenue from all credit types
   const totalRevenue = transactions
-    .filter(t => t.type === 'credit' && t.status === 'completed')
+    .filter(t => {
+      // Include all credit purchases that add money to the system
+      const isCreditPurchase = t.type === 'virtfusion_credit' ||
+                              t.type === 'custom_credit' ||
+                              t.type === 'credit';
+      return isCreditPurchase && t.status === 'completed' && Number(t.amount) > 0;
+    })
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const pendingTransactions = transactions.filter(t => t.status === 'pending').length;
@@ -307,7 +323,7 @@ export default function AdminBillingPage() {
                 <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                Total completed transactions
+                Unified billing from VirtFusion & custom credits
               </p>
             </CardContent>
           </Card>

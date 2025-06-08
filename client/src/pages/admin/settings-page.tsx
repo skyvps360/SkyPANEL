@@ -46,7 +46,8 @@ import {
   Merge,
   CheckCircle,
   Info,
-  X
+  X,
+  DollarSign
 } from "lucide-react";
 
 interface Setting {
@@ -264,6 +265,15 @@ const maintenanceSchema = z.object({
 
 type MaintenanceFormData = z.infer<typeof maintenanceSchema>;
 
+// Custom Credits settings schema
+const customCreditsSchema = z.object({
+  customCreditsName: z.string().min(1, { message: "Custom credits name is required" }),
+  customCreditsCurrency: z.string().min(1, { message: "Currency is required" }),
+  customCreditsSymbol: z.string().min(1, { message: "Currency symbol is required" }),
+});
+
+type CustomCreditsFormData = z.infer<typeof customCreditsSchema>;
+
 // Loading screen settings schema
 const loadingScreenSchema = z.object({
   enabled: z.boolean().default(true),
@@ -305,6 +315,7 @@ type CloudPricingFormData = z.infer<typeof cloudPricingSchema>;
 const settingsOptions = [
   { value: "general", label: "General", icon: <SettingsIcon className="h-4 w-4 mr-2" /> },
   { value: "billing", label: "Billing", icon: <CreditCard className="h-4 w-4 mr-2" /> },
+  { value: "custom-credits", label: "Custom Credits", icon: <DollarSign className="h-4 w-4 mr-2" /> },
   { value: "cloud", label: "Cloud", icon: <Cloud className="h-4 w-4 mr-2" /> },
   { value: "email", label: "Email", icon: <Mail className="h-4 w-4 mr-2" /> },
   { value: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4 mr-2" /> },
@@ -454,6 +465,16 @@ export default function SettingsPage() {
       natIpv4PricingEnabled: getSettingValue("cloud_nat_ipv4_pricing_enabled", "false") === "true",
       publicIpv4PricingEnabled: getSettingValue("cloud_public_ipv4_pricing_enabled", "false") === "true",
       publicIpv6PricingEnabled: getSettingValue("cloud_public_ipv6_pricing_enabled", "false") === "true",
+    },
+  });
+
+  // Custom Credits form
+  const customCreditsForm = useForm<CustomCreditsFormData>({
+    resolver: zodResolver(customCreditsSchema),
+    defaultValues: {
+      customCreditsName: getSettingValue("custom_credits_name", "Custom Credits"),
+      customCreditsCurrency: getSettingValue("custom_credits_currency", "USD"),
+      customCreditsSymbol: getSettingValue("custom_credits_symbol", "$"),
     },
   });
 
@@ -1229,6 +1250,13 @@ export default function SettingsPage() {
         taxRate: getSettingValue("tax_rate", "0"),
       });
 
+      // Update Custom Credits form
+      customCreditsForm.reset({
+        customCreditsName: getSettingValue("custom_credits_name", "Custom Credits"),
+        customCreditsCurrency: getSettingValue("custom_credits_currency", "USD"),
+        customCreditsSymbol: getSettingValue("custom_credits_symbol", "$"),
+      });
+
       // Update Email form
       emailForm.reset({
         smtpHost: getSettingValue("smtp_host", ""),
@@ -1429,6 +1457,33 @@ export default function SettingsPage() {
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+    } catch (error: any) {
+      toast({
+        title: "Error saving settings",
+        description: error.message || "Failed to save settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaveInProgress(false);
+    }
+  };
+
+  // Handle Custom Credits form submission
+  const onCustomCreditsSubmit = async (data: CustomCreditsFormData) => {
+    setSaveInProgress(true);
+
+    try {
+      await updateSettingMutation.mutateAsync({ key: "custom_credits_name", value: data.customCreditsName });
+      await updateSettingMutation.mutateAsync({ key: "custom_credits_currency", value: data.customCreditsCurrency });
+      await updateSettingMutation.mutateAsync({ key: "custom_credits_symbol", value: data.customCreditsSymbol });
+
+      toast({
+        title: "Settings saved",
+        description: "Custom credits settings have been updated",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/branding"] });
     } catch (error: any) {
       toast({
         title: "Error saving settings",
@@ -2060,6 +2115,95 @@ export default function SettingsPage() {
                         type="submit"
                         className="w-32"
                         disabled={saveInProgress || !emailForm.formState.isDirty}
+                      >
+                        {saveInProgress ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="custom-credits">
+                <form onSubmit={customCreditsForm.handleSubmit(onCustomCreditsSubmit)}>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium">Custom Credits Configuration</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Configure the branding and currency settings for your custom credits system
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="customCreditsName">Credits Name</Label>
+                        <Input
+                          id="customCreditsName"
+                          placeholder="e.g., Custom Credits, Platform Credits"
+                          {...customCreditsForm.register("customCreditsName")}
+                        />
+                        {customCreditsForm.formState.errors.customCreditsName && (
+                          <p className="text-sm text-destructive">
+                            {customCreditsForm.formState.errors.customCreditsName.message}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          This name will be displayed throughout the platform instead of "Custom Credits"
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="customCreditsCurrency">Currency Code</Label>
+                        <Input
+                          id="customCreditsCurrency"
+                          placeholder="e.g., USD, EUR, GBP"
+                          {...customCreditsForm.register("customCreditsCurrency")}
+                        />
+                        {customCreditsForm.formState.errors.customCreditsCurrency && (
+                          <p className="text-sm text-destructive">
+                            {customCreditsForm.formState.errors.customCreditsCurrency.message}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          ISO currency code for the custom credits
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="customCreditsSymbol">Currency Symbol</Label>
+                        <Input
+                          id="customCreditsSymbol"
+                          placeholder="e.g., $, €, £"
+                          {...customCreditsForm.register("customCreditsSymbol")}
+                        />
+                        {customCreditsForm.formState.errors.customCreditsSymbol && (
+                          <p className="text-sm text-destructive">
+                            {customCreditsForm.formState.errors.customCreditsSymbol.message}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Symbol displayed before credit amounts
+                        </p>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        className="w-32"
+                        disabled={saveInProgress || !customCreditsForm.formState.isDirty}
+                        style={getBrandButtonStyle(saveInProgress || !customCreditsForm.formState.isDirty)}
                       >
                         {saveInProgress ? (
                           <>

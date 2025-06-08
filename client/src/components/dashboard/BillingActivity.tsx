@@ -23,9 +23,9 @@ interface Transaction {
 // Helper function to determine if a transaction is a credit/addition
 const isCredit = (transaction: Transaction) => {
   return (
-    transaction.type === "credit" ||
     transaction.type === "virtfusion_credit" ||
-    transaction.type === "custom_credit"
+    transaction.type === "custom_credit" ||
+    transaction.type === "admin_credit_add"
   );
 };
 

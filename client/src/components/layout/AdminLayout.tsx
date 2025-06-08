@@ -42,6 +42,7 @@ const adminMenuItems = [
   { href: "/admin/users", icon: Users, label: "Users" },
   { href: "/admin/billing", icon: DollarSign, label: "Billing" },
   { href: "/admin/servers", icon: Server, label: "Servers" },
+  { href: "/admin/dns", icon: Globe, label: "DNS Management" },
   { href: "/admin/mail", icon: Mail, label: "Email Logs" },
   { href: "/admin/blog", icon: PenTool, label: "Company Blog" },
   { href: "/admin/docs", icon: FileText, label: "Documentation" },

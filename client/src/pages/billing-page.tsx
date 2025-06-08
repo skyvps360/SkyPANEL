@@ -55,6 +55,8 @@ export default function BillingPage() {
     primary_color: string;
     secondary_color: string;
     accent_color: string;
+    custom_credits_name?: string;
+    custom_credits_symbol?: string;
   }>({
     queryKey: ['/api/settings/branding'],
   });
@@ -214,8 +216,7 @@ export default function BillingPage() {
 
   // Helper function to determine if a transaction is a credit/addition
   const isCredit = (transaction: Transaction) => {
-    return transaction.type === 'credit' ||
-           transaction.type === 'virtfusion_credit' ||
+    return transaction.type === 'virtfusion_credit' ||
            transaction.type === 'custom_credit' ||
            transaction.type === 'admin_credit_add' ||
            transaction.amount > 0; // Also include any transaction with positive amount as credit
@@ -746,12 +747,16 @@ export default function BillingPage() {
                                     ? 'bg-blue-100 text-blue-700'
                                     : transaction.type === 'custom_credit'
                                     ? 'bg-green-100 text-green-700'
+                                    : transaction.type === 'credit'
+                                    ? 'bg-blue-100 text-blue-700'
                                     : 'bg-gray-100 text-gray-700'
                                 }`}>
                                   {transaction.type === 'virtfusion_credit'
-                                    ? 'VirtFusion'
+                                    ? 'VirtFusion Credit'
                                     : transaction.type === 'custom_credit'
-                                    ? 'Custom Credits'
+                                    ? (brandingData?.custom_credits_name || 'Custom Credits')
+                                    : transaction.type === 'credit'
+                                    ? 'VirtFusion Credit'
                                     : transaction.type}
                                 </span>
 
