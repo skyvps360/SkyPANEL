@@ -4609,9 +4609,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get dynamic custom credits name for transaction description
       const customCreditsName = await getCustomCreditsName();
 
-      // Get dynamic custom credits name for transaction description
-      const customCreditsName = await getCustomCreditsName();
-
       // Create transaction record in main transactions table
       const transaction: InsertTransaction = {
         userId: userId,
@@ -4819,9 +4816,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               balance: newBalance
             });
           }
-
-          // Get dynamic custom credits name for transaction description
-          const customCreditsName = await getCustomCreditsName();
 
           // Get dynamic custom credits name for transaction description
           const customCreditsName = await getCustomCreditsName();
