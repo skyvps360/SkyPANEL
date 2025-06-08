@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PayPalButtons, usePayPalScriptReducer } from "@paypal/react-paypal-js";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -14,6 +14,14 @@ export function CustomCreditsPayPalCheckout({ amount }: CustomCreditsPayPalCheck
   const queryClient = useQueryClient();
   const [{ isPending }] = usePayPalScriptReducer();
 
+  // Fetch branding data for custom credits name
+  const { data: brandingData } = useQuery<{
+    company_name: string;
+    custom_credits_name?: string;
+  }>({
+    queryKey: ['/api/settings/branding'],
+  });
+
   // Mutation for adding custom credits
   const addCustomCreditsMutation = useMutation({
     mutationFn: async (data: { amount: number; paymentId: string; verificationData: any }) => {
@@ -26,7 +34,7 @@ export function CustomCreditsPayPalCheckout({ amount }: CustomCreditsPayPalCheck
       setIsProcessing(false);
       toast({
         title: "Credits Added Successfully!",
-        description: `$${amount.toFixed(2)} has been added to your custom credits balance.`,
+        description: `$${amount.toFixed(2)} has been added to your ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} balance.`,
       });
 
       // Invalidate queries to refresh balance and transactions
@@ -131,7 +139,7 @@ export function CustomCreditsPayPalCheckout({ amount }: CustomCreditsPayPalCheck
                       value: amount.toFixed(2),
                       currency_code: "USD",
                     },
-                    description: `Custom Credits - $${amount.toFixed(2)}`,
+                    description: `${brandingData?.custom_credits_name || 'Custom Credits'} - $${amount.toFixed(2)}`,
                     category: "DIGITAL_GOODS", // Specify this is for digital goods
                   },
                 ],

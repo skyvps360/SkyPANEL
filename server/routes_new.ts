@@ -4436,6 +4436,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to get custom credits name from branding settings
+  async function getCustomCreditsName(): Promise<string> {
+    try {
+      const brandingSettings = await db.select()
+        .from(settingsTable)
+        .where(inArray(settingsTable.key, ['company_name', 'custom_credits_name']));
+
+      const companyName = brandingSettings.find(s => s.key === 'company_name')?.value || 'SkyPANEL';
+      const customCreditsName = brandingSettings.find(s => s.key === 'custom_credits_name')?.value;
+
+      return customCreditsName || `${companyName} Credits`;
+    } catch (error) {
+      console.error('Error fetching branding settings for custom credits name:', error);
+      return 'Custom Credits'; // Fallback
+    }
+  }
+
   // Custom Credits System Endpoints
 
   // DNS Plans Management Endpoints
@@ -5069,12 +5086,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Maximum amount is $1000.00" });
       }
 
+      // Get dynamic custom credits name for transaction description
+      const customCreditsName = await getCustomCreditsName();
+
       // Create a new transaction record in the main transactions table for unified history
       const transaction: InsertTransaction = {
         userId: req.user!.id,
         amount: amount,
         type: "custom_credit",
-        description: "Custom credit purchase via PayPal",
+        description: `${customCreditsName} purchase via PayPal`,
         status: "pending",
         paymentMethod: "paypal",
         paymentId: paymentId,
@@ -5091,7 +5111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update main transaction status to failed
         await storage.updateTransaction(createdTransaction.id, {
           status: "failed",
-          description: "Custom credit purchase via PayPal (Payment verification failed)"
+          description: `${customCreditsName} purchase via PayPal (Payment verification failed)`
         });
 
         return res.status(400).json({
@@ -5107,7 +5127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update main transaction status to failed
         await storage.updateTransaction(createdTransaction.id, {
           status: "failed",
-          description: "Custom credit purchase via PayPal (Amount mismatch)"
+          description: `${customCreditsName} purchase via PayPal (Amount mismatch)`
         });
 
         return res.status(400).json({
@@ -5154,7 +5174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: userId,
             amount: amount,
             type: 'purchase',
-            description: 'Custom credit purchase via PayPal',
+            description: `${customCreditsName} purchase via PayPal`,
             status: 'completed',
             paymentMethod: 'paypal',
             paymentId: paymentId,
@@ -5170,17 +5190,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update main transaction status to completed
         await storage.updateTransaction(createdTransaction.id, {
           status: "completed",
-          description: `Custom credit purchase via PayPal (Transaction ID: ${createdTransaction.id})`
+          description: `${customCreditsName} purchase via PayPal (Transaction ID: ${createdTransaction.id})`
         });
 
-        console.log(`Successfully added $${amount} custom credits to user ${userId}. New balance: $${newBalance}`);
+        console.log(`Successfully added $${amount} ${customCreditsName.toLowerCase()} to user ${userId}. New balance: $${newBalance}`);
 
         res.json({
           success: true,
           amountAdded: amount,
           newBalance: newBalance,
           transactionId: createdTransaction.id,
-          message: `Successfully added $${amount.toFixed(2)} to your custom credits balance`
+          message: `Successfully added $${amount.toFixed(2)} to your ${customCreditsName.toLowerCase()} balance`
         });
 
       } catch (dbError: any) {
@@ -5189,10 +5209,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update main transaction status to failed
         await storage.updateTransaction(createdTransaction.id, {
           status: "failed",
-          description: "Custom credit purchase via PayPal (Database error)"
+          description: `${customCreditsName} purchase via PayPal (Database error)`
         });
 
-        return res.status(500).json({ error: "Failed to process custom credit purchase" });
+        return res.status(500).json({ error: `Failed to process ${customCreditsName.toLowerCase()} purchase` });
       }
 
     } catch (error: any) {
@@ -7637,6 +7657,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Get dynamic custom credits name for transaction description
+      const customCreditsName = await getCustomCreditsName();
+
       const adminUser = req.user as any;
       const creditAmount = Number(amount);
 
@@ -7675,7 +7698,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: userId,
           amount: creditAmount, // Positive for credit addition
           type: 'admin_credit_add',
-          description: `Admin Credit Addition: ${reason}`,
+          description: `Admin ${customCreditsName} Addition: ${reason}`,
           status: 'completed',
           paymentMethod: 'admin'
         }).returning();
@@ -7685,7 +7708,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: userId,
           amount: creditAmount,
           type: 'admin_add',
-          description: `Admin credit addition: ${reason}`,
+          description: `Admin ${customCreditsName.toLowerCase()} addition: ${reason}`,
           status: 'completed',
           paymentMethod: 'admin',
           adminUserId: adminUser.id,
@@ -7699,13 +7722,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      console.log(`Admin ${adminUser.username} added $${creditAmount} custom credits to user ${userId}. New balance: $${newBalance}`);
+      console.log(`Admin ${adminUser.username} added $${creditAmount} ${customCreditsName.toLowerCase()} to user ${userId}. New balance: $${newBalance}`);
 
       res.json({
         success: true,
         amountAdded: creditAmount,
         newBalance: newBalance,
-        message: `Successfully added $${creditAmount.toFixed(2)} to user's custom credits balance`
+        message: `Successfully added $${creditAmount.toFixed(2)} to user's ${customCreditsName.toLowerCase()} balance`
       });
 
     } catch (error: any) {
@@ -7746,8 +7769,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(userCreditsTable.userId, userId))
         .limit(1);
 
+      // Get dynamic custom credits name for transaction description
+      const customCreditsName = await getCustomCreditsName();
+
       if (userCredits.length === 0) {
-        return res.status(400).json({ error: "User has no custom credits balance" });
+        return res.status(400).json({ error: `User has no ${customCreditsName.toLowerCase()} balance` });
       }
 
       const currentBalance = userCredits[0].balance;
@@ -7773,7 +7799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: userId,
           amount: -creditAmount, // Negative for credit removal
           type: 'admin_credit_remove',
-          description: `Admin Credit Removal: ${reason}`,
+          description: `Admin ${customCreditsName} Removal: ${reason}`,
           status: 'completed',
           paymentMethod: 'admin'
         }).returning();
@@ -7783,7 +7809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: userId,
           amount: -creditAmount, // Negative amount for removal
           type: 'admin_remove',
-          description: `Admin credit removal: ${reason}`,
+          description: `Admin ${customCreditsName.toLowerCase()} removal: ${reason}`,
           status: 'completed',
           paymentMethod: 'admin',
           adminUserId: adminUser.id,
@@ -7797,13 +7823,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      console.log(`Admin ${adminUser.username} removed $${creditAmount} custom credits from user ${userId}. New balance: $${newBalance}`);
+      console.log(`Admin ${adminUser.username} removed $${creditAmount} ${customCreditsName.toLowerCase()} from user ${userId}. New balance: $${newBalance}`);
 
       res.json({
         success: true,
         amountRemoved: creditAmount,
         newBalance: newBalance,
-        message: `Successfully removed $${creditAmount.toFixed(2)} from user's custom credits balance`,
+        message: `Successfully removed $${creditAmount.toFixed(2)} from user's ${customCreditsName.toLowerCase()} balance`,
         warning: newBalance < 0 ? "User now has a negative balance" : null
       });
 
@@ -10224,7 +10250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Set default custom credits settings if not set
       if (!brandingObject.custom_credits_name) {
-        brandingObject.custom_credits_name = 'Custom Credits';
+        brandingObject.custom_credits_name = `${brandingObject.company_name || 'SkyPANEL'} Credits`;
       }
 
       if (!brandingObject.custom_credits_currency) {

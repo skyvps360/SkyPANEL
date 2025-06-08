@@ -230,9 +230,7 @@ export default function HomePage() {
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{
-                              background: `linear-gradient(135deg, ${brandColors.primary.full}, ${brandColors.primary.lighter})`
-                            }}
+                            style={{ backgroundColor: brandColors.primary.full }}
                           >
                             <DollarSign className="h-5 w-5 text-white" />
                           </div>
@@ -285,9 +283,7 @@ export default function HomePage() {
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{
-                              background: `linear-gradient(135deg, ${brandColors.secondary.full}, ${brandColors.secondary.lighter})`
-                            }}
+                            style={{ backgroundColor: `var(--brand-secondary, ${brandColors.secondary.full})` }}
                           >
                             <Coins className="h-5 w-5 text-white" />
                           </div>
@@ -333,9 +329,7 @@ export default function HomePage() {
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{
-                              background: `linear-gradient(135deg, ${brandColors.accent.full}, ${brandColors.accent.lighter})`
-                            }}
+                            style={{ backgroundColor: `var(--brand-accent, ${brandColors.accent.full})` }}
                           >
                             <Globe className="h-5 w-5 text-white" />
                           </div>
@@ -378,9 +372,7 @@ export default function HomePage() {
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{
-                              background: `linear-gradient(135deg, ${brandColors.secondary.full}, ${brandColors.secondary.lighter})`
-                            }}
+                            style={{ backgroundColor: `var(--brand-secondary, ${brandColors.secondary.full})` }}
                           >
                             <Ticket className="h-5 w-5 text-white" />
                           </div>
@@ -425,9 +417,7 @@ export default function HomePage() {
                         <div className="flex items-center space-x-3">
                           <div
                             className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{
-                              background: `linear-gradient(135deg, ${brandColors.accent.full}, ${brandColors.accent.lighter})`
-                            }}
+                            style={{ backgroundColor: brandColors.accent.full }}
                           >
                             <Server className="h-5 w-5 text-white" />
                           </div>
@@ -488,11 +478,26 @@ export default function HomePage() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
-                        style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
+                        style={{
+                          backgroundColor: brandColors.primary.lighter,
+                          '--hover-bg': brandColors.secondary.full
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
+                        }}
                       >
                         <Plus
                           className="w-4 h-4 transition-colors duration-200"
-                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
+                          style={{ color: brandColors.primary.full }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = brandColors.primary.full;
+                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">New Server</span>
@@ -508,11 +513,23 @@ export default function HomePage() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
-                        style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
+                        style={{ backgroundColor: brandColors.primary.lighter }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
+                        }}
                       >
                         <MessageSquare
                           className="w-4 h-4 transition-colors duration-200"
-                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
+                          style={{ color: brandColors.primary.full }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = brandColors.primary.full;
+                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">Get Support</span>
@@ -528,11 +545,23 @@ export default function HomePage() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
-                        style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
+                        style={{ backgroundColor: brandColors.primary.lighter }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
+                        }}
                       >
                         <Coins
                           className="w-4 h-4 transition-colors duration-200"
-                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
+                          style={{ color: brandColors.primary.full }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = brandColors.primary.full;
+                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">Add Funds</span>
@@ -548,11 +577,23 @@ export default function HomePage() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
-                        style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
+                        style={{ backgroundColor: brandColors.primary.lighter }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
+                        }}
                       >
                         <MessageSquare
                           className="w-4 h-4 transition-colors duration-200"
-                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
+                          style={{ color: brandColors.primary.full }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = brandColors.primary.full;
+                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">Live Chat</span>
@@ -568,11 +609,23 @@ export default function HomePage() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
-                        style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
+                        style={{ backgroundColor: brandColors.primary.lighter }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
+                        }}
                       >
                         <Globe
                           className="w-4 h-4 transition-colors duration-200"
-                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
+                          style={{ color: brandColors.primary.full }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = brandColors.primary.full;
+                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">DNS Management</span>
@@ -588,11 +641,23 @@ export default function HomePage() {
                     <div className="flex items-center space-x-3">
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200"
-                        style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
+                        style={{ backgroundColor: brandColors.primary.lighter }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.secondary.full;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
+                        }}
                       >
                         <Activity
                           className="w-4 h-4 transition-colors duration-200"
-                          style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
+                          style={{ color: brandColors.primary.full }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = brandColors.primary.full;
+                          }}
                         />
                       </div>
                       <span className="text-sm font-medium">Latest News</span>

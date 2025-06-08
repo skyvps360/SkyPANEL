@@ -49,6 +49,14 @@ export default function DnsPlansPage() {
   const itemsPerPage = 5;
   const brandColors = getBrandColors();
 
+  // Fetch branding data for custom credits name
+  const { data: brandingData } = useQuery<{
+    company_name: string;
+    custom_credits_name?: string;
+  }>({
+    queryKey: ['/api/settings/branding'],
+  });
+
   // Domain selection modal state for downgrades
   const [domainSelectionModal, setDomainSelectionModal] = useState<{
     isOpen: boolean;
@@ -282,7 +290,7 @@ export default function DnsPlansPage() {
           <div className="px-6 py-4 flex items-center justify-between border-b border-border">
             <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-secondary" />
-              Custom Credits
+              {brandingData?.custom_credits_name || 'Custom Credits'}
             </CardTitle>
             <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
               <Plus className="h-5 w-5 text-secondary" />

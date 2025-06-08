@@ -170,6 +170,14 @@ export default function UserEditPage() {
     retry: 1
   });
 
+  // Fetch branding data for custom credits name
+  const { data: brandingData } = useQuery<{
+    company_name: string;
+    custom_credits_name?: string;
+  }>({
+    queryKey: ['/api/settings/branding'],
+  });
+
   // Set up form with user data
   const form = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -347,8 +355,8 @@ export default function UserEditPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Custom credits added successfully",
-        description: `Added $${customCreditAddAmount} to user's custom credits balance.`,
+        title: `${brandingData?.custom_credits_name || 'Custom credits'} added successfully`,
+        description: `Added $${customCreditAddAmount} to user's ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} balance.`,
       });
 
       // Clear the input fields
@@ -360,8 +368,8 @@ export default function UserEditPage() {
     },
     onError: (error: any) => {
       toast({
-        title: "Error adding custom credits",
-        description: error.message || "Failed to add custom credits",
+        title: `Error adding ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}`,
+        description: error.message || `Failed to add ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}`,
         variant: "destructive",
       });
     }
@@ -377,8 +385,8 @@ export default function UserEditPage() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Custom credits removed successfully",
-        description: `Removed $${customCreditRemoveAmount} from user's custom credits balance.`,
+        title: `${brandingData?.custom_credits_name || 'Custom credits'} removed successfully`,
+        description: `Removed $${customCreditRemoveAmount} from user's ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} balance.`,
       });
 
       // Clear the input fields
@@ -390,8 +398,8 @@ export default function UserEditPage() {
     },
     onError: (error: any) => {
       toast({
-        title: "Error removing custom credits",
-        description: error.message || "Failed to remove custom credits",
+        title: `Error removing ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}`,
+        description: error.message || `Failed to remove ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}`,
         variant: "destructive",
       });
     }
@@ -495,7 +503,7 @@ export default function UserEditPage() {
       return;
     }
 
-    if (confirm(`Are you sure you want to remove $${customCreditRemoveAmount} from this user's custom credits? This action cannot be undone.`)) {
+    if (confirm(`Are you sure you want to remove $${customCreditRemoveAmount} from this user's ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}? This action cannot be undone.`)) {
       removeCustomCreditsMutation.mutate({
         amount: customCreditRemoveAmount,
         reason: customCreditRemoveReason
@@ -721,7 +729,7 @@ export default function UserEditPage() {
               </TabsTrigger>
               <TabsTrigger value="customCredits" className="data-[state=active]:bg-background">
                 <CreditCard className="h-4 w-4 mr-2" />
-                Custom Credits
+                {brandingData?.custom_credits_name || 'Custom Credits'}
               </TabsTrigger>
               {user.virtFusionId && (
                 <TabsTrigger value="credits" className="data-[state=active]:bg-background">
@@ -966,10 +974,10 @@ export default function UserEditPage() {
 
             <Separator />
             
-            {activeTab !== 'usage' && (
+            {(activeTab === 'profile' || activeTab === 'permissions') && (
               <CardFooter className="p-6">
                 <div className="flex justify-end w-full">
-                  <Button 
+                  <Button
                     type="submit"
                     disabled={!canEdit || updateUserMutation.isPending || !form.formState.isDirty}
                   >
@@ -1259,7 +1267,7 @@ export default function UserEditPage() {
             <CardContent className="p-6">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Custom Credits Management</h3>
+                  <h3 className="text-lg font-medium">{brandingData?.custom_credits_name || 'Custom Credits'} Management</h3>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Current Balance</p>
                     <p className={`text-2xl font-bold ${(customCreditsData?.balance || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
@@ -1272,7 +1280,7 @@ export default function UserEditPage() {
 
                 {/* Add Credits Section */}
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h4 className="text-base font-medium mb-4 text-green-800">Add Custom Credits</h4>
+                  <h4 className="text-base font-medium mb-4 text-green-800">Add {brandingData?.custom_credits_name || 'Custom Credits'}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="customCreditAddAmount">Amount ($)</Label>
@@ -1309,7 +1317,7 @@ export default function UserEditPage() {
 
                 {/* Remove Credits Section */}
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h4 className="text-base font-medium mb-4 text-red-800">Remove Custom Credits</h4>
+                  <h4 className="text-base font-medium mb-4 text-red-800">Remove {brandingData?.custom_credits_name || 'Custom Credits'}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="customCreditRemoveAmount">Amount ($)</Label>
@@ -1408,7 +1416,7 @@ export default function UserEditPage() {
                 {isLoadingCustomCredits && (
                   <div className="flex justify-center items-center py-8">
                     <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                    <p className="ml-2 text-muted-foreground">Loading custom credits data...</p>
+                    <p className="ml-2 text-muted-foreground">Loading {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} data...</p>
                   </div>
                 )}
 
@@ -1417,7 +1425,7 @@ export default function UserEditPage() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
                     <AlertDescription>
-                      Failed to load custom credits data: {customCreditsError.message}
+                      Failed to load {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} data: {customCreditsError.message}
                     </AlertDescription>
                   </Alert>
                 )}

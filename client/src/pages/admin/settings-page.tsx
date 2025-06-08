@@ -372,6 +372,14 @@ export default function SettingsPage() {
     staleTime: 30000, // Cache for 30 seconds
   });
 
+  // Fetch branding data for custom credits name
+  const { data: brandingData } = useQuery<{
+    company_name: string;
+    custom_credits_name?: string;
+  }>({
+    queryKey: ['/api/settings/branding'],
+  });
+
   // Notifications settings form
   const notificationsForm = useForm<NotificationsFormData>({
     resolver: zodResolver(notificationsSchema),
@@ -472,7 +480,7 @@ export default function SettingsPage() {
   const customCreditsForm = useForm<CustomCreditsFormData>({
     resolver: zodResolver(customCreditsSchema),
     defaultValues: {
-      customCreditsName: getSettingValue("custom_credits_name", "Custom Credits"),
+      customCreditsName: getSettingValue("custom_credits_name", `${brandingData?.company_name || 'SkyPANEL'} Credits`),
       customCreditsCurrency: getSettingValue("custom_credits_currency", "USD"),
       customCreditsSymbol: getSettingValue("custom_credits_symbol", "$"),
     },

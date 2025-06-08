@@ -552,7 +552,7 @@ export default function BillingPage() {
           {/* Custom Credits Card */}
           <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border">
-              <CardTitle className="text-base font-medium text-foreground">Custom Credits</CardTitle>
+              <CardTitle className="text-base font-medium text-foreground">{brandingData?.custom_credits_name || 'Custom Credits'}</CardTitle>
               <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
                 <CreditCard className="h-5 w-5 text-secondary" />
               </div>
@@ -637,7 +637,7 @@ export default function BillingPage() {
                 {user?.isActive && (
                   <TabsTrigger value="customCredits" className="data-[state=active]:bg-background rounded-md">
                     <CreditCard className="h-4 w-4 mr-2" />
-                    Custom Credits
+                    {brandingData?.custom_credits_name || 'Custom Credits'}
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -962,10 +962,10 @@ export default function BillingPage() {
                       <div className="p-2 rounded-full bg-secondary/10">
                         <CreditCard className="h-5 w-5 text-secondary" />
                       </div>
-                      Add Custom Credits
+                      Add {brandingData?.custom_credits_name || 'Custom Credits'}
                     </h3>
                     <p className="text-muted-foreground">
-                      Purchase custom credits instantly via PayPal. These credits can be used for DNS plans, dedicated servers, and other platform services.
+                      Purchase {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} instantly via PayPal. These credits can be used for DNS plans, dedicated servers, and other platform services.
                       <br />
                       <span className="text-sm font-medium">Separate from VirtFusion tokens • Digital Service • No Shipping Required</span>
                     </p>
@@ -1034,7 +1034,7 @@ export default function BillingPage() {
                     </div>
                     <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
                       <span>Service:</span>
-                      <span className="font-medium">Custom Credits</span>
+                      <span className="font-medium">{brandingData?.custom_credits_name || 'Custom Credits'}</span>
                     </div>
                     {isCustomCreditCustomAmount && (
                       <div className="mt-2 text-sm text-muted-foreground">
