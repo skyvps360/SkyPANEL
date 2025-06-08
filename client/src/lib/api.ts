@@ -60,6 +60,9 @@ export const updateDnsRecord = (domainId: number, recordId: number, record: {
 export const deleteDnsRecord = (domainId: number, recordId: number) =>
   api.delete(`/dns/domains/${domainId}/records/${recordId}`);
 
+// DNS Plan Limits
+export const getDnsPlanLimits = () => api.get('/dns-plans/limits');
+
 // Support Tickets
 export const getTickets = () => api.get('/tickets');
 export const getTicket = (id: number) => api.get(`/tickets/${id}`);

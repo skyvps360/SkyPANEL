@@ -30,7 +30,7 @@ import chatDepartmentsRoutes from "./routes/chat-departments";
 import dnsRoutes from "./routes/dns";
 import { chatService } from "./chat-service";
 import { departmentMigrationService } from "./services/department-migration";
-import { eq, and, desc, isNull, gte, lte, sql } from "drizzle-orm";
+import { eq, and, desc, isNull, gte, lte, sql, inArray } from "drizzle-orm";
 import PDFDocument from "pdfkit";
 import { formatTicketPdf } from "./ticket-download";
 import * as schema from "../shared/schema";
@@ -4511,18 +4511,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "DNS plan not found or inactive" });
       }
 
-      // Check if user already has an active subscription for this plan
-      const existingSubscription = await db.select()
+      // ENFORCE SINGLE-PLAN-PER-USER: Check if user has ANY active DNS plan subscription
+      const existingActiveSubscriptions = await db.select()
         .from(dnsPlanSubscriptionsTable)
         .where(and(
           eq(dnsPlanSubscriptionsTable.userId, userId),
-          eq(dnsPlanSubscriptionsTable.planId, planId),
           eq(dnsPlanSubscriptionsTable.status, 'active')
-        ))
-        .limit(1);
+        ));
 
-      if (existingSubscription.length > 0) {
-        return res.status(400).json({ error: "You already have an active subscription for this plan" });
+      if (existingActiveSubscriptions.length > 0) {
+        // Check if they already have this specific plan
+        const hasThisPlan = existingActiveSubscriptions.some(sub => sub.planId === planId);
+        if (hasThisPlan) {
+          return res.status(400).json({ error: "You already have an active subscription for this plan" });
+        } else {
+          // They have a different plan - redirect to change endpoint
+          return res.status(400).json({
+            error: "You already have an active DNS plan. Use the plan change feature to upgrade or downgrade.",
+            shouldUseChangeEndpoint: true,
+            currentPlans: existingActiveSubscriptions.map(sub => sub.planId)
+          });
+        }
       }
 
       // Get user's custom credits balance
@@ -4646,8 +4655,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "DNS plan not found or inactive" });
       }
 
-      // Get user's current active subscription (single plan system)
-      const [currentSubscription] = await db.select({
+      // Get ALL user's current active subscriptions (enforce single plan system)
+      const activeSubscriptions = await db.select({
         id: dnsPlanSubscriptionsTable.id,
         planId: dnsPlanSubscriptionsTable.planId,
         endDate: dnsPlanSubscriptionsTable.endDate,
@@ -4662,16 +4671,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(and(
           eq(dnsPlanSubscriptionsTable.userId, userId),
           eq(dnsPlanSubscriptionsTable.status, 'active')
-        ))
-        .limit(1);
+        ));
 
-      if (!currentSubscription) {
+      if (activeSubscriptions.length === 0) {
         return res.status(404).json({ error: "No active DNS plan subscription found" });
       }
 
-      if (currentSubscription.planId === planId) {
+      // Check if user already has the target plan
+      const hasTargetPlan = activeSubscriptions.some(sub => sub.planId === planId);
+      if (hasTargetPlan) {
         return res.status(400).json({ error: "You are already subscribed to this plan" });
       }
+
+      // For billing calculation, use the highest-tier current plan
+      const currentSubscription = activeSubscriptions.sort((a, b) => b.plan!.price - a.plan!.price)[0];
 
       const currentPlan = currentSubscription.plan!;
 
@@ -4773,14 +4786,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Update the existing subscription to the new plan
+        // CRITICAL FIX: Cancel ALL existing active subscriptions to enforce single-plan-per-user
+        const activeSubscriptionIds = activeSubscriptions.map(sub => sub.id);
         await tx.update(dnsPlanSubscriptionsTable)
           .set({
-            planId: newPlan.id,
-            nextPaymentDate: nextPaymentDate,
+            status: 'cancelled',
+            autoRenew: false,
             updatedAt: now
           })
-          .where(eq(dnsPlanSubscriptionsTable.id, currentSubscription.id));
+          .where(inArray(dnsPlanSubscriptionsTable.id, activeSubscriptionIds));
+
+        // Create a new subscription for the target plan
+        await tx.insert(dnsPlanSubscriptionsTable).values({
+          userId: userId,
+          planId: newPlan.id,
+          status: 'active',
+          startDate: now,
+          endDate: endDate,
+          autoRenew: true,
+          lastPaymentDate: now,
+          nextPaymentDate: nextPaymentDate
+        });
       });
 
       const actionType = isUpgrade ? 'upgraded' : 'downgraded';
@@ -4872,16 +4898,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eq(dnsPlanSubscriptionsTable.status, 'active')
         ));
 
-      // Calculate total limits from all active plans
+      // Since we enforce single-plan-per-user, get limits from the active plan
       let totalMaxDomains = 0;
       let totalMaxRecords = 0;
 
-      activeSubscriptions.forEach(sub => {
-        if (sub.plan) {
-          totalMaxDomains += sub.plan.maxDomains;
-          totalMaxRecords += sub.plan.maxRecords;
-        }
-      });
+      if (activeSubscriptions.length > 0 && activeSubscriptions[0].plan) {
+        // Use the first (and should be only) active plan
+        const activePlan = activeSubscriptions[0].plan;
+        totalMaxDomains = activePlan.maxDomains;
+        totalMaxRecords = activePlan.maxRecords;
+      }
 
       // Get current domain count
       const domainCount = await db.select({ count: sql<number>`count(*)` })
@@ -4890,6 +4916,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const currentDomains = domainCount[0]?.count || 0;
 
+      // Get current DNS record usage (excluding default InterServer records)
+      let totalUserRecords = 0;
+      let totalSystemRecords = 0;
+      let totalRecords = 0;
+
+      try {
+        const userDomains = await db.select()
+          .from(dnsDomainsTable)
+          .where(eq(dnsDomainsTable.userId, userId));
+
+        // Import InterServer API and DNS utilities
+        const { interServerApi } = await import('../interserver-api');
+        const { getDnsRecordUsageStats } = await import('../../shared/dns-record-utils');
+
+        for (const domain of userDomains) {
+          if (domain.interserverId) {
+            try {
+              const records = await interServerApi.getDnsDomain(domain.interserverId);
+
+              // Get detailed usage statistics for this domain
+              const usageStats = getDnsRecordUsageStats(records, domain.name);
+
+              totalUserRecords += usageStats.userCreated;
+              totalSystemRecords += usageStats.default;
+              totalRecords += usageStats.total;
+
+              console.log(`Domain ${domain.name}: Total: ${usageStats.total}, System: ${usageStats.default}, User: ${usageStats.userCreated}`);
+            } catch (recordError) {
+              console.warn(`Could not fetch records for domain ${domain.name}:`, recordError);
+            }
+          }
+        }
+
+        console.log(`User ${userId} DNS usage summary: Total records: ${totalRecords}, System records: ${totalSystemRecords}, User records: ${totalUserRecords}`);
+      } catch (recordCountError) {
+        console.warn('Could not fetch DNS record usage:', recordCountError);
+      }
+
       res.json({
         hasActivePlan: activeSubscriptions.length > 0,
         limits: {
@@ -4897,7 +4961,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           maxRecords: totalMaxRecords
         },
         usage: {
-          domains: currentDomains
+          domains: currentDomains,
+          records: totalUserRecords
         },
         canAddDomain: activeSubscriptions.length === 0 || currentDomains < totalMaxDomains,
         activePlans: activeSubscriptions.map(sub => sub.plan).filter(Boolean)

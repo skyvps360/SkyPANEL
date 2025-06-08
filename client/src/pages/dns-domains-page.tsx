@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { getDnsDomains, deleteDnsDomain } from "@/lib/api";
+import { getDnsDomains, deleteDnsDomain, getDnsPlanLimits } from "@/lib/api";
 import { AddDomainDialog } from "@/components/dns/AddDomainDialog";
 import { getBrandColors } from "@/lib/brand-theme";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
@@ -24,6 +24,25 @@ interface DnsDomain {
 interface DnsDomainsResponse {
   domains: DnsDomain[];
   warning?: string;
+}
+
+interface DnsPlanLimits {
+  hasActivePlan: boolean;
+  limits: {
+    maxDomains: number;
+    maxRecords: number;
+  };
+  usage: {
+    domains: number;
+    records: number;
+  };
+  canAddDomain: boolean;
+  activePlans: Array<{
+    id: number;
+    name: string;
+    maxDomains: number;
+    maxRecords: number;
+  }>;
 }
 
 export default function DnsDomainsPage() {
@@ -57,6 +76,15 @@ export default function DnsDomainsPage() {
   } = useQuery<DnsDomainsResponse>({
     queryKey: ["dns-domains"],
     queryFn: () => getDnsDomains() as any,
+  });
+
+  // Fetch DNS plan limits
+  const {
+    data: planLimits,
+    isLoading: isLoadingLimits
+  } = useQuery<DnsPlanLimits>({
+    queryKey: ["dns-plan-limits"],
+    queryFn: () => getDnsPlanLimits() as any,
   });
 
   // Delete domain mutation
@@ -207,14 +235,39 @@ export default function DnsDomainsPage() {
                 </div>
               </div>
               <div className="mt-6 lg:mt-0">
-                <Button
-                  onClick={() => setIsAddDialogOpen(true)}
-                  style={{ backgroundColor: brandColors.primary.full, color: 'white' }}
-                  className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow duration-200"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Domain
-                </Button>
+                {planLimits?.canAddDomain ? (
+                  <Button
+                    onClick={() => setIsAddDialogOpen(true)}
+                    style={{ backgroundColor: brandColors.primary.full, color: 'white' }}
+                    className="flex items-center gap-2 shadow-lg hover:shadow-xl transition-shadow duration-200"
+                    disabled={isLoadingLimits}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Domain
+                  </Button>
+                ) : (
+                  <div className="text-center">
+                    <Button
+                      disabled
+                      variant="outline"
+                      className="flex items-center gap-2 mb-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Domain
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Domain limit reached ({planLimits?.usage.domains || 0}/{planLimits?.limits.maxDomains || 0})
+                    </p>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => window.location.href = '/dns-plans'}
+                      className="text-xs"
+                    >
+                      Upgrade Plan
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -288,6 +341,72 @@ export default function DnsDomainsPage() {
           </CardContent>
         </Card>
 
+        {/* DNS Plan Limits Information */}
+        {planLimits && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                DNS Plan Usage
+              </CardTitle>
+              <CardDescription>
+                Current usage and limits for your DNS plan
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Domains</span>
+                    <span className="text-sm text-muted-foreground">
+                      {planLimits.usage.domains}/{planLimits.limits.maxDomains}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min((planLimits.usage.domains / planLimits.limits.maxDomains) * 100, 100)}%`,
+                        backgroundColor: planLimits.canAddDomain ? brandColors.primary.full : '#ef4444'
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">DNS Records</span>
+                    <span className="text-sm text-muted-foreground">
+                      {planLimits.usage.records || 0}/{planLimits.limits.maxRecords}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{
+                        width: `${Math.min(((planLimits.usage.records || 0) / planLimits.limits.maxRecords) * 100, 100)}%`,
+                        backgroundColor: (planLimits.usage.records || 0) < planLimits.limits.maxRecords ? brandColors.primary.full : '#ef4444'
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Current Plan</span>
+                    <span className="text-sm text-muted-foreground">
+                      {planLimits.activePlans?.[0]?.name || 'Free'}
+                    </span>
+                  </div>
+                  {!planLimits.canAddDomain && (
+                    <div className="text-sm text-red-600">
+                      Domain limit reached. Upgrade to add more domains.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Warning message if InterServer API has issues */}
       {domainsData?.warning && (
         <Card className="border-yellow-200 bg-yellow-50">
@@ -317,13 +436,37 @@ export default function DnsDomainsPage() {
               <p className="text-muted-foreground mb-4">
                 You haven't added any DNS domains yet. Add your first domain to get started.
               </p>
-              <Button 
-                onClick={() => setIsAddDialogOpen(true)}
-                style={{ backgroundColor: brandColors.primary.full, color: 'white' }}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Domain
-              </Button>
+              {planLimits?.canAddDomain ? (
+                <Button
+                  onClick={() => setIsAddDialogOpen(true)}
+                  style={{ backgroundColor: brandColors.primary.full, color: 'white' }}
+                  disabled={isLoadingLimits}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Your First Domain
+                </Button>
+              ) : (
+                <div>
+                  <Button
+                    disabled
+                    variant="outline"
+                    className="mb-2"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Your First Domain
+                  </Button>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Domain limit reached ({planLimits?.usage.domains || 0}/{planLimits?.limits.maxDomains || 0})
+                  </p>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={() => window.location.href = '/dns-plans'}
+                  >
+                    Upgrade Plan
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <DataTable

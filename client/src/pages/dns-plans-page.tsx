@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { DataTable } from "@/components/ui/data-table";
 import { Check, Globe, CreditCard, Calendar, AlertCircle, Search, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { getBrandColors } from "@/lib/brand-theme";
 
@@ -294,144 +295,192 @@ export default function DnsPlansPage() {
           </Card>
         )}
 
-        {/* Available Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {dnsPlans
-            .sort((a, b) => a.displayOrder - b.displayOrder) // Sort by display order
-            .map((plan) => {
-            const isActive = hasActiveSubscription(plan.id);
-            const subscription = getActiveSubscription(plan.id);
-            const currentSubscription = subscriptions.length > 0 ? subscriptions[0] : null;
-            const currentPlan = currentSubscription?.plan;
-            const isPurchasing = purchasingPlanId === plan.id;
-            const isFree = plan.price === 0;
+        {/* Available Plans Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              Compare DNS Plans
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              data={dnsPlans.sort((a, b) => a.displayOrder - b.displayOrder)}
+              enablePagination={false}
+              columns={[
+                {
+                  header: "Plan",
+                  accessorKey: "name",
+                  cell: (plan: DnsPlan) => {
+                    const isActive = hasActiveSubscription(plan.id);
+                    const isFree = plan.price === 0;
 
-            // Calculate prorated cost/refund for plan changes
-            let proratedAmount = 0;
-            let isUpgrade = false;
-            let isDowngrade = false;
-
-            if (currentPlan && currentPlan.id !== plan.id) {
-              const daysRemaining = currentSubscription ?
-                Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
-
-              if (plan.price > currentPlan.price) {
-                // Upgrade: charge prorated difference
-                isUpgrade = true;
-                proratedAmount = (plan.price - currentPlan.price) * (daysRemaining / 30);
-              } else if (plan.price < currentPlan.price) {
-                // Downgrade: refund prorated difference
-                isDowngrade = true;
-                proratedAmount = (currentPlan.price - plan.price) * (daysRemaining / 30);
-              }
-            }
-
-            const canAfford = isFree || !isUpgrade || customCredits >= proratedAmount;
-
-            return (
-              <Card key={plan.id} className={`relative ${isActive ? 'ring-2 ring-primary' : ''} ${isFree ? 'border-green-200 bg-green-50/50' : ''}`}>
-                {isActive && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground">Current Plan</Badge>
-                  </div>
-                )}
-                {isFree && !isActive && (
-                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-green-600 text-white">Free</Badge>
-                  </div>
-                )}
-
-                <CardHeader className="text-center">
-                  <CardTitle className="text-xl flex items-center justify-center gap-2">
-                    {plan.name}
-                    {isFree && <Badge variant="outline" className="text-green-600 border-green-600">FREE</Badge>}
-                  </CardTitle>
-                  <div className="text-3xl font-bold" style={{ color: isFree ? '#16a34a' : brandColors.primary.full }}>
-                    ${plan.price.toFixed(2)}
-                    <span className="text-sm font-normal text-muted-foreground">/month</span>
-                  </div>
-                  <p className="text-muted-foreground">{plan.description}</p>
-                </CardHeader>
-
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span className="text-sm">{plan.maxDomains} Domains</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span className="text-sm">{plan.maxRecords} DNS Records per Domain</span>
-                    </div>
-                    {plan.features.map((feature, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500" />
-                        <span className="text-sm">{feature}</span>
+                    return (
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{plan.name}</span>
+                            {isActive && (
+                              <Badge className="bg-primary text-primary-foreground text-xs">Current</Badge>
+                            )}
+                            {isFree && (
+                              <Badge variant="outline" className="text-green-600 border-green-600 text-xs">FREE</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Show prorated cost/refund information */}
-                  {!isActive && currentPlan && (isUpgrade || isDowngrade) && (
-                    <div className={`flex items-center gap-2 p-3 rounded-lg ${
-                      isUpgrade ? 'bg-blue-50 border border-blue-200' : 'bg-green-50 border border-green-200'
-                    }`}>
-                      <AlertCircle className={`h-4 w-4 ${isUpgrade ? 'text-blue-600' : 'text-green-600'}`} />
-                      <span className={`text-sm ${isUpgrade ? 'text-blue-700' : 'text-green-700'}`}>
-                        {isUpgrade
-                          ? `Upgrade cost: $${proratedAmount.toFixed(2)} (prorated)`
-                          : `Refund: $${proratedAmount.toFixed(2)} (prorated)`
-                        }
-                      </span>
+                    );
+                  },
+                },
+                {
+                  header: "Price",
+                  accessorKey: "price",
+                  cell: (plan: DnsPlan) => {
+                    const isFree = plan.price === 0;
+                    return (
+                      <div className="text-center">
+                        <div className={`text-lg font-bold ${isFree ? 'text-green-600' : 'text-primary'}`}>
+                          ${plan.price.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">/month</div>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  header: "Domains",
+                  accessorKey: "maxDomains",
+                  cell: (plan: DnsPlan) => (
+                    <div className="text-center">
+                      <div className="font-medium">{plan.maxDomains}</div>
+                      <div className="text-xs text-muted-foreground">domains</div>
                     </div>
-                  )}
-
-                  {!canAfford && !isActive && !isFree && isUpgrade && (
-                    <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                      <AlertCircle className="h-4 w-4 text-amber-600" />
-                      <span className="text-sm text-amber-700">
-                        Insufficient credits. Need ${(proratedAmount - customCredits).toFixed(2)} more.
-                      </span>
+                  ),
+                },
+                {
+                  header: "Records",
+                  accessorKey: "maxRecords",
+                  cell: (plan: DnsPlan) => (
+                    <div className="text-center">
+                      <div className="font-medium">{plan.maxRecords}</div>
+                      <div className="text-xs text-muted-foreground">per domain</div>
                     </div>
-                  )}
+                  ),
+                },
+                {
+                  header: "Features",
+                  cell: (plan: DnsPlan) => (
+                    <div className="space-y-1">
+                      {plan.features.slice(0, 3).map((feature, index) => (
+                        <div key={index} className="flex items-center gap-1 text-sm">
+                          <Check className="h-3 w-3 text-green-500 flex-shrink-0" />
+                          <span className="truncate">{feature}</span>
+                        </div>
+                      ))}
+                      {plan.features.length > 3 && (
+                        <div className="text-xs text-muted-foreground">
+                          +{plan.features.length - 3} more
+                        </div>
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  header: "Action",
+                  cell: (plan: DnsPlan) => {
+                    const isActive = hasActiveSubscription(plan.id);
+                    const subscription = getActiveSubscription(plan.id);
+                    const currentSubscription = subscriptions.length > 0 ? subscriptions[0] : null;
+                    const currentPlan = currentSubscription?.plan;
+                    const isPurchasing = purchasingPlanId === plan.id;
+                    const isFree = plan.price === 0;
 
-                  <Button
-                    className="w-full"
-                    disabled={isActive || (!canAfford && !isFree) || isPurchasing}
-                    onClick={() => handleChangePlan(plan.id)}
-                    variant={isActive ? "outline" : "default"}
-                    style={!isActive && canAfford ? {
-                      backgroundColor: isFree ? '#16a34a' : isUpgrade ? brandColors.primary.full : isDowngrade ? '#16a34a' : brandColors.primary.full,
-                      color: 'white'
-                    } : undefined}
-                  >
-                    {isPurchasing ? (
-                      "Processing..."
-                    ) : isActive ? (
-                      "Current Plan"
-                    ) : !canAfford && !isFree ? (
-                      "Insufficient Credits"
-                    ) : isFree ? (
-                      currentPlan ? "Downgrade to Free" : "Activate Free Plan"
-                    ) : isUpgrade ? (
-                      `Upgrade to ${plan.name}`
-                    ) : isDowngrade ? (
-                      `Downgrade to ${plan.name}`
-                    ) : (
-                      `Switch to ${plan.name}`
-                    )}
-                  </Button>
+                    // Calculate prorated cost/refund for plan changes
+                    let proratedAmount = 0;
+                    let isUpgrade = false;
+                    let isDowngrade = false;
 
-                  {isActive && subscription && (
-                    <p className="text-xs text-center text-muted-foreground">
-                      Renews on {new Date(subscription.nextPaymentDate).toLocaleDateString()}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                    if (currentPlan && currentPlan.id !== plan.id) {
+                      const daysRemaining = currentSubscription ?
+                        Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+
+                      if (plan.price > currentPlan.price) {
+                        isUpgrade = true;
+                        proratedAmount = (plan.price - currentPlan.price) * (daysRemaining / 30);
+                      } else if (plan.price < currentPlan.price) {
+                        isDowngrade = true;
+                        proratedAmount = (currentPlan.price - plan.price) * (daysRemaining / 30);
+                      }
+                    }
+
+                    const canAfford = isFree || !isUpgrade || customCredits >= proratedAmount;
+
+                    return (
+                      <div className="space-y-2">
+                        <Button
+                          size="sm"
+                          disabled={isActive || (!canAfford && !isFree) || isPurchasing}
+                          onClick={() => handleChangePlan(plan.id)}
+                          variant={isActive ? "outline" : "default"}
+                          className={`w-full ${
+                            !isActive && canAfford && isFree ? 'bg-green-600 hover:bg-green-700 text-white' :
+                            !isActive && canAfford && isUpgrade ? 'bg-primary hover:bg-primary/90 text-white' :
+                            !isActive && canAfford && isDowngrade ? 'bg-green-600 hover:bg-green-700 text-white' :
+                            ''
+                          }`}
+                        >
+                          {isPurchasing ? (
+                            "Processing..."
+                          ) : isActive ? (
+                            "Current Plan"
+                          ) : !canAfford && !isFree ? (
+                            "Insufficient Credits"
+                          ) : isFree ? (
+                            currentPlan ? "Downgrade" : "Activate"
+                          ) : isUpgrade ? (
+                            "Upgrade"
+                          ) : isDowngrade ? (
+                            "Downgrade"
+                          ) : (
+                            "Switch"
+                          )}
+                        </Button>
+
+                        {/* Show prorated cost/refund information */}
+                        {!isActive && currentPlan && (isUpgrade || isDowngrade) && (
+                          <div className={`text-xs p-2 rounded ${
+                            isUpgrade ? 'bg-blue-50 text-blue-700' : 'bg-green-50 text-green-700'
+                          }`}>
+                            {isUpgrade
+                              ? `Cost: $${proratedAmount.toFixed(2)}`
+                              : `Refund: $${proratedAmount.toFixed(2)}`
+                            }
+                          </div>
+                        )}
+
+                        {!canAfford && !isActive && !isFree && isUpgrade && (
+                          <div className="text-xs p-2 bg-amber-50 text-amber-700 rounded">
+                            Need ${(proratedAmount - customCredits).toFixed(2)} more
+                          </div>
+                        )}
+
+                        {isActive && subscription && (
+                          <div className="text-xs text-center text-muted-foreground">
+                            {plan.price === 0 ? 'Never expires' : `Renews ${new Date(subscription.nextPaymentDate).toLocaleDateString()}`}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  },
+                },
+              ]}
+              isLoading={plansLoading}
+              enableSearch={false}
+              emptyMessage="No DNS plans available"
+            />
+          </CardContent>
+        </Card>
 
 
       </div>

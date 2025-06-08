@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, ArrowLeft, Globe, Edit, Trash2, AlertCircle } from "lucide-react";
+import { Plus, ArrowLeft, Globe, Edit, Trash2, AlertCircle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -37,6 +37,45 @@ interface DnsRecordsResponse {
   interServerRecords?: DnsRecord[];
   interServerRaw?: any[];
   warning?: string;
+}
+
+// Helper function to determine if a record is a default InterServer record
+function isDefaultInterServerRecord(record: DnsRecord, domainName: string): boolean {
+  // Normalize domain name (remove trailing dot if present)
+  const normalizedDomain = domainName.replace(/\.$/, '');
+
+  // SOA records are always auto-created by InterServer
+  if (record.type === 'SOA') return true;
+
+  // NS records are auto-created and managed by the system
+  if (record.type === 'NS') return true;
+
+  // Default A records created by InterServer
+  if (record.type === 'A') {
+    const recordName = record.name.replace(/\.$/, ''); // Remove trailing dot
+
+    // Root domain A record (bare domain)
+    if (recordName === normalizedDomain) return true;
+
+    // Wildcard A record (*.domain)
+    if (recordName === `*.${normalizedDomain}`) return true;
+
+    // Localhost subdomain A record (localhost.domain)
+    if (recordName === `localhost.${normalizedDomain}`) return true;
+  }
+
+  // Default MX records created by InterServer
+  if (record.type === 'MX') {
+    const recordContent = record.content.replace(/\.$/, ''); // Remove trailing dot
+
+    // MX record pointing to mail.domain
+    if (recordContent === `mail.${normalizedDomain}`) return true;
+
+    // MX record pointing to the bare domain itself
+    if (recordContent === normalizedDomain) return true;
+  }
+
+  return false;
 }
 
 export default function DnsRecordsPage() {
@@ -115,9 +154,20 @@ export default function DnsRecordsPage() {
     {
       header: "Name",
       accessorKey: "name" as keyof DnsRecord,
-      cell: (record: DnsRecord) => (
-        <span className="font-mono text-sm">{record.name}</span>
-      ),
+      cell: (record: DnsRecord) => {
+        const isDefault = isDefaultInterServerRecord(record, recordsData?.domain?.name || '');
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-sm">{record.name}</span>
+            {isDefault && (
+              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-200">
+                <Shield className="h-3 w-3 mr-1" />
+                System
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: "Type",
@@ -159,27 +209,32 @@ export default function DnsRecordsPage() {
     {
       header: "Actions",
       accessorKey: "id" as keyof DnsRecord,
-      cell: (record: DnsRecord) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleEditRecord(record)}
-            className="hover:bg-primary hover:text-primary-foreground"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleDeleteRecord(record.id)}
-            className="hover:bg-destructive hover:text-destructive-foreground"
-            disabled={deleteMutation.isPending}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      ),
+      cell: (record: DnsRecord) => {
+        const isDefault = isDefaultInterServerRecord(record, recordsData?.domain?.name || '');
+        return (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEditRecord(record)}
+              className="hover:bg-primary hover:text-primary-foreground"
+              title={isDefault ? "Edit system record (doesn't count toward plan limits)" : "Edit record"}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeleteRecord(record.id)}
+              className="hover:bg-destructive hover:text-destructive-foreground"
+              disabled={deleteMutation.isPending}
+              title={isDefault ? "Delete system record (doesn't count toward plan limits)" : "Delete record"}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        );
+      },
       enableSorting: false,
     },
   ];
@@ -299,9 +354,15 @@ export default function DnsRecordsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             DNS Records ({recordsData?.records?.length || 0})
+            {recordsData?.records && recordsData.domain && (
+              <Badge variant="outline" className="ml-2">
+                {recordsData.records.filter(r => !isDefaultInterServerRecord(r, recordsData.domain.name)).length} user-created
+              </Badge>
+            )}
           </CardTitle>
           <CardDescription>
-            Manage DNS records for {recordsData?.domain?.name} via {companyName} DNS Management Service
+            Manage DNS records for {recordsData?.domain?.name} via {companyName} DNS Management Service.
+            System records (marked with "System" badge) are created automatically but can be edited or deleted. They don't count toward your plan limits.
           </CardDescription>
         </CardHeader>
         <CardContent>

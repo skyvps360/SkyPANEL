@@ -9,6 +9,7 @@ import {
   processRecordName,
   validateRecordName
 } from '@shared/dns-record-types';
+import { countUserCreatedRecords } from '@shared/dns-record-utils';
 import { z } from 'zod';
 
 const router = Router();
@@ -184,7 +185,7 @@ router.get('/domains', async (req: Request, res: Response) => {
 router.post('/domains', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    
+
     // Validate input
     const domainSchema = z.object({
       name: z.string().min(1, 'Domain name is required'),
@@ -200,6 +201,57 @@ router.post('/domains', async (req: Request, res: Response) => {
 
     if (!InterServerApi.validateIpAddress(ip)) {
       return res.status(400).json({ error: 'Invalid IP address format' });
+    }
+
+    // Check DNS plan limits BEFORE creating domain
+    const { dnsPlanSubscriptions, dnsPlans } = await import('../../shared/schema');
+    const { sql } = await import('drizzle-orm');
+
+    // Get user's active DNS plan subscriptions
+    const activeSubscriptions = await db.select({
+      planId: dnsPlanSubscriptions.planId,
+      plan: {
+        id: dnsPlans.id,
+        name: dnsPlans.name,
+        maxDomains: dnsPlans.maxDomains,
+        maxRecords: dnsPlans.maxRecords
+      }
+    })
+      .from(dnsPlanSubscriptions)
+      .leftJoin(dnsPlans, eq(dnsPlanSubscriptions.planId, dnsPlans.id))
+      .where(and(
+        eq(dnsPlanSubscriptions.userId, userId),
+        eq(dnsPlanSubscriptions.status, 'active')
+      ));
+
+    if (activeSubscriptions.length === 0) {
+      return res.status(403).json({
+        error: 'No active DNS plan found',
+        message: 'You need an active DNS plan to add domains. Please purchase a DNS plan first.'
+      });
+    }
+
+    // Get limits from the active plan
+    const activePlan = activeSubscriptions[0].plan;
+    if (!activePlan) {
+      return res.status(500).json({ error: 'DNS plan data not found' });
+    }
+
+    // Get current domain count
+    const domainCount = await db.select({ count: sql<number>`count(*)` })
+      .from(dnsDomains)
+      .where(eq(dnsDomains.userId, userId));
+
+    const currentDomains = domainCount[0]?.count || 0;
+
+    // Check if adding this domain would exceed the limit
+    if (currentDomains >= activePlan.maxDomains) {
+      return res.status(403).json({
+        error: 'Domain limit exceeded',
+        message: `You have reached your domain limit of ${activePlan.maxDomains}. Please upgrade your DNS plan to add more domains.`,
+        currentUsage: currentDomains,
+        limit: activePlan.maxDomains
+      });
     }
 
     // Check if domain already exists for this user
@@ -431,6 +483,74 @@ router.post('/domains/:id/records', async (req: Request, res: Response) => {
       return res.status(400).json({
         error: 'Domain not linked to InterServer',
         message: 'This domain does not have an InterServer ID and cannot manage DNS records'
+      });
+    }
+
+    // Check DNS plan limits for records BEFORE creating record
+    const { dnsPlanSubscriptions, dnsPlans } = await import('../../shared/schema');
+
+    // Get user's active DNS plan subscriptions
+    const activeSubscriptions = await db.select({
+      planId: dnsPlanSubscriptions.planId,
+      plan: {
+        id: dnsPlans.id,
+        name: dnsPlans.name,
+        maxDomains: dnsPlans.maxDomains,
+        maxRecords: dnsPlans.maxRecords
+      }
+    })
+      .from(dnsPlanSubscriptions)
+      .leftJoin(dnsPlans, eq(dnsPlanSubscriptions.planId, dnsPlans.id))
+      .where(and(
+        eq(dnsPlanSubscriptions.userId, userId),
+        eq(dnsPlanSubscriptions.status, 'active')
+      ));
+
+    if (activeSubscriptions.length === 0) {
+      return res.status(403).json({
+        error: 'No active DNS plan found',
+        message: 'You need an active DNS plan to add DNS records. Please purchase a DNS plan first.'
+      });
+    }
+
+    // Get limits from the active plan
+    const activePlan = activeSubscriptions[0].plan;
+    if (!activePlan) {
+      return res.status(500).json({ error: 'DNS plan data not found' });
+    }
+
+    // Get current record count for this domain from InterServer
+    let currentRecordCount = 0;
+    try {
+      const existingRecords = await interServerApi.getDnsDomain(domain.interserverId);
+
+      // Use utility function to get detailed usage statistics
+      const { getDnsRecordUsageStats } = await import('../../shared/dns-record-utils');
+      const usageStats = getDnsRecordUsageStats(existingRecords, domain.name);
+
+      currentRecordCount = usageStats.userCreated;
+
+      console.log(`Domain ${domain.name}: Total records: ${usageStats.total}, System records: ${usageStats.default}, User-created records: ${usageStats.userCreated}`);
+
+      // Log filtered system records for debugging (only in development)
+      if (process.env.NODE_ENV === 'development' && usageStats.default > 0) {
+        const systemRecords = existingRecords.filter(record => {
+          const { isDefaultInterServerRecord } = require('../../shared/dns-record-utils');
+          return isDefaultInterServerRecord(record, domain.name);
+        });
+        console.log(`System records filtered out:`, systemRecords.map(r => `${r.type}:${r.name}`));
+      }
+    } catch (recordCountError) {
+      console.warn('Could not fetch current record count, proceeding with limit check based on plan only:', recordCountError);
+    }
+
+    // Check if adding this record would exceed the limit
+    if (currentRecordCount >= activePlan.maxRecords) {
+      return res.status(403).json({
+        error: 'DNS record limit exceeded',
+        message: `You have reached your DNS record limit of ${activePlan.maxRecords} records per domain. Please upgrade your DNS plan to add more records.`,
+        currentRecords: currentRecordCount,
+        limit: activePlan.maxRecords
       });
     }
 
