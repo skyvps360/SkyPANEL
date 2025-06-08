@@ -25,7 +25,9 @@ interface Transaction {
 }
 
 const isCredit = (transaction: Transaction) => {
-  return transaction.type === 'credit' || transaction.type === 'virtfusion_credit';
+  return transaction.type === 'credit' ||
+         transaction.type === 'virtfusion_credit' ||
+         transaction.type === 'custom_credit';
 };
 
 const isDebit = (transaction: Transaction) => {

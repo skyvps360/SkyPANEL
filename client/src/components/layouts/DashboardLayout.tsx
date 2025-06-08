@@ -215,8 +215,12 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
 
 
-  // Fetch VirtFusion token balance
-  const { data: balanceData } = useQuery<{ virtFusionCredits: number, virtFusionTokens: number }>({
+  // Fetch balance data (both VirtFusion and custom credits)
+  const { data: balanceData } = useQuery<{
+    virtFusionCredits: number,
+    virtFusionTokens: number,
+    customCredits: number
+  }>({
     queryKey: ["/api/billing/balance"],
     staleTime: 30 * 1000, // 30 seconds
     enabled: !!user,
@@ -903,12 +907,12 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
             {/* Enhanced Right-side Actions */}
             <div className="flex items-center space-x-3">
-              {/* Enhanced Credit Balance */}
+              {/* VirtFusion Credits */}
               <Link
                 href="/billing"
-                className="hidden sm:flex items-center px-4 py-2.5 rounded-xl hover:shadow-sm transition-all duration-200 group"
+                className="hidden sm:flex items-center px-3 py-2 rounded-xl hover:shadow-sm transition-all duration-200 group"
                 style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
-                title="Go to Billing"
+                title="VirtFusion Credits - Go to Billing"
               >
                 <Coins
                   className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200"
@@ -916,6 +920,22 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                 />
                 <span className="text-sm font-semibold text-gray-900">
                   ${balanceData?.virtFusionCredits?.toFixed(2) || "0.00"}
+                </span>
+              </Link>
+
+              {/* Custom Credits */}
+              <Link
+                href="/billing"
+                className="hidden sm:flex items-center px-3 py-2 rounded-xl hover:shadow-sm transition-all duration-200 group"
+                style={{ backgroundColor: `var(--brand-secondary-lighter, ${brandColors.secondary.lighter})` }}
+                title="Custom Credits - Go to Billing"
+              >
+                <CreditCard
+                  className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200"
+                  style={{ color: `var(--brand-secondary, ${brandColors.secondary.full})` }}
+                />
+                <span className="text-sm font-semibold text-gray-900">
+                  ${balanceData?.customCredits?.toFixed(2) || "0.00"}
                 </span>
               </Link>
 

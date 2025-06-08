@@ -4,8 +4,9 @@ import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Globe, CreditCard, Calendar, AlertCircle } from "lucide-react";
+import { Check, Globe, CreditCard, Calendar, AlertCircle, Search, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { getBrandColors } from "@/lib/brand-theme";
 
 interface DnsPlan {
@@ -40,6 +41,9 @@ export default function DnsPlansPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [purchasingPlanId, setPurchasingPlanId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const brandColors = getBrandColors();
 
   // Fetch available DNS plans
@@ -151,6 +155,17 @@ export default function DnsPlansPage() {
     return subscriptions.find(sub => sub.planId === planId && sub.status === 'active');
   };
 
+  // Filter and paginate subscriptions
+  const filteredSubscriptions = subscriptions.filter(sub =>
+    sub.plan.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredSubscriptions.length / itemsPerPage);
+  const paginatedSubscriptions = filteredSubscriptions.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   const customCredits = balanceData?.customCredits || 0;
 
   if (plansLoading || subscriptionsLoading) {
@@ -183,29 +198,72 @@ export default function DnsPlansPage() {
                 </p>
               </div>
             </div>
-
-            {/* Custom Credits Balance */}
-            <div className="flex items-center space-x-2 mt-6">
-              <CreditCard className="h-5 w-5 text-secondary" />
-              <span className="text-sm font-medium text-foreground">
-                Available Custom Credits: <span className="text-secondary font-bold">${customCredits.toFixed(2)}</span>
-              </span>
-            </div>
           </div>
         </div>
+
+        {/* Custom Credits Card - Moved to top */}
+        <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
+          <div className="px-6 py-4 flex items-center justify-between border-b border-border">
+            <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-secondary" />
+              Custom Credits
+            </CardTitle>
+            <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
+              <Plus className="h-5 w-5 text-secondary" />
+            </div>
+          </div>
+          <CardContent className="px-6 py-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-1 mb-2">
+                  <span className={`text-2xl font-bold ${customCredits < 0 ? 'text-red-600' : 'text-secondary'}`}>
+                    ${customCredits.toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Available for DNS plan purchases
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                className="border-secondary/20 text-secondary hover:bg-secondary/10"
+                onClick={() => window.location.href = '/billing'}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Credits
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Active Subscriptions */}
         {subscriptions.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Your Active DNS Plans
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Your Active DNS Plans ({filteredSubscriptions.length})
+                </CardTitle>
+                {subscriptions.length > 5 && (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search plans..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1); // Reset to first page when searching
+                      }}
+                      className="pl-10 w-64"
+                    />
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {subscriptions.map((subscription) => (
+                {paginatedSubscriptions.map((subscription) => (
                   <div key={subscription.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <h3 className="font-medium">{subscription.plan.name}</h3>
@@ -220,7 +278,7 @@ export default function DnsPlansPage() {
                       <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
                         {subscription.status}
                       </Badge>
-                      {subscription.status === 'active' && (
+                      {subscription.status === 'active' && subscription.plan.price > 0 && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -234,29 +292,72 @@ export default function DnsPlansPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredSubscriptions.length)} of {filteredSubscriptions.length} plans
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <span className="text-sm font-medium">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
 
         {/* Available Plans */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {dnsPlans.map((plan) => {
+          {dnsPlans
+            .sort((a, b) => a.displayOrder - b.displayOrder) // Sort by display order
+            .map((plan) => {
             const isActive = hasActiveSubscription(plan.id);
             const subscription = getActiveSubscription(plan.id);
-            const canAfford = customCredits >= plan.price;
+            const canAfford = customCredits >= plan.price || plan.price === 0; // Free plans are always affordable
             const isPurchasing = purchasingPlanId === plan.id;
+            const isFree = plan.price === 0;
 
             return (
-              <Card key={plan.id} className={`relative ${isActive ? 'ring-2 ring-primary' : ''}`}>
+              <Card key={plan.id} className={`relative ${isActive ? 'ring-2 ring-primary' : ''} ${isFree ? 'border-green-200 bg-green-50/50' : ''}`}>
                 {isActive && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground">Current Plan</Badge>
                   </div>
                 )}
-                
+                {isFree && !isActive && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-green-600 text-white">Free</Badge>
+                  </div>
+                )}
+
                 <CardHeader className="text-center">
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <div className="text-3xl font-bold" style={{ color: brandColors.primary.full }}>
+                  <CardTitle className="text-xl flex items-center justify-center gap-2">
+                    {plan.name}
+                    {isFree && <Badge variant="outline" className="text-green-600 border-green-600">FREE</Badge>}
+                  </CardTitle>
+                  <div className="text-3xl font-bold" style={{ color: isFree ? '#16a34a' : brandColors.primary.full }}>
                     ${plan.price.toFixed(2)}
                     <span className="text-sm font-normal text-muted-foreground">/month</span>
                   </div>
@@ -281,7 +382,7 @@ export default function DnsPlansPage() {
                     ))}
                   </div>
 
-                  {!canAfford && !isActive && (
+                  {!canAfford && !isActive && !isFree && (
                     <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                       <AlertCircle className="h-4 w-4 text-amber-600" />
                       <span className="text-sm text-amber-700">
@@ -292,19 +393,21 @@ export default function DnsPlansPage() {
 
                   <Button
                     className="w-full"
-                    disabled={isActive || !canAfford || isPurchasing}
+                    disabled={isActive || (!canAfford && !isFree) || isPurchasing}
                     onClick={() => handlePurchasePlan(plan.id)}
                     style={!isActive && canAfford ? {
-                      backgroundColor: brandColors.primary.full,
+                      backgroundColor: isFree ? '#16a34a' : brandColors.primary.full,
                       color: 'white'
                     } : undefined}
                   >
                     {isPurchasing ? (
-                      "Purchasing..."
+                      "Activating..."
                     ) : isActive ? (
                       "Current Plan"
-                    ) : !canAfford ? (
+                    ) : !canAfford && !isFree ? (
                       "Insufficient Credits"
+                    ) : isFree ? (
+                      "Activate Free Plan"
                     ) : (
                       "Purchase Plan"
                     )}
@@ -321,25 +424,7 @@ export default function DnsPlansPage() {
           })}
         </div>
 
-        {/* Need More Credits */}
-        {customCredits < Math.min(...dnsPlans.map(p => p.price)) && (
-          <Card className="border-amber-200 bg-amber-50">
-            <CardContent className="p-6 text-center">
-              <CreditCard className="h-12 w-12 mx-auto text-amber-600 mb-4" />
-              <h3 className="text-lg font-medium text-amber-800 mb-2">Need More Credits?</h3>
-              <p className="text-amber-700 mb-4">
-                Add custom credits to your account to purchase DNS plans.
-              </p>
-              <Button
-                variant="outline"
-                className="border-amber-300 text-amber-800 hover:bg-amber-100"
-                onClick={() => window.location.href = '/billing'}
-              >
-                Add Custom Credits
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+
       </div>
     </DashboardLayout>
   );
