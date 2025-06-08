@@ -195,13 +195,15 @@ export default function BillingPage() {
   const isDebit = (transaction: Transaction) => {
     return transaction.type === 'debit' ||
            transaction.type === 'virtfusion_credit_removal' ||
-           transaction.type === 'virtfusion_deduction';
+           transaction.type === 'virtfusion_deduction' ||
+           transaction.type === 'dns_plan_purchase' ||
+           transaction.amount < 0; // Also include any transaction with negative amount as spending
   };
 
-  // Calculate billing summary using VirtFusion data only
+  // Calculate billing summary combining both VirtFusion and custom credit data
   const hasVirtFusionBalance = balanceData?.virtFusionCredits && balanceData.virtFusionCredits > 0;
 
-  // Calculate the spent and added amounts for the last 30 days from transactions
+  // Calculate the spent and added amounts for the last 30 days from transactions (includes both VirtFusion and custom credits)
   const spentFromTransactions = transactions
     .filter(t => isDebit(t) && new Date(t.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
@@ -215,8 +217,8 @@ export default function BillingPage() {
     balance: balanceData?.virtFusionCredits ?? 0,
     virtFusionTokens: balanceData?.virtFusionTokens ?? 0,
 
-    // Use VirtFusion API data if available, otherwise fall back to transaction calculation
-    spent30Days: (usageData && 'usage' in usageData) ? usageData.usage : spentFromTransactions,
+    // Combine VirtFusion API usage data with all transaction-based spending (VirtFusion + custom credits)
+    spent30Days: ((usageData && 'usage' in usageData) ? usageData.usage : 0) + spentFromTransactions,
     added30Days: addedFromTransactions,
   };
 

@@ -33,7 +33,10 @@ const isCredit = (transaction: Transaction) => {
 const isDebit = (transaction: Transaction) => {
   return (
     transaction.type === "debit" ||
-    transaction.type === "virtfusion_credit_removal"
+    transaction.type === "virtfusion_credit_removal" ||
+    transaction.type === "virtfusion_deduction" ||
+    transaction.type === "dns_plan_purchase" ||
+    transaction.amount < 0 // Also include any transaction with negative amount as spending
   );
 };
 
