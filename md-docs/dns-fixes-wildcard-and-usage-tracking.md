@@ -45,11 +45,31 @@ if (trimmed === '*.@' || trimmed === '*@') {
 - `*.subdomain` - Wildcard for specific subdomain
 - `*.subdomain.@` - Wildcard for subdomain of root domain
 
+#### 3. Frontend Component Updates
+Updated DNS record dialog components to use shared validation:
+
+**AddRecordDialog.tsx**:
+- Removed local `validateSubdomainPart` function
+- Now imports and uses `validateRecordName` from shared module
+- Updated form descriptions to mention wildcard support
+- Enhanced error messages to include wildcard examples
+
+**EditRecordDialog.tsx**:
+- Removed local `validateSubdomainPart` function
+- Now imports and uses `validateRecordName` from shared module
+- Enhanced `convertToEditFormat` function to handle wildcard records
+- Converts `*.domain.com` to `*.@` for easier editing
+- Converts `*.subdomain.domain.com` to `*.subdomain.@`
+
 ### Testing
 Created comprehensive test suite in `scripts/test-wildcard-dns-validation.ts`:
 - 13 validation tests (100% pass rate)
 - 7 processing tests (100% pass rate)
 - Covers edge cases and invalid patterns
+
+Additional test suites:
+- `scripts/test-wildcard-edit-format.ts` - Edit format conversion (10/10 tests pass)
+- `scripts/test-frontend-wildcard-validation.ts` - Frontend validation (22/22 tests pass)
 
 ## Issue 2: DNS Records Usage Tracking
 
@@ -149,7 +169,11 @@ const { interServerApi } = await import('./interserver-api');
 - `server/routes/dns.ts` - Usage tracking API
 - `server/routes_new.ts` - Import path fix
 - `client/src/pages/dns-domains-page.tsx` - Usage display
+- `client/src/components/dns/AddRecordDialog.tsx` - Frontend wildcard validation
+- `client/src/components/dns/EditRecordDialog.tsx` - Frontend wildcard validation and edit format conversion
 - `scripts/test-wildcard-dns-validation.ts` - Test suite
+- `scripts/test-wildcard-edit-format.ts` - Edit format conversion tests
+- `scripts/test-frontend-wildcard-validation.ts` - Frontend validation tests
 
 ## Future Enhancements
 1. Real-time usage updates via WebSocket

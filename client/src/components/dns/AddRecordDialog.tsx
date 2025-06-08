@@ -37,103 +37,16 @@ import {
   getContentPlaceholder,
   getContentDescription,
   requiresPriority,
-  validateDnsRecordContent
+  validateDnsRecordContent,
+  validateRecordName
 } from "@shared/dns-record-types";
 
-/**
- * Validates a subdomain part (without @ symbols)
- */
-function validateSubdomainPart(subdomain: string): boolean {
-  if (!subdomain || subdomain.trim() === '') return false;
 
-  const trimmed = subdomain.trim();
-
-  // Basic validation: only alphanumeric, dots, and hyphens allowed
-  if (!/^[a-zA-Z0-9.-]+$/.test(trimmed)) return false;
-
-  // Cannot start or end with hyphen or dot
-  if (trimmed.startsWith('-') || trimmed.endsWith('-') ||
-      trimmed.startsWith('.') || trimmed.endsWith('.')) return false;
-
-  // Cannot have consecutive dots
-  if (trimmed.includes('..')) return false;
-
-  // Each label (part between dots) must be valid
-  const labels = trimmed.split('.');
-  for (const label of labels) {
-    // Each label must be 1-63 characters
-    if (label.length === 0 || label.length > 63) return false;
-    // Cannot start or end with hyphen
-    if (label.startsWith('-') || label.endsWith('-')) return false;
-    // Must contain at least one character
-    if (!/^[a-zA-Z0-9-]+$/.test(label)) return false;
-  }
-
-  return true;
-}
 
 // Form validation schema
 const recordSchema = z.object({
-  name: z.string().refine((name) => {
-    // Allow "@" for root domain
-    if (name === '@') return true;
-    // Allow empty string for root domain
-    if (name.trim() === '') return true;
-
-    const trimmed = name.trim();
-
-    // Allow @ symbol notation formats:
-    // - "subdomain.@" for subdomain of root domain
-    // - "subdomain@" for subdomain of root domain (alternative notation)
-    if (trimmed.includes('@')) {
-      // Check for valid @ symbol usage patterns
-      if (trimmed === '@') return true; // Root domain
-      if (trimmed.endsWith('.@')) {
-        // Format: "subdomain.@" - validate the subdomain part
-        const subdomain = trimmed.slice(0, -2);
-        return validateSubdomainPart(subdomain);
-      }
-      if (trimmed.endsWith('@')) {
-        // Format: "subdomain@" - validate the subdomain part
-        const subdomain = trimmed.slice(0, -1);
-        return validateSubdomainPart(subdomain);
-      }
-      // Invalid @ symbol usage
-      return false;
-    }
-
-    // Regular subdomain validation
-    return validateSubdomainPart(trimmed);
-  }, (name) => {
-    const trimmed = name.trim();
-
-    // Specific error messages for different validation failures
-    if (trimmed.includes('@') && trimmed !== '@' && !trimmed.endsWith('.@') && !trimmed.endsWith('@')) {
-      return { message: "Invalid @ symbol usage. Use '@' for root domain, 'subdomain.@' or 'subdomain@' for subdomains of root domain." };
-    }
-
-    // Check for invalid @ symbol patterns
-    if (trimmed.includes('@')) {
-      if (trimmed.startsWith('@') && trimmed !== '@') {
-        return { message: "@ symbol cannot be at the beginning. Use '@' for root domain or 'subdomain@' for subdomains." };
-      }
-      if (trimmed.includes('@.') || trimmed.includes('.@.')) {
-        return { message: "Invalid @ symbol placement. Use 'subdomain.@' or 'subdomain@' format." };
-      }
-      if ((trimmed.match(/@/g) || []).length > 1) {
-        return { message: "Only one @ symbol is allowed per record name." };
-      }
-    }
-
-    // Validate subdomain part for @ notation
-    if (trimmed.endsWith('.@') || trimmed.endsWith('@')) {
-      const subdomain = trimmed.endsWith('.@') ? trimmed.slice(0, -2) : trimmed.slice(0, -1);
-      if (!validateSubdomainPart(subdomain)) {
-        return { message: "Invalid subdomain format before @ symbol. Use valid subdomain names like 'www', 'mail', 'api.v1'." };
-      }
-    }
-
-    return { message: "Invalid record name format. Use '@' for root domain, 'subdomain.@' or 'subdomain@' for subdomains, or regular subdomain names." };
+  name: z.string().refine((name) => validateRecordName(name), {
+    message: "Invalid record name format. Use '@' for root domain, 'subdomain.@' or 'subdomain@' for subdomains, wildcard patterns like '*', '*.@', '*.subdomain', or regular subdomain names."
   }),
   // VALID_DNS_RECORD_TYPES is exported as a `readonly [...]` tuple – pass it
   // directly so Zod can infer the literal union.
@@ -249,7 +162,7 @@ export function AddRecordDialog({
                     />
                   </FormControl>
                   <FormDescription>
-                    Enter '@' for root domain, 'subdomain.@' or 'subdomain@' for subdomains of root, or regular subdomain names
+                    Enter '@' for root domain, 'subdomain.@' or 'subdomain@' for subdomains, wildcard patterns like '*', '*.@', '*.subdomain', or regular subdomain names
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
