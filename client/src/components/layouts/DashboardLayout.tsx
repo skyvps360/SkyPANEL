@@ -300,6 +300,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       url: "/dns",
       icon: <Globe className="h-4 w-4" />
     },
+    {
+      id: "dns-plans",
+      name: "DNS Plans",
+      description: "Purchase and manage DNS service plans",
+      url: "/dns-plans",
+      icon: <CreditCard className="h-4 w-4" />
+    },
     // {
     //   id: "api-docs",
     //   name: "API Documentation",
@@ -362,6 +369,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: "DNS Management",
       href: "/dns",
       icon: <Globe className="h-5 w-5 mr-3" />,
+    },
+    {
+      name: "DNS Plans",
+      href: "/dns-plans",
+      icon: <CreditCard className="h-5 w-5 mr-3" />,
     },
    // {
    //   name: "API Documentation",

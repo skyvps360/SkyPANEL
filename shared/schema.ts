@@ -110,7 +110,97 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
 
+// User Credits (Custom Credits System - separate from VirtFusion)
+export const userCredits = pgTable("user_credits", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  balance: real("balance").notNull().default(0), // Balance in USD
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
 
+export const insertUserCreditsSchema = createInsertSchema(userCredits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertUserCredits = z.infer<typeof insertUserCreditsSchema>;
+export type UserCredits = typeof userCredits.$inferSelect;
+
+// Credit Transactions (Audit trail for custom credit operations)
+export const creditTransactions = pgTable("credit_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  amount: real("amount").notNull(), // Positive for credits, negative for debits
+  type: text("type").notNull(), // 'purchase', 'admin_add', 'admin_remove', 'dns_plan_purchase', 'refund'
+  description: text("description").notNull(),
+  status: text("status").notNull().default("completed"), // 'pending', 'completed', 'failed'
+  paymentMethod: text("paymentMethod"), // 'paypal', 'admin', etc.
+  paymentId: text("paymentId"), // PayPal payment ID or admin reference
+  adminUserId: integer("adminUserId").references(() => users.id, { onDelete: 'set null' }), // Admin who performed the action
+  adminReason: text("adminReason"), // Reason provided by admin
+  balanceBefore: real("balanceBefore").notNull(), // Balance before transaction
+  balanceAfter: real("balanceAfter").notNull(), // Balance after transaction
+  metadata: json("metadata").default({}), // Additional transaction data
+  createdAt: timestamp("createdAt").defaultNow(),
+});
+
+export const insertCreditTransactionSchema = createInsertSchema(creditTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCreditTransaction = z.infer<typeof insertCreditTransactionSchema>;
+export type CreditTransaction = typeof creditTransactions.$inferSelect;
+
+// DNS Plans (Pricing structure for DNS service tiers)
+export const dnsPlans = pgTable("dns_plans", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // 'Basic', 'Pro', 'Enterprise'
+  description: text("description").notNull(),
+  price: real("price").notNull(), // Monthly price in USD
+  maxDomains: integer("maxDomains").notNull(), // Maximum domains allowed
+  maxRecords: integer("maxRecords").notNull(), // Maximum DNS records per domain
+  features: json("features").default([]), // Array of feature strings
+  isActive: boolean("isActive").default(true).notNull(),
+  displayOrder: integer("displayOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
+
+export const insertDnsPlanSchema = createInsertSchema(dnsPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertDnsPlan = z.infer<typeof insertDnsPlanSchema>;
+export type DnsPlan = typeof dnsPlans.$inferSelect;
+
+// DNS Plan Subscriptions (User subscription management)
+export const dnsPlanSubscriptions = pgTable("dns_plan_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  planId: integer("planId").notNull().references(() => dnsPlans.id, { onDelete: 'cascade' }),
+  status: text("status").notNull().default("active"), // 'active', 'cancelled', 'expired'
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate").notNull(),
+  autoRenew: boolean("autoRenew").default(true).notNull(),
+  lastPaymentDate: timestamp("lastPaymentDate"),
+  nextPaymentDate: timestamp("nextPaymentDate"),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow(),
+});
+
+export const insertDnsPlanSubscriptionSchema = createInsertSchema(dnsPlanSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertDnsPlanSubscription = z.infer<typeof insertDnsPlanSubscriptionSchema>;
+export type DnsPlanSubscription = typeof dnsPlanSubscriptions.$inferSelect;
 
 // Unified Support Departments (for both tickets and chat)
 export const supportDepartments = pgTable("support_departments", {

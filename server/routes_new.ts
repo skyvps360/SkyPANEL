@@ -41,14 +41,31 @@ import {
   ticketMessages,
   settings,
   ticketDepartments,
+  userCredits as userCreditsTable,
+  creditTransactions as creditTransactionsTable,
+  dnsPlans as dnsPlansTable,
+  dnsPlanSubscriptions as dnsPlanSubscriptionsTable,
+  dnsDomains as dnsDomainsTable,
   insertTicketSchema,
   insertTicketMessageSchema,
   insertTicketDepartmentSchema,
+  insertUserCreditsSchema,
+  insertCreditTransactionSchema,
+  insertDnsPlanSchema,
+  insertDnsPlanSubscriptionSchema,
   InsertTransaction,
+  InsertUserCredits,
+  InsertCreditTransaction,
+  InsertDnsPlan,
+  InsertDnsPlanSubscription,
   type Transaction,
   type User,
   type TicketDepartment,
-  type InsertTicketDepartment
+  type InsertTicketDepartment,
+  type UserCredits,
+  type CreditTransaction,
+  type DnsPlan,
+  type DnsPlanSubscription
 } from "@shared/schema";
 import { z, ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -4001,7 +4018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Get current VirtFusion token balance
+  // Get current balance (both VirtFusion tokens and custom credits)
   app.get("/api/billing/balance", isAuthenticated, async (req, res) => {
     try {
       const user = await storage.getUser(req.user!.id);
@@ -4009,11 +4026,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Initialize response with VirtFusion data only
+      // Initialize response with both VirtFusion and custom credit data
       const response = {
         virtFusionCredits: 0,
-        virtFusionTokens: 0
+        virtFusionTokens: 0,
+        customCredits: 0
       };
+
+      // Fetch custom credits from local database
+      try {
+        const userCredits = await db.select()
+          .from(userCreditsTable)
+          .where(eq(userCreditsTable.userId, user.id))
+          .limit(1);
+
+        if (userCredits.length > 0) {
+          response.customCredits = userCredits[0].balance || 0;
+        }
+      } catch (customCreditsError) {
+        console.error("Error fetching custom credits:", customCreditsError);
+        // Continue with 0 balance if we can't fetch custom credits
+      }
 
       // If user has VirtFusion account linked, fetch their tokens
       if (user.virtFusionId) {
@@ -4039,7 +4072,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(response);
     } catch (error: any) {
-      console.error(`Error fetching VirtFusion balance:`, error);
+      console.error(`Error fetching balance:`, error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -4399,6 +4432,492 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to verify payment with PayPal. Please try again or contact support.",
         details: error.message
       });
+    }
+  });
+
+  // Custom Credits System Endpoints
+
+  // DNS Plans Management Endpoints
+
+  // Get all available DNS plans
+  app.get("/api/dns-plans", async (req, res) => {
+    try {
+      const plans = await db.select()
+        .from(dnsPlansTable)
+        .where(eq(dnsPlansTable.isActive, true))
+        .orderBy(dnsPlansTable.displayOrder, dnsPlansTable.price);
+
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Error fetching DNS plans:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's DNS plan subscriptions
+  app.get("/api/dns-plans/subscriptions", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+
+      const subscriptions = await db.select({
+        id: dnsPlanSubscriptionsTable.id,
+        planId: dnsPlanSubscriptionsTable.planId,
+        status: dnsPlanSubscriptionsTable.status,
+        startDate: dnsPlanSubscriptionsTable.startDate,
+        endDate: dnsPlanSubscriptionsTable.endDate,
+        autoRenew: dnsPlanSubscriptionsTable.autoRenew,
+        lastPaymentDate: dnsPlanSubscriptionsTable.lastPaymentDate,
+        nextPaymentDate: dnsPlanSubscriptionsTable.nextPaymentDate,
+        createdAt: dnsPlanSubscriptionsTable.createdAt,
+        plan: {
+          id: dnsPlansTable.id,
+          name: dnsPlansTable.name,
+          description: dnsPlansTable.description,
+          price: dnsPlansTable.price,
+          maxDomains: dnsPlansTable.maxDomains,
+          maxRecords: dnsPlansTable.maxRecords,
+          features: dnsPlansTable.features
+        }
+      })
+        .from(dnsPlanSubscriptionsTable)
+        .leftJoin(dnsPlansTable, eq(dnsPlanSubscriptionsTable.planId, dnsPlansTable.id))
+        .where(eq(dnsPlanSubscriptionsTable.userId, userId))
+        .orderBy(desc(dnsPlanSubscriptionsTable.createdAt));
+
+      res.json(subscriptions);
+    } catch (error: any) {
+      console.error("Error fetching DNS plan subscriptions:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Purchase a DNS plan using custom credits
+  app.post("/api/dns-plans/purchase", isAuthenticated, async (req, res) => {
+    try {
+      const { planId } = req.body;
+      const userId = req.user!.id;
+
+      if (!planId) {
+        return res.status(400).json({ error: "Plan ID is required" });
+      }
+
+      // Get the DNS plan
+      const [plan] = await db.select()
+        .from(dnsPlansTable)
+        .where(and(eq(dnsPlansTable.id, planId), eq(dnsPlansTable.isActive, true)))
+        .limit(1);
+
+      if (!plan) {
+        return res.status(404).json({ error: "DNS plan not found or inactive" });
+      }
+
+      // Check if user already has an active subscription for this plan
+      const existingSubscription = await db.select()
+        .from(dnsPlanSubscriptionsTable)
+        .where(and(
+          eq(dnsPlanSubscriptionsTable.userId, userId),
+          eq(dnsPlanSubscriptionsTable.planId, planId),
+          eq(dnsPlanSubscriptionsTable.status, 'active')
+        ))
+        .limit(1);
+
+      if (existingSubscription.length > 0) {
+        return res.status(400).json({ error: "You already have an active subscription for this plan" });
+      }
+
+      // Get user's custom credits balance
+      const [userCredits] = await db.select()
+        .from(userCreditsTable)
+        .where(eq(userCreditsTable.userId, userId))
+        .limit(1);
+
+      const currentBalance = userCredits?.balance || 0;
+
+      if (currentBalance < plan.price) {
+        return res.status(400).json({
+          error: "Insufficient custom credits balance",
+          required: plan.price,
+          available: currentBalance
+        });
+      }
+
+      const newBalance = currentBalance - plan.price;
+      const now = new Date();
+      const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+      const nextPaymentDate = new Date(endDate.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days before expiry
+
+      // Create transaction record in main transactions table
+      const transaction: InsertTransaction = {
+        userId: userId,
+        amount: -plan.price, // Negative for debit
+        type: "dns_plan_purchase",
+        description: `DNS Plan Purchase: ${plan.name}`,
+        status: "completed",
+        paymentMethod: "custom_credits"
+      };
+
+      const createdTransaction = await storage.createTransaction(transaction);
+
+      // Start database transaction
+      await db.transaction(async (tx) => {
+        // Update user credits balance
+        if (userCredits) {
+          await tx.update(userCreditsTable)
+            .set({
+              balance: newBalance,
+              updatedAt: new Date()
+            })
+            .where(eq(userCreditsTable.userId, userId));
+        } else {
+          // Create user credits record if it doesn't exist (shouldn't happen, but safety check)
+          await tx.insert(userCreditsTable).values({
+            userId: userId,
+            balance: newBalance
+          });
+        }
+
+        // Create credit transaction record (audit trail)
+        await tx.insert(creditTransactionsTable).values({
+          userId: userId,
+          amount: -plan.price, // Negative for debit
+          type: 'dns_plan_purchase',
+          description: `DNS Plan Purchase: ${plan.name}`,
+          status: 'completed',
+          paymentMethod: 'custom_credits',
+          balanceBefore: currentBalance,
+          balanceAfter: newBalance,
+          metadata: {
+            planId: plan.id,
+            planName: plan.name,
+            mainTransactionId: createdTransaction.id
+          }
+        });
+
+        // Create DNS plan subscription
+        await tx.insert(dnsPlanSubscriptionsTable).values({
+          userId: userId,
+          planId: plan.id,
+          status: 'active',
+          startDate: now,
+          endDate: endDate,
+          autoRenew: true,
+          lastPaymentDate: now,
+          nextPaymentDate: nextPaymentDate
+        });
+      });
+
+      console.log(`DNS plan purchased successfully: ${plan.name} for user ${userId}`);
+
+      res.json({
+        success: true,
+        plan: plan,
+        newBalance: newBalance,
+        subscriptionEndDate: endDate,
+        transactionId: createdTransaction.id,
+        message: `Successfully purchased ${plan.name} DNS plan`
+      });
+
+    } catch (error: any) {
+      console.error("Error purchasing DNS plan:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Cancel a DNS plan subscription
+  app.post("/api/dns-plans/cancel", isAuthenticated, async (req, res) => {
+    try {
+      const { subscriptionId } = req.body;
+      const userId = req.user!.id;
+
+      if (!subscriptionId) {
+        return res.status(400).json({ error: "Subscription ID is required" });
+      }
+
+      // Get the subscription
+      const [subscription] = await db.select()
+        .from(dnsPlanSubscriptionsTable)
+        .where(and(
+          eq(dnsPlanSubscriptionsTable.id, subscriptionId),
+          eq(dnsPlanSubscriptionsTable.userId, userId),
+          eq(dnsPlanSubscriptionsTable.status, 'active')
+        ))
+        .limit(1);
+
+      if (!subscription) {
+        return res.status(404).json({ error: "Active subscription not found" });
+      }
+
+      // Update subscription status to cancelled
+      await db.update(dnsPlanSubscriptionsTable)
+        .set({
+          status: 'cancelled',
+          autoRenew: false,
+          updatedAt: new Date()
+        })
+        .where(eq(dnsPlanSubscriptionsTable.id, subscriptionId));
+
+      console.log(`DNS plan subscription cancelled: ${subscriptionId} for user ${userId}`);
+
+      res.json({
+        success: true,
+        message: "DNS plan subscription cancelled successfully"
+      });
+
+    } catch (error: any) {
+      console.error("Error cancelling DNS plan subscription:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get user's DNS plan limits and usage
+  app.get("/api/dns-plans/limits", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+
+      // Get user's active DNS plan subscriptions
+      const activeSubscriptions = await db.select({
+        planId: dnsPlanSubscriptionsTable.planId,
+        plan: {
+          id: dnsPlansTable.id,
+          name: dnsPlansTable.name,
+          maxDomains: dnsPlansTable.maxDomains,
+          maxRecords: dnsPlansTable.maxRecords
+        }
+      })
+        .from(dnsPlanSubscriptionsTable)
+        .leftJoin(dnsPlansTable, eq(dnsPlanSubscriptionsTable.planId, dnsPlansTable.id))
+        .where(and(
+          eq(dnsPlanSubscriptionsTable.userId, userId),
+          eq(dnsPlanSubscriptionsTable.status, 'active')
+        ));
+
+      // Calculate total limits from all active plans
+      let totalMaxDomains = 0;
+      let totalMaxRecords = 0;
+
+      activeSubscriptions.forEach(sub => {
+        if (sub.plan) {
+          totalMaxDomains += sub.plan.maxDomains;
+          totalMaxRecords += sub.plan.maxRecords;
+        }
+      });
+
+      // Get current domain count
+      const domainCount = await db.select({ count: sql<number>`count(*)` })
+        .from(dnsDomainsTable)
+        .where(eq(dnsDomainsTable.userId, userId));
+
+      const currentDomains = domainCount[0]?.count || 0;
+
+      res.json({
+        hasActivePlan: activeSubscriptions.length > 0,
+        limits: {
+          maxDomains: totalMaxDomains,
+          maxRecords: totalMaxRecords
+        },
+        usage: {
+          domains: currentDomains
+        },
+        canAddDomain: activeSubscriptions.length === 0 || currentDomains < totalMaxDomains,
+        activePlans: activeSubscriptions.map(sub => sub.plan).filter(Boolean)
+      });
+
+    } catch (error: any) {
+      console.error("Error fetching DNS plan limits:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add custom credits via PayPal
+  app.post("/api/billing/custom-credits/add", isAuthenticated, async (req, res) => {
+    try {
+      const { amount, paymentId, verificationData } = req.body;
+
+      console.log(`Processing custom credit purchase: amount=${amount}, paymentId=${paymentId}`);
+
+      if (!amount || amount <= 0 || !paymentId) {
+        console.log("Invalid custom credit purchase request - missing amount or paymentId");
+        return res.status(400).json({ error: "Invalid amount or payment ID" });
+      }
+
+      // Validate amount limits (minimum $1, maximum $1000)
+      if (amount < 1) {
+        console.log(`Amount too low: ${amount}`);
+        return res.status(400).json({ error: "Minimum amount is $1.00" });
+      }
+
+      if (amount > 1000) {
+        console.log(`Amount too high: ${amount}`);
+        return res.status(400).json({ error: "Maximum amount is $1000.00" });
+      }
+
+      // Create a new transaction record in the main transactions table for unified history
+      const transaction: InsertTransaction = {
+        userId: req.user!.id,
+        amount: amount,
+        type: "custom_credit",
+        description: "Custom credit purchase via PayPal",
+        status: "pending",
+        paymentMethod: "paypal",
+        paymentId: paymentId,
+      };
+
+      console.log("Creating main transaction record:", transaction);
+      const createdTransaction = await storage.createTransaction(transaction);
+      console.log("Main transaction created with ID:", createdTransaction.id);
+
+      // Verify we have verification data
+      if (!verificationData || !verificationData.verified) {
+        console.error("Payment not verified through server-side validation");
+
+        // Update main transaction status to failed
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "failed",
+          description: "Custom credit purchase via PayPal (Payment verification failed)"
+        });
+
+        return res.status(400).json({
+          error: "Payment verification failed. Please try again.",
+          needsVerification: true
+        });
+      }
+
+      // Compare amounts for extra security
+      if (verificationData.amount !== amount) {
+        console.error(`Amount mismatch: verified=${verificationData.amount}, requested=${amount}`);
+
+        // Update main transaction status to failed
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "failed",
+          description: "Custom credit purchase via PayPal (Amount mismatch)"
+        });
+
+        return res.status(400).json({
+          error: "Payment amount doesn't match the verification data",
+          needsVerification: true
+        });
+      }
+
+      const userId = req.user!.id;
+
+      // Get or create user credits record
+      let userCredits = await db.select()
+        .from(userCreditsTable)
+        .where(eq(userCreditsTable.userId, userId))
+        .limit(1);
+
+      let currentBalance = 0;
+      if (userCredits.length === 0) {
+        // Create new user credits record
+        await db.insert(userCreditsTable).values({
+          userId: userId,
+          balance: 0
+        });
+        console.log(`Created new user credits record for user ${userId}`);
+      } else {
+        currentBalance = userCredits[0].balance;
+      }
+
+      const newBalance = currentBalance + amount;
+
+      try {
+        // Start transaction to ensure data consistency
+        await db.transaction(async (tx) => {
+          // Update user credits balance
+          await tx.update(userCreditsTable)
+            .set({
+              balance: newBalance,
+              updatedAt: new Date()
+            })
+            .where(eq(userCreditsTable.userId, userId));
+
+          // Create credit transaction record (for audit trail)
+          await tx.insert(creditTransactionsTable).values({
+            userId: userId,
+            amount: amount,
+            type: 'purchase',
+            description: 'Custom credit purchase via PayPal',
+            status: 'completed',
+            paymentMethod: 'paypal',
+            paymentId: paymentId,
+            balanceBefore: currentBalance,
+            balanceAfter: newBalance,
+            metadata: {
+              verificationData,
+              mainTransactionId: createdTransaction.id // Link to main transaction
+            }
+          });
+        });
+
+        // Update main transaction status to completed
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "completed",
+          description: `Custom credit purchase via PayPal (Transaction ID: ${createdTransaction.id})`
+        });
+
+        console.log(`Successfully added $${amount} custom credits to user ${userId}. New balance: $${newBalance}`);
+
+        res.json({
+          success: true,
+          amountAdded: amount,
+          newBalance: newBalance,
+          transactionId: createdTransaction.id,
+          message: `Successfully added $${amount.toFixed(2)} to your custom credits balance`
+        });
+
+      } catch (dbError: any) {
+        console.error("Database error during custom credit purchase:", dbError);
+
+        // Update main transaction status to failed
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "failed",
+          description: "Custom credit purchase via PayPal (Database error)"
+        });
+
+        return res.status(500).json({ error: "Failed to process custom credit purchase" });
+      }
+
+    } catch (error: any) {
+      console.error(`Error processing custom credit purchase:`, error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get custom credit transactions
+  app.get("/api/billing/custom-credits/transactions", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = (page - 1) * limit;
+
+      const transactions = await db.select()
+        .from(creditTransactionsTable)
+        .where(eq(creditTransactionsTable.userId, userId))
+        .orderBy(desc(creditTransactionsTable.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      // Get total count for pagination
+      const totalResult = await db.select({ count: sql<number>`count(*)` })
+        .from(creditTransactionsTable)
+        .where(eq(creditTransactionsTable.userId, userId));
+
+      const total = totalResult[0]?.count || 0;
+
+      res.json({
+        transactions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+
+    } catch (error: any) {
+      console.error(`Error fetching custom credit transactions:`, error);
+      res.status(500).json({ error: error.message });
     }
   });
 
@@ -6726,6 +7245,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to remove credit from VirtFusion",
         details: error.message
       });
+    }
+  });
+
+  // Admin Custom Credits Management Endpoints
+
+  // Get user's custom credits balance and transactions (admin only)
+  app.get("/api/admin/users/:id/custom-credits", isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get user credits balance
+      let userCredits = await db.select()
+        .from(userCreditsTable)
+        .where(eq(userCreditsTable.userId, userId))
+        .limit(1);
+
+      const balance = userCredits.length > 0 ? userCredits[0].balance : 0;
+
+      // Get recent transactions (last 50)
+      const transactions = await db.select()
+        .from(creditTransactionsTable)
+        .where(eq(creditTransactionsTable.userId, userId))
+        .orderBy(desc(creditTransactionsTable.createdAt))
+        .limit(50);
+
+      res.json({
+        balance,
+        transactions,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName
+        }
+      });
+
+    } catch (error: any) {
+      console.error("Error fetching user custom credits:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add custom credits to a user (admin only)
+  app.post("/api/admin/users/:id/custom-credits", isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { amount, reason } = req.body;
+
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+        return res.status(400).json({ error: "Invalid credit amount" });
+      }
+
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json({ error: "Reason is required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const adminUser = req.user as any;
+      const creditAmount = Number(amount);
+
+      // Get or create user credits record
+      let userCredits = await db.select()
+        .from(userCreditsTable)
+        .where(eq(userCreditsTable.userId, userId))
+        .limit(1);
+
+      let currentBalance = 0;
+      if (userCredits.length === 0) {
+        // Create new user credits record
+        await db.insert(userCreditsTable).values({
+          userId: userId,
+          balance: 0
+        });
+        console.log(`Created new user credits record for user ${userId}`);
+      } else {
+        currentBalance = userCredits[0].balance;
+      }
+
+      const newBalance = currentBalance + creditAmount;
+
+      // Start transaction to ensure data consistency
+      await db.transaction(async (tx) => {
+        // Update user credits balance
+        await tx.update(userCreditsTable)
+          .set({
+            balance: newBalance,
+            updatedAt: new Date()
+          })
+          .where(eq(userCreditsTable.userId, userId));
+
+        // Create credit transaction record
+        await tx.insert(creditTransactionsTable).values({
+          userId: userId,
+          amount: creditAmount,
+          type: 'admin_add',
+          description: `Admin credit addition: ${reason}`,
+          status: 'completed',
+          paymentMethod: 'admin',
+          adminUserId: adminUser.id,
+          adminReason: reason,
+          balanceBefore: currentBalance,
+          balanceAfter: newBalance,
+          metadata: { adminUser: { id: adminUser.id, username: adminUser.username } }
+        });
+      });
+
+      console.log(`Admin ${adminUser.username} added $${creditAmount} custom credits to user ${userId}. New balance: $${newBalance}`);
+
+      res.json({
+        success: true,
+        amountAdded: creditAmount,
+        newBalance: newBalance,
+        message: `Successfully added $${creditAmount.toFixed(2)} to user's custom credits balance`
+      });
+
+    } catch (error: any) {
+      console.error("Error adding custom credits:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Remove custom credits from a user (admin only)
+  app.delete("/api/admin/users/:id/custom-credits", isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { amount, reason } = req.body;
+
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+        return res.status(400).json({ error: "Invalid credit amount" });
+      }
+
+      if (!reason || reason.trim().length === 0) {
+        return res.status(400).json({ error: "Reason is required" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const adminUser = req.user as any;
+      const creditAmount = Number(amount);
+
+      // Get user credits record
+      let userCredits = await db.select()
+        .from(userCreditsTable)
+        .where(eq(userCreditsTable.userId, userId))
+        .limit(1);
+
+      if (userCredits.length === 0) {
+        return res.status(400).json({ error: "User has no custom credits balance" });
+      }
+
+      const currentBalance = userCredits[0].balance;
+      const newBalance = currentBalance - creditAmount;
+
+      // Allow negative balances but warn admin
+      if (newBalance < 0) {
+        console.warn(`Admin ${adminUser.username} is setting user ${userId} to negative balance: $${newBalance}`);
+      }
+
+      // Start transaction to ensure data consistency
+      await db.transaction(async (tx) => {
+        // Update user credits balance
+        await tx.update(userCreditsTable)
+          .set({
+            balance: newBalance,
+            updatedAt: new Date()
+          })
+          .where(eq(userCreditsTable.userId, userId));
+
+        // Create credit transaction record
+        await tx.insert(creditTransactionsTable).values({
+          userId: userId,
+          amount: -creditAmount, // Negative amount for removal
+          type: 'admin_remove',
+          description: `Admin credit removal: ${reason}`,
+          status: 'completed',
+          paymentMethod: 'admin',
+          adminUserId: adminUser.id,
+          adminReason: reason,
+          balanceBefore: currentBalance,
+          balanceAfter: newBalance,
+          metadata: { adminUser: { id: adminUser.id, username: adminUser.username } }
+        });
+      });
+
+      console.log(`Admin ${adminUser.username} removed $${creditAmount} custom credits from user ${userId}. New balance: $${newBalance}`);
+
+      res.json({
+        success: true,
+        amountRemoved: creditAmount,
+        newBalance: newBalance,
+        message: `Successfully removed $${creditAmount.toFixed(2)} from user's custom credits balance`,
+        warning: newBalance < 0 ? "User now has a negative balance" : null
+      });
+
+    } catch (error: any) {
+      console.error("Error removing custom credits:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 

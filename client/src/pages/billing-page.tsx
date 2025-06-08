@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, ExternalLink, Eye, Receipt, FileText, Edit3, Search } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PayPalCheckout } from "@/components/billing/PayPalCheckout";
+import { CustomCreditsPayPalCheckout } from "@/components/billing/CustomCreditsPayPalCheckout";
 import { useAuth } from "@/hooks/use-auth";
 import { getBrandColors, getButtonStyles } from "@/lib/brand-theme";
 
@@ -41,6 +42,12 @@ export default function BillingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
+  // Custom credits state
+  const [customCreditAmount, setCustomCreditAmount] = useState(25);
+  const [customCreditCustomAmount, setCustomCreditCustomAmount] = useState("");
+  const [isCustomCreditCustomAmount, setIsCustomCreditCustomAmount] = useState(false);
+  const [customCreditAmountError, setCustomCreditAmountError] = useState("");
+
 
   // Fetch branding data
   const { data: brandingData } = useQuery<{
@@ -67,6 +74,14 @@ export default function BillingPage() {
   // Fetch transactions
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
     queryKey: ["/api/transactions"],
+  });
+
+  // Fetch custom credit transactions
+  const { data: customCreditTransactionsData } = useQuery<{
+    transactions: any[];
+    pagination: { page: number; limit: number; total: number; totalPages: number };
+  }>({
+    queryKey: ["/api/billing/custom-credits/transactions", { page: 1, limit: 100 }],
   });
 
   // Filter transactions based on search query and status filter
@@ -101,8 +116,12 @@ export default function BillingPage() {
 
 
 
-  // Fetch VirtFusion token balance
-  const { data: balanceData } = useQuery<{ virtFusionCredits: number, virtFusionTokens: number }>({
+  // Fetch balance data (both VirtFusion tokens and custom credits)
+  const { data: balanceData } = useQuery<{
+    virtFusionCredits: number,
+    virtFusionTokens: number,
+    customCredits: number
+  }>({
     queryKey: ["/api/billing/balance"],
   });
 
@@ -168,7 +187,8 @@ export default function BillingPage() {
   // Helper function to determine if a transaction is a credit/addition
   const isCredit = (transaction: Transaction) => {
     return transaction.type === 'credit' ||
-           transaction.type === 'virtfusion_credit';
+           transaction.type === 'virtfusion_credit' ||
+           transaction.type === 'custom_credit';
   };
 
   // Helper function to determine if a transaction is a debit/removal
@@ -350,6 +370,56 @@ export default function BillingPage() {
     return creditAmount;
   };
 
+  // Custom credits amount handling
+  const handleCustomCreditPredefinedAmountSelect = (amount: number) => {
+    setCustomCreditAmount(amount);
+    setIsCustomCreditCustomAmount(false);
+    setCustomCreditCustomAmount("");
+    setCustomCreditAmountError("");
+  };
+
+  const handleCustomCreditCustomAmountChange = (value: string) => {
+    // Only allow numbers and decimal point
+    const sanitizedValue = value.replace(/[^0-9.]/g, '');
+
+    // Prevent multiple decimal points
+    const decimalCount = (sanitizedValue.match(/\./g) || []).length;
+    if (decimalCount > 1) return;
+
+    setCustomCreditCustomAmount(sanitizedValue);
+
+    if (sanitizedValue) {
+      const numValue = parseFloat(sanitizedValue);
+
+      // Validate amount
+      if (isNaN(numValue)) {
+        setCustomCreditAmountError("Please enter a valid amount");
+      } else if (numValue < 1) {
+        setCustomCreditAmountError("Minimum amount is $1.00");
+      } else if (numValue > 1000) {
+        setCustomCreditAmountError("Maximum amount is $1000.00");
+      } else {
+        setCustomCreditAmountError("");
+        setIsCustomCreditCustomAmount(true);
+        setCustomCreditAmount(0); // Reset predefined selection
+      }
+    } else {
+      setCustomCreditAmountError("");
+      setIsCustomCreditCustomAmount(false);
+    }
+  };
+
+  const getCustomCreditFinalAmount = () => {
+    if (isCustomCreditCustomAmount && customCreditCustomAmount) {
+      const amount = parseFloat(customCreditCustomAmount);
+      return isNaN(amount) ? 0 : amount;
+    }
+    return customCreditAmount;
+  };
+
+  // Custom credit amount options
+  const customCreditOptions = [5, 10, 25, 50, 100, 250];
+
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
@@ -419,11 +489,11 @@ export default function BillingPage() {
         </div>
 
         {/* Billing Summary - Modern Card Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Current Balance Card */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* VirtFusion Tokens Card */}
           <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border">
-              <CardTitle className="text-base font-medium text-foreground">Current Balance</CardTitle>
+              <CardTitle className="text-base font-medium text-foreground">VirtFusion Tokens</CardTitle>
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <DollarSign className="h-5 w-5 text-primary" />
               </div>
@@ -431,25 +501,39 @@ export default function BillingPage() {
             <CardContent className="px-6 py-5">
               <div className="mb-2">
                 <div className="flex items-center gap-1">
-                  <span className={`text-3xl font-bold ${summaryData.balance < 0 ? 'text-red-600' : 'text-foreground'}`}>
-                    ${summaryData.balance.toFixed(2)}
+                  <span className={`text-2xl font-bold ${summaryData.virtFusionTokens < 0 ? 'text-red-600' : 'text-primary'}`}>
+                    {summaryData.virtFusionTokens.toLocaleString()}
+                  </span>
+                  <span className="text-sm text-muted-foreground self-end mb-1">tokens</span>
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</span>
+                <br />
+                <span className="text-xs">For VPS services</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Custom Credits Card */}
+          <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
+            <div className="px-6 py-4 flex items-center justify-between border-b border-border">
+              <CardTitle className="text-base font-medium text-foreground">Custom Credits</CardTitle>
+              <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
+                <CreditCard className="h-5 w-5 text-secondary" />
+              </div>
+            </div>
+            <CardContent className="px-6 py-5">
+              <div className="mb-2">
+                <div className="flex items-center gap-1">
+                  <span className={`text-2xl font-bold ${(balanceData?.customCredits || 0) < 0 ? 'text-red-600' : 'text-secondary'}`}>
+                    ${(balanceData?.customCredits || 0).toFixed(2)}
                   </span>
                   <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
                 </div>
               </div>
-
-              {/* Show VirtFusion tokens section */}
-              <div className="mt-3 pt-3 border-t border-border">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">VirtFusion Tokens:</span>
-                  <span className={`font-medium ${summaryData.virtFusionTokens < 0 ? 'text-red-600' : 'text-primary'}`}>
-                    {summaryData.virtFusionTokens.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground mt-1">
-                  <span>100 tokens = $1.00 USD</span>
-                  <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                </div>
+              <div className="text-sm text-muted-foreground">
+                <span className="text-xs">For DNS plans & other services</span>
               </div>
             </CardContent>
           </Card>
@@ -512,7 +596,14 @@ export default function BillingPage() {
                 {user?.isActive && (
                   <TabsTrigger value="addCredits" className="data-[state=active]:bg-background rounded-md">
                     <PlusCircle className="h-4 w-4 mr-2" />
-                    Add VirtFusion Tokens
+                    VirtFusion Tokens
+                  </TabsTrigger>
+                )}
+                {/* Add Custom Credits tab */}
+                {user?.isActive && (
+                  <TabsTrigger value="customCredits" className="data-[state=active]:bg-background rounded-md">
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Custom Credits
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -614,6 +705,23 @@ export default function BillingPage() {
                               <div className="text-sm font-medium text-foreground">{transaction.description}</div>
                               <div className="text-xs text-muted-foreground flex items-center gap-2">
                                 <span>ID: #{transaction.id}</span>
+
+                                {/* Transaction Type Badge */}
+                                <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  transaction.type === 'virtfusion_credit'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : transaction.type === 'custom_credit'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {transaction.type === 'virtfusion_credit'
+                                    ? 'VirtFusion'
+                                    : transaction.type === 'custom_credit'
+                                    ? 'Custom Credits'
+                                    : transaction.type}
+                                </span>
+
                                 {transaction.virtFusionCreditId && (
                                   <>
                                     <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
@@ -809,6 +917,107 @@ export default function BillingPage() {
                 </div>
               </TabsContent>
 
+              <TabsContent value="customCredits" className="mt-0">
+                <div className="max-w-2xl mx-auto">
+                  <div className="mb-8 bg-secondary/5 p-6 rounded-lg border border-secondary/20">
+                    <h3 className="text-xl font-medium mb-2 flex items-center gap-2 text-foreground">
+                      <div className="p-2 rounded-full bg-secondary/10">
+                        <CreditCard className="h-5 w-5 text-secondary" />
+                      </div>
+                      Add Custom Credits
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Purchase custom credits instantly via PayPal. These credits can be used for DNS plans, dedicated servers, and other platform services.
+                      <br />
+                      <span className="text-sm font-medium">Separate from VirtFusion tokens • Digital Service • No Shipping Required</span>
+                    </p>
+                  </div>
+
+                  <div className="mb-8">
+                    <h4 className="text-sm font-medium mb-4 flex items-center text-foreground">
+                      <DollarSign className="h-4 w-4 mr-1 text-secondary" />
+                      Select Amount
+                    </h4>
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      {customCreditOptions.map((amount) => (
+                        <Button
+                          key={amount}
+                          variant={!isCustomCreditCustomAmount && customCreditAmount === amount ? "default" : "outline"}
+                          onClick={() => handleCustomCreditPredefinedAmountSelect(amount)}
+                          className={`font-medium transition-all ${
+                            !isCustomCreditCustomAmount && customCreditAmount === amount
+                              ? 'bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-md hover:shadow-lg'
+                              : 'hover:bg-secondary/5 text-secondary border-secondary/30'
+                          }`}
+                        >
+                          ${amount}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Custom Amount Input */}
+                    <div className="border-t border-border pt-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Edit3 className="h-4 w-4 text-secondary" />
+                        <Label htmlFor="customCreditAmount" className="text-sm font-medium text-foreground">
+                          Or enter a custom amount ($1 - $1000)
+                        </Label>
+                      </div>
+                      <div className="max-w-sm">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input
+                            id="customCreditAmount"
+                            type="text"
+                            placeholder="0.00"
+                            value={customCreditCustomAmount}
+                            onChange={(e) => handleCustomCreditCustomAmountChange(e.target.value)}
+                            className={`pl-8 ${customCreditAmountError ? 'border-destructive' : ''} ${isCustomCreditCustomAmount ? 'ring-2 ring-secondary/20 border-secondary' : ''}`}
+                          />
+                        </div>
+                        {customCreditAmountError && (
+                          <p className="text-sm text-destructive mt-1">{customCreditAmountError}</p>
+                        )}
+                        {isCustomCreditCustomAmount && !customCreditAmountError && customCreditCustomAmount && (
+                          <p className="text-sm text-secondary mt-1">
+                            Custom amount: ${parseFloat(customCreditCustomAmount).toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-border p-4 mb-8 bg-muted/30 shadow-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Selected Amount:</span>
+                      <span className="text-xl font-bold text-secondary">
+                        ${getCustomCreditFinalAmount().toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
+                      <span>Service:</span>
+                      <span className="font-medium">Custom Credits</span>
+                    </div>
+                    {isCustomCreditCustomAmount && (
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        Custom amount selected
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Only show PayPal checkout if amount is valid */}
+                  {(!isCustomCreditCustomAmount || (isCustomCreditCustomAmount && !customCreditAmountError && customCreditCustomAmount)) && (
+                    <CustomCreditsPayPalCheckout amount={getCustomCreditFinalAmount()} />
+                  )}
+
+                  {/* Show error message if custom amount is invalid */}
+                  {isCustomCreditCustomAmount && customCreditAmountError && (
+                    <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-center">
+                      <p className="text-destructive font-medium">Please enter a valid amount between $1.00 and $1000.00</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
 
             </Tabs>
           </CardContent>

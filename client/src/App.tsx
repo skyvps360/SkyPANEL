@@ -63,6 +63,7 @@ import VNCConsole from "@/pages/vnc-console";
 import LiveChat from "@/pages/LiveChat";
 import DnsDomainsPage from "@/pages/dns-domains-page";
 import DnsRecordsPage from "@/pages/dns-records-page";
+import DnsPlansPage from "@/pages/dns-plans-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { VirtFusionSsoHandler } from "@/components/VirtFusionSsoHandler";
@@ -308,6 +309,7 @@ function Router() {
         {/* DNS Management - User access allowed */}
         <ProtectedRoute path="/dns" component={DnsDomainsPage} />
         <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage} />
+        <ProtectedRoute path="/dns-plans" component={DnsPlansPage} />
 
         {/* Admin Routes */}
         <AdminProtectedRoute path="/admin" component={AdminDashboard} />

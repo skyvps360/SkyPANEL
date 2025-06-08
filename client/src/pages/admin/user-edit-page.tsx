@@ -131,6 +131,12 @@ export default function UserEditPage() {
   const [vfRemoveCreditId, setVfRemoveCreditId] = useState("");
   const [creditAddedId, setCreditAddedId] = useState<number | null>(null);
 
+  // Custom credits state
+  const [customCreditAddAmount, setCustomCreditAddAmount] = useState("");
+  const [customCreditAddReason, setCustomCreditAddReason] = useState("");
+  const [customCreditRemoveAmount, setCustomCreditRemoveAmount] = useState("");
+  const [customCreditRemoveReason, setCustomCreditRemoveReason] = useState("");
+
   // Fetch user data
   const { data: user, isLoading, error } = useQuery<User, Error, User>({
     queryKey: [`/api/admin/users/${userId}`],
@@ -139,13 +145,28 @@ export default function UserEditPage() {
   });
   
   // Fetch VirtFusion usage data
-  const { 
-    data: usageData, 
-    isLoading: isLoadingUsage, 
-    error: usageError 
+  const {
+    data: usageData,
+    isLoading: isLoadingUsage,
+    error: usageError
   } = useQuery<VirtFusionUsageData, Error>({
     queryKey: [`/api/admin/users/${userId}/usage`],
     enabled: !isNaN(userId) && userId > 0 && !!user?.virtFusionId,
+    retry: 1
+  });
+
+  // Fetch custom credits data
+  const {
+    data: customCreditsData,
+    isLoading: isLoadingCustomCredits,
+    error: customCreditsError
+  } = useQuery<{
+    balance: number;
+    transactions: any[];
+    user: { id: number; username: string; email: string; fullName: string };
+  }, Error>({
+    queryKey: [`/api/admin/users/${userId}/custom-credits`],
+    enabled: !isNaN(userId) && userId > 0,
     retry: 1
   });
 
@@ -316,6 +337,66 @@ export default function UserEditPage() {
     }
   });
 
+  // Add custom credits mutation
+  const addCustomCreditsMutation = useMutation({
+    mutationFn: async (data: { amount: string; reason: string }) => {
+      return await apiRequest(`/api/admin/users/${userId}/custom-credits`, {
+        method: "POST",
+        body: data
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Custom credits added successfully",
+        description: `Added $${customCreditAddAmount} to user's custom credits balance.`,
+      });
+
+      // Clear the input fields
+      setCustomCreditAddAmount("");
+      setCustomCreditAddReason("");
+
+      // Refresh the custom credits data
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}/custom-credits`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error adding custom credits",
+        description: error.message || "Failed to add custom credits",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Remove custom credits mutation
+  const removeCustomCreditsMutation = useMutation({
+    mutationFn: async (data: { amount: string; reason: string }) => {
+      return await apiRequest(`/api/admin/users/${userId}/custom-credits`, {
+        method: "DELETE",
+        body: data
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Custom credits removed successfully",
+        description: `Removed $${customCreditRemoveAmount} from user's custom credits balance.`,
+      });
+
+      // Clear the input fields
+      setCustomCreditRemoveAmount("");
+      setCustomCreditRemoveReason("");
+
+      // Refresh the custom credits data
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}/custom-credits`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error removing custom credits",
+        description: error.message || "Failed to remove custom credits",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Handle form submission
   const onSubmit = (data: UserFormData) => {
     updateUserMutation.mutate(data);
@@ -364,6 +445,60 @@ export default function UserEditPage() {
     if (confirm(`Are you sure you want to remove credit ID ${vfRemoveCreditId} from VirtFusion? This action cannot be undone.`)) {
       removeVirtFusionCreditMutation.mutate({
         creditId: vfRemoveCreditId
+      });
+    }
+  };
+
+  // Handle adding custom credits
+  const handleAddCustomCredits = () => {
+    if (!customCreditAddAmount || isNaN(Number(customCreditAddAmount)) || Number(customCreditAddAmount) <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid credit amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!customCreditAddReason || customCreditAddReason.trim().length === 0) {
+      toast({
+        title: "Reason required",
+        description: "Please provide a reason for adding credits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addCustomCreditsMutation.mutate({
+      amount: customCreditAddAmount,
+      reason: customCreditAddReason
+    });
+  };
+
+  // Handle removing custom credits
+  const handleRemoveCustomCredits = () => {
+    if (!customCreditRemoveAmount || isNaN(Number(customCreditRemoveAmount)) || Number(customCreditRemoveAmount) <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid credit amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!customCreditRemoveReason || customCreditRemoveReason.trim().length === 0) {
+      toast({
+        title: "Reason required",
+        description: "Please provide a reason for removing credits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirm(`Are you sure you want to remove $${customCreditRemoveAmount} from this user's custom credits? This action cannot be undone.`)) {
+      removeCustomCreditsMutation.mutate({
+        amount: customCreditRemoveAmount,
+        reason: customCreditRemoveReason
       });
     }
   };
@@ -583,6 +718,10 @@ export default function UserEditPage() {
               <TabsTrigger value="permissions" className="data-[state=active]:bg-background">
                 <UserCog className="h-4 w-4 mr-2" />
                 Permissions
+              </TabsTrigger>
+              <TabsTrigger value="customCredits" className="data-[state=active]:bg-background">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Custom Credits
               </TabsTrigger>
               {user.virtFusionId && (
                 <TabsTrigger value="credits" className="data-[state=active]:bg-background">
@@ -1114,6 +1253,177 @@ export default function UserEditPage() {
               </CardContent>
             </TabsContent>
           )}
+
+          {/* Custom Credits Tab */}
+          <TabsContent value="customCredits" className="m-0">
+            <CardContent className="p-6">
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Custom Credits Management</h3>
+                  <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Current Balance</p>
+                    <p className={`text-2xl font-bold ${(customCreditsData?.balance || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      ${(customCreditsData?.balance || 0).toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Add Credits Section */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h4 className="text-base font-medium mb-4 text-green-800">Add Custom Credits</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="customCreditAddAmount">Amount ($)</Label>
+                      <Input
+                        id="customCreditAddAmount"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="0.00"
+                        value={customCreditAddAmount}
+                        onChange={(e) => setCustomCreditAddAmount(e.target.value)}
+                        disabled={addCustomCreditsMutation.isPending}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="customCreditAddReason">Reason</Label>
+                      <Input
+                        id="customCreditAddReason"
+                        placeholder="Reason for adding credits"
+                        value={customCreditAddReason}
+                        onChange={(e) => setCustomCreditAddReason(e.target.value)}
+                        disabled={addCustomCreditsMutation.isPending}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleAddCustomCredits}
+                    disabled={addCustomCreditsMutation.isPending || !customCreditAddAmount || !customCreditAddReason}
+                    className="mt-4 bg-green-600 hover:bg-green-700"
+                  >
+                    {addCustomCreditsMutation.isPending ? "Adding..." : "Add Credits"}
+                  </Button>
+                </div>
+
+                {/* Remove Credits Section */}
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="text-base font-medium mb-4 text-red-800">Remove Custom Credits</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="customCreditRemoveAmount">Amount ($)</Label>
+                      <Input
+                        id="customCreditRemoveAmount"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="0.00"
+                        value={customCreditRemoveAmount}
+                        onChange={(e) => setCustomCreditRemoveAmount(e.target.value)}
+                        disabled={removeCustomCreditsMutation.isPending}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="customCreditRemoveReason">Reason</Label>
+                      <Input
+                        id="customCreditRemoveReason"
+                        placeholder="Reason for removing credits"
+                        value={customCreditRemoveReason}
+                        onChange={(e) => setCustomCreditRemoveReason(e.target.value)}
+                        disabled={removeCustomCreditsMutation.isPending}
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleRemoveCustomCredits}
+                    disabled={removeCustomCreditsMutation.isPending || !customCreditRemoveAmount || !customCreditRemoveReason}
+                    variant="destructive"
+                    className="mt-4"
+                  >
+                    {removeCustomCreditsMutation.isPending ? "Removing..." : "Remove Credits"}
+                  </Button>
+                </div>
+
+                {/* Transaction History */}
+                {customCreditsData?.transactions && customCreditsData.transactions.length > 0 && (
+                  <div>
+                    <h4 className="text-base font-medium mb-4">Recent Transactions</h4>
+                    <div className="bg-muted/30 rounded-lg overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Type
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Amount
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Description
+                            </th>
+                            <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                              Balance After
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {customCreditsData.transactions.slice(0, 10).map((transaction, index) => (
+                            <tr key={transaction.id || index}>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm">
+                                {transaction.createdAt ? format(new Date(transaction.createdAt), 'MMM d, yyyy h:mm a') : 'N/A'}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm">
+                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                  transaction.type === 'admin_add' ? 'bg-green-100 text-green-800' :
+                                  transaction.type === 'admin_remove' ? 'bg-red-100 text-red-800' :
+                                  transaction.type === 'purchase' ? 'bg-blue-100 text-blue-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {transaction.type?.replace('_', ' ') || 'Unknown'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm">
+                                <span className={`font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {transaction.amount >= 0 ? '+' : ''}${transaction.amount?.toFixed(2) || '0.00'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-sm">
+                                {transaction.description || 'No description'}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm font-medium">
+                                ${transaction.balanceAfter?.toFixed(2) || '0.00'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {isLoadingCustomCredits && (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <p className="ml-2 text-muted-foreground">Loading custom credits data...</p>
+                  </div>
+                )}
+
+                {customCreditsError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>
+                      Failed to load custom credits data: {customCreditsError.message}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </CardContent>
+          </TabsContent>
         </Tabs>
       </Card>
     </AdminLayout>
