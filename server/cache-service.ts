@@ -142,12 +142,23 @@ export class CacheService {
       activeUsers: number;
     };
     modules: {
-      cachedModules: number;
+      cachedModules: number | null;
     };
   }> {
     const betterStack = betterStackService;
     const betterStackCache = (betterStack as any).monitorsCache || [];
     const betterStackLastFetch = (betterStack as any).lastFetch || 0;
+
+    // Safely check for require.cache in Node.js environment
+    let cachedModulesCount = null;
+    try {
+      // Only access require.cache in Node.js environment
+      if (typeof require !== 'undefined' && require.cache) {
+        cachedModulesCount = Object.keys(require.cache).length;
+      }
+    } catch (error) {
+      console.log('Could not access require.cache - likely in a browser environment');
+    }
 
     return {
       betterstack: {
@@ -159,7 +170,7 @@ export class CacheService {
         activeUsers: geminiRateLimiter.getActiveUserCount()
       },
       modules: {
-        cachedModules: Object.keys(require.cache).length
+        cachedModules: cachedModulesCount
       }
     };
   }
