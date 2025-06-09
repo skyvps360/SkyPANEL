@@ -516,8 +516,19 @@ export default function DnsPlansPage() {
                     let isDowngrade = false;
 
                     if (currentPlan && currentPlan.id !== plan.id) {
-                      const daysRemaining = currentSubscription ?
-                        Math.max(0, Math.ceil((new Date(currentSubscription.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))) : 0;
+                      // Calculate proper billing cycle end date
+                      const now = new Date();
+                      let billingCycleEndDate;
+
+                      if (currentSubscription && new Date(currentSubscription.endDate).getFullYear() > 2050) {
+                        // This is a Free plan with far-future endDate, calculate proper monthly cycle
+                        billingCycleEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of current month
+                      } else {
+                        // This is a paid plan with proper billing cycle
+                        billingCycleEndDate = currentSubscription ? new Date(currentSubscription.endDate) : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+                      }
+
+                      const daysRemaining = Math.max(0, Math.ceil((billingCycleEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 
                       if (plan.price > currentPlan.price) {
                         isUpgrade = true;
