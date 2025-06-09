@@ -47,6 +47,7 @@ If you find my work helpful, consider supporting me:
 - [API Key Management](#-api-key-management)
 - [Maintenance Mode](#-maintenance-mode)
 - [Security Features](#-security-features)
+- [GitHub Copilot Integration](#-github-copilot-integration)
 - [Troubleshooting](#-troubleshooting)
 - [Recent Updates](#-recent-updates)
 

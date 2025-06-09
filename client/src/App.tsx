@@ -338,14 +338,7 @@ function Router() {
         <AdminProtectedRoute path="/admin/faq-management" component={FaqManagementPage} />
         <AdminProtectedRoute path="/admin/legal" component={LegalEditorPage} />
         <AdminProtectedRoute path="/admin/servers" component={ServersListPage} />
-        <Route path="/admin/servers/create">
-          {() => {
-            // Redirect from /admin/servers/create to /admin/servers
-            const [, navigate] = useLocation();
-            useEffect(() => { navigate('/admin/servers'); }, [navigate]);
-            return null;
-          }}
-        </Route>
+
         <AdminProtectedRoute path="/admin/servers/:id" component={ServerDetailPage} />
         <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage} />
         <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage} />

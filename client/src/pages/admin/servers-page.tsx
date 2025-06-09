@@ -34,10 +34,19 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { AlertCircle, ChevronRight, ArrowRight, Server, RefreshCw, RotateCw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { AlertCircle, ChevronRight, ArrowRight, Server, RefreshCw, RotateCw, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AdminCreateServerForm } from "@/components/admin/AdminCreateServerForm";
 
 function getStatusBadgeVariant(status: string) {
   // Normalize the status to lowercase for comparison
@@ -187,6 +196,7 @@ export default function ServersListPage() {
   const [sortField, setSortField] = useState<string>('id');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [perPage, setPerPage] = useState<number>(10);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   // Get the servers array from the response and sort it
   const servers = serversResponse?.data || [];
@@ -300,6 +310,28 @@ export default function ServersListPage() {
                   </label>
                 </div>
               </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create Server
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Create New Server</DialogTitle>
+                    <DialogDescription>
+                      Create a new virtual server for a user. Select the user, hypervisor, and server configuration.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AdminCreateServerForm onClose={() => setIsCreateModalOpen(false)} onSuccess={() => {
+                    setIsCreateModalOpen(false);
+                    refetch();
+                  }} />
+                </DialogContent>
+              </Dialog>
             </div>
           </CardHeader>
           <CardContent>
