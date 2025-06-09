@@ -11,6 +11,11 @@ info:
     request and response bodies, including errors, are encoded in JSON.
 
 
+    Note: This API does not provide a dedicated endpoint for listing firewall
+    rulesets. Firewall rulesets are referenced by ID in server creation and
+    management operations, but must be managed through the VirtFusion web interface.
+
+
     Endpoint https://cp.domain.com/api/v1
   version: 1.0.0
 tags:

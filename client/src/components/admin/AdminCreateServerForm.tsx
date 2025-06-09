@@ -22,10 +22,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/hooks/use-toast";
-import { Server, User, Settings } from "lucide-react";
+import { Server, User, Settings, Check, ChevronsUpDown, Network, HardDrive, Cpu, MemoryStick, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface User {
   id: number;
@@ -38,20 +52,24 @@ interface User {
 interface Hypervisor {
   id: number;
   name: string;
-  hostname: string;
+  hostname?: string;
   groupId?: number;
   groupName?: string;
+  ip?: string;
+  enabled?: boolean;
 }
 
 interface Package {
   id: number;
   name: string;
   description?: string;
-  cpu: number;
-  memory: number;
-  storage: number;
+  cpu?: number;
+  memory?: number;
+  storage?: number;
   price?: number;
 }
+
+
 
 interface AdminCreateServerFormProps {
   onClose: () => void;
@@ -60,6 +78,7 @@ interface AdminCreateServerFormProps {
 
 // Schema for admin server creation
 const adminServerSchema = z.object({
+  // Required fields
   name: z.string().min(3, "Server name must be at least 3 characters").max(50, "Server name must be at most 50 characters"),
   userId: z.number({
     required_error: "Please select a user"
@@ -70,12 +89,41 @@ const adminServerSchema = z.object({
   packageId: z.number({
     required_error: "Please select a package"
   }),
+
+  // Optional basic fields
   hostname: z.string().optional(),
   dryRun: z.boolean().default(false),
+
+  // Optional resource overrides
+  ipv4: z.number().min(0).max(10).optional(),
+  storage: z.number().min(1).optional(),
+  traffic: z.number().min(0).optional(), // 0 = unlimited
+  memory: z.number().min(128).optional(),
+  cpuCores: z.number().min(1).optional(),
+
+  // Optional network settings
+  networkSpeedInbound: z.number().min(0).optional(),
+  networkSpeedOutbound: z.number().min(0).optional(),
+
+
+
+  // Optional additional storage
+  additionalStorage1Enable: z.boolean().default(false),
+  additionalStorage2Enable: z.boolean().default(false),
+  additionalStorage1Profile: z.number().optional(),
+  additionalStorage2Profile: z.number().optional(),
+  additionalStorage1Capacity: z.number().min(1).optional(),
+  additionalStorage2Capacity: z.number().min(1).optional(),
 });
 
 export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State for searchable dropdowns
+  const [userOpen, setUserOpen] = useState(false);
+  const [hypervisorOpen, setHypervisorOpen] = useState(false);
+  const [packageOpen, setPackageOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Setup form
   const form = useForm<z.infer<typeof adminServerSchema>>({
@@ -84,8 +132,13 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
       name: "",
       hostname: "",
       dryRun: false,
+      ipv4: 1,
+      additionalStorage1Enable: false,
+      additionalStorage2Enable: false,
     },
   });
+
+
 
   // Fetch users with VirtFusion accounts
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
@@ -126,6 +179,44 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
       return Array.isArray(data) ? data : data.data || [];
     },
   });
+
+  // Watch for package changes and auto-populate advanced configuration
+  const selectedPackageId = form.watch("packageId");
+
+  useEffect(() => {
+    if (selectedPackageId && packages) {
+      const selectedPackage = packages.find(pkg => pkg.id === selectedPackageId);
+      if (selectedPackage) {
+        // Auto-populate advanced configuration fields with package defaults
+        const updates: Partial<z.infer<typeof adminServerSchema>> = {};
+
+        if (selectedPackage.cpu != null) {
+          updates.cpuCores = selectedPackage.cpu;
+        }
+        if (selectedPackage.memory != null) {
+          updates.memory = selectedPackage.memory;
+        }
+        if (selectedPackage.storage != null) {
+          updates.storage = selectedPackage.storage;
+        }
+
+        // Only update fields that have values and aren't already set by user
+        Object.entries(updates).forEach(([key, value]) => {
+          const currentValue = form.getValues(key as keyof z.infer<typeof adminServerSchema>);
+          if (value != null && (currentValue == null || currentValue === 0)) {
+            form.setValue(key as keyof z.infer<typeof adminServerSchema>, value);
+          }
+        });
+      }
+    }
+  }, [selectedPackageId, packages, form]);
+
+
+
+
+
+
+
 
   // Create server mutation
   const createServerMutation = useMutation({
@@ -199,6 +290,176 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
     );
   }
 
+  // Helper component for searchable and paginated combobox
+  const SearchableCombobox = ({
+    value,
+    onValueChange,
+    options,
+    placeholder,
+    searchPlaceholder,
+    emptyMessage,
+    open,
+    onOpenChange,
+    renderOption,
+    disabled = false,
+    searchFunction
+  }: {
+    value?: string;
+    onValueChange: (value: string) => void;
+    options: any[];
+    placeholder: string;
+    searchPlaceholder: string;
+    emptyMessage: string;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    renderOption: (option: any) => React.ReactNode;
+    disabled?: boolean;
+    searchFunction: (option: any, query: string) => boolean;
+  }) => {
+    const [searchQuery, setSearchQuery] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(5);
+
+    const selectedOption = options.find(option => option.id.toString() === value);
+
+    // Filter options based on search query
+    const filteredOptions = searchQuery
+      ? options.filter(option => searchFunction(option, searchQuery.toLowerCase()))
+      : options;
+
+    // Calculate pagination
+    const totalPages = Math.ceil(filteredOptions.length / pageSize);
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedOptions = filteredOptions.slice(startIndex, endIndex);
+
+    // Reset to first page when search changes
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [searchQuery]);
+
+    // Reset search and page when dropdown closes
+    useEffect(() => {
+      if (!open) {
+        setSearchQuery("");
+        setCurrentPage(1);
+      }
+    }, [open]);
+
+    return (
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between"
+            disabled={disabled}
+          >
+            {selectedOption ? renderOption(selectedOption) : placeholder}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+          <Command shouldFilter={false} className="w-full">
+            <div className="flex items-center border-b px-3 w-full">
+              <Search className="mr-2 h-4 w-4 shrink-0 text-gray-500" />
+              <input
+                placeholder={searchPlaceholder}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-none focus:ring-0"
+              />
+            </div>
+            <CommandList className="w-full">
+              {filteredOptions.length === 0 ? (
+                <CommandEmpty>{emptyMessage}</CommandEmpty>
+              ) : (
+                <>
+                  <CommandGroup className="w-full">
+                    {paginatedOptions.map((option) => (
+                      <CommandItem
+                        key={option.id}
+                        value={option.id.toString()}
+                        onSelect={(currentValue) => {
+                          onValueChange(currentValue === value ? "" : currentValue);
+                          onOpenChange(false);
+                        }}
+                        className="w-full"
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value === option.id.toString() ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {renderOption(option)}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="border-t p-2 space-y-2 w-full">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground w-full">
+                        <span>
+                          Showing {startIndex + 1}-{Math.min(endIndex, filteredOptions.length)} of {filteredOptions.length}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <span>Per page:</span>
+                          <Select
+                            value={pageSize.toString()}
+                            onValueChange={(value) => {
+                              setPageSize(Number(value));
+                              setCurrentPage(1);
+                            }}
+                          >
+                            <SelectTrigger className="w-16 h-6 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="5">5</SelectItem>
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="25">25</SelectItem>
+                              <SelectItem value="50">50</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between w-full">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                          disabled={currentPage === 1}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Previous
+                        </Button>
+                        <span className="text-xs text-muted-foreground">
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                          disabled={currentPage === totalPages}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
@@ -227,26 +488,32 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
           render={({ field }) => (
             <FormItem>
               <FormLabel>User</FormLabel>
-              <Select onValueChange={(value) => field.onChange(parseInt(value))}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a user" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {users?.map((user) => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        <span>{user.username}</span>
-                        {user.fullName && (
-                          <span className="text-muted-foreground">({user.fullName})</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchableCombobox
+                  value={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                  options={users || []}
+                  placeholder="Select a user"
+                  searchPlaceholder="Search users..."
+                  emptyMessage="No users found."
+                  open={userOpen}
+                  onOpenChange={setUserOpen}
+                  searchFunction={(user, query) =>
+                    user.username?.toLowerCase().includes(query) ||
+                    (user.fullName && user.fullName.toLowerCase().includes(query)) ||
+                    user.email?.toLowerCase().includes(query)
+                  }
+                  renderOption={(user) => (
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      <span>{user.username}</span>
+                      {user.fullName && (
+                        <span className="text-muted-foreground">({user.fullName})</span>
+                      )}
+                    </div>
+                  )}
+                />
+              </FormControl>
               <FormDescription>
                 Select the user who will own this server (only users with VirtFusion accounts are shown)
               </FormDescription>
@@ -262,24 +529,35 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
           render={({ field }) => (
             <FormItem>
               <FormLabel>Hypervisor</FormLabel>
-              <Select onValueChange={(value) => field.onChange(parseInt(value))}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a hypervisor" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {hypervisors?.map((hypervisor) => (
-                    <SelectItem key={hypervisor.id} value={hypervisor.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <Server className="h-4 w-4" />
-                        <span>{hypervisor.name}</span>
+              <FormControl>
+                <SearchableCombobox
+                  value={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                  options={hypervisors || []}
+                  placeholder="Select a hypervisor"
+                  searchPlaceholder="Search hypervisors..."
+                  emptyMessage="No hypervisors found."
+                  open={hypervisorOpen}
+                  onOpenChange={setHypervisorOpen}
+                  searchFunction={(hypervisor, query) =>
+                    hypervisor.name?.toLowerCase().includes(query) ||
+                    (hypervisor.hostname && hypervisor.hostname.toLowerCase().includes(query)) ||
+                    (hypervisor.ip && hypervisor.ip.toLowerCase().includes(query))
+                  }
+                  renderOption={(hypervisor) => (
+                    <div className="flex items-center gap-2">
+                      <Server className="h-4 w-4" />
+                      <span>{hypervisor.name}</span>
+                      {hypervisor.hostname && (
                         <span className="text-muted-foreground">({hypervisor.hostname})</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      )}
+                      {hypervisor.ip && !hypervisor.hostname && (
+                        <span className="text-muted-foreground">({hypervisor.ip})</span>
+                      )}
+                    </div>
+                  )}
+                />
+              </FormControl>
               <FormDescription>
                 Select the hypervisor where the server will be created
               </FormDescription>
@@ -295,26 +573,33 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
           render={({ field }) => (
             <FormItem>
               <FormLabel>Package</FormLabel>
-              <Select onValueChange={(value) => field.onChange(parseInt(value))}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a package" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {packages?.map((pkg) => (
-                    <SelectItem key={pkg.id} value={pkg.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" />
-                        <span>{pkg.name}</span>
-                        <span className="text-muted-foreground">
-                          ({pkg.cpu} CPU, {pkg.memory}MB RAM, {pkg.storage}GB Storage)
-                        </span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchableCombobox
+                  value={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                  options={packages || []}
+                  placeholder="Select a package"
+                  searchPlaceholder="Search packages..."
+                  emptyMessage="No packages found."
+                  open={packageOpen}
+                  onOpenChange={setPackageOpen}
+                  searchFunction={(pkg, query) =>
+                    pkg.name?.toLowerCase().includes(query) ||
+                    (pkg.cpu != null && pkg.cpu.toString().includes(query)) ||
+                    (pkg.memory != null && pkg.memory.toString().includes(query)) ||
+                    (pkg.storage != null && pkg.storage.toString().includes(query))
+                  }
+                  renderOption={(pkg) => (
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      <span>{pkg.name}</span>
+                      <span className="text-muted-foreground">
+                        ({pkg.cpu ?? 'N/A'} CPU, {pkg.memory ?? 'N/A'}MB RAM, {pkg.storage ?? 'N/A'}GB Storage)
+                      </span>
+                    </div>
+                  )}
+                />
+              </FormControl>
               <FormDescription>
                 Select the server package that defines CPU, memory, and storage
               </FormDescription>
@@ -340,6 +625,310 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
             </FormItem>
           )}
         />
+
+        {/* Advanced Configuration Toggle */}
+        <div className="flex items-center space-x-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="w-full"
+          >
+            {showAdvanced ? "Hide" : "Show"} Advanced Configuration
+          </Button>
+        </div>
+
+        {/* Advanced Configuration Section */}
+        {showAdvanced && (
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle className="text-lg">Advanced Configuration</CardTitle>
+              <CardDescription>
+                Override package defaults and configure advanced server settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Resource Overrides */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="ipv4"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Network className="h-4 w-4" />
+                        IPv4 Addresses
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="10"
+                          placeholder="1"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Number of IPv4 addresses (0-10)</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="storage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <HardDrive className="h-4 w-4" />
+                        Storage (GB)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Package default"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Primary storage in GB</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="memory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <MemoryStick className="h-4 w-4" />
+                        Memory (MB)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="128"
+                          placeholder="Package default"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Memory in MB</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cpuCores"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Cpu className="h-4 w-4" />
+                        CPU Cores
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="1"
+                          placeholder="Package default"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Number of CPU cores</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="traffic"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Network className="h-4 w-4" />
+                        Traffic (GB)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0 (unlimited)"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Monthly traffic limit (0 = unlimited)</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="networkSpeedInbound"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Inbound Speed (kB/s)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="Package default"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Inbound network speed limit</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="networkSpeedOutbound"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Outbound Speed (kB/s)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="Package default"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                        />
+                      </FormControl>
+                      <FormDescription>Outbound network speed limit</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+
+
+              {/* Additional Storage */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Additional Storage</h4>
+
+                {/* Additional Storage 1 */}
+                <div className="space-y-4 p-4 border rounded-lg">
+                  <FormField
+                    control={form.control}
+                    name="additionalStorage1Enable"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel>Enable Additional Storage 1</FormLabel>
+                          <FormDescription>
+                            Add a second storage disk to the server
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch("additionalStorage1Enable") && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="additionalStorage1Capacity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Capacity (GB)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                placeholder="10"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+
+                    </div>
+                  )}
+                </div>
+
+                {/* Additional Storage 2 */}
+                <div className="space-y-4 p-4 border rounded-lg">
+                  <FormField
+                    control={form.control}
+                    name="additionalStorage2Enable"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <div className="space-y-0.5">
+                          <FormLabel>Enable Additional Storage 2</FormLabel>
+                          <FormDescription>
+                            Add a third storage disk to the server
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch("additionalStorage2Enable") && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="additionalStorage2Capacity"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Capacity (GB)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                placeholder="20"
+                                {...field}
+                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+
+                    </div>
+                  )}
+                </div>
+              </div>
+
+
+            </CardContent>
+          </Card>
+        )}
 
         {/* Action Buttons */}
         <div className="flex justify-between pt-4">
