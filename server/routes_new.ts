@@ -3246,6 +3246,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       formattedDescription = formattedDescription.replace(/Custom Credits/g, customCreditsName);
     }
 
+    // Fix arrow symbol formatting issues in PDF generation
+    // Replace corrupted arrow symbols with proper directional arrows
+    formattedDescription = formattedDescription.replace(/\s*!\'\s*/g, ' → '); // Fix corrupted upgrade arrow
+    formattedDescription = formattedDescription.replace(/\s*'!\s*/g, ' ← '); // Fix corrupted downgrade arrow
+
+    // Also handle other potential corrupted arrow variations
+    formattedDescription = formattedDescription.replace(/\s*[!'"]+\s*/g, ' → '); // Generic corrupted arrow fix
+
+    // Ensure proper spacing around arrows
+    formattedDescription = formattedDescription.replace(/\s*→\s*/g, ' → ');
+    formattedDescription = formattedDescription.replace(/\s*←\s*/g, ' ← ');
+
     return formattedDescription;
   }
 
