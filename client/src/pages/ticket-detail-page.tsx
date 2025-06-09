@@ -234,10 +234,21 @@ export default function TicketDetailPage() {
 
   const ticketId = params?.id ? parseInt(params.id) : 0;
 
-  // Fetch account balance for VirtFusion credits
+  // Fetch account balance for VirtFusion credits and custom credits
   const { data: balance } = useQuery<Balance>({
     queryKey: ['/api/billing/balance'],
     retry: 1,
+  });
+
+  // Fetch branding data for custom credits name
+  const { data: brandingData } = useQuery<{
+    company_name: string;
+    primary_color: string;
+    secondary_color: string;
+    accent_color: string;
+    custom_credits_name?: string;
+  }>({
+    queryKey: ['/api/settings/branding'],
   });
 
   // Fetch ticket details
@@ -746,7 +757,7 @@ export default function TicketDetailPage() {
             <Card>
               <CardHeader className="py-3 px-4" style={getContainerStyle()}>
                 <CardTitle className="text-md font-medium flex items-center">
-                  <Coins className="h-4 w-4 mr-2" style={{ color: colors.accent.full }} /> 
+                  <Coins className="h-4 w-4 mr-2" style={{ color: colors.accent.full }} />
                   VirtFusion Credits
                 </CardTitle>
                 <CardDescription className="text-xs mt-1">
@@ -763,6 +774,37 @@ export default function TicketDetailPage() {
                     <span className="text-sm">VirtFusion Tokens:</span>
                     <span className="font-medium text-secondary">
                       {balance.virtFusionTokens.toLocaleString()} tokens
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Display Custom Credits if available */}
+          {balance && typeof balance.customCredits === 'number' && (
+            <Card>
+              <CardHeader className="py-3 px-4" style={getContainerStyle()}>
+                <CardTitle className="text-md font-medium flex items-center">
+                  <Coins className="h-4 w-4 mr-2" style={{ color: colors.secondary.full }} />
+                  {brandingData?.custom_credits_name || 'Custom Credits'}
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Platform credits for services and features
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">{brandingData?.custom_credits_name || 'Custom Credits'} Balance:</span>
+                    <span className={`font-medium ${balance.customCredits < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      ${balance.customCredits.toFixed(2)} USD
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Status:</span>
+                    <span className={`text-sm font-medium ${balance.customCredits < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {balance.customCredits < 0 ? 'Negative Balance' : 'Available'}
                     </span>
                   </div>
                 </div>

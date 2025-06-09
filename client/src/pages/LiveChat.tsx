@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageCircle, Send, User, Bot, History, Clock, Search } from 'lucide-react';
+import { MessageCircle, Send, User, Bot, History, Clock, Search, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { useAuth } from '@/hooks/use-auth';
@@ -78,6 +78,7 @@ export default function LiveChat() {
   const [historySearch, setHistorySearch] = useState('');
   const [selectedHistorySession, setSelectedHistorySession] = useState<ChatHistorySession | null>(null);
   const [historyMessages, setHistoryMessages] = useState<ChatMessage[]>([]);
+  const [isRefreshingHistory, setIsRefreshingHistory] = useState(false);
 
   const [adminStatus, setAdminStatus] = useState<{
     available: boolean;
@@ -157,12 +158,43 @@ export default function LiveChat() {
       } else if (data.type === 'session_started' || data.type === 'session_resumed') {
         setSession(data.data);
       } else if (data.type === 'session_ended') {
+        // Check if this session was converted to a ticket
+        const endedSession = session || selectedHistorySession;
+        if (endedSession && endedSession.status === 'converted_to_ticket') {
+          // Look for ticket ID in recent conversion data
+          const recentConversion = messages.find(msg =>
+            msg.user?.role === 'system' &&
+            msg.message.includes('converted to support ticket #')
+          );
+
+          if (recentConversion) {
+            const ticketIdMatch = recentConversion.message.match(/ticket #(\d+)/);
+            if (ticketIdMatch) {
+              const ticketId = ticketIdMatch[1];
+              toast({
+                title: "Redirecting to Ticket",
+                description: `Redirecting you to ticket #${ticketId}...`,
+                duration: 3000,
+              });
+
+              // Redirect after a short delay
+              setTimeout(() => {
+                navigate(`/tickets/${ticketId}`);
+              }, 2000);
+            }
+          }
+        }
+
         setSession(null);
         setMessages([]);
-        toast({
-          title: "Chat Ended",
-          description: "The chat session has been ended.",
-        });
+
+        // Only show generic end message if not redirecting to ticket
+        if (!endedSession || endedSession.status !== 'converted_to_ticket') {
+          toast({
+            title: "Chat Ended",
+            description: "The chat session has been ended.",
+          });
+        }
       } else if (data.type === 'typing') {
         if (data.data.userId !== user?.id) {
           setAdminTyping(data.data.isTyping);
@@ -202,7 +234,12 @@ export default function LiveChat() {
 
         // Update session status to converted
         if (session && data.data.sessionId === session.id) {
-          setSession(prev => prev ? { ...prev, status: 'converted_to_ticket' } : prev);
+          setSession(prev => prev ? { ...prev, status: 'converted_to_ticket', ticketId } : prev);
+        }
+
+        // Update history session if viewing it
+        if (selectedHistorySession && data.data.sessionId === selectedHistorySession.id) {
+          setSelectedHistorySession(prev => prev ? { ...prev, status: 'converted_to_ticket', ticketId } : prev);
         }
 
         // Show conversion notification with ticket information
@@ -213,14 +250,21 @@ export default function LiveChat() {
         });
 
         // Add system message about conversion
-        setMessages(prev => [...prev, {
+        const conversionMessage = {
           id: Date.now(),
           message: `This chat session has been converted to support ticket #${ticketId}: "${ticketSubject}". You will receive an email notification with instructions on how to continue the conversation through our ticket system.`,
           isFromAdmin: true,
           createdAt: new Date().toISOString(),
           user: { id: 0, fullName: 'System', role: 'system' },
           messageType: 'system'
-        }]);
+        };
+
+        setMessages(prev => [...prev, conversionMessage]);
+
+        // Also add to history messages if viewing the same session
+        if (selectedHistorySession && data.data.sessionId === selectedHistorySession.id) {
+          setHistoryMessages(prev => [...prev, conversionMessage]);
+        }
 
         // Auto-scroll to show the conversion message
         setTimeout(scrollToBottom, 100);
@@ -441,6 +485,28 @@ export default function LiveChat() {
       }
     }
   }, [departments, selectedDepartment]);
+
+  // Handle manual refresh of chat history
+  const handleRefreshHistory = async () => {
+    setIsRefreshingHistory(true);
+    try {
+      await refetchHistory();
+      toast({
+        title: "Chat History Refreshed",
+        description: "Chat history has been updated successfully.",
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Failed to refresh chat history:', error);
+      toast({
+        title: "Refresh Failed",
+        description: "Failed to refresh chat history. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshingHistory(false);
+    }
+  };
 
 
 
@@ -794,6 +860,19 @@ export default function LiveChat() {
                           className="pl-10"
                         />
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefreshHistory}
+                        disabled={isRefreshingHistory}
+                        className="flex items-center space-x-1 hover:bg-primary hover:text-primary-foreground"
+                        title="Refresh chat history"
+                      >
+                        <RefreshCw
+                          className={`h-4 w-4 ${isRefreshingHistory ? 'animate-spin' : ''}`}
+                        />
+                        <span className="hidden sm:inline">Refresh</span>
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 overflow-hidden p-0 min-h-0">
