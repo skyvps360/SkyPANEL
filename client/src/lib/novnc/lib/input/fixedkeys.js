@@ -36,7 +36,6 @@ export default {
     'ShiftLeft':        'Shift',
     'ShiftRight':       'Shift',
     'Tab':              'Tab',
-    // FIXME: Japanese/Korean keys
 
 // 3.1.2. Control Pad Section
 

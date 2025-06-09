@@ -1,75 +1,57 @@
-import type { Express, Request, Response } from "express";
-import { createServer, type Server } from "http";
+import type {Express, Request, Response} from "express";
+import {createServer, type Server} from "http";
 import https from "https";
 import axios from "axios";
 import * as net from "net";
-import { WebSocketServer } from "ws";
-import WebSocket from "ws";
-import { storage } from "./storage";
-import { db, pool } from "./db";
-import { setupAuth, hashPassword } from "./auth";
-import { AuthService } from "./auth-service";
-import { EmailVerificationService } from "./email-verification-service";
-import { discordService } from "./discord-service";
-import { discordBotService } from "./discord-bot-service";
-import { virtFusionService } from "./virtfusion-service";
-import { VirtFusionApi as ImportedVirtFusionApi } from "./virtfusion-api";
-import { emailService } from "./email";
-import { betterStackService } from "./betterstack-service";
-import { geminiService } from "./gemini-service";
-import { cacheService } from "./cache-service";
-import { serverLoggingService } from "./server-logging-service";
-import { setLocationStatus, getLocationStatus, removeLocationStatus } from "./location-status-manager";
-import { getMaintenanceStatus, getMaintenanceToken, regenerateMaintenanceToken, toggleMaintenanceMode, validateMaintenanceToken } from "./middleware";
-import { apiKeyAuth, requireScope } from "./middleware/auth-middleware";
+import {WebSocketServer} from "ws";
+import {storage} from "./storage";
+import {db, pool} from "./db";
+import {hashPassword, setupAuth} from "./auth";
+import {AuthService} from "./auth-service";
+import {EmailVerificationService} from "./email-verification-service";
+import {discordService} from "./discord-service";
+import {discordBotService} from "./discord-bot-service";
+import {virtFusionService} from "./virtfusion-service";
+import {VirtFusionApi as ImportedVirtFusionApi} from "./virtfusion-api";
+import {emailService} from "./email";
+import {betterStackService} from "./betterstack-service";
+import {geminiService} from "./gemini-service";
+import {cacheService} from "./cache-service";
+import {serverLoggingService} from "./server-logging-service";
+import {
+  getMaintenanceStatus,
+  getMaintenanceToken,
+  regenerateMaintenanceToken,
+  toggleMaintenanceMode,
+  validateMaintenanceToken
+} from "./middleware";
+import {apiKeyAuth, requireScope} from "./middleware/auth-middleware";
 import apiKeysRoutes from "./routes/api-keys";
 import apiOnlyRoutes from "./routes/api-only-routes";
-import adminSettingsRoutes from "./routes/admin-settings";
 import chatRoutes from "./routes/chat";
 import chatDepartmentsRoutes from "./routes/chat-departments";
 import dnsRoutes from "./routes/dns";
 import adminDnsRoutes from "./routes/admin-dns";
-import { chatService } from "./chat-service";
-import { departmentMigrationService } from "./services/department-migration";
-import { eq, and, desc, isNull, gte, lte, sql, inArray } from "drizzle-orm";
+import {chatService} from "./chat-service";
+import {departmentMigrationService} from "./services/department-migration";
+import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import PDFDocument from "pdfkit";
-import { formatTicketPdf } from "./ticket-download";
+import {formatTicketPdf} from "./ticket-download";
 import * as schema from "../shared/schema";
-import { datacenterLocations } from "../shared/schema";
 import {
-  transactions,
-  tickets,
-  ticketMessages,
-  settings,
-  ticketDepartments,
-  userCredits as userCreditsTable,
   creditTransactions as creditTransactionsTable,
+  dnsDomains as dnsDomainsTable,
   dnsPlans as dnsPlansTable,
   dnsPlanSubscriptions as dnsPlanSubscriptionsTable,
-  dnsDomains as dnsDomainsTable,
-  insertTicketSchema,
-  insertTicketMessageSchema,
   insertTicketDepartmentSchema,
-  insertUserCreditsSchema,
-  insertCreditTransactionSchema,
-  insertDnsPlanSchema,
-  insertDnsPlanSubscriptionSchema,
+  insertTicketMessageSchema,
+  insertTicketSchema,
   InsertTransaction,
-  InsertUserCredits,
-  InsertCreditTransaction,
-  InsertDnsPlan,
-  InsertDnsPlanSubscription,
-  type Transaction,
-  type User,
-  type TicketDepartment,
-  type InsertTicketDepartment,
-  type UserCredits,
-  type CreditTransaction,
-  type DnsPlan,
-  type DnsPlanSubscription
+  transactions,
+  userCredits as userCreditsTable
 } from "@shared/schema";
-import { z, ZodError } from "zod";
-import { fromZodError } from "zod-validation-error";
+import {z, ZodError} from "zod";
+import {fromZodError} from "zod-validation-error";
 // Location status manager already imported above
 
 // Handle all ZodError validations consistently
@@ -3155,6 +3137,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyLogo = await storage.getSetting('company_logo');
       const companyLogoValue = companyLogo?.value || '';
 
+      // Get custom credits branding
+      const customCreditsName = await storage.getSetting('custom_credits_name');
+      const customCreditsNameValue = customCreditsName?.value || 'Custom Credits';
+
       // Generate PDF
       const doc = new PDFDocument({ margin: 50 });
 
@@ -3162,8 +3148,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let buffers: Buffer[] = [];
       doc.on('data', buffers.push.bind(buffers));
 
-      // Format the document with transaction data
-      formatTransactionsPdf(doc, transactions, user, companyNameValue, companyLogoValue);
+      // Format the document with transaction data and branding
+      formatTransactionsPdf(doc, transactions, user, companyNameValue, companyLogoValue, customCreditsNameValue);
 
       // Finalize the PDF and convert to base64
       doc.end();
@@ -3242,8 +3228,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to format transaction descriptions with branding
+  function formatTransactionDescriptionForPdf(description: string, customCreditsName: string): string {
+    if (!description) return 'N/A';
+
+    // Replace hardcoded "custom_credits" with branded name in all descriptions
+    let formattedDescription = description;
+    if (formattedDescription.includes('custom_credits')) {
+      formattedDescription = formattedDescription.replace(/custom_credits/g, customCreditsName);
+    }
+
+    // Also handle variations like "Custom_credits" or "Custom Credits"
+    if (formattedDescription.includes('Custom_credits')) {
+      formattedDescription = formattedDescription.replace(/Custom_credits/g, customCreditsName);
+    }
+    if (formattedDescription.includes('Custom Credits') && customCreditsName !== 'Custom Credits') {
+      formattedDescription = formattedDescription.replace(/Custom Credits/g, customCreditsName);
+    }
+
+    return formattedDescription;
+  }
+
+  // Helper function to format payment methods with branding
+  function formatPaymentMethodForPdf(paymentMethod: string, customCreditsName: string): string {
+    if (!paymentMethod) return 'N/A';
+
+    // Handle custom credits payment methods
+    if (paymentMethod === 'custom_credits' ||
+        paymentMethod?.includes('_credits') ||
+        paymentMethod?.includes('credits')) {
+      return customCreditsName;
+    }
+
+    // Handle other payment methods
+    switch (paymentMethod.toLowerCase()) {
+      case 'paypal':
+        return 'PayPal';
+      case 'credit':
+        return 'VirtFusion Credits';
+      case 'stripe':
+        return 'Credit Card (Stripe)';
+      default:
+        return paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
+    }
+  }
+
   // Helper function to format a single transaction PDF
-  function formatSingleTransactionPdf(doc: PDFKit.PDFDocument, transaction: any, user: any, companyName: string, companyLogo: string) {
+  function formatSingleTransactionPdf(doc: PDFKit.PDFDocument, transaction: any, user: any, companyName: string, companyLogo: string, customCreditsName: string = 'Custom Credits') {
     // Debug transaction data
     console.log('Generating PDF for transaction:', JSON.stringify(transaction, null, 2));
 
@@ -3325,19 +3356,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     addField('Status:', transaction.status || 'N/A', rightColX, currentY);
     currentY += lineHeight;
 
-    // Row 3 - For description, use the full width
+    // Row 3 - For description, use the full width with branding
     doc.fontSize(10).font('Helvetica-Bold').text('Description:', leftColX, currentY);
     doc.font('Helvetica').text(
-      transaction.description || 'N/A',
+        formatTransactionDescriptionForPdf(transaction.description, customCreditsName),
       leftColX + labelWidth,
       currentY,
       { width: 380, ellipsis: true }
     );
     currentY += lineHeight;
 
-    // Row 4 - Payment details if available
+    // Row 4 - Payment details if available with branding
     if (transaction.paymentMethod) {
-      addField('Payment Method:', transaction.paymentMethod, leftColX, currentY);
+      addField('Payment Method:', formatPaymentMethodForPdf(transaction.paymentMethod, customCreditsName), leftColX, currentY);
       currentY += lineHeight;
     }
 
@@ -3380,7 +3411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Helper function to format transactions PDF
-  function formatTransactionsPdf(doc: PDFKit.PDFDocument, transactions: any[], user: any, companyName: string, companyLogo: string) {
+  function formatTransactionsPdf(doc: PDFKit.PDFDocument, transactions: any[], user: any, companyName: string, companyLogo: string, customCreditsName: string = 'Custom Credits') {
     // Add logo if available
     if (companyLogo) {
       try {
@@ -3488,11 +3519,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.rect(50, y - 3, 500, 20).fill('#f6f6f6');
       }
 
-      // Draw row content
+      // Draw row content with branding
       doc.fillColor('#000000');
       doc.fontSize(8).text(transaction.id ? `#${transaction.id}` : 'N/A', 50, y);
       doc.text(date, 130, y);
-      doc.text(transaction.description || '', 190, y, { width: 150, ellipsis: true });
+      doc.text(formatTransactionDescriptionForPdf(transaction.description, customCreditsName), 190, y, {
+        width: 150,
+        ellipsis: true
+      });
       doc.text(transaction.type || '', 350, y);
       doc.text(transaction.status || '', 420, y);
 
@@ -10182,6 +10216,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyName = await storage.getSetting('company_name') || { value: 'SkyVPS360' };
       const companyLogo = await storage.getSetting('company_logo') || { value: '' };
 
+      // Get custom credits branding
+      const customCreditsName = await storage.getSetting('custom_credits_name') || {value: 'Custom Credits'};
+
       // Create a new buffer array to collect PDF data
       const chunks: Buffer[] = [];
 
@@ -10199,8 +10236,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      // Format the PDF
-      formatSingleTransactionPdf(doc, transaction, user, companyName.value, companyLogo.value);
+      // Format the PDF with branding
+      formatSingleTransactionPdf(doc, transaction, user, companyName.value, companyLogo.value, customCreditsName.value);
 
       // Finalize the PDF
       doc.end();
