@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Command,
   CommandEmpty,
@@ -35,9 +37,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { toast } from "@/hooks/use-toast";
 import { Server, User, Settings, Check, ChevronsUpDown, Network, HardDrive, Cpu, MemoryStick, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -63,10 +63,35 @@ interface Package {
   id: number;
   name: string;
   description?: string;
-  cpu?: number;
-  memory?: number;
-  storage?: number;
-  price?: number;
+  enabled: boolean;
+  memory: number;                    // Memory in MB
+  primaryStorage: number;            // Storage in GB
+  traffic: number;                   // Traffic in GB
+  cpuCores: number;                  // CPU cores
+  primaryNetworkSpeedIn: number;     // Inbound network speed (kB/s)
+  primaryNetworkSpeedOut: number;    // Outbound network speed (kB/s)
+  primaryDiskType?: string;
+  backupPlanId?: number;
+  primaryStorageProfile?: number;    // Storage profile ID
+  primaryNetworkProfile?: number;    // Network profile ID
+  created?: string;
+  price?: number;                    // Local pricing (not from VirtFusion)
+}
+
+interface OSTemplate {
+  id: number;
+  name: string;
+  version: string;
+  variant?: string;
+  arch: number;
+  description?: string;
+  icon?: string;
+  eol: boolean;
+  eol_date?: string;
+  eol_warning: boolean;
+  deploy_type: number;
+  vnc: boolean;
+  type: string; // 'linux', 'windows', 'unix', etc.
 }
 
 
@@ -94,6 +119,13 @@ const adminServerSchema = z.object({
   hostname: z.string().optional(),
   dryRun: z.boolean().default(false),
 
+  // OS Template and Build Options
+  operatingSystemId: z.number().min(1, "Operating system is required"),
+  enableVnc: z.boolean().default(false),
+  enableIpv6: z.boolean().default(false),
+  enableEmail: z.boolean().default(true),
+  swapSize: z.number().min(0).default(512),
+
   // Optional resource overrides
   ipv4: z.number().min(0).max(10).optional(),
   storage: z.number().min(1).optional(),
@@ -118,11 +150,13 @@ const adminServerSchema = z.object({
 
 export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
 
   // State for searchable dropdowns
   const [userOpen, setUserOpen] = useState(false);
   const [hypervisorOpen, setHypervisorOpen] = useState(false);
   const [packageOpen, setPackageOpen] = useState(false);
+  const [osTemplateOpen, setOsTemplateOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Setup form
@@ -133,6 +167,10 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
       hostname: "",
       dryRun: false,
       ipv4: 1,
+      enableVnc: false,
+      enableIpv6: false,
+      enableEmail: true,
+      swapSize: 512,
       additionalStorage1Enable: false,
       additionalStorage2Enable: false,
     },
@@ -183,31 +221,68 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
   // Watch for package changes and auto-populate advanced configuration
   const selectedPackageId = form.watch("packageId");
 
+  // Fetch OS templates for the selected package
+  const { data: osTemplates, isLoading: osTemplatesLoading } = useQuery<OSTemplate[]>({
+    queryKey: ['/api/admin/packages', selectedPackageId, 'templates'],
+    queryFn: async () => {
+      if (!selectedPackageId) return [];
+      const response = await fetch(`/api/admin/packages/${selectedPackageId}/templates`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch OS templates');
+      }
+      const data = await response.json();
+      return data.data || [];
+    },
+    enabled: !!selectedPackageId,
+  });
+
   useEffect(() => {
     if (selectedPackageId && packages) {
       const selectedPackage = packages.find(pkg => pkg.id === selectedPackageId);
       if (selectedPackage) {
+        console.log(`Auto-populating fields for package: ${selectedPackage.name}`, selectedPackage);
+
         // Auto-populate advanced configuration fields with package defaults
+        // Always update when package changes (not just empty fields)
         const updates: Partial<z.infer<typeof adminServerSchema>> = {};
 
-        if (selectedPackage.cpu != null) {
-          updates.cpuCores = selectedPackage.cpu;
+        // Map VirtFusion package properties to form fields
+        if (selectedPackage.cpuCores != null) {
+          updates.cpuCores = selectedPackage.cpuCores;
         }
         if (selectedPackage.memory != null) {
           updates.memory = selectedPackage.memory;
         }
-        if (selectedPackage.storage != null) {
-          updates.storage = selectedPackage.storage;
+        if (selectedPackage.primaryStorage != null) {
+          updates.storage = selectedPackage.primaryStorage;
+        }
+        if (selectedPackage.traffic != null) {
+          updates.traffic = selectedPackage.traffic;
+        }
+        if (selectedPackage.primaryNetworkSpeedIn != null && selectedPackage.primaryNetworkSpeedIn > 0) {
+          updates.networkSpeedInbound = selectedPackage.primaryNetworkSpeedIn;
+        }
+        if (selectedPackage.primaryNetworkSpeedOut != null && selectedPackage.primaryNetworkSpeedOut > 0) {
+          updates.networkSpeedOutbound = selectedPackage.primaryNetworkSpeedOut;
         }
 
-        // Only update fields that have values and aren't already set by user
+        // Update ALL fields when package changes (dynamic switching behavior)
         Object.entries(updates).forEach(([key, value]) => {
-          const currentValue = form.getValues(key as keyof z.infer<typeof adminServerSchema>);
-          if (value != null && (currentValue == null || currentValue === 0)) {
+          if (value != null) {
             form.setValue(key as keyof z.infer<typeof adminServerSchema>, value);
+            console.log(`Updated ${key} to ${value}`);
           }
         });
       }
+    } else if (!selectedPackageId) {
+      // Clear fields when no package is selected
+      console.log("No package selected, clearing auto-populated fields");
+      form.setValue("cpuCores", 0);
+      form.setValue("memory", 0);
+      form.setValue("storage", 0);
+      form.setValue("traffic", 0);
+      form.setValue("networkSpeedInbound", 0);
+      form.setValue("networkSpeedOutbound", 0);
     }
   }, [selectedPackageId, packages, form]);
 
@@ -259,10 +334,92 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
     },
   });
 
-  // Form submission handler
-  const handleSubmit = (values: z.infer<typeof adminServerSchema>) => {
+  // Form submission handler - Two-step process: Create then Build
+  const handleSubmit = async (values: z.infer<typeof adminServerSchema>) => {
     setIsSubmitting(true);
-    createServerMutation.mutate(values);
+
+    try {
+      console.log('Step 1: Creating server...', values);
+
+      // Step 1: Create the server (without OS installation)
+      const createResponse = await fetch('/api/admin/servers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...values,
+          dryRun: false, // Ensure we're actually creating
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        throw new Error(errorData.message || 'Failed to create server');
+      }
+
+      const serverData = await createResponse.json();
+      const serverId = serverData.data?.id || serverData.id;
+
+      if (!serverId) {
+        throw new Error('Server created but no ID returned');
+      }
+
+      console.log('Step 1 Complete: Server created with ID:', serverId);
+      console.log('Step 2: Building server with OS...', {
+        serverId,
+        operatingSystemId: values.operatingSystemId,
+        serverName: values.name,
+      });
+
+      // Step 2: Build the server with the selected OS
+      const buildResponse = await fetch(`/api/admin/servers/${serverId}/build`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          operatingSystemId: values.operatingSystemId,
+          serverName: values.name || `Server ${serverId}`,
+          enableVnc: values.enableVnc || false,
+          enableIpv6: values.enableIpv6 || false,
+          enableEmail: values.enableEmail !== false, // Default to true
+          swapSize: values.swapSize || 512,
+        }),
+      });
+
+      if (!buildResponse.ok) {
+        const errorData = await buildResponse.json();
+        console.error('Build failed:', errorData);
+        // Server was created but build failed - show partial success message
+        toast({
+          title: "Partial Success",
+          description: `Server created successfully (ID: ${serverId}), but build failed: ${errorData.message || 'Unknown error'}. You can manually build it later.`,
+          variant: "destructive",
+        });
+      } else {
+        const buildData = await buildResponse.json();
+        console.log('Step 2 Complete: Server built successfully', buildData);
+        toast({
+          title: "Success",
+          description: 'Server created and build started successfully!',
+        });
+      }
+
+      // Refresh the servers list and close the form
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/servers'] });
+      onClose();
+
+    } catch (error) {
+      console.error('Server creation/build error:', error);
+      toast({
+        title: "Creation Failed",
+        description: error instanceof Error ? error.message : 'Failed to create server',
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Handle dry run
@@ -301,7 +458,9 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
     open,
     onOpenChange,
     renderOption,
+    renderSelected,
     disabled = false,
+    loading = false,
     searchFunction
   }: {
     value?: string;
@@ -313,7 +472,9 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
     open: boolean;
     onOpenChange: (open: boolean) => void;
     renderOption: (option: any) => React.ReactNode;
+    renderSelected?: (option: any) => React.ReactNode;
     disabled?: boolean;
+    loading?: boolean;
     searchFunction: (option: any, query: string) => boolean;
   }) => {
     const [searchQuery, setSearchQuery] = useState("");
@@ -354,9 +515,18 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
             role="combobox"
             aria-expanded={open}
             className="w-full justify-between"
-            disabled={disabled}
+            disabled={disabled || loading}
           >
-            {selectedOption ? renderOption(selectedOption) : placeholder}
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <Spinner size="sm" />
+                <span>Loading...</span>
+              </div>
+            ) : selectedOption ? (
+              renderSelected ? renderSelected(selectedOption) : renderOption(selectedOption)
+            ) : (
+              placeholder
+            )}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -401,30 +571,10 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
                   {/* Pagination Controls */}
                   {totalPages > 1 && (
                     <div className="border-t p-2 space-y-2 w-full">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground w-full">
+                      <div className="flex items-center justify-center text-xs text-muted-foreground w-full">
                         <span>
                           Showing {startIndex + 1}-{Math.min(endIndex, filteredOptions.length)} of {filteredOptions.length}
                         </span>
-                        <div className="flex items-center space-x-2">
-                          <span>Per page:</span>
-                          <Select
-                            value={pageSize.toString()}
-                            onValueChange={(value) => {
-                              setPageSize(Number(value));
-                              setCurrentPage(1);
-                            }}
-                          >
-                            <SelectTrigger className="w-16 h-6 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="5">5</SelectItem>
-                              <SelectItem value="10">10</SelectItem>
-                              <SelectItem value="25">25</SelectItem>
-                              <SelectItem value="50">50</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
                       </div>
                       <div className="flex items-center justify-between w-full">
                         <Button
@@ -585,17 +735,23 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
                   onOpenChange={setPackageOpen}
                   searchFunction={(pkg, query) =>
                     pkg.name?.toLowerCase().includes(query) ||
-                    (pkg.cpu != null && pkg.cpu.toString().includes(query)) ||
+                    (pkg.cpuCores != null && pkg.cpuCores.toString().includes(query)) ||
                     (pkg.memory != null && pkg.memory.toString().includes(query)) ||
-                    (pkg.storage != null && pkg.storage.toString().includes(query))
+                    (pkg.primaryStorage != null && pkg.primaryStorage.toString().includes(query))
                   }
                   renderOption={(pkg) => (
                     <div className="flex items-center gap-2">
                       <Settings className="h-4 w-4" />
                       <span>{pkg.name}</span>
                       <span className="text-muted-foreground">
-                        ({pkg.cpu ?? 'N/A'} CPU, {pkg.memory ?? 'N/A'}MB RAM, {pkg.storage ?? 'N/A'}GB Storage)
+                        ({pkg.cpuCores ?? 'N/A'} CPU, {pkg.memory ?? 'N/A'}MB RAM, {pkg.primaryStorage ?? 'N/A'}GB Storage)
                       </span>
+                    </div>
+                  )}
+                  renderSelected={(pkg) => (
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      <span className="truncate">{pkg.name}</span>
                     </div>
                   )}
                 />
@@ -625,6 +781,181 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
             </FormItem>
           )}
         />
+
+        {/* OS Template Selection */}
+        <FormField
+          control={form.control}
+          name="operatingSystemId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Operating System</FormLabel>
+              <FormControl>
+                <SearchableCombobox
+                  value={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                  options={osTemplates || []}
+                  placeholder={selectedPackageId ? "Select an operating system" : "Select a package first"}
+                  searchPlaceholder="Search operating systems..."
+                  emptyMessage={selectedPackageId ? "No operating systems found." : "Please select a package first."}
+                  open={osTemplateOpen}
+                  onOpenChange={setOsTemplateOpen}
+                  disabled={!selectedPackageId || osTemplatesLoading}
+                  loading={osTemplatesLoading}
+                  searchFunction={(template, query) =>
+                    template.name?.toLowerCase().includes(query) ||
+                    template.version?.toLowerCase().includes(query) ||
+                    template.variant?.toLowerCase().includes(query) ||
+                    template.type?.toLowerCase().includes(query)
+                  }
+                  renderOption={(template) => (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <div className="font-medium">
+                          {template.name} {template.version}
+                          {template.variant && (
+                            <span className="text-sm text-muted-foreground font-normal"> | {template.variant}</span>
+                          )}
+                          <span className="text-sm text-muted-foreground font-normal capitalize"> | {template.type}</span>
+                        </div>
+                      </div>
+                      {template.eol && (
+                        <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">EOL</span>
+                      )}
+                    </div>
+                  )}
+                  renderSelected={(template) => (
+                    <div className="flex items-center gap-2">
+                      <span className="truncate">{template.name} {template.version}</span>
+                      {template.eol && (
+                        <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">EOL</span>
+                      )}
+                    </div>
+                  )}
+                />
+              </FormControl>
+              <FormDescription>
+                Choose the operating system to install on the server
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Server Build Configuration */}
+        <Card className="border-dashed">
+          <CardHeader>
+            <CardTitle className="text-lg">Server Build Configuration</CardTitle>
+            <CardDescription>
+              Configure how the server will be built and deployed. The server name from above will be used as the display name.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="swapSize"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Swap Size (MB)</FormLabel>
+                    <FormControl>
+                      <Select onValueChange={(value) => field.onChange(parseInt(value))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="512 MB" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="256">256 MB</SelectItem>
+                          <SelectItem value="512">512 MB</SelectItem>
+                          <SelectItem value="768">768 MB</SelectItem>
+                          <SelectItem value="1024">1 GB</SelectItem>
+                          <SelectItem value="1536">1.5 GB</SelectItem>
+                          <SelectItem value="2048">2 GB</SelectItem>
+                          <SelectItem value="3072">3 GB</SelectItem>
+                          <SelectItem value="4096">4 GB</SelectItem>
+                          <SelectItem value="5120">5 GB</SelectItem>
+                          <SelectItem value="6144">6 GB</SelectItem>
+                          <SelectItem value="8192">8 GB</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormDescription>Amount of swap space to allocate</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="enableVnc"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Enable VNC</FormLabel>
+                      <FormDescription className="text-xs">
+                        Remote desktop access
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="enableIpv6"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Enable IPv6</FormLabel>
+                      <FormDescription className="text-xs">
+                        IPv6 networking support
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="enableEmail"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Email Notifications</FormLabel>
+                      <FormDescription className="text-xs">
+                        Server status emails
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="h-4 w-4"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Advanced Configuration Toggle */}
         <div className="flex items-center space-x-2">
@@ -693,7 +1024,14 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
                           onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                         />
                       </FormControl>
-                      <FormDescription>Primary storage in GB</FormDescription>
+                      <FormDescription>
+                        Primary storage in GB
+                        {selectedPackageId && packages?.find(p => p.id === selectedPackageId) && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            (Auto-populated from selected package)
+                          </span>
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -717,7 +1055,14 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
                           onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                         />
                       </FormControl>
-                      <FormDescription>Memory in MB</FormDescription>
+                      <FormDescription>
+                        Memory in MB
+                        {selectedPackageId && packages?.find(p => p.id === selectedPackageId) && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            (Auto-populated from selected package)
+                          </span>
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -741,7 +1086,14 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
                           onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                         />
                       </FormControl>
-                      <FormDescription>Number of CPU cores</FormDescription>
+                      <FormDescription>
+                        Number of CPU cores
+                        {selectedPackageId && packages?.find(p => p.id === selectedPackageId) && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            (Auto-populated from selected package)
+                          </span>
+                        )}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
