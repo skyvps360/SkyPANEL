@@ -132,6 +132,11 @@ export class VirtFusionApi {
       console.log(`Using token: ${maskedToken}`);
       console.log(`SSL verification: ${this.sslVerify}`);
 
+      // Log if this is a dry run request
+      if (fullUrl.includes('dryRun=true')) {
+        console.log("🔥 DRY RUN REQUEST DETECTED - This should NOT create a real server!");
+      }
+
       if (data) {
         console.log(`Request data: ${JSON.stringify(data, null, 2)}`);
       }
@@ -462,16 +467,7 @@ export class VirtFusionApi {
     return this.request("DELETE", `/selfService/credit/${creditId}`);
   }
 
-  // Server creation
-  async createServer(serverData: any) {
-    return this.request("POST", "/servers", serverData);
-  }
-
-  // Build a server with an operating system
-  async buildServer(serverId: number, buildData: any) {
-    console.log(`Building server ID: ${serverId} with data:`, buildData);
-    return this.request("POST", `/servers/${serverId}/build`, buildData);
-  }
+  // Server creation methods removed
 
   // Get all packages
   async getPackages() {
