@@ -383,7 +383,11 @@ export default function DnsPlansPage() {
                           <div className="font-medium">
                             {subscriptions[0].plan.price === 0
                               ? 'Never (Free Plan)'
-                              : new Date(subscriptions[0].nextPaymentDate).toLocaleDateString()}
+                              : (() => {
+                                  const now = new Date();
+                                  const nextFirstOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                                  return nextFirstOfMonth.toLocaleDateString();
+                                })()}
                           </div>
                         </div>
                         <div>
@@ -391,7 +395,11 @@ export default function DnsPlansPage() {
                           <div className="font-medium">
                             {subscriptions[0].plan.price === 0
                               ? '∞'
-                              : Math.max(0, Math.ceil((new Date(subscriptions[0].endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))}
+                              : (() => {
+                                  const now = new Date();
+                                  const nextFirstOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+                                  return Math.max(0, Math.ceil((nextFirstOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                                })()}
                           </div>
                         </div>
                       </div>
@@ -516,19 +524,12 @@ export default function DnsPlansPage() {
                     let isDowngrade = false;
 
                     if (currentPlan && currentPlan.id !== plan.id) {
-                      // Calculate proper billing cycle end date
+                      // Calculate proper billing cycle - all plans bill on the 1st of every month
                       const now = new Date();
-                      let billingCycleEndDate;
+                      const nextFirstOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0); // 1st of next month
 
-                      if (currentSubscription && new Date(currentSubscription.endDate).getFullYear() > 2050) {
-                        // This is a Free plan with far-future endDate, calculate proper monthly cycle
-                        billingCycleEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of current month
-                      } else {
-                        // This is a paid plan with proper billing cycle
-                        billingCycleEndDate = currentSubscription ? new Date(currentSubscription.endDate) : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-                      }
-
-                      const daysRemaining = Math.max(0, Math.ceil((billingCycleEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                      // Calculate days remaining until next 1st of month (consistent with server logic)
+                      const daysRemaining = Math.max(0, Math.ceil((nextFirstOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 
                       if (plan.price > currentPlan.price) {
                         isUpgrade = true;
@@ -592,7 +593,11 @@ export default function DnsPlansPage() {
 
                         {isActive && subscription && (
                           <div className="text-xs text-center text-muted-foreground">
-                            {plan.price === 0 ? 'Never expires' : `Renews ${new Date(subscription.nextPaymentDate).toLocaleDateString()}`}
+                            {plan.price === 0 ? 'Never expires' : (() => {
+                              const now = new Date();
+                              const nextFirstOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+                              return `Renews ${nextFirstOfMonth.toLocaleDateString()}`;
+                            })()}
                           </div>
                         )}
                       </div>

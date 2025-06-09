@@ -4144,10 +4144,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newBalance = currentBalance - plan.price;
       const now = new Date();
 
-      // Calculate billing cycle end date - always end on the last day of the current month
+      // Calculate billing cycle end date - always end on the 1st of the next month
       // This ensures monthly billing cycles align with calendar months starting on the 1st
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // Last day of current month
-      const nextPaymentDate = new Date(endDate.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days before expiry
+      const nextFirstOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0); // 1st of next month
+      const endDate = new Date(nextFirstOfMonth.getTime() - 1); // End of current billing cycle (last millisecond before next 1st)
+      const nextPaymentDate = nextFirstOfMonth; // Next billing date is always the 1st of next month
 
       // Get dynamic custom credits name for transaction description
       const customCreditsName = await getCustomCreditsName();
@@ -4293,19 +4294,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentPlan = currentSubscription.plan!;
 
       // Calculate prorated amount based on proper monthly billing cycle
-      // For Free plans with far-future endDate, calculate from now to end of current month
+      // All plans should bill on the 1st of every month, so calculate days until next 1st
       const now = new Date();
-      let billingCycleEndDate;
+      const nextFirstOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0); // 1st of next month
+      const billingCycleEndDate = new Date(nextFirstOfMonth.getTime() - 1); // End of current billing cycle
 
-      if (currentSubscription.endDate.getFullYear() > 2050) {
-        // This is a Free plan with far-future endDate, calculate proper monthly cycle
-        billingCycleEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999); // End of current month
-      } else {
-        // This is a paid plan with proper billing cycle
-        billingCycleEndDate = new Date(currentSubscription.endDate);
-      }
-
-      const daysRemaining = Math.max(0, Math.ceil((billingCycleEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      // For Free plans with far-future endDate, use the calculated monthly cycle
+      // For paid plans, also use the calculated monthly cycle to ensure consistency
+      const daysRemaining = Math.max(0, Math.ceil((nextFirstOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
       const proratedAmount = (newPlan.price - currentPlan.price) * (daysRemaining / 30);
 
       const isUpgrade = newPlan.price > currentPlan.price;
@@ -4334,7 +4330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use the calculated billing cycle end date for the new subscription
       const endDate = billingCycleEndDate;
-      const nextPaymentDate = newPlan.price === 0 ? endDate : new Date(endDate.getTime() - 3 * 24 * 60 * 60 * 1000); // 3 days before end
+      const nextPaymentDate = newPlan.price === 0 ? endDate : nextFirstOfMonth; // Next billing date is always the 1st of next month
 
       // Track domain deletion results for user feedback (declare outside transaction scope)
       let domainDeletionResults = {
