@@ -7,13 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageCircle, Send, User, Bot, ArrowLeft, History, Clock, Search, Filter } from 'lucide-react';
+import { MessageCircle, Send, User, Bot, History, Clock, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import { getBrandColors } from '@/lib/brand-theme';
 
 
 interface ChatMessage {
@@ -112,6 +114,23 @@ export default function LiveChat() {
       return data.history || [];
     },
     enabled: !!user,
+  });
+
+  // Fetch branding data for consistent theming
+  const { data: brandingData } = useQuery<{
+    company_name: string;
+    primary_color: string;
+    secondary_color: string;
+    accent_color: string;
+  }>({
+    queryKey: ['/api/settings/branding'],
+  });
+
+  // Get brand colors using the branding data
+  const brandColors = getBrandColors({
+    primaryColor: brandingData?.primary_color || '',
+    secondaryColor: brandingData?.secondary_color || '',
+    accentColor: brandingData?.accent_color || '',
   });
 
   const {
@@ -426,53 +445,79 @@ export default function LiveChat() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Dashboard</span>
-            </Button>
-            <div className="flex items-center space-x-3">
-              <MessageCircle className="h-6 w-6 text-blue-600" />
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">Live Support Chat</h1>
-                <p className="text-sm text-gray-500">Get instant help from our support team</p>
+    <DashboardLayout>
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Modern Hero Header */}
+        <div className="rounded-2xl bg-card border border-border shadow-md">
+          <div className="p-8 md:p-12">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div
+                    className="flex items-center justify-center h-12 w-12 rounded-xl text-white shadow-lg"
+                    style={{ backgroundColor: brandColors.primary.full }}
+                  >
+                    <MessageCircle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                      Live Support Chat
+                    </h1>
+                    <p className="text-muted-foreground text-lg mt-1">
+                      Get instant help from our support team
+                    </p>
+                  </div>
+                </div>
+
+                {/* Chat Stats Summary */}
+                <div className="flex flex-wrap gap-6 mt-6">
+                  <div className="flex items-center space-x-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: isConnected ? brandColors.primary.full : brandColors.secondary.full }}
+                    />
+                    <span className="text-sm font-medium text-foreground">
+                      {isConnected ? 'Connected' : 'Connecting...'}
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: adminStatus.available ? brandColors.accent.full : '#6b7280' }}
+                    />
+                    <span className="text-sm font-medium text-foreground">
+                      {adminStatus.available ? `${adminStatus.adminCount} Admin${adminStatus.adminCount !== 1 ? 's' : ''} Available` : 'No Admins Available'}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="ml-auto flex items-center space-x-2">
-              <Badge variant={isConnected ? 'default' : 'secondary'}>
-                {isConnected ? 'Connected' : 'Connecting...'}
-              </Badge>
-              <Badge variant={adminStatus.available ? 'default' : 'secondary'}>
-                {adminStatus.available ? `${adminStatus.adminCount} Admin${adminStatus.adminCount !== 1 ? 's' : ''} Available` : 'No Admins Available'}
-              </Badge>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Chat Area */}
-      <div className="max-w-6xl mx-auto px-4 py-6">
+        {/* Main Chat Area */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'chat' | 'history')} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-white border border-gray-200">
+          <TabsList className="grid w-full grid-cols-2 bg-card border border-border">
             <TabsTrigger
               value="chat"
-              className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200"
+              className="data-[state=active]:text-primary-foreground"
+              style={{
+                backgroundColor: activeTab === 'chat' ? brandColors.primary.light : 'transparent',
+                color: activeTab === 'chat' ? brandColors.primary.dark : undefined,
+                borderColor: activeTab === 'chat' ? brandColors.primary.medium : 'transparent'
+              }}
             >
               <MessageCircle className="h-4 w-4 mr-2" />
               Live Chat
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-blue-200"
+              className="data-[state=active]:text-primary-foreground"
+              style={{
+                backgroundColor: activeTab === 'history' ? brandColors.primary.light : 'transparent',
+                color: activeTab === 'history' ? brandColors.primary.dark : undefined,
+                borderColor: activeTab === 'history' ? brandColors.primary.medium : 'transparent'
+              }}
             >
               <History className="h-4 w-4 mr-2" />
               Chat History
@@ -480,9 +525,9 @@ export default function LiveChat() {
           </TabsList>
 
           <TabsContent value="chat" className="space-y-0">
-            <Card className="h-[calc(100vh-250px)] flex flex-col overflow-hidden">
+            <Card className="h-[calc(100vh-350px)] flex flex-col overflow-hidden bg-card border border-border">
               <CardHeader className="flex-shrink-0">
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex items-center justify-between text-foreground">
                   <span>Support Chat</span>
                   {session && (
                     <div className="flex items-center space-x-2">
@@ -493,6 +538,11 @@ export default function LiveChat() {
                           session.status === 'active' ? 'default' : 'outline'
                         }
                         className="text-xs"
+                        style={{
+                          backgroundColor: session.status === 'active' ? brandColors.primary.light : undefined,
+                          color: session.status === 'active' ? brandColors.primary.dark : undefined,
+                          borderColor: session.status === 'active' ? brandColors.primary.medium : undefined
+                        }}
                       >
                         {session.status === 'waiting' ? 'Waiting for admin' :
                          session.status === 'converted_to_ticket' ? 'Converted to Ticket' :
@@ -502,7 +552,7 @@ export default function LiveChat() {
                         variant="ghost"
                         size="sm"
                         onClick={handleEndChat}
-                        className="text-xs"
+                        className="text-xs hover:bg-primary hover:text-primary-foreground"
                       >
                         End Chat
                       </Button>
@@ -572,8 +622,15 @@ export default function LiveChat() {
                   </div>
 
                   {adminStatus.statusMessage && (
-                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-800">
+                    <div
+                      className="mb-4 p-3 rounded-lg border"
+                      style={{
+                        backgroundColor: brandColors.primary.light,
+                        borderColor: brandColors.primary.medium,
+                        color: brandColors.primary.dark
+                      }}
+                    >
+                      <p className="text-sm">
                         <strong>Support Status:</strong> {adminStatus.statusMessage}
                       </p>
                     </div>
@@ -590,6 +647,10 @@ export default function LiveChat() {
                     disabled={!user || !selectedDepartment}
                     size="lg"
                     className="w-full"
+                    style={{
+                      backgroundColor: brandColors.primary.full,
+                      color: 'white'
+                    }}
                   >
                     {adminStatus.available ? 'Start Chat Session' : 'Start Chat Session (Queue)'}
                   </Button>
@@ -615,9 +676,14 @@ export default function LiveChat() {
                               msg.user?.role === 'system'
                                 ? "bg-amber-50 border border-amber-200 text-amber-800"
                                 : msg.isFromAdmin
-                                ? "bg-gray-100 text-gray-900"
-                                : "bg-blue-600 text-white"
+                                ? "bg-muted text-foreground"
+                                : ""
                             )}
+                            style={
+                              msg.user?.role !== 'system' && !msg.isFromAdmin
+                                ? { backgroundColor: brandColors.primary.full, color: 'white' }
+                                : undefined
+                            }
                           >
                             <div className="flex items-center space-x-2 mb-1 flex-wrap">
                               {msg.user?.role === 'system' ? (
@@ -683,6 +749,10 @@ export default function LiveChat() {
                         disabled={!message.trim() || !isConnected}
                         size="sm"
                         className="px-6"
+                        style={{
+                          backgroundColor: brandColors.primary.full,
+                          color: 'white'
+                        }}
                       >
                         <Send className="h-4 w-4" />
                       </Button>
@@ -702,13 +772,16 @@ export default function LiveChat() {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-0">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-250px)] w-full max-w-full overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-350px)] w-full max-w-full overflow-hidden">
               {/* History List */}
               <div className="lg:col-span-1">
-                <Card className="h-full flex flex-col">
+                <Card className="h-full flex flex-col bg-card border border-border">
                   <CardHeader className="flex-shrink-0 pb-4">
-                    <CardTitle className="text-lg font-semibold flex items-center">
-                      <History className="h-5 w-5 mr-2 text-blue-600" />
+                    <CardTitle className="text-lg font-semibold flex items-center text-foreground">
+                      <History
+                        className="h-5 w-5 mr-2"
+                        style={{ color: brandColors.primary.full }}
+                      />
                       Chat History
                     </CardTitle>
                     <div className="flex items-center space-x-2">
@@ -738,9 +811,17 @@ export default function LiveChat() {
                               className={cn(
                                 "p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md",
                                 selectedHistorySession?.id === historySession.id
-                                  ? "border-blue-300 bg-blue-50"
-                                  : "border-gray-200 bg-white hover:border-gray-300"
+                                  ? "bg-card"
+                                  : "bg-card hover:bg-muted/50"
                               )}
+                              style={{
+                                borderColor: selectedHistorySession?.id === historySession.id
+                                  ? brandColors.primary.medium
+                                  : 'var(--border)',
+                                backgroundColor: selectedHistorySession?.id === historySession.id
+                                  ? brandColors.primary.light
+                                  : undefined
+                              }}
                               onClick={() => handleViewHistorySession(historySession)}
                             >
                               <div className="flex items-center justify-between mb-2">
@@ -792,7 +873,7 @@ export default function LiveChat() {
 
               {/* History Messages */}
               <div className="lg:col-span-2 min-w-0 max-w-full overflow-hidden">
-                <Card className="h-full flex flex-col chat-container w-full max-w-full">
+                <Card className="h-full flex flex-col chat-container w-full max-w-full bg-card border border-border">
                   {selectedHistorySession ? (
                     <>
                       <CardHeader className="flex-shrink-0 border-b border-gray-100">
@@ -862,9 +943,14 @@ export default function LiveChat() {
                                       msg.user?.role === 'system'
                                         ? "bg-amber-50 border border-amber-200 text-amber-800"
                                         : msg.isFromAdmin
-                                        ? "bg-gray-100 text-gray-900"
-                                        : "bg-blue-600 text-white"
+                                        ? "bg-muted text-foreground"
+                                        : ""
                                     )}
+                                    style={
+                                      msg.user?.role !== 'system' && !msg.isFromAdmin
+                                        ? { backgroundColor: brandColors.primary.full, color: 'white' }
+                                        : undefined
+                                    }
                                   >
                                     <div className="flex items-center space-x-2 mb-1 flex-wrap">
                                       {msg.user?.role === 'system' ? (
@@ -891,7 +977,7 @@ export default function LiveChat() {
 
                         {/* Message Input for Active Sessions */}
                         {selectedHistorySession && selectedHistorySession.status !== 'closed' && selectedHistorySession.status !== 'converted_to_ticket' && (
-                          <div className="border-t border-gray-100 p-4 bg-white">
+                          <div className="border-t border-border p-4 bg-card">
                             <div className="flex space-x-3">
                               <Input
                                 value={message}
@@ -903,27 +989,30 @@ export default function LiveChat() {
                                   }
                                 }}
                                 placeholder="Type your message..."
-                                className="flex-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                                className="flex-1"
                                 disabled={!isConnected}
                               />
                               <Button
                                 onClick={handleSendMessage}
                                 disabled={!message.trim() || !isConnected}
                                 className="px-6"
-                                style={{ backgroundColor: '#3b82f6' }}
+                                style={{
+                                  backgroundColor: brandColors.primary.full,
+                                  color: 'white'
+                                }}
                               >
                                 <Send className="h-4 w-4" />
                               </Button>
                             </div>
                             <div className="flex items-center justify-between mt-2">
-                              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                              <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                                 <div className={cn(
                                   "w-2 h-2 rounded-full",
                                   isConnected ? "bg-green-500" : "bg-red-500"
                                 )} />
                                 <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
                               </div>
-                              <div className="text-xs text-gray-400">
+                              <div className="text-xs text-muted-foreground">
                                 Press Enter to send
                               </div>
                             </div>
@@ -934,9 +1023,9 @@ export default function LiveChat() {
                   ) : (
                     <CardContent className="flex-1 flex items-center justify-center">
                       <div className="text-center">
-                        <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Chat Session</h3>
-                        <p className="text-gray-500">
+                        <History className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">Select a Chat Session</h3>
+                        <p className="text-muted-foreground">
                           Choose a chat session from the history to view its messages.
                         </p>
                       </div>
@@ -948,6 +1037,6 @@ export default function LiveChat() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

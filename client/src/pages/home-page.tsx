@@ -326,7 +326,7 @@ export default function HomePage() {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">{brandingData?.custom_credits_name || 'Custom Credits'}</p>
-                            <p className="text-sm text-gray-500">DNS & other services</p>
+                            <p className="text-sm text-gray-500">DNS</p>
                           </div>
                         </div>
                       </td>

@@ -192,6 +192,8 @@ export default function PackagesPage() {
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
+
+
         {/* Modern Hero Header */}
         <div className="rounded-2xl bg-card border border-border shadow-md">
           <div className="p-8 md:p-12">
@@ -226,13 +228,9 @@ export default function PackagesPage() {
                       Starting from ${Math.min(...filteredPackages.map(pkg => getPackagePrice(pkg)).filter(price => price > 0)).toFixed(2)}/month
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-accent" />
-                    <span className="text-sm font-medium text-foreground">
-                      VirtFusion Token Billing
-                    </span>
-                  </div>
                 </div>
+
+
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
@@ -332,8 +330,31 @@ export default function PackagesPage() {
           /* Table View */
           <Card className="bg-card border border-border shadow-sm">
             <CardHeader>
-              <CardTitle className="text-foreground">Package Comparison</CardTitle>
-              <CardDescription>Compare all available packages side by side</CardDescription>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                  <CardTitle className="text-foreground">Package Comparison</CardTitle>
+                  <CardDescription>Compare all available packages side by side</CardDescription>
+                </div>
+                {/* Billing Method Badge */}
+                <div
+                  className="inline-flex items-center px-4 py-2 rounded-lg border-2 shadow-sm"
+                  style={{
+                    backgroundColor: brandColors.accent.light,
+                    borderColor: brandColors.accent.medium,
+                  }}
+                >
+                  <DollarSign
+                    className="h-4 w-4 mr-2"
+                    style={{ color: brandColors.accent.dark }}
+                  />
+                  <span
+                    className="text-sm font-semibold"
+                    style={{ color: brandColors.accent.dark }}
+                  >
+                    VirtFusion Token Billing
+                  </span>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
