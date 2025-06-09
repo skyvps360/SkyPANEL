@@ -479,7 +479,7 @@ export function AdminCreateServerForm({ onClose, onSuccess }: AdminCreateServerF
   }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(5);
+    const pageSize = 5; // Fixed at 5 items per page
 
     const selectedOption = options.find(option => option.id.toString() === value);
 
