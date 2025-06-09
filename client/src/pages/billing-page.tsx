@@ -494,59 +494,30 @@ export default function BillingPage() {
                 </div>
 
                 {/* Enhanced Billing Stats Summary with Clear Credit Type Distinction */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-                  {/* VirtFusion Tokens Available */}
-                  <div className="flex items-center space-x-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10">
-                      <DollarSign className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-primary/80 uppercase tracking-wide">VirtFusion Tokens</div>
-                      <div className={`text-sm font-bold ${summaryData.balance < 0 ? 'text-red-600' : 'text-primary'}`}>
-                        ${summaryData.balance.toFixed(2)} {summaryData.balance < 0 ? 'Overdrawn' : 'Available'}
-                      </div>
-                    </div>
+                <div className="flex flex-wrap gap-6 mt-6">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${summaryData.balance < 0 ? 'bg-red-600' : 'bg-primary'}`} />
+                    <span className={`text-sm font-medium ${summaryData.balance < 0 ? 'text-red-600' : 'text-foreground'}`}>
+                      VirtFusion Tokens: ${summaryData.balance.toFixed(2)} {summaryData.balance < 0 ? 'Overdrawn' : 'Available'}
+                    </span>
                   </div>
-
-                  {/* Custom Credits Available */}
-                  <div className="flex items-center space-x-3 p-3 bg-secondary/5 rounded-lg border border-secondary/20">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-secondary/10">
-                      <CreditCard className="w-4 h-4 text-secondary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-secondary/80 uppercase tracking-wide">
-                        {brandingData?.custom_credits_name || 'Custom Credits'}
-                      </div>
-                      <div className={`text-sm font-bold ${(balanceData?.customCredits || 0) < 0 ? 'text-red-600' : 'text-secondary'}`}>
-                        ${(balanceData?.customCredits || 0).toFixed(2)} Available
-                      </div>
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-secondary" />
+                    <span className="text-sm font-medium text-foreground">
+                      {brandingData?.custom_credits_name || 'Custom Credits'}: ${(balanceData?.customCredits || 0).toFixed(2)} Available
+                    </span>
                   </div>
-
-                  {/* Total Spent (30d) */}
-                  <div className="flex items-center space-x-3 p-3 bg-destructive/5 rounded-lg border border-destructive/20">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-destructive/10">
-                      <Receipt className="w-4 h-4 text-destructive" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-destructive/80 uppercase tracking-wide">Spent (30d)</div>
-                      <div className="text-sm font-bold text-destructive">
-                        ${summaryData.spent30Days.toFixed(2)}
-                      </div>
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-destructive" />
+                    <span className="text-sm font-medium text-foreground">
+                      ${summaryData.spent30Days.toFixed(2)} Spent (30d)
+                    </span>
                   </div>
-
-                  {/* Total Added (30d) */}
-                  <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100">
-                      <PlusCircle className="w-4 h-4 text-green-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-medium text-green-600/80 uppercase tracking-wide">Added (30d)</div>
-                      <div className="text-sm font-bold text-green-600">
-                        ${summaryData.added30Days.toFixed(2)}
-                      </div>
-                    </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 rounded-full bg-secondary" />
+                    <span className="text-sm font-medium text-foreground">
+                      ${summaryData.added30Days.toFixed(2)} Added (30d)
+                    </span>
                   </div>
                 </div>
               </div>
