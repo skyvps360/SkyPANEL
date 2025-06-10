@@ -602,7 +602,7 @@ npm install
 npm run db:push
 
 # Create an admin user (interactive prompt)
-npx tsx scripts/create-admin-user.ts
+npx tsx scripts-updated/create-admin-user.ts
 
 # Start development server
 npm run dev
