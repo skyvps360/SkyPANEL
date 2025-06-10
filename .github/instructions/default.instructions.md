@@ -1,3 +1,6 @@
+---
+applyTo: '**'
+---
 # GitHub Copilot Instructions for SkyPANEL
 
 This document provides instructions for GitHub Copilot to better understand and generate code for the SkyPANEL project.
