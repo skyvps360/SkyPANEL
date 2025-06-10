@@ -45,6 +45,44 @@ export function BillingActivity() {
     queryKey: ["/api/transactions"],
   });
 
+    // Fetch branding data for custom credits name
+    const {data: brandingData} = useQuery({
+        queryKey: ["/api/settings/branding"],
+    });
+
+    // Helper function to format transaction description with branding
+    const formatDescription = (description: string) => {
+        if (!description) return '';
+
+        // Replace hardcoded "custom_credits" with branded name
+        if (description.includes('custom_credits')) {
+            return description.replace(/custom_credits/g, brandingData?.custom_credits_name || 'Custom Credits');
+        }
+
+        // Always replace "Custom Credits" with branded name, even if they're the same
+        // This ensures consistency in case the branding name changes in the future
+        if (description.includes('Custom Credits') && brandingData?.custom_credits_name) {
+            return description.replace(/Custom Credits/g, brandingData.custom_credits_name);
+        }
+
+        return description;
+    };
+
+    // Helper function to format payment method with branding
+    const formatPaymentMethod = (paymentMethod: string) => {
+        if (!paymentMethod) return '';
+
+        // Handle custom credits payment methods
+        if (paymentMethod === 'custom_credits' ||
+            paymentMethod.includes('_credits') ||
+            paymentMethod.includes('credits')) {
+            return brandingData?.custom_credits_name || 'Custom Credits';
+        }
+
+        // Capitalize first letter for other payment methods
+        return paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
+    };
+
   const columns = [
     {
       accessorKey: "description" as keyof Transaction,
@@ -63,11 +101,11 @@ export function BillingActivity() {
             )}
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-900">{transaction.description}</div>
+              <div className="text-sm font-semibold text-gray-900">{formatDescription(transaction.description)}</div>
             {transaction.paymentMethod && (
               <div className="text-xs text-gray-500 capitalize mt-1 flex items-center">
                 <div className="w-1.5 h-1.5 rounded-full bg-gray-400 mr-2" />
-                {transaction.paymentMethod}
+                  {formatPaymentMethod(transaction.paymentMethod)}
               </div>
             )}
           </div>

@@ -4030,8 +4030,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function getCustomCreditsName(): Promise<string> {
     try {
       const brandingSettings = await db.select()
-        .from(settingsTable)
-        .where(inArray(settingsTable.key, ['company_name', 'custom_credits_name']));
+        .from(settings)
+        .where(inArray(settings.key, ['company_name', 'custom_credits_name']));
 
       const companyName = brandingSettings.find(s => s.key === 'company_name')?.value || 'SkyPANEL';
       const customCreditsName = brandingSettings.find(s => s.key === 'custom_credits_name')?.value;

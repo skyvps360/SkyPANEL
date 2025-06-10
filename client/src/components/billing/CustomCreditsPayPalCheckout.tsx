@@ -109,7 +109,9 @@ export function CustomCreditsPayPalCheckout({ amount }: CustomCreditsPayPalCheck
             </div>
             <div>
               <h5 className="font-medium">PayPal Payment</h5>
-              <p className="text-sm text-muted-foreground">Purchase ${amount.toFixed(2)} in custom credits (digital service)</p>
+                <p className="text-sm text-muted-foreground">Purchase
+                    ${amount.toFixed(2)} in {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} (digital
+                    service)</p>
             </div>
           </div>
         </div>
@@ -203,7 +205,8 @@ export function CustomCreditsPayPalCheckout({ amount }: CustomCreditsPayPalCheck
 
       <div className="text-xs text-muted-foreground text-center">
         <p>Secure payment processing via PayPal • Digital Service • No Shipping Required</p>
-        <p>Custom credits will be instantly added to your account for DNS plans and other services</p>
+          <p>{brandingData?.custom_credits_name || 'Custom credits'} will be instantly added to your account for DNS
+              plans and other services</p>
       </div>
     </div>
   );

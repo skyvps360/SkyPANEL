@@ -6,9 +6,9 @@ This document contains a comprehensive list of actionable improvement tasks for 
 
 1. [ ] Refactor large files into smaller, more focused modules:
    - [x] Split `server/routes_new.ts` (477KB) into domain-specific route files
-   - [ ] Refactor `server/discord-bot-service.ts` (143KB) into smaller, focused components
-   - [ ] Break down `client/src/App.tsx` (18KB) into smaller components
-   - [ ] Divide `shared/schema.ts` (40KB) into domain-specific schema files
+   - [x] Refactor `server/discord-bot-service.ts` (143KB) into smaller, focused components
+   - [x] Break down `client/src/App.tsx` (18KB) into smaller components
+   - [x] Divide `shared/schema.ts` (40KB) into domain-specific schema files
 
 2. [ ] Implement a consistent project structure:
    - [ ] Reorganize server code into feature-based directories
