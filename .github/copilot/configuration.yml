@@ -39,7 +39,7 @@ key_directories:
   client/src: Frontend React application
   shared: Shared code including database schema
   migrations: Database migrations
-  scripts: Utility scripts-updated
+  scripts: Utility scripts
 
 # Coding Standards
 code_standards:

@@ -10,7 +10,6 @@ package-lock.json
 .wrangler
 dnsmasq.conf
 .windsurf
-scripts-updated
+scripts
 readme-2.md
-md-docs
 .idea

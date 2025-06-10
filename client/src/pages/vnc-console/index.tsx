@@ -287,9 +287,9 @@ const VNCConsole: React.FC = () => {
       rfbRef.current = null;
     }
 
-    // Force reload NoVNC library by removing any existing scripts-updated
+    // Force reload NoVNC library by removing any existing scripts
     const existingScripts = document.querySelectorAll('script[src*="novnc-loader"], script[type="module"]');
-    console.log('Removing existing NoVNC scripts-updated:', existingScripts.length);
+    console.log('Removing existing NoVNC scripts:', existingScripts.length);
     existingScripts.forEach(script => {
       if (script.getAttribute('src')?.includes('novnc-loader') ||
           script.innerHTML.includes('novnc') ||
