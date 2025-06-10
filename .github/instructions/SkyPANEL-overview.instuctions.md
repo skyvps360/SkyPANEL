@@ -1,3 +1,8 @@
+---
+applyTo: '**'
+---
+
+
 # SkyPANEL GitHub Copilot Memory
 
 ## Application Overview
