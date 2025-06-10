@@ -53,6 +53,8 @@ import ServerDetailPage from "@/pages/admin/server-detail-page";
 import ServersListPage from "@/pages/admin/servers-page";
 import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
 import AdminDnsPage from "@/pages/admin/dns-page";
+import UsersPage from "@/pages/admin/users-page";
+import UserEditPage from "@/pages/admin/user-edit-page";
 import VNCConsole from "@/pages/vnc-console";
 import LiveChat from "@/pages/LiveChat";
 import DnsDomainsPage from "@/pages/dns-domains-page";
