@@ -1,11 +1,23 @@
----
-applyTo: '**'
----
-# GitHub Copilot Instructions for SkyPANEL
+# GitHub Copilot Guide for SkyPANEL
 
-This document provides instructions for GitHub Copilot to better understand and generate code for the SkyPANEL project.
+This document provides guidance for using GitHub Copilot with the SkyPANEL codebase, including common patterns, best practices, and specific examples for different parts of the application.
 
-## Project Overview
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Common Development Tasks](#common-development-tasks)
+  - [Backend Development](#backend-development)
+  - [Frontend Development](#frontend-development)
+  - [Database Operations](#database-operations)
+  - [VirtFusion Integration](#virtfusion-integration)
+  - [Discord Integration](#discord-integration)
+  - [AI Features](#ai-features)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Troubleshooting](#troubleshooting)
+
+## Overview
 
 SkyPANEL is an enterprise-grade VirtFusion client portal built with TypeScript, React, Node.js/Express, and PostgreSQL. It provides a comprehensive solution for VPS hosting management with features including:
 
@@ -16,72 +28,30 @@ SkyPANEL is an enterprise-grade VirtFusion client portal built with TypeScript, 
 - Dynamic brand theming system
 - Comprehensive billing and user management
 
-## Project Structure
+## Architecture
 
-- **client**: Frontend React application
-  - **src**: Source code for the frontend
-    - **components**: Reusable UI components
-    - **pages**: Page components
-    - **lib**: Utility functions and hooks
-- **server**: Backend Express application
-  - **routes**: API route handlers
-  - **services**: Business logic
-  - **middleware**: Express middleware
-- **shared**: Code shared between frontend and backend
-- **scripts**: Utility scripts for development and deployment
-- **migrations**: Database migration scripts
-- **tests**: Test files
+### Backend Architecture
 
-## Coding Conventions
+- **Express.js Server**: Main application server
+- **PostgreSQL**: Primary database with Drizzle ORM
+- **Authentication**: Passport.js with local strategy
+- **API Structure**: RESTful endpoints with proper validation
+- **Services**: Business logic separated into service modules
 
-### General Conventions
+### Frontend Architecture
 
-- Use TypeScript for all code
-- Use functional components with hooks for React
-- Follow a RESTful API design pattern
-- Use Zod for schema validation
-- Use Drizzle ORM for database operations
-- Use React Query for data fetching and caching
+- **React 18**: Modern UI with hooks and functional components
+- **TypeScript**: For type safety throughout the application
+- **Vite**: Modern build tool for frontend
+- **TailwindCSS**: Utility-first CSS with Shadcn/UI components
+- **State Management**: React Query for server state, React Context for UI state
+- **Routing**: Wouter for lightweight routing
 
-### Naming Conventions
+## Common Development Tasks
 
-- **Files**: Use kebab-case for filenames (e.g., `user-service.ts`)
-- **Components**: Use PascalCase for component names (e.g., `UserProfile.tsx`)
-- **Functions**: Use camelCase for function names (e.g., `getUserData`)
-- **Variables**: Use camelCase for variable names (e.g., `userData`)
-- **Constants**: Use UPPER_SNAKE_CASE for constants (e.g., `MAX_RETRY_COUNT`)
-- **Types/Interfaces**: Use PascalCase for types and interfaces (e.g., `UserData`)
-- **Database Tables**: Use snake_case for database table names (e.g., `user_profiles`)
+### Backend Development
 
-### Import Order
-
-1. External libraries
-2. Internal modules (using path aliases)
-3. Local modules (relative paths)
-4. CSS/SCSS imports
-
-Example:
-```typescript
-// External libraries
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-
-// Internal modules (using path aliases)
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-
-// Local modules (relative paths)
-import { formatDate } from './utils';
-
-// CSS imports
-import './styles.css';
-```
-
-## Backend Patterns
-
-### API Endpoint Creation
-
-When creating a new API endpoint, follow this pattern:
+#### Creating a New API Endpoint
 
 ```typescript
 // 1. Define route in server/routes/yourModule.ts
@@ -121,15 +91,12 @@ router.post("/example",
 export default router;
 ```
 
-### Service Creation
-
-When creating a new service, follow this pattern:
+#### Creating a New Service
 
 ```typescript
 // server/your-service.ts
 import { db } from "./db";
 import { yourTable } from "../shared/schema";
-import { eq } from "drizzle-orm";
 
 export const yourService = {
   async findById(id: number) {
@@ -146,24 +113,9 @@ export const yourService = {
 };
 ```
 
-### Error Handling
+### Frontend Development
 
-Use consistent error handling:
-
-```typescript
-try {
-  // Operation that might fail
-} catch (error) {
-  console.error("Descriptive error message:", error);
-  throw new Error("User-friendly error message");
-}
-```
-
-## Frontend Patterns
-
-### React Component Creation
-
-When creating a new React component, follow this pattern:
+#### Creating a New React Component
 
 ```typescript
 // client/src/components/YourComponent.tsx
@@ -214,55 +166,47 @@ export function YourComponent({ title, onAction }: YourComponentProps) {
 }
 ```
 
-### React Query Usage
-
-When using React Query for data fetching, follow this pattern:
+#### Using React Query for Data Fetching
 
 ```typescript
-// client/src/hooks/use-data.ts
+// client/src/hooks/use-servers.ts
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
-export function useData() {
+export function useServers() {
   const queryClient = useQueryClient();
   
-  const dataQuery = useQuery({
-    queryKey: ["data"],
+  const serversQuery = useQuery({
+    queryKey: ["servers"],
     queryFn: async () => {
-      const response = await api.get("/api/data");
+      const response = await api.get("/api/servers");
       return response.data;
     }
   });
   
-  const updateMutation = useMutation({
-    mutationFn: (newData: any) => 
-      api.post("/api/data", newData),
+  const powerOnMutation = useMutation({
+    mutationFn: (serverId: number) => 
+      api.post(`/api/servers/${serverId}/power`, { action: "power_on" }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["data"] });
+      queryClient.invalidateQueries({ queryKey: ["servers"] });
     }
   });
   
   return {
-    data: dataQuery.data,
-    isLoading: dataQuery.isLoading,
-    error: dataQuery.error,
-    update: updateMutation.mutate
+    servers: serversQuery.data,
+    isLoading: serversQuery.isLoading,
+    error: serversQuery.error,
+    powerOn: powerOnMutation.mutate
   };
 }
 ```
 
-## Database Patterns
+### Database Operations
 
-### Table Definition
-
-When defining a new database table, follow this pattern:
+#### Adding a New Table
 
 ```typescript
-// shared/schema.ts
-import { pgTable, serial, text, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
-
+// 1. Add to shared/schema.ts
 export const newFeature = pgTable("new_feature", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -274,6 +218,7 @@ export const newFeature = pgTable("new_feature", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+// 2. Create validation schemas
 export const insertNewFeatureSchema = createInsertSchema(newFeature).omit({
   id: true,
   createdAt: true,
@@ -282,50 +227,58 @@ export const insertNewFeatureSchema = createInsertSchema(newFeature).omit({
 
 export type InsertNewFeature = z.infer<typeof insertNewFeatureSchema>;
 export type NewFeature = typeof newFeature.$inferSelect;
-```
 
-## Testing Patterns
+// 3. Create a migration script
+// scripts/add-new-feature-table.ts
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import postgres from "postgres";
+import dotenv from "dotenv";
 
-When writing tests, follow this pattern:
+dotenv.config();
 
-```typescript
-import { describe, it, expect, vi } from 'vitest';
-import { functionToTest } from '../path/to/function';
+const migrationClient = postgres(process.env.DATABASE_URL!, { max: 1 });
+const db = drizzle(migrationClient);
 
-describe('Component or Function Name', () => {
-  it('should do something specific', () => {
-    // Arrange
-    const input = 'some input';
-    
-    // Act
-    const result = functionToTest(input);
-    
-    // Assert
-    expect(result).toBe('expected output');
-  });
+const main = async () => {
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS new_feature (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      user_id INTEGER REFERENCES users(id),
+      is_active BOOLEAN DEFAULT TRUE,
+      metadata JSONB DEFAULT '{}',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
   
-  it('should handle errors correctly', () => {
-    // Arrange
-    const mockFn = vi.fn().mockRejectedValue(new Error('Test error'));
-    
-    // Act & Assert
-    expect(async () => {
-      await functionToTest(mockFn);
-    }).rejects.toThrow('Test error');
-  });
-});
-```
+  console.log("New feature table created successfully");
+};
 
-## Integration Patterns
+main()
+  .catch(e => {
+    console.error("Migration failed:", e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await migrationClient.end();
+  });
+```
 
 ### VirtFusion Integration
 
-When working with VirtFusion API, follow this pattern:
+When working with VirtFusion API, follow these patterns:
 
 ```typescript
+// Adding a new VirtFusion API integration
 import { virtFusionApiService } from "./virtfusion-api";
 
+// In virtfusion-service.ts
 export const virtFusionService = {
+  // Existing methods...
+  
   async getServerStats(serverId: number) {
     try {
       const response = await virtFusionApiService.get(
@@ -341,15 +294,18 @@ export const virtFusionService = {
       console.error("Error fetching server stats:", error);
       throw error;
     }
-  }
+  },
+  
+  // Additional methods...
 };
 ```
 
 ### Discord Integration
 
-When working with Discord integration, follow this pattern:
+When working with Discord integration:
 
 ```typescript
+// Adding a new Discord notification type
 import { discordBotService } from "./discord-bot-service";
 
 // Send a notification to Discord
@@ -368,9 +324,10 @@ await discordBotService.sendNotification({
 
 ### AI Features
 
-When working with AI features using Google Gemini, follow this pattern:
+When working with AI features using Google Gemini:
 
 ```typescript
+// Using the Gemini service for AI-powered responses
 import { geminiService } from "./gemini-service";
 
 const generateResponse = async (ticketContent: string) => {
@@ -389,35 +346,28 @@ const generateResponse = async (ticketContent: string) => {
 };
 ```
 
-## Routing Patterns
+## Testing
 
-When adding new routes to the application, follow this pattern:
+For testing new features, follow these guidelines:
 
-```typescript
-// In AppRouter.tsx
-import { Route } from "wouter";
-import { ProtectedRoute, AdminProtectedRoute } from "@/lib/protected-route-new";
-import YourComponent from "@/pages/your-component";
+1. **Backend Testing**: Test API endpoints with Postman or using the built-in test utilities
+2. **Frontend Testing**: Test UI components with various edge cases and error states
+3. **Integration Testing**: Test the full flow from UI to database and back
 
-// Public route
-<Route path="/your-public-path" component={YourComponent} />
+## Deployment
 
-// Protected route (requires authentication)
-<ProtectedRoute path="/your-protected-path" component={YourComponent} />
+The deployment process involves:
 
-// Admin route (requires admin privileges)
-<AdminProtectedRoute path="/admin/your-admin-path" component={YourComponent} />
-```
+1. Building the application with `npm run build`
+2. Running migrations with the appropriate script
+3. Starting the production server with `npm start` or using PM2
 
-## Best Practices
+## Troubleshooting
 
-1. **Type Safety**: Always use proper TypeScript types and avoid using `any`
-2. **Error Handling**: Always handle errors properly and provide meaningful error messages
-3. **Validation**: Always validate user input using Zod schemas
-4. **Testing**: Write tests for critical functionality
-5. **Documentation**: Document complex functions and components
-6. **Performance**: Be mindful of performance implications, especially for database queries
-7. **Security**: Follow security best practices, especially for user authentication and data validation
-8. **Accessibility**: Ensure UI components are accessible
-9. **Responsive Design**: Ensure UI components work well on different screen sizes
-10. **Code Reuse**: Extract reusable logic into hooks or utility functions
+When encountering issues:
+
+1. Check the server logs for detailed error information
+2. Verify database connections and schema migrations
+3. Check VirtFusion API status and connection
+4. Verify environment variables are correctly set
+5. For frontend issues, check the browser console for errors
