@@ -9,8 +9,6 @@ package-lock.json
 .env
 .wrangler
 dnsmasq.conf
-.cursor
-.vscode
 .windsurf
 scripts
 readme-2.md

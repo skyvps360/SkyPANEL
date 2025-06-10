@@ -32,6 +32,11 @@ import chatRoutes from "./routes/chat";
 import chatDepartmentsRoutes from "./routes/chat-departments";
 import dnsRoutes from "./routes/dns";
 import adminDnsRoutes from "./routes/admin-dns";
+import serverRoutes from "./routes/server-routes";
+import transactionRoutes from "./routes/transaction-routes";
+import userRoutes from "./routes/user-routes";
+import settingsRoutes from "./routes/settings-routes";
+import monitoringRoutes from "./routes/monitoring-routes";
 import {chatService} from "./chat-service";
 import {departmentMigrationService} from "./services/department-migration";
 import {and, desc, eq, inArray, sql} from "drizzle-orm";
@@ -3737,7 +3742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log("Fetching user's initial VirtFusion balance");
         const balanceData = await virtFusionApi.getUserHourlyStats(req.user!.id);
-        
+
         if (balanceData?.data?.credit?.tokens) {
           const tokenAmount = parseFloat(balanceData.data.credit.tokens);
           const dollarAmount = tokenAmount / 100; // Convert tokens to dollars
@@ -3826,12 +3831,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           console.log("Fetching user's updated VirtFusion balance");
           const updatedBalanceData = await virtFusionApi.getUserHourlyStats(req.user!.id);
-          
+
           if (updatedBalanceData?.data?.credit?.tokens) {
             const updatedTokens = parseFloat(updatedBalanceData.data.credit.tokens);
             const updatedBalance = updatedTokens / 100; // Convert tokens to dollars
             console.log(`User's updated balance: ${updatedBalance.toFixed(2)} USD (${updatedTokens} tokens)`);
-            
+
             // Calculate the expected balance increase
             const expectedBalance = initialBalance + amount;
             console.log(`Expected balance after adding $${amount}: $${expectedBalance.toFixed(2)}`);
@@ -3841,17 +3846,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // If the user had -$3.50 and added $5.00, they should have $1.50
             // But if VirtFusion deducted the negative balance, they might have less
             const expectedBalance = initialBalance + amount;
-            
+
             // Force the deduction amount to be at least the absolute value of the negative balance
             // This ensures we always show the proper amount that was deducted to cover the negative balance
             const deductionAmount = Math.abs(initialBalance); // Use the actual negative balance amount
-            
+
             console.log(`Initial balance: $${initialBalance.toFixed(2)}`);
             console.log(`Added amount: $${amount.toFixed(2)}`);
             console.log(`Expected balance: $${expectedBalance.toFixed(2)}`);
             console.log(`Actual balance: $${updatedBalance.toFixed(2)}`);
             console.log(`Deduction amount: $${deductionAmount.toFixed(2)}`);
-            
+
             // Always create the deduction transaction when there was a negative balance
             if (deductionAmount > 0) {
               const deductionTransaction: InsertTransaction = {
@@ -3863,7 +3868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 paymentMethod: "paypal", // Same as the original transaction
                 paymentId: paymentId, // Same as the original transaction
               };
-              
+
               console.log("Creating deduction transaction record:", deductionTransaction);
               const createdDeductionTransaction = await storage.createTransaction(deductionTransaction);
               console.log("Deduction transaction created with ID:", createdDeductionTransaction.id);
@@ -7086,7 +7091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log("Fetching user's initial VirtFusion balance");
         const balanceData = await api.getUserHourlyStats(userId);
-        
+
         if (balanceData?.data?.credit?.tokens) {
           const tokenAmount = parseFloat(balanceData.data.credit.tokens);
           const dollarAmount = tokenAmount / 100; // Convert tokens to dollars
@@ -7131,24 +7136,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log("Fetching user's updated VirtFusion balance");
         const updatedBalanceData = await api.getUserHourlyStats(userId);
-        
+
         if (updatedBalanceData?.data?.credit?.tokens) {
           const updatedTokens = parseFloat(updatedBalanceData.data.credit.tokens);
           const updatedBalance = updatedTokens / 100; // Convert tokens to dollars
           console.log(`User's updated balance: ${updatedBalance.toFixed(2)} USD (${updatedTokens} tokens)`);
-          
+
           // Calculate the expected balance increase
           const addedAmount = Number(amount) / 100; // Convert tokens to dollars
           const expectedBalance = initialBalance + addedAmount;
           console.log(`Expected balance after adding $${addedAmount}: $${expectedBalance.toFixed(2)}`);
-          
+
           // Check if there was a negative balance deduction
           if (initialBalance < 0) {
             // Force the deduction amount to be at least the absolute value of the negative balance
             // This ensures we always show the proper amount that was deducted to cover the negative balance
             const deductionAmount = Math.abs(initialBalance); // Use the actual negative balance amount
             console.log(`Detected negative balance deduction: $${deductionAmount.toFixed(2)}`);
-            
+
             // Create a second transaction to record the automatic deduction
             if (deductionAmount > 0) {
               const deductionTransaction = {
@@ -7160,7 +7165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 paymentMethod: null, // No payment method for automatic deductions
                 paymentId: null, // No payment ID for automatic deductions
               };
-              
+
               console.log("Creating deduction transaction record:", deductionTransaction);
               const createdDeductionTransaction = await storage.createTransaction(deductionTransaction);
               console.log("Deduction transaction created with ID:", createdDeductionTransaction.id);
@@ -10105,14 +10110,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get credentials with debug logging
       console.log(`PayPal Mode: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`);
-      
+
       const clientId = isSandbox
         ? process.env.VITE_PAYPAL_SANDBOX_CLIENT_ID
         : (process.env.VITE_PAYPAL_CLIENT_ID || process.env.PAYPAL_CLIENT_ID);
       const clientSecret = isSandbox
         ? process.env.VITE_PAYPAL_SANDBOX_SECRET
         : (process.env.VITE_PAYPAL_SECRET || process.env.PAYPAL_SECRET);
-      
+
       console.log(`PayPal Client ID exists: ${!!clientId}`);
       console.log(`PayPal Client Secret exists: ${!!clientSecret}`);
 
@@ -12436,6 +12441,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Admin DNS routes
   app.use("/api/admin", isAuthenticated, isAdmin, adminDnsRoutes);
+
+  // Register Server routes
+  app.use("/api/servers", isAuthenticated, serverRoutes);
+
+  // Register Transaction routes
+  app.use("/api/transactions", isAuthenticated, transactionRoutes);
+
+  // Register User routes
+  app.use("/api/users", userRoutes);
+
+  // Register Settings routes
+  app.use("/api/settings", settingsRoutes);
+
+  // Register Monitoring routes
+  app.use("/api/monitoring", monitoringRoutes);
 
   // Admin settings routes are defined directly in this file instead of using the separate router
 

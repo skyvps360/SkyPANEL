@@ -4,7 +4,6 @@ import { Menu, X, LogIn } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { getBrandColors, getButtonStyles } from "@/lib/brand-theme";
-import FrontendThemeToggle from "@/components/ui/frontend-theme-toggle";
 
 interface BrandingSettings {
   company_name: string;
@@ -169,17 +168,30 @@ export function SharedNavbar() {
     const style = {
       backgroundColor: active ? brandColors.primary.full : 'transparent',
       color: active ? 'white' : 'var(--gray-700)',
-      '&:hover': {
-        backgroundColor: !active ? brandColors.primary.lighter : undefined,
-        color: !active ? brandColors.primary.full : undefined
-      }
     } as React.CSSProperties;
+
+    // Setup event handlers for hover effects
+    const handleMouseOver = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!active) {
+        e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
+        e.currentTarget.style.color = brandColors.primary.full;
+      }
+    };
+
+    const handleMouseOut = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!active) {
+        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.color = 'var(--gray-700)';
+      }
+    };
 
     return (
       <div
         className="block px-3 py-2 rounded-md text-base font-medium"
         data-nav-button="true"
         style={style}
+        onMouseOver={handleMouseOver}
+        onMouseOut={handleMouseOut}
       >
         {children}
       </div>
@@ -233,11 +245,15 @@ export function SharedNavbar() {
                 style={{
                   color: brandColors.primary.full,
                   borderColor: brandColors.primary.medium,
-                  '&:hover': {
-                    backgroundColor: brandColors.primary.lighter,
-                    borderColor: brandColors.primary.full
-                  }
-                } as React.CSSProperties}
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
+                  e.currentTarget.style.borderColor = brandColors.primary.full;
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.borderColor = brandColors.primary.medium;
+                }}
               >
                 Client Area
               </Button>
@@ -250,16 +266,24 @@ export function SharedNavbar() {
               className={`inline-flex items-center justify-center p-2 rounded-md text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2`}
               style={{
                 color: 'var(--gray-500)',
-                '&:hover': {
-                  color: brandColors.primary.full,
-                  backgroundColor: brandColors.primary.lighter
-                },
-                '&:focus': {
-                  outline: 'none',
-                  boxShadow: `0 0 0 2px ${brandColors.primary.light}`,
-                  borderColor: brandColors.primary.full
-                }
-              } as React.CSSProperties}
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.color = brandColors.primary.full;
+                e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.color = 'var(--gray-500)';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.outline = 'none';
+                e.currentTarget.style.boxShadow = `0 0 0 2px ${brandColors.primary.light}`;
+                e.currentTarget.style.borderColor = brandColors.primary.full;
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.borderColor = 'transparent';
+              }}
               onClick={toggleMenu}
               aria-expanded="false"
             >

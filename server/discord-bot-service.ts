@@ -1068,7 +1068,7 @@ export class DiscordBotService {
         if (!interaction.channel?.isThread()) {
           await interaction.reply({
             content: 'Ticket commands can only be used in ticket threads.',
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
           return;
         }
@@ -1084,7 +1084,7 @@ export class DiscordBotService {
         if (!ticketId) {
           await interaction.reply({
             content: 'This thread is not linked to a ticket.',
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
           return;
         }
@@ -1094,7 +1094,7 @@ export class DiscordBotService {
         if (commandAdminUsers.length === 0) {
           await interaction.reply({
             content: 'Cannot process command: No admin users found',
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
           return;
         }
@@ -1106,7 +1106,7 @@ export class DiscordBotService {
         if (!ticket) {
           await interaction.reply({
             content: `Ticket #${ticketId} not found or has been deleted.`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
           return;
         }
@@ -1118,7 +1118,7 @@ export class DiscordBotService {
           if (ticket.status.toLowerCase() === 'closed') {
             await interaction.reply({
               content: `Ticket #${ticketId} is already closed.`,
-              ephemeral: true
+              flags: MessageFlags.Ephemeral
             });
             return;
           }
@@ -1140,7 +1140,7 @@ export class DiscordBotService {
 
           await interaction.reply({
             content: `Successfully closed ticket #${ticketId}.`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
         else if (subcommand === 'reopen') {
@@ -1148,7 +1148,7 @@ export class DiscordBotService {
           if (ticket.status.toLowerCase() !== 'closed') {
             await interaction.reply({
               content: `Ticket #${ticketId} is already open.`,
-              ephemeral: true
+              flags: MessageFlags.Ephemeral
             });
             return;
           }
@@ -1170,7 +1170,7 @@ export class DiscordBotService {
 
           await interaction.reply({
             content: `Successfully reopened ticket #${ticketId}.`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
           });
         }
       }
@@ -1247,7 +1247,7 @@ export class DiscordBotService {
         if (interaction.replied || interaction.deferred) {
           await interaction.editReply({ content: errorMessage });
         } else {
-          await interaction.reply({ content: errorMessage, ephemeral: true });
+          await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
         }
       } catch (replyError) {
         console.error('Failed to send error message:', replyError);
@@ -1260,9 +1260,11 @@ export class DiscordBotService {
    * @param interaction The Discord command interaction
    */
   private async handleAICommand(interaction: ChatInputCommandInteraction): Promise<void> {
+    let isDeferred = false;
     try {
       // Defer the reply to give us time to generate a response
-      await interaction.deferReply({ ephemeral: false });
+      await interaction.deferReply();
+      isDeferred = true;
 
       const userId = interaction.user.id;
       const username = interaction.user.username;
@@ -1277,7 +1279,7 @@ export class DiscordBotService {
       const conversationHistory = this.getFormattedConversation(userId);
 
       // Add the user's question to the conversation with proper formatting for Gemini API
-      conversationHistory.push({role: "user", content: question});
+      conversationHistory.push({role: "user", parts: [{text: question}]});
 
       // Get the gemini service and rate limiter
       const geminiService = await import('./gemini-service').then(m => m.geminiService);
@@ -1312,10 +1314,10 @@ export class DiscordBotService {
 
       // Get the internal conversation format for storage
       const internalConversation = this.userConversations.get(userId) || [];
-      
+
       // Add the user's question to the internal conversation
       internalConversation.push({role: "user", parts: [{text: question}]});
-      
+
       // Add the AI's response to the internal conversation history
       internalConversation.push({role: "model", parts: [{text: aiResponse.response}]});
 
@@ -1328,9 +1330,27 @@ export class DiscordBotService {
     } catch (error: any) {
       console.error('Error handling AI command:', error);
       try {
-        await interaction.editReply(`Sorry, I encountered an error: ${error.message}. Please try again later or create a support ticket for assistance.`);
+        // Check if we've already deferred the reply
+        if (isDeferred) {
+          try {
+            await interaction.editReply(`Sorry, I encountered an error: ${error.message}. Please try again later or create a support ticket for assistance.`);
+          } catch (editError) {
+            console.error('Error editing reply after deferral:', editError);
+            // If the interaction has expired, we can't do anything more
+          }
+        } else {
+          // If we haven't deferred yet, try a regular reply with ephemeral flag
+          try {
+            await interaction.reply({ 
+              content: `Sorry, I encountered an error: ${error.message}. Please try again later or create a support ticket for assistance.`,
+              flags: MessageFlags.Ephemeral
+            });
+          } catch (replyError) {
+            console.error('Error sending initial reply:', replyError);
+          }
+        }
       } catch (replyError) {
-        console.error('Error replying to interaction:', replyError);
+        console.error('Error in error handling for AI command:', replyError);
       }
     }
   }
@@ -1385,7 +1405,7 @@ export class DiscordBotService {
         // Get company name from database
         const companySetting = await storage.getSetting('company_name');
         const companyName = companySetting?.value || 'SkyVPS360';
-        
+
         // Create updated embeds
         const statusEmbed = new EmbedBuilder()
           .setTitle(`🖥️ ${companyName} Platform Status`)
@@ -1602,7 +1622,7 @@ export class DiscordBotService {
       components.push(actionRow);
 
       // Send the response
-      const reply = interaction.deferred 
+      const reply = interaction.deferred
         ? await interaction.editReply({
             embeds: [statusEmbed, servicesEmbed],
             components
@@ -1615,7 +1635,7 @@ export class DiscordBotService {
 
       // Set up auto-refresh timer for 5 minutes
       const refreshInterval = 5 * 60 * 1000; // 5 minutes in milliseconds
-      
+
       // Store the refresh function so we can call it periodically
       const refreshStatusEmbed = async () => {
         try {
@@ -1705,11 +1725,11 @@ export class DiscordBotService {
       // Set up the refresh timer, but limit to 1 hour max (12 refreshes)
       const maxRefreshes = 12;
       let refreshCount = 0;
-      
+
       const timer = setInterval(() => {
         refreshCount++;
         refreshStatusEmbed();
-        
+
         if (refreshCount >= maxRefreshes) {
           clearInterval(timer);
         }
@@ -1728,7 +1748,7 @@ export class DiscordBotService {
         if (interaction.deferred) {
           await interaction.editReply({ content: errorMessage });
         } else if (!interaction.replied) {
-          await interaction.reply({ content: errorMessage, ephemeral: true });
+          await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
         }
       } catch (replyError) {
         console.error('Error replying to status command:', replyError);
@@ -1745,7 +1765,7 @@ export class DiscordBotService {
     const reason = interaction.options.getString('reason') || 'No reason provided';
 
     if (!interaction.guild) {
-      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -1753,12 +1773,12 @@ export class DiscordBotService {
       const member = await interaction.guild.members.fetch(targetUser.id);
 
       if (!member.kickable) {
-        await interaction.reply({ content: '❌ I cannot kick this user. They may have higher permissions than me.', ephemeral: true });
+        await interaction.reply({ content: '❌ I cannot kick this user. They may have higher permissions than me.', flags: MessageFlags.Ephemeral });
         return;
       }
 
       if (member.id === interaction.user.id) {
-        await interaction.reply({ content: '❌ You cannot kick yourself.', ephemeral: true });
+        await interaction.reply({ content: '❌ You cannot kick yourself.', flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -1776,7 +1796,7 @@ export class DiscordBotService {
 
       await interaction.reply({ embeds: [embed] });
     } catch (error: any) {
-      await interaction.reply({ content: `❌ Failed to kick user: ${error.message}`, ephemeral: true });
+      await interaction.reply({ content: `❌ Failed to kick user: ${error.message}`, flags: MessageFlags.Ephemeral });
     }
   }
 
@@ -1790,7 +1810,7 @@ export class DiscordBotService {
     const deleteDays = interaction.options.getInteger('delete_days') || 0;
 
     if (!interaction.guild) {
-      await interaction.reply({ content: '❌ This command can only be used in a server.', ephemeral: true });
+      await interaction.reply({ content: '❌ This command can only be used in a server.', flags: MessageFlags.Ephemeral });
       return;
     }
 
@@ -1798,12 +1818,12 @@ export class DiscordBotService {
       const member = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
 
       if (member && !member.bannable) {
-        await interaction.reply({ content: '❌ I cannot ban this user. They may have higher permissions than me.', ephemeral: true });
+        await interaction.reply({ content: '❌ I cannot ban this user. They may have higher permissions than me.', flags: MessageFlags.Ephemeral });
         return;
       }
 
       if (targetUser.id === interaction.user.id) {
-        await interaction.reply({ content: '❌ You cannot ban yourself.', ephemeral: true });
+        await interaction.reply({ content: '❌ You cannot ban yourself.', flags: MessageFlags.Ephemeral });
         return;
       }
 
@@ -1822,7 +1842,7 @@ export class DiscordBotService {
 
       await interaction.reply({ embeds: [embed] });
     } catch (error: any) {
-      await interaction.reply({ content: `❌ Failed to ban user: ${error.message}`, ephemeral: true });
+      await interaction.reply({ content: `❌ Failed to ban user: ${error.message}`, flags: MessageFlags.Ephemeral });
     }
   }
 
@@ -2191,7 +2211,7 @@ export class DiscordBotService {
   private async handleTodoAddCommand(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
       await interaction.deferReply({ ephemeral: true });
-      
+
       const task = interaction.options.getString('task', true);
       const userId = interaction.user.id;
 
@@ -2231,7 +2251,7 @@ export class DiscordBotService {
   private async handleTodoCompleteCommand(interaction: ChatInputCommandInteraction, isComplete: boolean): Promise<void> {
     try {
       await interaction.deferReply({ ephemeral: true });
-      
+
       const todoId = interaction.options.getInteger('id', true);
       const userId = interaction.user.id;
 
@@ -2285,7 +2305,7 @@ export class DiscordBotService {
   private async handleTodoDeleteCommand(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
       await interaction.deferReply({ ephemeral: true });
-      
+
       const todoId = interaction.options.getInteger('id', true);
       const userId = interaction.user.id;
 
@@ -2525,7 +2545,7 @@ export class DiscordBotService {
             }
           );
         break;
-        
+
       case 'todo':
         embed = new EmbedBuilder()
           .setColor(0x4CAF50)
@@ -3442,7 +3462,7 @@ export class DiscordBotService {
   private async handleTodoListCommand(interaction: ChatInputCommandInteraction): Promise<void> {
     try {
       await interaction.deferReply({ ephemeral: true });
-      
+
       const userId = interaction.user.id;
       const todos = await storage.getTodos(userId);
 
@@ -3546,7 +3566,7 @@ export class DiscordBotService {
       let currentView = 'pending'; // 'pending' or 'completed'
       let currentPage = 0;
       let currentEmbeds = pendingEmbeds;
-      
+
       // Function to create buttons with proper states
       const createButtons = () => {
         // Navigation buttons
@@ -3661,11 +3681,11 @@ export class DiscordBotService {
    * @param userId - The Discord user ID
    * @returns Formatted conversation history
    */
-  private getFormattedConversation(userId: string): Array<{role: string, content: string}> {
+  private getFormattedConversation(userId: string): Array<{role: string, parts: Array<{text: string}>}> {
     const conversation = this.userConversations.get(userId) || [];
     return conversation.map(msg => ({
       role: msg.role,
-      content: msg.parts.map(part => part.text).join('')
+      parts: msg.parts
     }));
   }
 
@@ -3756,19 +3776,19 @@ export class DiscordBotService {
       if (results.length < limit) {
         guild.members.cache.forEach(member => {
           if (results.length >= limit) return;
-          
+
           // Skip if already added
           if (results.some(r => r.id === member.user.id)) return;
-          
+
           const username = member.user.username.toLowerCase();
           const globalName = member.user.globalName?.toLowerCase() || '';
           const displayName = member.displayName.toLowerCase();
-          
+
           // Check if query matches username, global name, or display name
-          if (username.includes(searchLower) || 
-              globalName.includes(searchLower) || 
+          if (username.includes(searchLower) ||
+              globalName.includes(searchLower) ||
               displayName.includes(searchLower)) {
-            
+
             results.push({
               id: member.user.id,
               username: member.user.username,

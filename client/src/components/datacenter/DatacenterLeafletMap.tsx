@@ -122,7 +122,7 @@ export function DatacenterLeafletMap() {
   const { data: locations = [], isLoading } = useQuery<DatacenterLocation[]>({
     queryKey: ["/api/datacenter-locations"],
   });
-  
+
   // Fetch branding settings
   const { data: brandingData } = useQuery<{
     primary_color?: string;
@@ -132,7 +132,7 @@ export function DatacenterLeafletMap() {
   }>({
     queryKey: ["/api/settings/branding"],
   });
-  
+
   // Generate brand colors using the brand theme system
   const brandColors = useMemo(() => {
     return getBrandColors({
@@ -581,25 +581,38 @@ export function DatacenterLeafletMap() {
               return (
                 <Card
                   key={region.code}
-                  className="group transition-all"
+                  className="group transition-all hover:border-primary/50"
                   style={
                     brandColors?.primary?.hex
                       ? { 
                           borderColor: 'transparent', 
                           transition: 'all 0.2s ease-in-out',
-                          '&:hover': {
-                            borderColor: `#${brandColors.primary.hex}`
-                          }
                         } 
-                      : { '&:hover': { borderColor: 'hsl(var(--primary) / 0.5)' }}
+                      : {}
                   }
+                  onMouseOver={(e) => {
+                    if (brandColors?.primary?.hex) {
+                      e.currentTarget.style.borderColor = `#${brandColors.primary.hex}`;
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (brandColors?.primary?.hex) {
+                      e.currentTarget.style.borderColor = 'transparent';
+                    }
+                  }}
                 >
                   <CardContent 
-                    className="p-4 flex justify-between items-center"
-                    style={{
-                      '&:hover': brandColors?.primary?.hex 
-                        ? { backgroundColor: `rgba(${parseInt(brandColors.primary.hex.substring(0,2), 16)}, ${parseInt(brandColors.primary.hex.substring(2,4), 16)}, ${parseInt(brandColors.primary.hex.substring(4,6), 16)}, 0.05)` }
-                        : {}
+                    className="p-4 flex justify-between items-center group-hover:bg-primary/5"
+                    style={{}}
+                    onMouseOver={(e) => {
+                      if (brandColors?.primary?.hex) {
+                        e.currentTarget.style.backgroundColor = `rgba(${parseInt(brandColors.primary.hex.substring(0,2), 16)}, ${parseInt(brandColors.primary.hex.substring(2,4), 16)}, ${parseInt(brandColors.primary.hex.substring(4,6), 16)}, 0.05)`;
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (brandColors?.primary?.hex) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
                     }}
                   >
                     <div className="flex items-center gap-3">
@@ -838,7 +851,7 @@ export function SimpleDatacenterLeafletMap() {
     queryKey: ["/api/datacenter-locations"],
   });
   const { isDark } = useTheme();
-  
+
   // Fetch branding settings
   const { data: brandingData } = useQuery<{
     primary_color?: string;
@@ -848,7 +861,7 @@ export function SimpleDatacenterLeafletMap() {
   }>({
     queryKey: ["/api/settings/branding"],
   });
-  
+
   // Generate brand colors using the brand theme system
   const brandColors = useMemo(() => {
     return getBrandColors({

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/ui/data-table";
+import { DataTable, DataTableColumn } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { getBrandColors } from "@/lib/brand-theme";
@@ -58,7 +58,7 @@ interface BrandingData {
 export default function AdminDnsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // State for dialogs
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function AdminDnsPage() {
 
   // State for features management
   const [newFeature, setNewFeature] = useState("");
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: "",
@@ -235,7 +235,7 @@ export default function AdminDnsPage() {
     });
   };
 
-  const columns = [
+  const columns: DataTableColumn<DnsPlan>[] = [
     {
       accessorKey: "name",
       header: "Plan Name",
@@ -294,7 +294,7 @@ export default function AdminDnsPage() {
       ),
     },
     {
-      accessorKey: "subscriptions",
+      id: "subscriptions",
       header: "Active Users",
       cell: (plan: DnsPlan) => (
         <div className="flex items-center gap-1">
@@ -304,7 +304,7 @@ export default function AdminDnsPage() {
       ),
     },
     {
-      accessorKey: "actions",
+      id: "actions",
       header: "Actions",
       cell: (plan: DnsPlan) => (
         <div className="flex items-center gap-2">
@@ -331,8 +331,8 @@ export default function AdminDnsPage() {
             variant="ghost"
             size="sm"
             onClick={() => handleDelete(plan)}
-            disabled={plan._count?.subscriptions && plan._count.subscriptions > 0}
-            title={plan._count?.subscriptions && plan._count.subscriptions > 0 ? "Cannot delete plan with active subscriptions" : "Delete plan"}
+            disabled={!!(plan._count?.subscriptions && plan._count.subscriptions > 0)}
+            title={!!(plan._count?.subscriptions && plan._count.subscriptions > 0) ? "Cannot delete plan with active subscriptions" : "Delete plan"}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -593,7 +593,7 @@ export default function AdminDnsPage() {
               <Button
                 variant="destructive"
                 onClick={() => selectedPlan && deletePlanMutation.mutate(selectedPlan.id)}
-                disabled={deletePlanMutation.isPending || (selectedPlan?._count?.subscriptions && selectedPlan._count.subscriptions > 0)}
+                disabled={deletePlanMutation.isPending || !!(selectedPlan?._count?.subscriptions && selectedPlan._count.subscriptions > 0)}
               >
                 {deletePlanMutation.isPending ? "Deleting..." : "Delete Plan"}
               </Button>

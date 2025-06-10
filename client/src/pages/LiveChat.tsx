@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageCircle, Send, User, Bot, History, Clock, Search, RefreshCw } from 'lucide-react';
+import { MessageCircle, Send, User, Bot, History, Clock, Search, RefreshCw, BookOpen, TicketIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 import { useAuth } from '@/hooks/use-auth';
@@ -426,7 +426,7 @@ export default function LiveChat() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setMessage(e.target.value);
-    
+
     if (!isTyping && session) {
       setIsTyping(true);
       sendTyping({ sessionId: session.id, isTyping: true });
@@ -557,6 +557,25 @@ export default function LiveChat() {
                   </div>
                 </div>
               </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/docs')}
+                  className="border-primary text-primary hover:bg-primary/10"
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Docs
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/tickets')}
+                  className="border-primary text-primary hover:bg-primary/10"
+                >
+                  <TicketIcon className="h-4 w-4 mr-2" />
+                  Tickets
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -591,7 +610,7 @@ export default function LiveChat() {
           </TabsList>
 
           <TabsContent value="chat" className="space-y-0">
-            <Card className="h-[calc(100vh-350px)] flex flex-col overflow-hidden bg-card border border-border">
+            <Card className="h-[calc(100vh-300px)] flex flex-col overflow-hidden bg-card border border-border">
               <CardHeader className="flex-shrink-0">
                 <CardTitle className="flex items-center justify-between text-foreground">
                   <span>Support Chat</span>
@@ -838,7 +857,7 @@ export default function LiveChat() {
           </TabsContent>
 
           <TabsContent value="history" className="space-y-0">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-350px)] w-full max-w-full overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-300px)] w-full max-w-full overflow-hidden">
               {/* History List */}
               <div className="lg:col-span-1">
                 <Card className="h-full flex flex-col bg-card border border-border">

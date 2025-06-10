@@ -6,6 +6,22 @@ import * as schema from "@shared/schema";
 // Configure Neon for Node.js environment
 neonConfig.webSocketConstructor = ws;
 
+// Patch for ErrorEvent message property TypeError
+const originalErrorEventConstructor = global.ErrorEvent;
+if (originalErrorEventConstructor) {
+  global.ErrorEvent = function(type, eventInit) {
+    const event = new originalErrorEventConstructor(type, eventInit);
+    // Make message property writable to avoid TypeError
+    Object.defineProperty(event, 'message', {
+      writable: true,
+      configurable: true,
+      value: eventInit?.message || ''
+    });
+    return event;
+  };
+  global.ErrorEvent.prototype = originalErrorEventConstructor.prototype;
+}
+
 if (!process.env.DATABASE_URL) {
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database? you can get a free one from neon.tech",

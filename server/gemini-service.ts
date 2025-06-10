@@ -6,17 +6,7 @@ import { geminiRateLimiter } from './gemini-rate-limiter';
  * Service for interacting with Google's Gemini AI API
  * Rate limiting is applied based on Google's usage limits:
  * - 15 requests per minute (RPM)
- * - 1,5      const result = await chat.sendMessage(question);
-      const response = result.response;
-      let responseText = response.text();
-      
-      // Apply filtering to enforce AI identity
-      responseText = this.filterAIResponse(responseText);
-      
-      // Log the successful interaction
-      console.log(`Generated chat response for ${username}'s question`);
-      
-      return { success: true, response: responseText };sts per day (RPD)
+ * - 1,500 requests per day (RPD)
  */
 export class GeminiService {
   private static instance: GeminiService;
@@ -44,17 +34,17 @@ export class GeminiService {
     try {
       // Try both environment variable names for backward compatibility
       const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
-      
+
       if (!apiKey) {
         console.log('Neither GOOGLE_AI_API_KEY nor GEMINI_API_KEY found in environment variables');
         this.isConfigured = false;
         return false;
       }
-      
+
       // Initialize with just API key
       this.genAI = new GoogleGenerativeAI(apiKey);
       this.isConfigured = true;
-      
+
       // Log success
       console.log('Gemini AI service initialized successfully');
       return true;
@@ -71,7 +61,7 @@ export class GeminiService {
   public isReady(): boolean {
     // Debug the state
     console.log(`Gemini service state - isConfigured: ${this.isConfigured}, genAI available: ${!!this.genAI}`);
-    
+
     // If API keys are in env, force to true for consistent behavior
     const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
     if (apiKey) {
@@ -82,7 +72,7 @@ export class GeminiService {
       }
       return true;
     }
-    
+
     return this.isConfigured && !!this.genAI;
   }
 
@@ -103,7 +93,7 @@ export class GeminiService {
       /who created you/i,
       /who made you/i
     ];
-    
+
     return identityPatterns.some(pattern => pattern.test(question));
   }
 
@@ -125,26 +115,26 @@ export class GeminiService {
    */
   private filterAIResponse(response: string): string {
     const companyName = process.env.COMPANY_NAME || "SkyVPS360";
-    
+
     // Replace generic AI introductions with our branded identity
     const genericIntros = [
       /I am (a|an) (large language model|AI assistant|artificial intelligence|AI|language model)( trained by | from | developed by |, trained by )?(Google|Anthropic|OpenAI)?\.?/gi,
       /As (a|an) (AI language model|AI assistant|artificial intelligence|language model)( trained by | from | developed by |, trained by )?(Google|Anthropic|OpenAI)?\.?/gi,
       /I'm (a|an) (AI assistant|artificial intelligence|AI|language model)( trained by | from | developed by |, trained by )?(Google|Anthropic|OpenAI)?\.?/gi
     ];
-    
+
     let filteredResponse = response;
-    
+
     // Replace generic AI identifications
     for (const pattern of genericIntros) {
       filteredResponse = filteredResponse.replace(pattern, `I am ${companyName} AI Helper, a virtual assistant for ${companyName}.`);
     }
-    
+
     // Ensure the response is signed properly
     if (!filteredResponse.includes(`- ${companyName} AI Helper`)) {
       filteredResponse = filteredResponse.trim() + `\n\n- ${companyName} AI Helper`;
     }
-    
+
     return filteredResponse;
   }
 
@@ -170,7 +160,7 @@ export class GeminiService {
         response: 'Gemini AI service is not configured. Please add GOOGLE_AI_API_KEY to your environment variables.' 
       };
     }
-    
+
     // Apply rate limiting if request and response objects are provided
     if (req && res) {
       const rateCheck = geminiRateLimiter.checkUserAllowed(req, res);
@@ -217,7 +207,7 @@ export class GeminiService {
       let prompt = `You are a helpful customer support assistant for a VPS hosting company called ${companyName}.
       You need to analyze the following support ticket conversation and suggest a professional, 
       helpful response from the support agent's perspective.
-      
+
       Ticket Subject: "${ticketSubject}"
       `;
 
@@ -243,14 +233,14 @@ export class GeminiService {
       5. Format the response with markdown for better readability (use bold, italics, lists as appropriate)
       6. Maintain a helpful and professional tone
       7. End with a clear next step, question or action item
-      
+
       Begin your draft with "As a ${companyName} support team member, " to establish proper branding.
-      
+
       Draft response:`;
 
       const result = await model.generateContent(prompt);
       const response = this.filterAIResponse(result.response.text());
-      
+
       return { success: true, response };
     } catch (error: any) {
       console.error('Error generating ticket response:', error);
@@ -294,7 +284,7 @@ export class GeminiService {
   public async generateChatResponse(
     question: string,
     username: string,
-    conversationHistory: Array<{role: string, content: string}> = [],
+    conversationHistory: Array<{role: string, parts: Array<{text: string}>}> = [],
     req?: Request,
     res?: Response
   ): Promise<{ success: boolean; response: string }> {
@@ -304,7 +294,7 @@ export class GeminiService {
         response: 'AI service is not configured. Please contact an administrator.' 
       };
     }
-    
+
     // Apply rate limiting if request and response objects are provided
     if (req && res) {
       const rateCheck = geminiRateLimiter.checkUserAllowed(req, res);
@@ -322,7 +312,7 @@ export class GeminiService {
         const identityResponse = this.getIdentityResponse();
         return { success: true, response: identityResponse };
       }
-      
+
       // Initialize model with same settings as ticket response generation
       const model = this.genAI!.getGenerativeModel(
         { 
@@ -355,17 +345,17 @@ export class GeminiService {
       // Build system prompt with context about the company and services
       let systemPrompt = `IMPORTANT: You are SkyVPS360 AI Helper, a virtual assistant created specifically for ${companyName}. 
       You are NOT a general AI, large language model, or Google product. You are a specialized customer support assistant owned by ${companyName}.
-      
+
       IDENTITY REQUIREMENTS:
       - ALWAYS introduce yourself as "SkyVPS360 AI Helper" when asked who you are
       - NEVER say you are "a large language model" or "an AI trained by Google"
       - NEVER refer to yourself as an AI model, LLM, or similar technical terms
       - If asked about your capabilities, say you are a specialized support assistant for ${companyName}
       - ALWAYS sign your responses with "- SkyVPS360 AI Helper"
-      
+
       YOUR JOB:
       Your job is to answer questions about our VPS hosting services. Be concise, professional, and helpful.
-      
+
       ABOUT OUR SERVICES:
       - We offer VPS (Virtual Private Server) hosting with various plans and resources
       - Our plans include flexible resource allocation (CPU, RAM, Storage, Bandwidth)
@@ -375,7 +365,7 @@ export class GeminiService {
       - We offer shared network cables at 1Gbps
       - Our pricing starts at $2/month
       - We have a ticket system for technical support
-      
+
       When answering questions:
       1. Be concise and professional
       2. If you don't know the specific answer about our services, suggest contacting support through the ticket system
@@ -390,12 +380,12 @@ export class GeminiService {
         temperature: 0.2,
         maxOutputTokens: 800
       };
-      
+
       // For Gemini API, we need a different approach to handle system context
       // Instead of using systemInstruction, we'll add the prompt as a model message
       // at the beginning of the conversation if there's no existing conversation
       let history = [...conversationHistory]; // Make a copy to avoid modifying the original
-      
+
       // If the conversation is empty or just starting, add our system context
       // as the first message from the model
       if (history.length === 0) {
@@ -404,25 +394,25 @@ export class GeminiService {
           parts: [{text: systemPrompt}]
         });
       }
-      
+
       // Start the chat with history including system prompt
       let chat = model.startChat({
         history: history,
         generationConfig: generationConfig
       });
-      
+
       // Track this request for rate limiting
       if (req) {
         geminiRateLimiter.trackUsageForRequest(req);
       }
-      
+
       const result = await chat.sendMessage(question);
       const response = result.response;
       const responseText = this.filterAIResponse(response.text());
-      
+
       // Log the successful interaction
       console.log(`Generated chat response for ${username}'s question`);
-      
+
       return { success: true, response: responseText };
     } catch (error: any) {
       console.error('Error generating chat response:', error);

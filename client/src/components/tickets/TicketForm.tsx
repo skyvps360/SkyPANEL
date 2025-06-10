@@ -146,9 +146,13 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
     }
 
     // Handle case where API returns an object with data property
-    if (typeof departmentsData === 'object' && Array.isArray(departmentsData.data)) {
-      console.log('TicketForm: Departments loaded from data property:', departmentsData.data.length);
-      return departmentsData.data;
+    if (typeof departmentsData === 'object' && departmentsData !== null) {
+      // Use type assertion to tell TypeScript this object might have a data property
+      const dataObj = departmentsData as { data?: unknown };
+      if (Array.isArray(dataObj.data)) {
+        console.log('TicketForm: Departments loaded from data property:', dataObj.data.length);
+        return dataObj.data;
+      }
     }
 
     // Log unexpected data structure
@@ -174,8 +178,12 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
     }
 
     // Handle case where API returns an object with data property
-    if (typeof serversData === 'object' && Array.isArray(serversData.data)) {
-      return serversData.data;
+    if (typeof serversData === 'object' && serversData !== null) {
+      // Use type assertion to tell TypeScript this object might have a data property
+      const dataObj = serversData as { data?: unknown };
+      if (Array.isArray(dataObj.data)) {
+        return dataObj.data;
+      }
     }
 
     console.error('TicketForm: Unexpected servers data structure:', serversData);
@@ -314,21 +322,13 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
 
   // Error boundary for departments data
   if (departmentsError) {
-    return (
-      <div className="p-4 border border-destructive/20 rounded-md bg-destructive/5">
-        <h3 className="text-sm font-medium text-destructive mb-2">Error Loading Departments</h3>
-        <p className="text-sm text-muted-foreground">
-          Unable to load ticket departments. Please refresh the page or contact support if the issue persists.
-        </p>
-        <p className="text-xs text-muted-foreground mt-2">
-          Error: {departmentsError.message}
-        </p>
-      </div>
-    );
-  }
+    // Use type assertion to tell TypeScript this error object has a message property
+    const errorMessage = departmentsError instanceof Error 
+      ? departmentsError.message 
+      : typeof departmentsError === 'object' && departmentsError !== null && 'message' in departmentsError
+        ? (departmentsError as { message: string }).message
+        : 'Unknown error';
 
-  // Error boundary for departments data
-  if (departmentsError) {
     return (
       <div className="p-4 border border-destructive/20 rounded-md bg-destructive/5">
         <h3 className="text-sm font-medium text-destructive mb-2">Error Loading Departments</h3>
@@ -336,7 +336,7 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
           Unable to load ticket departments. Please refresh the page or contact support if the issue persists.
         </p>
         <p className="text-xs text-muted-foreground mt-2">
-          Error: {departmentsError.message}
+          Error: {errorMessage}
         </p>
       </div>
     );

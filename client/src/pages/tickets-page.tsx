@@ -267,7 +267,7 @@ export default function TicketsPage() {
               <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
                 <Button
                   variant="outline"
-                  onClick={() => window.open('/docs', '_blank')}
+                  onClick={() => navigate('/docs')}
                   className="border-primary text-primary hover:bg-primary/10"
                 >
                   <BookOpen className="h-4 w-4 mr-2" />

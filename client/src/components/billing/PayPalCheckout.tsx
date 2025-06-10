@@ -61,7 +61,7 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
 
   const handlePayPalSuccess = async (details: any) => {
     setIsProcessing(true);
-    
+
     try {
       // First verify the payment with PayPal
       const verifyResponse = await fetch("/api/billing/verify-paypal-payment", {
@@ -75,7 +75,7 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
       }
 
       const verificationData = await verifyResponse.json();
-      
+
       // Then add tokens to VirtFusion account
       await addTokensMutation.mutateAsync({
         amount,
@@ -148,6 +148,7 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
                       currency_code: "USD",
                     },
                     description: `VirtFusion Tokens - ${(amount * 100).toLocaleString()} tokens`,
+                    // @ts-ignore - 'category' is valid in PayPal API but not in type definitions
                     category: "DIGITAL_GOODS", // Specify this is for digital goods
                   },
                 ],

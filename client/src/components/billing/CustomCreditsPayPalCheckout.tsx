@@ -54,7 +54,7 @@ export function CustomCreditsPayPalCheckout({ amount }: CustomCreditsPayPalCheck
 
   const handlePayPalSuccess = async (details: any) => {
     setIsProcessing(true);
-    
+
     try {
       // First verify the payment with PayPal
       const verifyResponse = await fetch("/api/billing/verify-paypal-payment", {
@@ -68,7 +68,7 @@ export function CustomCreditsPayPalCheckout({ amount }: CustomCreditsPayPalCheck
       }
 
       const verificationData = await verifyResponse.json();
-      
+
       // Then add custom credits
       await addCustomCreditsMutation.mutateAsync({
         amount,
@@ -141,6 +141,7 @@ export function CustomCreditsPayPalCheckout({ amount }: CustomCreditsPayPalCheck
                       currency_code: "USD",
                     },
                     description: `${brandingData?.custom_credits_name || 'Custom Credits'} - $${amount.toFixed(2)}`,
+                    // @ts-ignore - 'category' is valid in PayPal API but not in type definitions
                     category: "DIGITAL_GOODS", // Specify this is for digital goods
                   },
                 ],

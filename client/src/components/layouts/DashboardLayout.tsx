@@ -90,7 +90,7 @@ interface TransactionType {
   amount: number;
   status: string;
   paymentId?: string;
-
+  invoiceNumber?: string;
 }
 
 
