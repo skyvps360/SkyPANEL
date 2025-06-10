@@ -1,3 +1,6 @@
+---
+applyTo: '**'
+---
 # GitHub Copilot Guide for SkyPANEL
 
 This document provides guidance for using GitHub Copilot with the SkyPANEL codebase, including common patterns, best practices, and specific examples for different parts of the application.
