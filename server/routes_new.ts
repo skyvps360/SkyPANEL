@@ -1997,7 +1997,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin hypervisor endpoint removed
+  // 🖥️ Admin Hypervisor Management - Get all hypervisors (admin only)
+  app.get("/api/admin/hypervisors", isAdmin, async (req, res) => {
+    try {
+      console.log("Admin fetching hypervisors from VirtFusion API");
+
+      // Get hypervisors from VirtFusion API
+      const result = await virtFusionApi.getHypervisors();
+
+      console.log("VirtFusion hypervisors response:", JSON.stringify(result, null, 2));
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error fetching hypervisors:", error.message);
+      res.status(500).json({
+        error: "Failed to fetch hypervisors",
+        message: error.message
+      });
+    }
+  });
 
   // Create or update package pricing
   app.post('/api/admin/packages/:id/pricing', isAdmin, async (req, res) => {
@@ -8022,6 +8040,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // 🖥️ Admin Server Management - Get OS templates for specific package (admin only)
+  app.get("/api/admin/packages/:packageId/templates", isAdmin, async (req, res) => {
+    try {
+      const packageId = parseInt(req.params.packageId);
+
+      if (isNaN(packageId)) {
+        return res.status(400).json({ error: "Invalid package ID" });
+      }
+
+      console.log(`Admin fetching OS templates for package ID: ${packageId}`);
+
+      // Get OS templates for the specific package from VirtFusion API
+      const result = await virtFusionApi.getOsTemplatesForPackage(packageId);
+
+      console.log(`VirtFusion OS templates response for package ${packageId}:`, JSON.stringify(result, null, 2));
+
+      // Handle different response formats and group templates by OS family
+      let templates = [];
+      if (result && result.data) {
+        templates = Array.isArray(result.data) ? result.data : [result.data];
+      } else if (Array.isArray(result)) {
+        templates = result;
+      }
+
+      // Group templates by OS family for better organization
+      const groupedTemplates = templates.reduce((groups: any, template: any) => {
+        // Determine OS family based on template name or type
+        let family = 'Other';
+        const name = template.name?.toLowerCase() || '';
+        const type = template.type?.toLowerCase() || '';
+
+        if (name.includes('ubuntu') || name.includes('debian') || name.includes('centos') ||
+            name.includes('almalinux') || name.includes('rocky') || name.includes('fedora') ||
+            type.includes('linux')) {
+          family = 'Linux';
+        } else if (name.includes('windows') || type.includes('windows')) {
+          family = 'Windows';
+        } else if (name.includes('freebsd') || name.includes('openbsd')) {
+          family = 'BSD';
+        }
+
+        if (!groups[family]) {
+          groups[family] = [];
+        }
+        groups[family].push(template);
+        return groups;
+      }, {});
+
+      res.json({
+        success: true,
+        data: {
+          packageId,
+          templates: groupedTemplates,
+          totalCount: templates.length
+        }
+      });
+
+    } catch (error: any) {
+      console.error(`Error fetching OS templates for package ${req.params.packageId}:`, error.message);
+      res.status(500).json({
+        error: "Failed to fetch OS templates",
+        message: error.message
+      });
+    }
+  });
+
   // Admin server endpoints have been removed as requested
   app.get("/api/admin/servers", isAdmin, async (req, res) => {
     try {
@@ -8054,16 +8138,212 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create a new server (admin only)
-  // Admin package templates endpoint removed
+  // 🖥️ Admin Server Management - Create new server (admin only)
+  app.post("/api/admin/servers", isAdmin, async (req, res) => {
+    try {
+      console.log("Admin creating new server:", JSON.stringify(req.body, null, 2));
 
-  // Admin all-templates endpoint removed
+      // Validation schema for server creation
+      const createServerSchema = z.object({
+        packageId: z.number().int().positive("Package ID must be a positive integer"),
+        userId: z.number().int().positive("User ID must be a positive integer"),
+        hypervisorId: z.number().int().positive("Hypervisor ID must be a positive integer"),
+        ipv4: z.number().int().min(0).default(1),
+        storage: z.number().int().positive("Storage must be a positive integer"),
+        traffic: z.number().int().positive("Traffic must be a positive integer"),
+        memory: z.number().int().positive("Memory must be a positive integer"),
+        cpuCores: z.number().int().positive("CPU cores must be a positive integer"),
+        networkSpeedInbound: z.number().int().positive().default(1000),
+        networkSpeedOutbound: z.number().int().positive().default(1000),
+        storageProfile: z.number().int().positive().default(1),
+        networkProfile: z.number().int().positive().default(1),
+        firewallRulesets: z.array(z.number().int()).default([]),
+        hypervisorAssetGroups: z.array(z.number().int()).default([]),
+        additionalStorage1Enable: z.boolean().default(false),
+        additionalStorage2Enable: z.boolean().default(false),
+        additionalStorage1Profile: z.number().int().positive().optional(),
+        additionalStorage2Profile: z.number().int().positive().optional(),
+        additionalStorage1Capacity: z.number().int().positive().optional(),
+        additionalStorage2Capacity: z.number().int().positive().optional()
+      });
 
-  // Admin specific template endpoint removed
+      // Validate request body
+      const validationResult = createServerSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationResult.error.errors
+        });
+      }
 
-  // Admin server creation endpoint removed
+      const validatedData = validationResult.data;
 
-  // Server build endpoint removed
+      // Prepare server creation data for VirtFusion API
+      const serverData = {
+        packageId: validatedData.packageId,
+        userId: validatedData.userId,
+        hypervisorId: validatedData.hypervisorId,
+        ipv4: validatedData.ipv4,
+        storage: validatedData.storage,
+        traffic: validatedData.traffic,
+        memory: validatedData.memory,
+        cpuCores: validatedData.cpuCores,
+        networkSpeedInbound: validatedData.networkSpeedInbound,
+        networkSpeedOutbound: validatedData.networkSpeedOutbound,
+        storageProfile: validatedData.storageProfile,
+        networkProfile: validatedData.networkProfile,
+        firewallRulesets: validatedData.firewallRulesets,
+        hypervisorAssetGroups: validatedData.hypervisorAssetGroups,
+        additionalStorage1Enable: validatedData.additionalStorage1Enable,
+        additionalStorage2Enable: validatedData.additionalStorage2Enable
+      };
+
+      // Add additional storage configurations if enabled
+      if (validatedData.additionalStorage1Enable && validatedData.additionalStorage1Profile && validatedData.additionalStorage1Capacity) {
+        serverData.additionalStorage1Profile = validatedData.additionalStorage1Profile;
+        serverData.additionalStorage1Capacity = validatedData.additionalStorage1Capacity;
+      }
+
+      if (validatedData.additionalStorage2Enable && validatedData.additionalStorage2Profile && validatedData.additionalStorage2Capacity) {
+        serverData.additionalStorage2Profile = validatedData.additionalStorage2Profile;
+        serverData.additionalStorage2Capacity = validatedData.additionalStorage2Capacity;
+      }
+
+      console.log("Sending server creation request to VirtFusion API:", JSON.stringify(serverData, null, 2));
+
+      // Create server via VirtFusion API
+      const result = await virtFusionApi.createServer(serverData);
+
+      console.log("VirtFusion server creation response:", JSON.stringify(result, null, 2));
+
+      // Log server creation action
+      if (result && result.data && result.data.id) {
+        try {
+          await serverLoggingService.logServerAction(
+            result.data.id,
+            req.user!.id,
+            'create',
+            'Server created via admin panel',
+            {
+              packageId: validatedData.packageId,
+              hypervisorId: validatedData.hypervisorId,
+              memory: validatedData.memory,
+              storage: validatedData.storage,
+              cpuCores: validatedData.cpuCores,
+              adminUser: req.user!.username
+            }
+          );
+        } catch (logError) {
+          console.error("Error logging server creation:", logError);
+          // Don't fail the request if logging fails
+        }
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "Server created successfully",
+        data: result.data || result
+      });
+
+    } catch (error: any) {
+      console.error("Error creating server:", error.message);
+      res.status(500).json({
+        error: "Failed to create server",
+        message: error.message
+      });
+    }
+  });
+
+  // 🖥️ Admin Server Management - Build server with OS template (admin only)
+  app.post("/api/admin/servers/:id/build", isAdmin, async (req, res) => {
+    try {
+      const serverId = parseInt(req.params.id);
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`Admin building server ${serverId}:`, JSON.stringify(req.body, null, 2));
+
+      // Validation schema for server build
+      const buildServerSchema = z.object({
+        operatingSystemId: z.number().int().positive("Operating System ID must be a positive integer"),
+        name: z.string().min(1, "Server name is required").max(255, "Server name too long"),
+        hostname: z.string().min(1, "Hostname is required").max(255, "Hostname too long").optional(),
+        sshKeys: z.array(z.number().int()).default([]),
+        vnc: z.boolean().default(false),
+        ipv6: z.boolean().default(false),
+        email: z.boolean().default(true),
+        swap: z.number().int().min(0).max(8192).default(512)
+      });
+
+      // Validate request body
+      const validationResult = buildServerSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationResult.error.errors
+        });
+      }
+
+      const validatedData = validationResult.data;
+
+      // Prepare build data for VirtFusion API
+      const buildData = {
+        operatingSystemId: validatedData.operatingSystemId,
+        name: validatedData.name,
+        hostname: validatedData.hostname || validatedData.name,
+        sshKeys: validatedData.sshKeys,
+        vnc: validatedData.vnc,
+        ipv6: validatedData.ipv6,
+        email: validatedData.email,
+        swap: validatedData.swap
+      };
+
+      console.log("Sending server build request to VirtFusion API:", JSON.stringify(buildData, null, 2));
+
+      // Build server via VirtFusion API
+      const result = await virtFusionApi.buildServer(serverId, buildData);
+
+      console.log("VirtFusion server build response:", JSON.stringify(result, null, 2));
+
+      // Log server build action
+      try {
+        await serverLoggingService.logServerAction(
+          serverId,
+          req.user!.id,
+          'build',
+          'Server build initiated via admin panel',
+          {
+            operatingSystemId: validatedData.operatingSystemId,
+            name: validatedData.name,
+            hostname: validatedData.hostname,
+            vnc: validatedData.vnc,
+            ipv6: validatedData.ipv6,
+            email: validatedData.email,
+            swap: validatedData.swap,
+            adminUser: req.user!.username
+          }
+        );
+      } catch (logError) {
+        console.error("Error logging server build:", logError);
+        // Don't fail the request if logging fails
+      }
+
+      res.json({
+        success: true,
+        message: "Server build initiated successfully",
+        data: result.data || result
+      });
+
+    } catch (error: any) {
+      console.error(`Error building server ${req.params.id}:`, error.message);
+      res.status(500).json({
+        error: "Failed to build server",
+        message: error.message
+      });
+    }
+  });
 
   // Get server details by ID (admin only)
   app.get("/api/admin/servers/:id", isAdmin, async (req, res) => {

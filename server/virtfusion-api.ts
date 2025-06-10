@@ -628,6 +628,29 @@ export class VirtFusionApi {
     return this.request("GET", "/compute/hypervisors");
   }
 
+  // Server creation and build functions
+
+  /**
+   * Create a new server
+   * @param serverData Server creation parameters
+   * @returns API response with created server data
+   */
+  async createServer(serverData: any) {
+    console.log(`Creating server with data:`, JSON.stringify(serverData, null, 2));
+    return this.request("POST", "/servers", serverData);
+  }
+
+  /**
+   * Build a server with OS template
+   * @param serverId The server ID to build
+   * @param buildData Build configuration data
+   * @returns API response
+   */
+  async buildServer(serverId: number, buildData: any) {
+    console.log(`Building server ID: ${serverId} with data:`, JSON.stringify(buildData, null, 2));
+    return this.request("POST", `/servers/${serverId}/build`, buildData);
+  }
+
   // Server power management functions
 
   /**
