@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import {
@@ -14,12 +14,28 @@ import {
   Rocket,
   Shield,
   Infinity,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getBrandColors } from '@/lib/brand-theme';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
+
+// Define Puter.js global types
+declare global {
+  interface Window {
+    puter?: {
+      auth?: {
+        currentUser: any;
+        signIn: () => void;
+        signOut: () => void;
+        onAuthStateChanged: (callback: (user: any) => void) => (() => void) | undefined;
+      };
+    };
+  }
+}
 
 interface BrandingSettings {
   company_name: string;
@@ -30,6 +46,91 @@ interface BrandingSettings {
 
 const ServerlessOverviewPage: React.FC = () => {
   const [, setLocation] = useLocation();
+  const [isPuterLoggedIn, setIsPuterLoggedIn] = useState<boolean>(false);
+
+  // Check Puter.js login status and setup listener
+  useEffect(() => {
+    // Function to check login status
+    const checkPuterLoginStatus = () => {
+      try {
+        // Safely check if puter.js is loaded and user is logged in
+        if (window.puter && window.puter.auth && window.puter.auth.currentUser) {
+          setIsPuterLoggedIn(true);
+        } else {
+          setIsPuterLoggedIn(false);
+        }
+      } catch (error) {
+        console.error('Error checking Puter.js login status:', error);
+        setIsPuterLoggedIn(false);
+      }
+    };
+
+    // Initial check
+    checkPuterLoginStatus();
+
+    // Set up event listeners for Puter.js authentication state changes
+    const handleLogin = () => setIsPuterLoggedIn(true);
+    const handleLogout = () => setIsPuterLoggedIn(false);
+
+    // Add event listeners if puter.js is available
+    if (window.puter && window.puter.auth) {
+      window.addEventListener('puter:login', handleLogin);
+      window.addEventListener('puter:logout', handleLogout);
+    }
+
+    // Check again if puter loads after component mount
+    const interval = setInterval(() => {
+      if (window.puter && window.puter.auth) {
+        checkPuterLoginStatus();
+        clearInterval(interval);
+      }
+    }, 500);
+
+    // Clean up listeners
+    return () => {
+      window.removeEventListener('puter:login', handleLogin);
+      window.removeEventListener('puter:logout', handleLogout);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Handle login with robust error handling
+  const handlePuterLogin = () => {
+    try {
+      if (window.puter && window.puter.auth) {
+        window.puter.auth.signIn().catch((error: any) => {
+          console.error('Puter.js login error:', error);
+        });
+      } else {
+        console.warn('Puter.js not available for login');
+        // Load puter.js script if not already loaded
+        if (!document.getElementById('puter-js-script')) {
+          const script = document.createElement('script');
+          script.id = 'puter-js-script';
+          script.src = 'https://js.puter.com/v2/';
+          script.async = true;
+          document.body.appendChild(script);
+        }
+      }
+    } catch (error) {
+      console.error('Error during Puter.js login:', error);
+    }
+  };
+
+  // Handle logout with robust error handling
+  const handlePuterLogout = () => {
+    try {
+      if (window.puter && window.puter.auth) {
+        window.puter.auth.signOut().catch((error: any) => {
+          console.error('Puter.js logout error:', error);
+        });
+      } else {
+        console.warn('Puter.js not available for logout');
+      }
+    } catch (error) {
+      console.error('Error during Puter.js logout:', error);
+    }
+  };
 
   // Fetch branding settings
   const { data: brandingData } = useQuery<BrandingSettings>({
@@ -75,14 +176,14 @@ const ServerlessOverviewPage: React.FC = () => {
       description: "Access 28+ AI models including GPT-4, Claude, and more with unlimited conversations and streaming responses.",
       icon: <MessageSquare className="h-8 w-8" />,
       href: "/serverless/ai",
-      features: ["28+ AI Models", "Unlimited Conversations", "Streaming Responses", "Function Calling"]
+      features: ["28+ AI Models", "Unlimited Conversations", "Streaming Responses"]
     },
     {
       title: "Web Hosting",
-      description: "Deploy static websites instantly with custom subdomains and integrated file management.",
+      description: "Deploy static websites instantly with integrated file management.",
       icon: <Sparkles className="h-8 w-8" />,
       href: "/serverless/hosting",
-      features: ["Instant Deployment", "Custom Subdomains", "File Management", "Static Sites"]
+      features: ["Instant Deployment", "File Management", "Static Sites"]
     }
   ];
 
@@ -101,11 +202,6 @@ const ServerlessOverviewPage: React.FC = () => {
       icon: <Shield className="h-6 w-6" />,
       title: "Privacy Focused",
       description: "No tracking, no data collection, complete privacy"
-    },
-    {
-      icon: <Rocket className="h-6 w-6" />,
-      title: "Instant Setup",
-      description: "Just include a script tag and start building"
     }
   ];
 
@@ -140,7 +236,8 @@ const ServerlessOverviewPage: React.FC = () => {
               <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
                 <Button
                   variant="outline"
-                  className="border-border hover:bg-muted"
+                  className="border-border hover:bg-primary hover:text-primary-foreground"
+                  onClick={() => setLocation('/tickets')}
                 >
                   Request a Feature
                 </Button>
@@ -150,11 +247,11 @@ const ServerlessOverviewPage: React.FC = () => {
         </div>
 
         {/* Services Grid - Matching brand theme */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ gridAutoRows: '1fr' }}>
           {serverlessServices.map((service, index) => (
             <Card
               key={index}
-              className="group hover:shadow-lg transition-all duration-300 cursor-pointer border hover:border-primary/50"
+              className="group hover:shadow-lg transition-all duration-300 cursor-pointer border hover:border-primary/50 flex flex-col h-full"
               onClick={() => setLocation(service.href)}
             >
               <CardHeader>
@@ -177,32 +274,30 @@ const ServerlessOverviewPage: React.FC = () => {
                   {service.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    {service.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-center text-sm text-muted-foreground">
-                        <div
-                          className="w-1.5 h-1.5 rounded-full mr-2"
-                          style={{
-                            backgroundColor: brandColors.primary.full
-                          }}
-                        />
-                        {feature}
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    className="w-full transition-colors bg-primary hover:bg-primary/90 text-primary-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLocation(service.href);
-                    }}
-                  >
-                    Get Started
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
+              <CardContent className="flex-grow flex flex-col justify-between">
+                <div className="grid grid-cols-2 gap-2 mb-6">
+                  {service.features.map((feature, featureIndex) => (
+                    <div key={featureIndex} className="flex items-center text-sm text-muted-foreground">
+                      <div
+                        className="w-1.5 h-1.5 rounded-full mr-2"
+                        style={{
+                          backgroundColor: brandColors.primary.full
+                        }}
+                      />
+                      {feature}
+                    </div>
+                  ))}
                 </div>
+                <Button
+                  className="w-full transition-colors bg-primary hover:bg-primary/90 text-primary-foreground mt-auto"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation(service.href);
+                  }}
+                >
+                  Get Started
+                  <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
               </CardContent>
             </Card>
           ))}
@@ -217,7 +312,7 @@ const ServerlessOverviewPage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {benefits.map((benefit, index) => (
                 <div key={index} className="text-center space-y-3">
                   <div className="flex justify-center">
@@ -319,7 +414,20 @@ const ServerlessOverviewPage: React.FC = () => {
               size="lg"
               variant="outline"
               onClick={() => setLocation('/serverless/hosting')}
-              className="border-primary text-primary hover:bg-primary/10"
+              className="text-white"
+              style={{
+                backgroundColor: 'transparent',
+                borderColor: brandColors.primary.medium,
+                color: brandColors.primary.full
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = brandColors.primary.full;
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = brandColors.primary.full;
+              }}
             >
               <Sparkles className="h-5 w-5 mr-2" />
               Deploy a Website
