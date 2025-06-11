@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Send,
@@ -100,7 +100,6 @@ const ServerlessAiPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gpt-4o-mini');
   const [streamMode, setStreamMode] = useState(false);
-  const [brandColors, setBrandColors] = useState<any>(null);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
@@ -119,16 +118,24 @@ const ServerlessAiPage: React.FC = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Apply brand colors
-  useEffect(() => {
-    if (brandingData) {
-      const colors = getBrandColors({
-        primaryColor: brandingData.primary_color || '2563eb',
-        secondaryColor: brandingData.secondary_color || '10b981',
-        accentColor: brandingData.accent_color || 'f59e0b'
-      });
-      setBrandColors(colors);
+  // Memoize brand colors to prevent infinite re-renders
+  const brandColors = useMemo(() => {
+    if (!brandingData) return null;
 
+    return getBrandColors({
+      primaryColor: brandingData.primary_color || '2563eb',
+      secondaryColor: brandingData.secondary_color || '10b981',
+      accentColor: brandingData.accent_color || 'f59e0b'
+    });
+  }, [
+    brandingData?.primary_color,
+    brandingData?.secondary_color,
+    brandingData?.accent_color
+  ]);
+
+  // Apply brand colors only when they change
+  useEffect(() => {
+    if (brandColors && brandingData) {
       // Import and apply the brand color variables to both CSS variables and Shadcn theme
       import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
         applyBrandColorVars({
@@ -136,13 +143,13 @@ const ServerlessAiPage: React.FC = () => {
           secondaryColor: brandingData.secondary_color || '10b981',
           accentColor: brandingData.accent_color || 'f59e0b'
         });
-        
+
         // Apply the colors to the Shadcn theme as well
-        applyToShadcnTheme(colors);
+        applyToShadcnTheme(brandColors);
         console.log('Applied brand colors to Shadcn theme in Serverless AI page');
       });
     }
-  }, [brandingData]);
+  }, [brandColors, brandingData?.primary_color, brandingData?.secondary_color, brandingData?.accent_color]);
 
   // Auto-scroll within chat container only when new messages are added
   useEffect(() => {

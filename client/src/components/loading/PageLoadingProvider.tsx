@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { VpsLoadingAnimation } from './VpsLoadingAnimation';
 import axios from 'axios';
 import { getBrandColors, BrandColorsResult } from '../../lib/brand-theme';
@@ -136,24 +136,24 @@ export function PageLoadingProvider({
     }
   }, [brandingLoaded, loadingSettings]);
 
-  const showLoading = () => {
+  const showLoading = useCallback(() => {
     // Only show loading if it's enabled and not already loading
     const isEnabled = loadingSettings.loading_screen_enabled !== 'false';
-    
+
     // Prevent showing loading screen if already loading or already completed an animation
     if (isEnabled && !isLoading && !animationComplete) {
       console.log("Showing loading screen...");
       setIsLoading(true);
     }
-  };
-  
-  const hideLoading = () => {
+  }, [loadingSettings.loading_screen_enabled, isLoading, animationComplete]);
+
+  const hideLoading = useCallback(() => {
     // Allow the animation to complete before hiding
     if (animationComplete) {
       setIsLoading(false);
       setAnimationComplete(false);
     }
-  };
+  }, [animationComplete]);
 
   // Handle animation complete event
   const handleAnimationComplete = () => {

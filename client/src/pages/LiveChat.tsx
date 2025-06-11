@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -125,14 +125,20 @@ export default function LiveChat() {
     accent_color: string;
   }>({
     queryKey: ['/api/settings/branding'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
-  // Get brand colors using the branding data
-  const brandColors = getBrandColors({
+  // Memoize brand colors to prevent unnecessary re-calculations
+  const brandColors = useMemo(() => getBrandColors({
     primaryColor: brandingData?.primary_color || '',
     secondaryColor: brandingData?.secondary_color || '',
     accentColor: brandingData?.accent_color || '',
-  });
+  }), [
+    brandingData?.primary_color,
+    brandingData?.secondary_color,
+    brandingData?.accent_color
+  ]);
 
   const {
     sendMessage: sendWebSocketMessage,
@@ -274,9 +280,9 @@ export default function LiveChat() {
     }
   });
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, Suspense, lazy, useRef } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import {
@@ -102,7 +102,6 @@ const ServerlessHostingPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newSubdomain, setNewSubdomain] = useState('');
-  const [brandColors, setBrandColors] = useState<any>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [fileManagerOpen, setFileManagerOpen] = useState(false);
@@ -135,16 +134,24 @@ const ServerlessHostingPage: React.FC = () => {
     staleTime: 1000 * 60 * 5,
   });
 
-  // Apply brand colors
-  useEffect(() => {
-    if (brandingData) {
-      const colors = getBrandColors({
-        primaryColor: brandingData.primary_color || '2563eb',
-        secondaryColor: brandingData.secondary_color || '10b981',
-        accentColor: brandingData.accent_color || 'f59e0b'
-      });
-      setBrandColors(colors);
+  // Memoize brand colors to prevent infinite re-renders
+  const brandColors = useMemo(() => {
+    if (!brandingData) return null;
 
+    return getBrandColors({
+      primaryColor: brandingData.primary_color || '2563eb',
+      secondaryColor: brandingData.secondary_color || '10b981',
+      accentColor: brandingData.accent_color || 'f59e0b'
+    });
+  }, [
+    brandingData?.primary_color,
+    brandingData?.secondary_color,
+    brandingData?.accent_color
+  ]);
+
+  // Apply brand colors only when they change
+  useEffect(() => {
+    if (brandColors && brandingData) {
       // Import and apply the brand color variables to both CSS variables and Shadcn theme
       import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
         applyBrandColorVars({
@@ -152,13 +159,13 @@ const ServerlessHostingPage: React.FC = () => {
           secondaryColor: brandingData.secondary_color || '10b981',
           accentColor: brandingData.accent_color || 'f59e0b'
         });
-        
+
         // Apply the colors to the Shadcn theme as well
-        applyToShadcnTheme(colors);
+        applyToShadcnTheme(brandColors);
         console.log('Applied brand colors to Shadcn theme in Serverless Hosting page');
       });
     }
-  }, [brandingData]);
+  }, [brandColors, brandingData?.primary_color, brandingData?.secondary_color, brandingData?.accent_color]);
 
   // Check if user is logged into Puter.js
   const checkPuterLogin = async () => {
@@ -1088,10 +1095,26 @@ document.addEventListener('DOMContentLoaded', () => {
         {/* Main content */}
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Your Websites</CardTitle>
-            <CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Your Websites</CardTitle>
+                <CardDescription>
                   Deploy and manage your websites with Puter.js hosting. Create subdomains and serve your content instantly.
-            </CardDescription>
+                </CardDescription>
+              </div>
+              {isLoggedIn && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadSites}
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {isCheckingLogin ? (

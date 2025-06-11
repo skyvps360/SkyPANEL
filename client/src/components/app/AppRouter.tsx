@@ -81,7 +81,7 @@ export function AppRouter() {
     useEffect(() => {
         // This should only run once, not on every navigation
         showLoading();
-    }, [showLoading]);
+    }, []); // Empty dependency array to run only once
 
     return (
         <MaintenanceGuard>
