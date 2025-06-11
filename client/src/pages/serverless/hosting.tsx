@@ -977,9 +977,9 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error("Could not retrieve user information. Please make sure you're signed in.");
       }
       
-      // Standard directory structure: Puter/{username}/{site-name}-site
+      // Standard directory structure: {site-name}-site
       // NOTE: No leading slash - Puter.js doesn't want absolute paths
-      const standardPath = `Puter/${userInfo.username}/${siteName}-site`;
+      const standardPath = `${siteName}-site`;
       console.log('Created standard directory path:', standardPath);
       return standardPath;
     } catch (error) {
@@ -1236,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <Alert variant="default" className="mt-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  We'll automatically create a directory structure in <code>Puter/username/{newSubdomain || 'example'}-site</code> with default HTML and CSS files.
+                  We'll automatically create a directory structure in <code>{newSubdomain || 'example'}-site</code> with default HTML and CSS files.
                 </AlertDescription>
               </Alert>
                     </div>
