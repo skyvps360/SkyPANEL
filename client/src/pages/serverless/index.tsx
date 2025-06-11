@@ -5,11 +5,11 @@ import {
   Cloud,
   MessageSquare,
   Sparkles,
-  HardDrive,
+
   ArrowRight,
   Zap,
   Globe,
-  Database,
+
   Bot,
   Rocket,
   Shield,
@@ -83,13 +83,6 @@ const ServerlessOverviewPage: React.FC = () => {
       icon: <Sparkles className="h-8 w-8" />,
       href: "/serverless/hosting",
       features: ["Instant Deployment", "Custom Subdomains", "File Management", "Static Sites"]
-    },
-    {
-      title: "Cloud Storage",
-      description: "Store and manage your files in the cloud with unlimited scalability and easy access.",
-      icon: <HardDrive className="h-8 w-8" />,
-      href: "/serverless/storage",
-      features: ["File Management", "Unlimited Storage", "Easy Upload", "Secure Access"]
     }
   ];
 
@@ -133,7 +126,7 @@ const ServerlessOverviewPage: React.FC = () => {
                       Serverless Services
                     </h1>
                     <p className="text-muted-foreground text-lg mt-1">
-                      Build powerful applications with AI, hosting, and storage - all serverless, all free for developers.
+                      Build powerful applications with AI and hosting - all serverless, all free for developers.
                     </p>
                   </div>
                 </div>
@@ -272,7 +265,7 @@ const ServerlessOverviewPage: React.FC = () => {
                 </div>
                 <h3 className="font-semibold">Choose a Service</h3>
                 <p className="text-sm text-muted-foreground">
-                  Select from AI, Hosting, or Storage services based on your needs
+                  Select from AI or Hosting services based on your needs
                 </p>
               </div>
               <div className="text-center space-y-3">
@@ -331,15 +324,7 @@ const ServerlessOverviewPage: React.FC = () => {
               <Sparkles className="h-5 w-5 mr-2" />
               Deploy a Website
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => setLocation('/serverless/storage')}
-              className="border-primary text-primary hover:bg-primary/10"
-            >
-              <Database className="h-5 w-5 mr-2" />
-              Manage Files
-            </Button>
+
           </div>
         </div>
       </div>

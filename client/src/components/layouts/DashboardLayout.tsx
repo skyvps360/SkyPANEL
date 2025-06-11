@@ -385,11 +385,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           href: "/serverless/hosting",
           icon: <Sparkles className="h-4 w-4 mr-3" />,
         },
-        {
-          name: "Storage",
-          href: "/serverless/storage",
-          icon: <HardDrive className="h-4 w-4 mr-3" />,
-        },
       ],
     },
     {
