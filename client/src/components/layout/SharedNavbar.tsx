@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X, LogIn } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -95,19 +95,16 @@ export function SharedNavbar() {
     { name: "Documentation", path: "/docs" },
     { name: "Status", path: "/status" },
     { name: "Speed Test", path: "/speed-test" },
-    { name: "Free AI", path: "/free-ai" },
   ];
 
-  // Styled button based on active state
-  const NavButton = ({
-    active,
-    children,
-    ...props
-  }: {
+
+
+  // Styled button based on active state with ref forwarding
+  const NavButton = forwardRef<HTMLButtonElement, {
     active: boolean;
     children: React.ReactNode;
     [key: string]: any;
-  }) => {
+  }>(({ active, children, ...props }, ref) => {
     // Dynamic styling based on active state and brand colors
     const buttonStyle = {
       backgroundColor: active ? brandColors.primary.full : 'transparent',
@@ -139,6 +136,7 @@ export function SharedNavbar() {
 
     return (
       <Button
+        ref={ref}
         variant={active ? "default" : "ghost"}
         data-nav-button="true"
         style={buttonStyle}
@@ -155,7 +153,10 @@ export function SharedNavbar() {
         {children}
       </Button>
     );
-  };
+  });
+
+  // Add display name for debugging
+  NavButton.displayName = 'NavButton';
 
   // Mobile menu item with consistent styling
   const MobileNavItem = ({
@@ -238,6 +239,7 @@ export function SharedNavbar() {
                 </Link>
               ),
             )}
+
             <Link href="/auth">
               <Button
                 variant="outline"
@@ -321,6 +323,7 @@ export function SharedNavbar() {
               </Link>
             ),
           )}
+
           <Link href="/auth">
             <div
               className="mt-4"

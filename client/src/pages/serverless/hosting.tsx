@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Plus, 
-  Globe, 
-  Trash2, 
-  Edit, 
+import { useLocation } from 'wouter';
+import {
+  Plus,
+  Globe,
+  Trash2,
+  Edit,
   ExternalLink,
   Loader2,
   Folder,
@@ -12,13 +13,18 @@ import {
   RefreshCw,
   Copy,
   Check,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  Code,
+  Save,
+  FolderPlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
@@ -48,7 +54,13 @@ const ServerlessHostingPage: React.FC = () => {
   const [brandColors, setBrandColors] = useState<any>(null);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [fileManagerOpen, setFileManagerOpen] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<HostedSite | null>(null);
+  const [htmlContent, setHtmlContent] = useState('');
+  const [fileName, setFileName] = useState('index.html');
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   // Fetch branding settings
   const { data: brandingData } = useQuery<BrandingSettings>({
@@ -102,29 +114,44 @@ const ServerlessHostingPage: React.FC = () => {
   const loadSites = async () => {
     try {
       if (typeof window === 'undefined' || !(window as any).puter) {
-        throw new Error('Puter.js SDK not loaded');
+        console.warn('Puter.js SDK not loaded yet');
+        return;
       }
 
       setIsLoading(true);
       const puter = (window as any).puter;
-      
-      // Use Puter.js hosting.list() API
+      console.log('Loading sites with Puter.js...');
+
+      // Use Puter.js hosting.list() API - exact syntax from docs
       const sitesList = await puter.hosting.list();
-      console.log('Loaded sites:', sitesList);
-      
+      console.log('Raw sites response:', sitesList);
+
+      if (!Array.isArray(sitesList)) {
+        console.error('Expected array from hosting.list(), got:', typeof sitesList);
+        setSites([]);
+        return;
+      }
+
       const formattedSites = sitesList.map((site: any) => ({
         subdomain: site.subdomain,
         uid: site.uid,
         dirPath: site.dirPath,
         url: `https://${site.subdomain}.puter.site`
       }));
-      
+
+      console.log('Formatted sites:', formattedSites);
       setSites(formattedSites);
     } catch (error) {
       console.error('Error loading sites:', error);
+
+      let errorMessage = 'Failed to load hosted sites';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
-        title: "Error",
-        description: "Failed to load hosted sites",
+        title: "Load Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -145,16 +172,16 @@ const ServerlessHostingPage: React.FC = () => {
     try {
       setIsCreating(true);
       const puter = (window as any).puter;
-      
+
       // Use Puter.js hosting.create() API
       const site = await puter.hosting.create(newSubdomain.trim(), newDirPath.trim() || undefined);
       console.log('Created site:', site);
-      
+
       toast({
         title: "Success",
         description: `Website created at ${site.subdomain}.puter.site`,
       });
-      
+
       setNewSubdomain('');
       setNewDirPath('');
       setCreateDialogOpen(false);
@@ -172,26 +199,10 @@ const ServerlessHostingPage: React.FC = () => {
   };
 
   const deleteSite = async (subdomain: string) => {
-    try {
-      const puter = (window as any).puter;
-      
-      // Use Puter.js hosting.delete() API
-      await puter.hosting.delete(subdomain);
-      console.log('Deleted site:', subdomain);
-      
-      toast({
-        title: "Success",
-        description: `Website ${subdomain}.puter.site deleted`,
-      });
-      
-      await loadSites();
-    } catch (error) {
-      console.error('Error deleting site:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete website",
-        variant: "destructive",
-      });
+    // Show a confirmation dialog
+    if (confirm(`To delete your website (${subdomain}.puter.site), you need to create a support ticket. Our team will explain how to properly delete your website data, as we don't have direct control over your website content. Would you like to create a ticket now?`)) {
+      // Navigate to the tickets page
+      navigate('/tickets');
     }
   };
 
@@ -228,6 +239,98 @@ const ServerlessHostingPage: React.FC = () => {
     }
   };
 
+  const openFileManager = (site: HostedSite) => {
+    setSelectedSite(site);
+    setFileManagerOpen(true);
+    setHtmlContent(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${site.subdomain}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            background: #f4f4f4;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to ${site.subdomain}.puter.site</h1>
+    <div class="container">
+        <p>This is your new website! Edit this HTML to customize your site.</p>
+        <p>You can add more pages, styles, and content as needed.</p>
+    </div>
+</body>
+</html>`);
+  };
+
+  const saveHtmlFile = async () => {
+    if (!selectedSite || !htmlContent.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter HTML content",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const puter = (window as any).puter;
+
+      // Create directory for the site if it doesn't exist
+      const dirName = selectedSite.subdomain;
+
+      try {
+        await puter.fs.mkdir(dirName);
+        console.log('Created directory:', dirName);
+      } catch (error) {
+        // Directory might already exist, that's okay
+        console.log('Directory might already exist:', error);
+      }
+
+      // Save the HTML file
+      const filePath = `${dirName}/${fileName}`;
+      await puter.fs.write(filePath, htmlContent);
+      console.log('Saved file:', filePath);
+
+      // Update the hosting to point to this directory
+      await puter.hosting.update(selectedSite.subdomain, dirName);
+      console.log('Updated hosting for:', selectedSite.subdomain);
+
+      toast({
+        title: "Success",
+        description: `${fileName} saved and website updated!`,
+      });
+
+      setFileManagerOpen(false);
+      await loadSites();
+    } catch (error) {
+      console.error('Error saving file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save HTML file",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="min-h-screen bg-gray-50">
@@ -236,7 +339,7 @@ const ServerlessHostingPage: React.FC = () => {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Sophisticated Hosting</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Hosting</h1>
                 <p className="text-gray-600 mt-2">
                   Deploy and manage your websites with Puter.js hosting. Create subdomains and serve your content instantly.
                 </p>
@@ -330,6 +433,77 @@ const ServerlessHostingPage: React.FC = () => {
                   </div>
                 </DialogContent>
               </Dialog>
+
+              {/* File Manager Dialog */}
+              <Dialog open={fileManagerOpen} onOpenChange={setFileManagerOpen}>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+                  <DialogHeader>
+                    <DialogTitle>HTML Editor - {selectedSite?.subdomain}.puter.site</DialogTitle>
+                    <DialogDescription>
+                      Create and edit HTML files for your website. Files must be .html format.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 overflow-y-auto">
+                    <div className="flex space-x-4">
+                      <div className="flex-1">
+                        <Label htmlFor="filename">File Name</Label>
+                        <Input
+                          id="filename"
+                          value={fileName}
+                          onChange={(e) => setFileName(e.target.value)}
+                          placeholder="index.html"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Must end with .html (e.g., index.html, about.html)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="htmlcontent">HTML Content</Label>
+                      <Textarea
+                        id="htmlcontent"
+                        value={htmlContent}
+                        onChange={(e) => setHtmlContent(e.target.value)}
+                        placeholder="Enter your HTML code here..."
+                        className="min-h-[400px] font-mono text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Write your HTML code here. Include CSS in &lt;style&gt; tags and JavaScript in &lt;script&gt; tags.
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between">
+                      <Button
+                        variant="outline"
+                        onClick={() => setFileManagerOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={saveHtmlFile}
+                        disabled={isSaving || !htmlContent.trim() || !fileName.endsWith('.html')}
+                        style={{
+                          backgroundColor: brandColors?.primary.full || '#2563eb',
+                          color: 'white'
+                        }}
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save & Deploy
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
@@ -413,6 +587,19 @@ const ServerlessHostingPage: React.FC = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => openFileManager(site)}
+                            className="flex-1"
+                            style={{
+                              borderColor: brandColors?.primary.full || '#2563eb',
+                              color: brandColors?.primary.full || '#2563eb'
+                            }}
+                          >
+                            <Code className="h-4 w-4 mr-1" />
+                            Edit Files
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => window.open(site.url, '_blank')}
                             className="flex-1"
                           >
@@ -436,17 +623,6 @@ const ServerlessHostingPage: React.FC = () => {
             )}
           </div>
 
-          {/* Refresh Button */}
-          <div className="mt-8 text-center">
-            <Button
-              variant="outline"
-              onClick={loadSites}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh Sites
-            </Button>
-          </div>
         </div>
       </div>
     </DashboardLayout>

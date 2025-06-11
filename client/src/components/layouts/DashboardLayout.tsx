@@ -30,6 +30,8 @@ import {
   Zap,
   MessageSquare,
   Globe,
+  Cloud,
+  Sparkles,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -48,7 +50,7 @@ import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
 
 type NavigationItem = {
   name: string;
-  href: string;
+  href: string | null;
   icon: ReactNode;
   adminOnly?: boolean;
   children?: NavigationItem[];
@@ -193,7 +195,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       if (item.children) {
         const isOnChildPage = item.children.some(child => location === child.href);
         if (isOnChildPage) {
-          setExpandedNavItems(prev => new Set(prev).add(item.href));
+          // Use item.name as fallback if href is null
+          const identifier = item.href || item.name;
+          setExpandedNavItems(prev => new Set(prev).add(identifier));
         }
       }
     });
@@ -365,6 +369,23 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: "Server Plans",
       href: "/packages",
       icon: <HardDrive className="h-5 w-5 mr-3" />,
+    },
+    {
+      name: "Serverless",
+      href: null, // No href - just a label
+      icon: <Cloud className="h-5 w-5 mr-3" />,
+      children: [
+        {
+          name: "AI",
+          href: "/serverless/ai",
+          icon: <MessageSquare className="h-4 w-4 mr-3" />,
+        },
+        {
+          name: "Hosting",
+          href: "/serverless/hosting",
+          icon: <Sparkles className="h-4 w-4 mr-3" />,
+        },
+      ],
     },
     {
       name: "Billing & Payments",
@@ -754,13 +775,15 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   };
 
   // Toggle expanded state for navigation items with children
-  const toggleNavItem = (href: string) => {
+  const toggleNavItem = (href: string | null) => {
+    // Use a fallback identifier if href is null
+    const identifier = href || "no-href";
     setExpandedNavItems(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(href)) {
-        newSet.delete(href);
+      if (newSet.has(identifier)) {
+        newSet.delete(identifier);
       } else {
-        newSet.add(href);
+        newSet.add(identifier);
       }
       return newSet;
     });
@@ -768,7 +791,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
   // Check if a navigation item or its children are active
   const isNavItemActive = (item: NavigationItem): boolean => {
-    if (location === item.href) return true;
+    // If item.href is null, it can't be active by direct match
+    if (item.href !== null && location === item.href) return true;
+    // Check if any children are active
     if (item.children) {
       return item.children.some(child => location === child.href);
     }
@@ -831,11 +856,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           <div className="space-y-2">
             {mainNavigation.map((item) => {
               const isActive = isNavItemActive(item);
-              const isExpanded = expandedNavItems.has(item.href);
+              // Use the same fallback identifier as in toggleNavItem
+              const identifier = item.href || item.name;
+              const isExpanded = expandedNavItems.has(identifier);
               const hasChildren = item.children && item.children.length > 0;
 
               return (
-                <div key={item.href}>
+                <div key={item.href || `nav-item-${item.name}`}>
                   {/* Main navigation item */}
                   <div
                     className={cn(
@@ -845,11 +872,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                         : "text-gray-300 hover:bg-gray-800 hover:text-white",
                     )}
                     onClick={() => {
-                      // Always navigate to the main page
-                      navigate(item.href);
-                      // If it has children, also toggle the submenu
+                      // Only navigate if href is not null
+                      if (item.href !== null) {
+                        navigate(item.href);
+                      }
+                      // If it has children, toggle the submenu
                       if (hasChildren) {
-                        toggleNavItem(item.href);
+                        toggleNavItem(identifier); // Use the consistent identifier
                       }
                     }}
                   >
@@ -871,7 +900,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                           // Prevent the main click handler from running
                           e.stopPropagation();
                           // Only toggle the submenu
-                          toggleNavItem(item.href);
+                          toggleNavItem(identifier); // Use the consistent identifier
                         }}
                       />
                     )}

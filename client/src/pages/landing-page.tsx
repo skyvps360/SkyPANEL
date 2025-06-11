@@ -21,7 +21,7 @@ export default function LandingPage() {
     message: "System is currently under maintenance",
     estimatedCompletion: ""
   });
-
+  
   // Fetch platform statistics
   const { data: platformStats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/public/platform-stats"],
@@ -35,7 +35,7 @@ export default function LandingPage() {
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-
+  
   // Fetch branding settings
   const { data: branding = { company_name: 'SkyVPS360', company_color: '2563eb', primary_color: '2563eb', secondary_color: '2563eb', accent_color: '2563eb' } } = useQuery<{
     company_name: string;
@@ -48,7 +48,7 @@ export default function LandingPage() {
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
-
+  
   // Fetch public settings for enterprise features section
   const { data: publicSettings = {} } = useQuery<Record<string, string>>({
     queryKey: ["/api/settings/public"],
@@ -69,7 +69,7 @@ export default function LandingPage() {
         console.error('Failed to fetch maintenance status:', error);
       }
     };
-
+    
     fetchMaintenanceStatus();
   }, []);
 
@@ -85,14 +85,14 @@ export default function LandingPage() {
 
   // Extract company information and branding
   const companyName = branding?.company_name || 'SkyVPS360';
-
+  
   // Get brand colors using the utility function
   const brandColors = getBrandColors({
     primaryColor: branding?.primary_color || branding?.company_color || '2563eb',
     secondaryColor: branding?.secondary_color || '3b82f6',
     accentColor: branding?.accent_color || '10b981'
   });
-
+  
   return (
     <PublicLayout>
       {/* Maintenance Banner - Only shown when maintenance mode is enabled */}
@@ -102,7 +102,7 @@ export default function LandingPage() {
           estimatedCompletion={maintenanceMode.estimatedCompletion} 
         />
       )}
-
+      
       {/* Hero Section - Modern, bold design with animated gradient */}
       <section 
         className="relative py-28 px-6 bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden"
@@ -119,7 +119,7 @@ export default function LandingPage() {
                  backgroundSize: '30px 30px' 
                }}></div>
         </div>
-
+        
         <div className="container mx-auto relative">
           <div className="flex flex-col lg:flex-row items-center max-w-7xl mx-auto">
             <div className="w-full lg:w-1/2 text-center lg:text-left mb-12 lg:mb-0">
@@ -163,7 +163,7 @@ export default function LandingPage() {
                 </Button>
               </div>
             </div>
-
+            
             {/* Server status cards */}
             <div className="w-full lg:w-1/2 flex justify-center">
               <div className="bg-gray-900/50 backdrop-blur-sm p-8 rounded-2xl border border-gray-700 w-full max-w-md">
@@ -205,7 +205,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
+      
       {/* Enterprise-Grade Features Section - Dynamic from Admin Settings */}
       <section id="features" className="py-20 px-6 bg-white">
         <div className="container mx-auto">
@@ -217,7 +217,7 @@ export default function LandingPage() {
               {publicSettings.enterprise_features_subheading || "Our platform delivers the performance, security, and flexibility you need to build and scale with confidence."}
             </p>
           </div>
-
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* First feature card - dynamic from settings */}
             {(publicSettings.enterprise_feature_title_1 || publicSettings['enterpriseFeatureCards.0.title']) && (
@@ -239,7 +239,7 @@ export default function LandingPage() {
                 <p className="text-gray-600">{publicSettings['enterpriseFeatureCards.0.description'] || publicSettings.enterprise_feature_description_1 || "Leveraging powerful KVM virtualization and Network SATA for superior speed and responsiveness."}</p>
               </div>
             )}
-
+            
             {/* Second feature card - dynamic from settings */}
             {(publicSettings.enterprise_feature_title_2 || publicSettings['enterpriseFeatureCards.1.title']) && (
               <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-200">
@@ -260,7 +260,7 @@ export default function LandingPage() {
                 <p className="text-gray-600">{publicSettings['enterpriseFeatureCards.1.description'] || publicSettings.enterprise_feature_description_2 || "Manage your VPS effortlessly with our modern control panel: boot, reboot, reinstall, console access, and more."}</p>
               </div>
             )}
-
+            
             {/* Third feature card - dynamic from settings */}
             {(publicSettings.enterprise_feature_title_3 || publicSettings['enterpriseFeatureCards.2.title']) && (
               <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-200">
@@ -281,7 +281,7 @@ export default function LandingPage() {
                 <p className="text-gray-600">{publicSettings['enterpriseFeatureCards.2.description'] || publicSettings.enterprise_feature_description_3 || "Get connected with NAT IPv4 (20 ports included) and a dedicated /80 IPv6 subnet for future-proofing."}</p>
               </div>
             )}
-
+            
             {/* Fourth feature card - dynamic from settings */}
             {(publicSettings.enterprise_feature_title_4 || publicSettings['enterpriseFeatureCards.3.title']) && (
               <div className="bg-white p-8 rounded-xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-md hover:border-gray-200">
@@ -305,7 +305,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
+      
       {/* Infrastructure Showcase Section */}
       <section className="py-20 px-6 bg-gray-50">
         <div className="container mx-auto">
@@ -317,12 +317,12 @@ export default function LandingPage() {
               Deploy your services on our worldwide network of high-performance data centers.
             </p>
           </div>
-
+          
           {/* Interactive Datacenter Map with List Selection */}
           <div className="mb-16">
             <DatacenterLeafletMap />
           </div>
-
+          
           {/* Dynamic Region Cards from API */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             {/* Fetch datacenter locations */}
@@ -342,7 +342,7 @@ export default function LandingPage() {
                 refetchOnWindowFocus: false,
                 staleTime: 1000 * 60 * 5, // 5 minutes
               });
-
+              
               // Group locations by region
               const groupedByRegion = locations.reduce((acc, location) => {
                 const region = location.regionCode;
@@ -352,17 +352,17 @@ export default function LandingPage() {
                 acc[region].push(location);
                 return acc;
               }, {} as Record<string, any[]>);
-
+              
               // Define region display order and info
               const regions = [
                 { code: 'NA', name: 'North America', color: '#3b82f6' },
                 { code: 'EU', name: 'Europe', color: '#22c55e' },
                 { code: 'APAC', name: 'Asia-Pacific', color: '#a855f7' }
               ];
-
+              
               return regions.map(region => {
                 const regionLocations = groupedByRegion[region.code] || [];
-
+                
                 return (
                   <div key={region.code} className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
                     <h3 className="text-xl font-bold mb-6 text-gray-900 flex items-center">
@@ -391,7 +391,7 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
+      
       {/* Call to Action */}
       <section className="py-20 px-6" style={{ backgroundColor: brandColors.primary.extraLight }}>
         <div className="container mx-auto">
@@ -402,7 +402,7 @@ export default function LandingPage() {
             <p className="text-xl text-gray-700 mb-8">
               Join thousands of businesses that trust {companyName} for their cloud infrastructure needs.
             </p>
-
+            
             {user ? (
               <div className="flex flex-col sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4">
                 <Button
@@ -411,27 +411,6 @@ export default function LandingPage() {
                   onClick={() => window.location.href = "/dashboard"}
                 >
                   Go to Dashboard
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto transition-all"
-                  style={{ 
-                    borderColor: brandColors.primary.full, 
-                    color: brandColors.primary.full 
-                  }}
-                  onClick={() => window.location.href = "/free-ai"}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = brandColors.primary.light;
-                    e.currentTarget.style.borderColor = brandColors.primary.full;
-                    e.currentTarget.style.color = 'white';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.borderColor = brandColors.primary.full;
-                    e.currentTarget.style.color = brandColors.primary.full;
-                  }}
-                >
-                  Try Free AI
                 </Button>
               </div>
             ) : (
@@ -463,25 +442,6 @@ export default function LandingPage() {
                   }}
                 >
                   View Pricing
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full sm:w-auto transition-all"
-                  style={{ 
-                    color: 'white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                  }}
-                  onClick={() => window.location.href = "/free-ai"}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = brandColors.primary.light;
-                    e.currentTarget.style.color = 'white';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                    e.currentTarget.style.color = 'white';
-                  }}
-                >
-                  Try Free AI
                 </Button>
               </div>
             )}

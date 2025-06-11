@@ -23,7 +23,6 @@ import ProfilePage from "@/pages/profile-page";
 import {MaintenancePage} from "@/pages/maintenance-page";
 import TermsOfServicePage from "@/pages/tos-page";
 import PrivacyPolicyPage from "@/pages/privacy-page";
-import FreeAIPage from "@/pages/free-ai-page";
 
 // Import standalone blog and docs pages
 import BlogListPage from "@/pages/blog/index";
@@ -61,6 +60,11 @@ import LiveChat from "@/pages/LiveChat";
 import DnsDomainsPage from "@/pages/dns-domains-page";
 import DnsRecordsPage from "@/pages/dns-records-page";
 import DnsPlansPage from "@/pages/dns-plans-page";
+
+// Serverless pages
+import ServerlessAiPage from "@/pages/serverless/ai";
+import ServerlessHostingPage from "@/pages/serverless/hosting";
+
 import {AdminProtectedRoute, ProtectedRoute} from "@/lib/protected-route-new";
 
 // Lazy load the landing page to avoid issues with direct file redirect
@@ -130,7 +134,6 @@ export function AppRouter() {
                 <Route path="/speed-test" component={SpeedTestPage}/>
                 <Route path="/plans" component={PlansPage}/>
                 <Route path="/team" component={TeamsPage}/>
-                <Route path="/free-ai" component={FreeAIPage}/>
                 <Route path="/tos" component={TermsOfServicePage}/>
                 <Route path="/privacy" component={PrivacyPolicyPage}/>
 
@@ -141,6 +144,10 @@ export function AppRouter() {
                 <ProtectedRoute path="/dns" component={DnsDomainsPage}/>
                 <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage}/>
                 <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/>
+
+                {/* Serverless Services - User access allowed */}
+                <ProtectedRoute path="/serverless/ai" component={ServerlessAiPage}/>
+                <ProtectedRoute path="/serverless/hosting" component={ServerlessHostingPage}/>
 
                 {/* Admin Routes */}
                 <AdminProtectedRoute path="/admin" component={AdminDashboard}/>
