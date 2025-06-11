@@ -154,12 +154,15 @@ const ServerlessAiPage: React.FC = () => {
   // Auto-scroll within chat container only when new messages are added
   useEffect(() => {
     if (messages.length > 0 && messagesEndRef.current) {
-      const chatContainer = messagesEndRef.current.closest('.overflow-y-auto');
-      if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
+      const timeoutId = setTimeout(() => {
+        const chatContainer = messagesEndRef.current?.closest('.overflow-y-auto');
+        if (chatContainer) {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      }, 100);
+      return () => clearTimeout(timeoutId);
     }
-  }, [messages]);
+  }, [messages.length]); // Only depend on length, not the entire messages array
 
   // Load Puter.js SDK
   useEffect(() => {

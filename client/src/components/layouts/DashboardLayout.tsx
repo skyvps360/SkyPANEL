@@ -372,7 +372,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     },
     {
       name: "Serverless",
-      href: null, // No href - just a label
+      href: "/serverless", // Link to overview page
       icon: <Cloud className="h-5 w-5 mr-3" />,
       children: [
         {
@@ -384,6 +384,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           name: "Hosting",
           href: "/serverless/hosting",
           icon: <Sparkles className="h-4 w-4 mr-3" />,
+        },
+        {
+          name: "Storage",
+          href: "/serverless/storage",
+          icon: <HardDrive className="h-4 w-4 mr-3" />,
         },
       ],
     },

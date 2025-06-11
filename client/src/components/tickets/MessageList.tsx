@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { getBrandColors } from "@/lib/brand-theme";
 import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
 import axios from "axios";
@@ -124,14 +124,21 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
   }
   
   // Function to scroll to bottom of messages
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-  
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      const timeoutId = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, []);
+
   // Auto-scroll when messages change
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages.length, scrollToBottom]); // Only depend on length, not the entire messages array
 
   return (
     <div className="space-y-6 w-full overflow-y-auto max-h-[600px] px-4 custom-scrollbar">

@@ -109,8 +109,13 @@ export default function EnhancedChatInterface({
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (messages.length > 0) {
+      const timeoutId = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages.length]); // Only depend on length, not the entire messages array
 
   // Filter sessions based on search and filters
   const filteredSessions = sessions.filter(session => {

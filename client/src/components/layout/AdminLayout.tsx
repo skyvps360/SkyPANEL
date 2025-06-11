@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -184,12 +184,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const companyName = brandSettings?.company_name || "Admin Portal";
 
   // Get brand colors using the utility with the new color system
-  const brandColorOptions = {
+  const brandColorOptions = useMemo(() => ({
     primaryColor: brandSettings?.primary_color || brandSettings?.company_color,  // Fallback to company_color for backward compatibility
     secondaryColor: brandSettings?.secondary_color,
     accentColor: brandSettings?.accent_color
-  };
-  const brandColors = getBrandColors(brandColorOptions);
+  }), [brandSettings?.primary_color, brandSettings?.company_color, brandSettings?.secondary_color, brandSettings?.accent_color]);
+
+  const brandColors = useMemo(() => getBrandColors(brandColorOptions), [brandColorOptions]);
 
   // Apply brand colors to CSS variables and Shadcn theme when settings are loaded
   useEffect(() => {
@@ -494,7 +495,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <span className="font-bold">{companyName} Admin</span>
             </Link>
           </div>
-          <ScrollArea className="flex-1 py-2">
+          <div className="flex-1 py-2 overflow-y-auto">
             <nav className="grid items-start px-2 text-sm font-medium space-y-1">
               <Button
                 variant="ghost"
@@ -563,7 +564,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 Logout
               </Button>
             </nav>
-          </ScrollArea>
+          </div>
         </div>
       </div>
 
@@ -595,7 +596,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <span className="font-bold">{companyName} Admin</span>
               </Link>
             </div>
-            <ScrollArea className="flex-1 py-2">
+            <div className="flex-1 py-2 overflow-y-auto">
               <nav className="grid items-start px-2 text-sm font-medium space-y-1">
                 <Button
                   variant="ghost"
@@ -662,7 +663,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   Logout
                 </Button>
               </nav>
-            </ScrollArea>
+            </div>
           </SheetContent>
         </Sheet>
         <div className="flex items-center">
