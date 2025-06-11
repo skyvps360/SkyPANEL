@@ -30,6 +30,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { getBrandColors } from '@/lib/brand-theme';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 
 interface BrandingSettings {
   company_name?: string;
@@ -61,6 +62,7 @@ const ServerlessHostingPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const { user } = useAuth();
 
   // Fetch branding settings
   const { data: brandingData } = useQuery<BrandingSettings>({
@@ -78,6 +80,19 @@ const ServerlessHostingPage: React.FC = () => {
         accentColor: brandingData.accent_color || 'f59e0b'
       });
       setBrandColors(colors);
+
+      // Import and apply the brand color variables to both CSS variables and Shadcn theme
+      import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
+        applyBrandColorVars({
+          primaryColor: brandingData.primary_color || '2563eb',
+          secondaryColor: brandingData.secondary_color || '10b981',
+          accentColor: brandingData.accent_color || 'f59e0b'
+        });
+        
+        // Apply the colors to the Shadcn theme as well
+        applyToShadcnTheme(colors);
+        console.log('Applied brand colors to Shadcn theme in Serverless Hosting page');
+      });
     }
   }, [brandingData]);
 
@@ -333,297 +348,227 @@ const ServerlessHostingPage: React.FC = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Hosting</h1>
-                <p className="text-gray-600 mt-2">
-                  Deploy and manage your websites with Puter.js hosting. Create subdomains and serve your content instantly.
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Powered by{' '}
-                  <a 
-                    href="https://puter.com" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline font-medium"
-                  >
-                    Puter.com
-                  </a>
-                </p>
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Modern Hero Header matching tickets page */}
+        <div className="rounded-2xl bg-card border border-border shadow-md">
+          <div className="p-8 md:p-12">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex-1">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
+                    <Globe className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                      Web Hosting
+                    </h1>
+                    <p className="text-muted-foreground text-lg mt-1">
+                      Create and manage website hosting with Puter.js
+                    </p>
+                  </div>
+                </div>
               </div>
-              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    style={{ 
-                      backgroundColor: brandColors?.primary.full || '#2563eb',
-                      color: 'white'
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Website
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Website</DialogTitle>
-                    <DialogDescription>
-                      Create a new subdomain to host your website. Optionally specify a directory to serve.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="subdomain">Subdomain Name</Label>
-                      <div className="flex space-x-2">
-                        <Input
-                          id="subdomain"
-                          value={newSubdomain}
-                          onChange={(e) => setNewSubdomain(e.target.value)}
-                          placeholder="my-awesome-site"
-                          className="flex-1"
-                        />
-                        <Button
-                          variant="outline"
-                          onClick={generateRandomName}
-                          type="button"
-                        >
-                          Random
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Will be available at: {newSubdomain || 'subdomain'}.puter.site
-                      </p>
-                    </div>
-                    <div>
-                      <Label htmlFor="dirpath">Directory Path (Optional)</Label>
-                      <Input
-                        id="dirpath"
-                        value={newDirPath}
-                        onChange={(e) => setNewDirPath(e.target.value)}
-                        placeholder="/path/to/your/website"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Leave empty to create an empty website
-                      </p>
-                    </div>
-                    <Button
-                      onClick={createSite}
-                      disabled={isCreating || !newSubdomain.trim()}
-                      className="w-full"
-                      style={{ 
-                        backgroundColor: brandColors?.primary.full || '#2563eb',
-                        color: 'white'
-                      }}
-                    >
-                      {isCreating ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Create Website
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
 
-              {/* File Manager Dialog */}
-              <Dialog open={fileManagerOpen} onOpenChange={setFileManagerOpen}>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-                  <DialogHeader>
-                    <DialogTitle>HTML Editor - {selectedSite?.subdomain}.puter.site</DialogTitle>
-                    <DialogDescription>
-                      Create and edit HTML files for your website. Files must be .html format.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 overflow-y-auto">
-                    <div className="flex space-x-4">
-                      <div className="flex-1">
-                        <Label htmlFor="filename">File Name</Label>
-                        <Input
-                          id="filename"
-                          value={fileName}
-                          onChange={(e) => setFileName(e.target.value)}
-                          placeholder="index.html"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Must end with .html (e.g., index.html, about.html)
-                        </p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="htmlcontent">HTML Content</Label>
-                      <Textarea
-                        id="htmlcontent"
-                        value={htmlContent}
-                        onChange={(e) => setHtmlContent(e.target.value)}
-                        placeholder="Enter your HTML code here..."
-                        className="min-h-[400px] font-mono text-sm"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Write your HTML code here. Include CSS in &lt;style&gt; tags and JavaScript in &lt;script&gt; tags.
-                      </p>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <Button
-                        variant="outline"
-                        onClick={() => setFileManagerOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={saveHtmlFile}
-                        disabled={isSaving || !htmlContent.trim() || !fileName.endsWith('.html')}
-                        style={{
-                          backgroundColor: brandColors?.primary.full || '#2563eb',
-                          color: 'white'
-                        }}
-                      >
-                        {isSaving ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save & Deploy
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+                <Button
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Website
+                </Button>
+              </div>
             </div>
           </div>
-
-          {/* Sites Grid */}
-          <div className="space-y-6">
+        </div>
+        
+        {/* Main content */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle>Your Websites</CardTitle>
+            <CardDescription>
+              Deploy and manage your websites with Puter.js hosting. Create subdomains and serve your content instantly.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             {isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : sites.length === 0 ? (
-              <Card>
-                <CardContent className="text-center py-12">
-                  <Globe className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No websites yet</h3>
-                  <p className="text-gray-600 mb-4">
-                    Create your first website to get started with Puter.js hosting.
-                  </p>
-                  <Button
-                    onClick={() => setCreateDialogOpen(true)}
-                    style={{ 
-                      backgroundColor: brandColors?.primary.full || '#2563eb',
-                      color: 'white'
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Website
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            ) : sites.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2">
                 {sites.map((site) => (
-                  <Card key={site.uid} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Globe className="h-5 w-5 mr-2 text-gray-600" />
-                          <CardTitle className="text-lg">{site.subdomain}</CardTitle>
-                        </div>
-                        <Badge 
-                          variant="secondary"
-                          style={{ 
-                            backgroundColor: brandColors?.secondary.light || '#10b9811a',
-                            color: brandColors?.secondary.full || '#10b981'
-                          }}
-                        >
-                          Active
-                        </Badge>
+                  <Card key={site.uid} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-base">{site.subdomain}.puter.site</CardTitle>
+                        <Badge variant="outline" className="ml-2">Active</Badge>
                       </div>
-                      <CardDescription>
-                        {site.dirPath ? (
-                          <span className="flex items-center">
-                            <Folder className="h-4 w-4 mr-1" />
-                            {site.dirPath}
-                          </span>
-                        ) : (
-                          'Empty website'
-                        )}
-                      </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <span className="text-sm font-mono text-gray-600 truncate">
-                            {site.url}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyUrl(site.url)}
-                            className="h-6 w-6 p-0"
-                          >
-                            {copiedUrl === site.url ? (
-                              <Check className="h-3 w-3 text-green-600" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
+                    <CardContent className="pb-2">
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Website URL:</span>
+                          <div className="flex items-center">
+                            <a 
+                              href={site.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline mr-2"
+                            >
+                              {site.url}
+                            </a>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              onClick={() => copyUrl(site.url)}
+                            >
+                              {copiedUrl === site.url ? (
+                                <Check className="h-4 w-4" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openFileManager(site)}
-                            className="flex-1"
-                            style={{
-                              borderColor: brandColors?.primary.full || '#2563eb',
-                              color: brandColors?.primary.full || '#2563eb'
-                            }}
-                          >
-                            <Code className="h-4 w-4 mr-1" />
-                            Edit Files
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.open(site.url, '_blank')}
-                            className="flex-1"
-                          >
-                            <ExternalLink className="h-4 w-4 mr-1" />
-                            Visit
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteSite(site.subdomain)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {site.dirPath && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Directory Path:</span>
+                            <span className="text-sm">{site.dirPath}</span>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
+                    <div className="p-4 pt-0 border-t mt-2 bg-muted/10 flex justify-between">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => window.open(site.url, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Visit
+                      </Button>
+                      
+                      <div className="space-x-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedSite(site);
+                            setFileManagerOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                        
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-destructive/30 hover:border-destructive hover:bg-destructive/10"
+                          onClick={() => deleteSite(site.subdomain)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2 text-destructive" />
+                          <span className="text-destructive">Delete</span>
+                        </Button>
+                      </div>
+                    </div>
                   </Card>
                 ))}
               </div>
+            ) : (
+              <div className="text-center py-16">
+                <div className="flex justify-center">
+                  <Globe className="h-16 w-16 text-muted-foreground/40" />
+                </div>
+                <h3 className="mt-4 text-lg font-medium">No websites yet</h3>
+                <p className="mt-2 text-muted-foreground">
+                  Create your first website to get started with Puter.js hosting.
+                </p>
+                <Button 
+                  onClick={() => setCreateDialogOpen(true)}
+                  className="mt-4"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Website
+                </Button>
+              </div>
             )}
-          </div>
+          </CardContent>
+        </Card>
 
-        </div>
+        {/* Create website dialog */}
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create a New Website</DialogTitle>
+              <DialogDescription>
+                Choose a subdomain name and optional directory path for your new website.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="subdomain">Subdomain</Label>
+                <div className="flex space-x-2">
+                  <Input
+                    id="subdomain"
+                    value={newSubdomain}
+                    onChange={(e) => setNewSubdomain(e.target.value)}
+                    placeholder="your-website-name"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={generateRandomName}
+                  >
+                    Random
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Your website will be available at <span className="font-medium">{newSubdomain || 'example'}.puter.site</span>
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dirPath">Directory Path (Optional)</Label>
+                <Input
+                  id="dirPath"
+                  value={newDirPath}
+                  onChange={(e) => setNewDirPath(e.target.value)}
+                  placeholder="/path/to/website/files"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave empty to create a new directory
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setCreateDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={createSite}
+                disabled={isCreating || !newSubdomain.trim()}
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Website
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
