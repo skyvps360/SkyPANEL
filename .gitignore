@@ -6,11 +6,22 @@ vite.config.ts.*
 *.tar.gz
 attached_assets
 package-lock.json
+scripts
+Puter-Serverless-Docs
+dnsmasq.conf
+docs
+vitest.config.ts
+yaml-docs
+docs
+docs/tasks.md
+# DotFiles
 .env
 .wrangler
-dnsmasq.conf
-.windsurf
-scripts
-readme-2.md
 .idea
-docs
+.vscode
+.cursorrules
+.cursorignore
+.cursor
+.windsurf
+.windsurfignore
+.aiignore
