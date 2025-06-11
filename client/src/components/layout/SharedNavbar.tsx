@@ -95,6 +95,7 @@ export function SharedNavbar() {
     { name: "Documentation", path: "/docs" },
     { name: "Status", path: "/status" },
     { name: "Speed Test", path: "/speed-test" },
+    { name: "Free AI", path: "/free-ai" },
   ];
 
   // Styled button based on active state

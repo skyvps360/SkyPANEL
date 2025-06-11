@@ -23,6 +23,7 @@ import ProfilePage from "@/pages/profile-page";
 import {MaintenancePage} from "@/pages/maintenance-page";
 import TermsOfServicePage from "@/pages/tos-page";
 import PrivacyPolicyPage from "@/pages/privacy-page";
+import FreeAIPage from "@/pages/free-ai-page";
 
 // Import standalone blog and docs pages
 import BlogListPage from "@/pages/blog/index";
@@ -129,6 +130,7 @@ export function AppRouter() {
                 <Route path="/speed-test" component={SpeedTestPage}/>
                 <Route path="/plans" component={PlansPage}/>
                 <Route path="/team" component={TeamsPage}/>
+                <Route path="/free-ai" component={FreeAIPage}/>
                 <Route path="/tos" component={TermsOfServicePage}/>
                 <Route path="/privacy" component={PrivacyPolicyPage}/>
 

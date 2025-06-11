@@ -39,6 +39,7 @@ If you find my work helpful, consider supporting me:
 - [Brand Theming System](#-brand-theming-system)
 - [Discord Integration](#-discord-integration)
 - [AI-Powered Support](#-ai-powered-support)
+- [Free AI Assistant](#-free-ai-assistant)
 - [VNC Console](#-vnc-console)
 - [Billing & Transaction System](#-billing--transaction-system)
 - [User Management](#-user-management)
@@ -60,6 +61,7 @@ If you find my work helpful, consider supporting me:
 ### 🎯 What Makes SkyPANEL Special
 
 - **🤖 AI-Powered Support**: Integrated Google Gemini 2.5 Flash for intelligent customer support and automated responses
+- **🔮 Free AI Assistant**: Public access to Claude AI models via Puter.js without API keys or usage limits
 - **🔄 Real-Time Monitoring**: BetterStack integration for live infrastructure monitoring and status reporting
 - **💬 Discord Integration**: Full two-way communication with Discord bot for ticket management and platform status
 - **🎨 Dynamic Theming**: Advanced brand customization with multi-color theming system
@@ -881,6 +883,75 @@ AI features can be configured in the admin panel:
 - **Response Templates**: Customizable AI response templates
 - **Rate Limiting**: Configurable usage limits and quotas
 - **Content Filters**: Adjustable safety and moderation settings
+
+---
+
+## 🔮 Free AI Assistant
+
+SkyPANEL provides a free AI assistant powered by Puter.js, giving users access to Claude AI models without API keys or usage limits.
+
+### Key Features
+
+#### Claude AI Integration
+- **No API Keys Required**: Access Claude AI models without any authentication
+- **Unlimited Usage**: No rate limits or quotas to worry about
+- **Multiple Models**: Support for both Claude Sonnet 4 and Claude Opus 4
+- **Public Access**: Available to all users, including guests
+
+#### User-Friendly Interface
+- **Simple Prompt Input**: Easy-to-use interface for entering prompts
+- **Example Prompts**: Pre-defined examples to help users get started
+- **Real-Time Streaming**: See responses as they're generated
+- **Model Selection**: Choose between different Claude models
+
+### Technical Implementation
+
+#### Puter.js Integration
+```javascript
+// Load Puter.js script
+const script = document.createElement('script');
+script.src = 'https://js.puter.com/v2/';
+script.async = true;
+document.body.appendChild(script);
+
+// Generate AI response
+const response = await window.puter.ai.chat(prompt, { 
+  model: "claude-sonnet-4", 
+  stream: true 
+});
+
+// Process streaming response
+for await (const part of response) {
+  const text = part?.text || "";
+  // Update UI with text
+}
+```
+
+#### User Pays Model
+- **Zero Cost to Developers**: No API costs for the application
+- **User-Funded**: Users cover their own usage costs
+- **Transparent**: Clear explanation of the model to users
+- **Sustainable**: Economically viable approach to AI integration
+
+### Use Cases
+
+#### Content Generation
+- **Creative Writing**: Stories, poems, and creative content
+- **Documentation**: Help with writing documentation and guides
+- **Marketing Copy**: Assistance with creating marketing materials
+- **Email Drafting**: Help composing professional emails
+
+#### Information & Learning
+- **Concept Explanations**: Clear explanations of complex topics
+- **Research Assistance**: Help finding and summarizing information
+- **Language Translation**: Assistance with translating content
+- **Educational Content**: Creation of learning materials
+
+#### Code & Development
+- **Code Generation**: Help writing code in various languages
+- **Debugging Assistance**: Identifying issues in code
+- **Algorithm Explanation**: Understanding how algorithms work
+- **Development Guidance**: Best practices and patterns
 
 ---
 
