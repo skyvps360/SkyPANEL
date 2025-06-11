@@ -522,16 +522,25 @@ document.addEventListener('DOMContentLoaded', () => {
       await puter.hosting.delete(siteToDelete.subdomain);
       console.log(`Website ${siteToDelete.subdomain} deleted successfully`);
       
-      // Optionally clean up the directory if it matches the expected pattern
-      if (siteToDelete.dirPath && 
-          (siteToDelete.dirPath.startsWith(`/websites/${siteToDelete.subdomain}`) || 
-           siteToDelete.dirPath === `/${siteToDelete.subdomain}-website`)) {
+      // Clean up the directory if it exists
+      if (siteToDelete.dirPath) {
         try {
           console.log(`Attempting to clean up directory: ${siteToDelete.dirPath}`);
           await puter.fs.delete(siteToDelete.dirPath, { recursive: true });
           console.log(`Directory ${siteToDelete.dirPath} deleted successfully`);
         } catch (dirErr) {
           console.warn(`Could not delete directory ${siteToDelete.dirPath}:`, dirErr);
+          // Non-blocking error - we still deleted the website successfully
+        }
+      } else {
+        // Try to delete using standard naming pattern if no dirPath is specified
+        const standardDirPath = `${siteToDelete.subdomain}-site`;
+        try {
+          console.log(`Attempting to clean up standard directory: ${standardDirPath}`);
+          await puter.fs.delete(standardDirPath, { recursive: true });
+          console.log(`Standard directory ${standardDirPath} deleted successfully`);
+        } catch (dirErr) {
+          console.warn(`Could not delete standard directory ${standardDirPath}:`, dirErr);
           // Non-blocking error - we still deleted the website successfully
         }
       }
