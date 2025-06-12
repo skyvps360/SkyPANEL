@@ -1,4 +1,4 @@
-import { ReactNode, useState, useRef, useEffect } from "react";
+import { ReactNode, useState, useRef, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -157,11 +157,16 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   }, [brandingSettings?.company_name, settings?.company_name]);
 
   // Get brand colors using the new color system with appropriate fallbacks
-  const brandColors = getBrandColors({
-    primaryColor: brandingSettings?.primary_color || brandingSettings?.company_color || '2563eb',  // Fallback to company_color for backward compatibility
+  const brandColors = useMemo(() => getBrandColors({
+    primaryColor: brandingSettings?.primary_color || brandingSettings?.company_color || '2563eb',
     secondaryColor: brandingSettings?.secondary_color || '10b981',
     accentColor: brandingSettings?.accent_color || 'f59e0b'
-  });
+  }), [
+    brandingSettings?.primary_color,
+    brandingSettings?.company_color,
+    brandingSettings?.secondary_color,
+    brandingSettings?.accent_color
+  ]);
 
   // Apply brand colors to CSS variables and Shadcn theme
   useEffect(() => {
@@ -177,15 +182,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         secondaryColor: brandingSettings?.secondary_color || '10b981',
         accentColor: brandingSettings?.accent_color || 'f59e0b'
       });
-
       console.log('Applied brand colors to Shadcn theme in Dashboard');
     });
-  }, [
-    brandingSettings?.primary_color,
-    brandingSettings?.company_color,
-    brandingSettings?.secondary_color,
-    brandingSettings?.accent_color
-  ]);
+  }, [brandingSettings?.primary_color, brandingSettings?.company_color, brandingSettings?.secondary_color, brandingSettings?.accent_color]);
 
   // Auto-expand navigation items based on current route
   useEffect(() => {

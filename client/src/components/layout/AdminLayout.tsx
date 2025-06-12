@@ -221,7 +221,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         console.log('Applied brand colors to Shadcn theme in Admin with cache bust');
       });
     }
-  }, [brandSettings]);
+  }, [brandColorOptions, brandSettings?.primary_color, brandSettings?.company_color]);
 
   // Close the mobile menu when a navigation item is selected
   useEffect(() => {

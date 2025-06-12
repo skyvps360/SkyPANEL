@@ -1924,22 +1924,22 @@ export default function SettingsPage() {
                           </div>
                         </div>
 
-                        {settings.dnsStats && (
+                        {dnsBillingData?.dnsStats && (
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t">
                             <div className="text-center">
-                              <p className="text-lg font-semibold">{settings.dnsStats.totalActiveSubscriptions}</p>
+                              <p className="text-lg font-semibold">{dnsBillingData.dnsStats.totalActiveSubscriptions}</p>
                               <p className="text-xs text-muted-foreground">Active Subscriptions</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-lg font-semibold">{settings.dnsStats.subscriptionsDueToday}</p>
+                              <p className="text-lg font-semibold">{dnsBillingData.dnsStats.subscriptionsDueToday}</p>
                               <p className="text-xs text-muted-foreground">Due Today</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-lg font-semibold">{settings.dnsStats.suspendedSubscriptions}</p>
+                              <p className="text-lg font-semibold">{dnsBillingData.dnsStats.suspendedSubscriptions}</p>
                               <p className="text-xs text-muted-foreground">Suspended</p>
                             </div>
                             <div className="text-center">
-                              <p className="text-lg font-semibold">${settings.dnsStats.totalMonthlyRevenue?.toFixed(2)}</p>
+                              <p className="text-lg font-semibold">${dnsBillingData.dnsStats.totalMonthlyRevenue?.toFixed(2)}</p>
                               <p className="text-xs text-muted-foreground">Monthly Revenue</p>
                             </div>
                           </div>
@@ -1955,7 +1955,10 @@ export default function SettingsPage() {
                                 await apiRequest("/api/admin/cron/dns-billing/trigger", {
                                   method: "POST"
                                 });
-                                queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+                                queryClient.invalidateQueries({
+                                  queryKey: ["/api/admin/cron/status"],
+                                  exact: true
+                                });
                                 toast({
                                   title: "Success",
                                   description: "DNS billing renewal triggered successfully",
