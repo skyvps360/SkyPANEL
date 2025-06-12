@@ -82,7 +82,7 @@ export class VirtFusionApi {
   async testConnection() {
     try {
       await this.updateSettings();
-      return this.request("GET", "/account");
+      return this.request("GET", "/packages");
     } catch (error) {
       console.error("VirtFusion connection test failed:", error);
       throw error;
