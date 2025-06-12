@@ -8,6 +8,7 @@ import { storage } from "../../storage";
 import { User as SelectUser, dnsPlans, dnsPlanSubscriptions } from "@shared/schema";
 import { VirtFusionApi } from "../../routes_new";
 import { EmailVerificationService } from "../auth/email-verification-service";
+import { verificationRateLimiter } from "./verification-rate-limiter";
 import { db } from "../../db";
 import { eq, and } from "drizzle-orm";
 
@@ -317,14 +318,14 @@ export function setupAuth(app: Express) {
   app.post("/api/resend-verification", async (req, res) => {
     try {
       const { userId, email } = req.body;
-      
+
       if (!userId || !email) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'User ID and email are required' 
+        return res.status(400).json({
+          success: false,
+          message: 'User ID and email are required'
         });
       }
-      
+
       // Verify the user exists
       const user = await storage.getUser(userId);
       if (!user) {
@@ -333,7 +334,7 @@ export function setupAuth(app: Express) {
           message: 'User not found'
         });
       }
-      
+
       // Check if email matches
       if (user.email !== email) {
         return res.status(400).json({
@@ -341,7 +342,7 @@ export function setupAuth(app: Express) {
           message: 'Email does not match user record'
         });
       }
-      
+
       // Check if already verified
       if (user.isVerified) {
         return res.status(400).json({
@@ -349,16 +350,151 @@ export function setupAuth(app: Express) {
           message: 'Email is already verified'
         });
       }
+
+      // Check rate limiting
+      const rateLimitCheck = await verificationRateLimiter.checkResendAllowed(email, userId);
+      if (!rateLimitCheck.allowed) {
+        return res.status(429).json({
+          success: false,
+          message: rateLimitCheck.message,
+          waitTimeSeconds: rateLimitCheck.waitTimeSeconds
+        });
+      }
       
+      // Record the resend attempt
+      const recordResult = await verificationRateLimiter.recordResendAttempt(email, userId);
+      if (!recordResult.allowed) {
+        return res.status(429).json({
+          success: false,
+          message: recordResult.message,
+          waitTimeSeconds: recordResult.waitTimeSeconds
+        });
+      }
+
       // Resend verification email
       const result = await EmailVerificationService.resendVerificationEmail(userId, email);
+
+      // Include rate limiting info in successful response
+      if (result.success && recordResult.attemptsRemaining !== undefined) {
+        return res.status(200).json({
+          ...result,
+          attemptsRemaining: recordResult.attemptsRemaining
+        });
+      }
+
       return res.status(result.success ? 200 : 400).json(result);
-      
+
     } catch (error) {
       console.error('Error resending verification email:', error);
-      return res.status(500).json({ 
-        success: false, 
-        message: 'An error occurred while resending verification email' 
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while resending verification email'
+      });
+    }
+  });
+
+  // Request verification for existing unverified users
+  app.post("/api/request-verification", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is required'
+        });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'No account found with this email address'
+        });
+      }
+
+      // Check if already verified
+      if (user.isVerified) {
+        return res.status(400).json({
+          success: false,
+          message: 'This email address is already verified'
+        });
+      }
+
+      // Check rate limiting
+      const rateLimitCheck = await verificationRateLimiter.checkResendAllowed(email, user.id);
+      if (!rateLimitCheck.allowed) {
+        return res.status(429).json({
+          success: false,
+          message: rateLimitCheck.message,
+          waitTimeSeconds: rateLimitCheck.waitTimeSeconds
+        });
+      }
+
+      // Record the resend attempt
+      const recordResult = await verificationRateLimiter.recordResendAttempt(email, user.id);
+      if (!recordResult.allowed) {
+        return res.status(429).json({
+          success: false,
+          message: recordResult.message,
+          waitTimeSeconds: recordResult.waitTimeSeconds
+        });
+      }
+
+      // Send verification email
+      const result = await EmailVerificationService.resendVerificationEmail(user.id, email);
+
+      // Include rate limiting info in successful response
+      if (result.success && recordResult.attemptsRemaining !== undefined) {
+        return res.status(200).json({
+          ...result,
+          userId: user.id,
+          attemptsRemaining: recordResult.attemptsRemaining
+        });
+      }
+
+      return res.status(result.success ? 200 : 400).json({
+        ...result,
+        userId: result.success ? user.id : undefined
+      });
+
+    } catch (error) {
+      console.error('Error requesting verification:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while requesting verification'
+      });
+    }
+  });
+
+  // Get rate limit status for verification
+  app.get("/api/verification-rate-limit-status", async (req, res) => {
+    try {
+      const { email, userId } = req.query;
+
+      if (!email && !userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email or user ID is required'
+        });
+      }
+
+      const status = await verificationRateLimiter.getRateLimitStatus(
+        email as string,
+        userId ? parseInt(userId as string) : undefined
+      );
+
+      return res.status(200).json({
+        success: true,
+        ...status
+      });
+
+    } catch (error) {
+      console.error('Error getting rate limit status:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'An error occurred while checking rate limit status'
       });
     }
   });

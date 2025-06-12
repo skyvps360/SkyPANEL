@@ -44,8 +44,13 @@ const registerSchema = insertUserSchema.extend({
   path: ["confirmPassword"],
 });
 
+const verifyAccountSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
 type LoginFormData = z.infer<typeof loginSchema>;
 type RegisterFormData = z.infer<typeof registerSchema>;
+type VerifyAccountFormData = z.infer<typeof verifyAccountSchema>;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<string>("login");
@@ -57,6 +62,7 @@ export default function AuthPage() {
   const [verificationEmail, setVerificationEmail] = useState<string>("");
   const [userId, setUserId] = useState<number | null>(null);
   const [redirectingToDashboard, setRedirectingToDashboard] = useState<boolean>(false);
+  const [isRequestingVerification, setIsRequestingVerification] = useState<boolean>(false);
   
   // Track brand colors for consistent theming
   const [brandColors, setBrandColors] = useState<ReturnType<typeof getBrandColors> | null>(null);
@@ -158,6 +164,13 @@ export default function AuthPage() {
       password: "",
       confirmPassword: "",
       fullName: "",
+    },
+  });
+
+  const verifyAccountForm = useForm<VerifyAccountFormData>({
+    resolver: zodResolver(verifyAccountSchema),
+    defaultValues: {
+      email: "",
     },
   });
 
@@ -425,6 +438,50 @@ export default function AuthPage() {
     }
   };
 
+  // Handle verify account submission
+  const onVerifyAccountSubmit = async (data: VerifyAccountFormData) => {
+    setIsRequestingVerification(true);
+    try {
+      const response = await fetch("/api/request-verification", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: data.email }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Set verification mode
+        setVerificationNeeded(true);
+        setVerificationEmail(data.email);
+        setUserId(result.userId);
+
+        toast({
+          title: "Verification code sent",
+          description: result.message,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error requesting verification:", error);
+      toast({
+        title: "Error",
+        description: "Failed to request verification. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRequestingVerification(false);
+    }
+  };
+
   // Render the appropriate content based on state
   const renderContent = () => {
     if (verificationNeeded) {
@@ -505,7 +562,7 @@ export default function AuthPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger 
                   value="login" 
                   className="data-[state=active]:text-white"
@@ -516,8 +573,8 @@ export default function AuthPage() {
                 >
                   Login
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="register" 
+                <TabsTrigger
+                  value="register"
                   className="data-[state=active]:text-white"
                   style={{
                     '--tab-brand-color': brandColors?.primary.full || '#2563eb',
@@ -525,6 +582,16 @@ export default function AuthPage() {
                   } as React.CSSProperties}
                 >
                   Register
+                </TabsTrigger>
+                <TabsTrigger
+                  value="verify"
+                  className="data-[state=active]:text-white"
+                  style={{
+                    '--tab-brand-color': brandColors?.primary.full || '#2563eb',
+                    ...(activeTab === "verify" ? { backgroundColor: brandColors?.primary.full || '#2563eb', color: 'white' } : {})
+                  } as React.CSSProperties}
+                >
+                  Verify Account
                 </TabsTrigger>
               </TabsList>
               
@@ -675,6 +742,44 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </TabsContent>
+
+              <TabsContent value="verify">
+                <form onSubmit={verifyAccountForm.handleSubmit(onVerifyAccountSubmit)} className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="verify-email">Email Address</Label>
+                    <Input
+                      id="verify-email"
+                      type="email"
+                      placeholder="Enter your email address"
+                      {...verifyAccountForm.register("email")}
+                    />
+                    {verifyAccountForm.formState.errors.email && (
+                      <p className="text-sm text-destructive">{verifyAccountForm.formState.errors.email.message}</p>
+                    )}
+                  </div>
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Enter the email address associated with your unverified account. We'll send you a new verification code.
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    style={brandStyle}
+                    disabled={isRequestingVerification}
+                  >
+                    {isRequestingVerification ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending Verification Code...
+                      </>
+                    ) : (
+                      "Send Verification Code"
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
             </Tabs>
           </CardContent>
           <CardFooter className="flex justify-center">
@@ -682,27 +787,60 @@ export default function AuthPage() {
               {activeTab === "login" ? (
                 <>
                   Don't have an account?{" "}
-                  <Button 
+                  <Button
                     type="button"
-                    variant="link" 
+                    variant="link"
                     className="p-0 hover:opacity-80"
                     style={{ color: brandColors?.primary.full || '#2563eb' }}
                     onClick={() => setActiveTab("register")}
                   >
                     Register
                   </Button>
+                  {" • "}
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 hover:opacity-80"
+                    style={{ color: brandColors?.primary.full || '#2563eb' }}
+                    onClick={() => setActiveTab("verify")}
+                  >
+                    Verify Account
+                  </Button>
                 </>
-              ) : (
+              ) : activeTab === "register" ? (
                 <>
                   Already have an account?{" "}
-                  <Button 
+                  <Button
                     type="button"
-                    variant="link" 
+                    variant="link"
                     className="p-0 hover:opacity-80"
                     style={{ color: brandColors?.primary.full || '#2563eb' }}
                     onClick={() => setActiveTab("login")}
                   >
                     Login
+                  </Button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{" "}
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 hover:opacity-80"
+                    style={{ color: brandColors?.primary.full || '#2563eb' }}
+                    onClick={() => setActiveTab("login")}
+                  >
+                    Login
+                  </Button>
+                  {" • "}
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="p-0 hover:opacity-80"
+                    style={{ color: brandColors?.primary.full || '#2563eb' }}
+                    onClick={() => setActiveTab("register")}
+                  >
+                    Register
                   </Button>
                 </>
               )}

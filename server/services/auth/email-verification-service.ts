@@ -3,6 +3,7 @@ import { storage } from '../../storage';
 import { emailService } from '../../email';
 import { User } from '@shared/schema';
 import { VirtFusionUserService } from '../../services/integration/virtfusion-user-service';
+import { verificationRateLimiter } from './verification-rate-limiter';
 
 /**
  * Class to handle email verification operations
@@ -100,12 +101,23 @@ export class EmailVerificationService {
       
       // Mark user as verified
       await storage.verifyUserEmail(userId);
-      
+
       // Mark token as used
       await storage.markEmailVerificationTokenAsUsed(token.id);
-      
+
       // Invalidate any other verification tokens for this user
       await storage.invalidateEmailVerificationTokens(userId);
+
+      // Clear rate limiting data for this user
+      const user = await storage.getUser(userId);
+      if (user) {
+        try {
+          await verificationRateLimiter.clearUserAttempts(user.email, userId);
+        } catch (e) {
+          // Soft-fail: do not block verification
+          console.warn('Rate-limiter cleanup failed:', e);
+        }
+      }
       
       // Now that the email is verified, create the VirtFusion account
       console.log(`Email verified for user ${userId}, proceeding to create VirtFusion account`);

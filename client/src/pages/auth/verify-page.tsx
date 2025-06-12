@@ -7,19 +7,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Clock } from "lucide-react";
 import confetti from "canvas-confetti";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function VerifyPage() {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logoutMutation } = useAuth();
   const [verificationCode, setVerificationCode] = useState<string>("");
   const [isSubmittingCode, setIsSubmittingCode] = useState<boolean>(false);
   const [verificationError, setVerificationError] = useState<string>("");
   const [companyName, setCompanyName] = useState<string>("VirtFusion");
   const [redirecting, setRedirecting] = useState<boolean>(false);
+  const [isResending, setIsResending] = useState<boolean>(false);
+  const [rateLimitInfo, setRateLimitInfo] = useState<{
+    waitTimeSeconds?: number;
+    attemptsRemaining?: number;
+    nextAllowedTime?: Date;
+  }>({});
+  const [countdown, setCountdown] = useState<number>(0);
 
   useEffect(() => {
     // Fetch branding settings on component mount
@@ -39,6 +46,46 @@ export default function VerifyPage() {
         console.error('Failed to fetch branding settings:', error);
       });
   }, []);
+
+  // Fetch rate limit status on component mount
+  useEffect(() => {
+    if (user) {
+      fetch(`/api/verification-rate-limit-status?userId=${user.id}&email=${encodeURIComponent(user.email)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            setRateLimitInfo({
+              waitTimeSeconds: data.waitTimeSeconds,
+              attemptsRemaining: data.attemptsRemaining,
+              nextAllowedTime: data.nextAllowedTime ? new Date(data.nextAllowedTime) : undefined
+            });
+            if (data.waitTimeSeconds) {
+              setCountdown(data.waitTimeSeconds);
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Failed to fetch rate limit status:', error);
+        });
+    }
+  }, [user]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0 && rateLimitInfo.waitTimeSeconds) {
+      // Clear rate limit info when countdown reaches 0
+      setRateLimitInfo(prev => ({
+        ...prev,
+        waitTimeSeconds: undefined,
+        nextAllowedTime: undefined
+      }));
+    }
+  }, [countdown, rateLimitInfo.waitTimeSeconds]);
 
   // Handle redirections through useEffect instead of early returns
   useEffect(() => {
@@ -154,8 +201,9 @@ export default function VerifyPage() {
 
   // Handle resending verification code
   const handleResendVerification = async () => {
-    if (!user) return;
+    if (!user || isResending) return;
 
+    setIsResending(true);
     try {
       const response = await fetch("/api/resend-verification", {
         method: "POST",
@@ -170,11 +218,36 @@ export default function VerifyPage() {
 
       const data = await response.json();
 
-      toast({
-        title: data.success ? "Verification code sent" : "Error",
-        description: data.message,
-        variant: data.success ? "default" : "destructive",
-      });
+      if (data.success) {
+        // Update rate limiting info and start countdown
+        setRateLimitInfo({
+          attemptsRemaining: data.attemptsRemaining,
+          waitTimeSeconds: 300, // 5 minutes cooldown
+          nextAllowedTime: new Date(Date.now() + 300 * 1000)
+        });
+        setCountdown(300); // 5 minutes in seconds
+
+        toast({
+          title: "Verification code sent",
+          description: data.message,
+          variant: "default",
+        });
+      } else {
+        // Handle rate limiting
+        if (response.status === 429 && data.waitTimeSeconds) {
+          setRateLimitInfo({
+            waitTimeSeconds: data.waitTimeSeconds,
+            nextAllowedTime: new Date(Date.now() + data.waitTimeSeconds * 1000)
+          });
+          setCountdown(data.waitTimeSeconds);
+        }
+
+        toast({
+          title: "Error",
+          description: data.message,
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error resending verification code:", error);
       toast({
@@ -182,6 +255,20 @@ export default function VerifyPage() {
         description: "Failed to resend verification code. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // Handle back to login with proper logout
+  const handleBackToLogin = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      navigate("/auth");
+    } catch (error) {
+      console.error("Error logging out:", error);
+      // Navigate anyway in case of error
+      navigate("/auth");
     }
   };
 
@@ -236,14 +323,36 @@ export default function VerifyPage() {
                 )}
               </Button>
               <div className="text-center mt-4">
-                <Button
-                  type="button"
-                  variant="link"
-                  onClick={handleResendVerification}
-                  className="text-sm"
-                >
-                  Didn't receive the code? Resend
-                </Button>
+                {countdown > 0 ? (
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>
+                      Resend available in {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="link"
+                    onClick={handleResendVerification}
+                    className="text-sm"
+                    disabled={isResending || countdown > 0}
+                  >
+                    {isResending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Didn't receive the code? Resend"
+                    )}
+                  </Button>
+                )}
+                {rateLimitInfo.attemptsRemaining !== undefined && rateLimitInfo.attemptsRemaining < 3 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {rateLimitInfo.attemptsRemaining} attempts remaining
+                  </p>
+                )}
               </div>
             </form>
           </CardContent>
@@ -251,9 +360,17 @@ export default function VerifyPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate("/auth")}
+              onClick={handleBackToLogin}
+              disabled={logoutMutation.isPending}
             >
-              Back to Login
+              {logoutMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logging out...
+                </>
+              ) : (
+                "Back to Login"
+              )}
             </Button>
           </CardFooter>
         </Card>
