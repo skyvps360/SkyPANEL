@@ -354,6 +354,13 @@ export default function SettingsPage() {
     queryKey: ["/api/admin/settings"],
   });
 
+  // Fetch DNS billing status separately to prevent infinite loops
+  const { data: dnsBillingData } = useQuery({
+    queryKey: ["/api/admin/cron/status"],
+    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: 60000, // Refetch every minute
+  });
+
   // Fetch ticket departments
   const { data: departments = [], isLoading: isLoadingDepartments } = useQuery<TicketDepartment[]>({
     queryKey: ["/api/ticket-departments"],
@@ -1846,6 +1853,128 @@ export default function SettingsPage() {
                     </div>
 
                     <Separator />
+
+                    <Separator />
+
+                    {/* DNS Billing Automation Section */}
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-medium">DNS Billing Automation</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Configure automated monthly billing for DNS plans using VirtFusion tokens
+                        </p>
+                      </div>
+
+                      <div className="bg-muted/50 p-4 rounded-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label className="text-sm font-medium">Automated Monthly Billing</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Automatically charge users on the 1st of each month
+                            </p>
+                          </div>
+                          <Switch
+                            checked={dnsBillingData?.cronStatus?.dnsBilling?.enabled || false}
+                            onCheckedChange={async (checked) => {
+                              try {
+                                await apiRequest("/api/admin/cron/dns-billing", {
+                                  method: "POST",
+                                  body: { enabled: checked }
+                                });
+                                queryClient.invalidateQueries({
+                                  queryKey: ["/api/admin/cron/status"],
+                                  exact: true
+                                });
+                                toast({
+                                  title: "Settings updated",
+                                  description: `DNS billing automation ${checked ? 'enabled' : 'disabled'}`,
+                                });
+                              } catch (error: any) {
+                                toast({
+                                  title: "Error",
+                                  description: error.message,
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <Label className="text-xs font-medium text-muted-foreground">Schedule</Label>
+                            <p className="text-sm">{dnsBillingData?.cronStatus?.dnsBilling?.schedule || '0 2 1 * *'}</p>
+                            <p className="text-xs text-muted-foreground">Runs at 2 AM on the 1st of each month</p>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+                            <p className="text-sm flex items-center">
+                              {dnsBillingData?.cronStatus?.dnsBilling?.isRunning ? (
+                                <>
+                                  <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+                                  Running
+                                </>
+                              ) : (
+                                <>
+                                  <X className="h-3 w-3 mr-1 text-red-500" />
+                                  Stopped
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        {settings.dnsStats && (
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t">
+                            <div className="text-center">
+                              <p className="text-lg font-semibold">{settings.dnsStats.totalActiveSubscriptions}</p>
+                              <p className="text-xs text-muted-foreground">Active Subscriptions</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-lg font-semibold">{settings.dnsStats.subscriptionsDueToday}</p>
+                              <p className="text-xs text-muted-foreground">Due Today</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-lg font-semibold">{settings.dnsStats.suspendedSubscriptions}</p>
+                              <p className="text-xs text-muted-foreground">Suspended</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-lg font-semibold">${settings.dnsStats.totalMonthlyRevenue?.toFixed(2)}</p>
+                              <p className="text-xs text-muted-foreground">Monthly Revenue</p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                await apiRequest("/api/admin/cron/dns-billing/trigger", {
+                                  method: "POST"
+                                });
+                                queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+                                toast({
+                                  title: "Success",
+                                  description: "DNS billing renewal triggered successfully",
+                                });
+                              } catch (error: any) {
+                                toast({
+                                  title: "Error",
+                                  description: error.message,
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            Trigger Now
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="flex justify-between">
                       <div>

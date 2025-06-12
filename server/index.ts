@@ -7,6 +7,7 @@ import { emailService } from "./email";
 import { emailQueueManager } from "./email-queue";
 import { betterStackService } from "./betterstack-service";
 import { geminiService } from "./gemini-service";
+import { cronService } from "./services/cron-service";
 // Blog comments routes removed
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -205,6 +206,15 @@ app.use((req, res, next) => {
         }
       } catch (error) {
         log(`Error initializing Gemini AI service: ${error}`);
+      }
+
+      // Initialize Cron service for automated billing
+      try {
+        log('Initializing cron service for automated billing...');
+        await cronService.initialize();
+        log('Cron service initialized successfully');
+      } catch (error) {
+        log(`Error initializing cron service: ${error}`);
       }
     },
   );

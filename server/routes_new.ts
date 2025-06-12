@@ -39,6 +39,8 @@ import settingsRoutes from "./routes/settings-routes";
 import monitoringRoutes from "./routes/monitoring-routes";
 import {chatService} from "./chat-service";
 import {departmentMigrationService} from "./services/department-migration";
+import {cronService} from "./services/cron-service";
+import {dnsBillingService} from "./services/dns-billing-service";
 import {and, desc, eq, inArray, sql} from "drizzle-orm";
 import PDFDocument from "pdfkit";
 import {formatTicketPdf} from "./ticket-download";
@@ -2783,9 +2785,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const createdTransaction = await storage.createTransaction(transaction);
 
-      // Deduct tokens from VirtFusion
+      // Deduct tokens from VirtFusion using the correct method
       try {
-        await virtFusionApi.deductCreditFromUser(user.virtFusionId, {
+        await virtFusionApi.removeCreditFromUserByExtRelationId(userId, {
           tokens: tokensRequired,
           reference_1: createdTransaction.id,
           reference_2: `DNS Plan Purchase: ${plan.name}`
@@ -2930,11 +2932,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ error: "VirtFusion API not configured" });
         }
 
-        // Get user's VirtFusion balance
+        // Get user's VirtFusion balance using the same method as dashboard
         let virtFusionBalance = 0;
         try {
-          const balanceResponse = await virtFusionApi.getUserBalance(user.virtFusionId);
-          virtFusionBalance = balanceResponse?.data?.balance || 0;
+          const balanceResponse = await virtFusionApi.getUserHourlyStats(user.id);
+          if (balanceResponse?.data?.credit?.tokens) {
+            virtFusionBalance = parseFloat(balanceResponse.data.credit.tokens);
+          }
         } catch (error: any) {
           console.error("Error fetching VirtFusion balance:", error);
           return res.status(500).json({ error: "Failed to check VirtFusion balance" });
@@ -3182,16 +3186,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const tokensAmount = Math.abs(proratedAmount) * 100; // Convert to tokens
 
               if (isUpgrade) {
-                // Deduct tokens for upgrade
-                await virtFusionApi.deductCreditFromUser(user.virtFusionId, {
+                // Deduct tokens for upgrade using correct method
+                await virtFusionApi.removeCreditFromUserByExtRelationId(userId, {
                   tokens: tokensAmount,
                   reference_1: Date.now(),
                   reference_2: `DNS Plan Upgrade: ${currentPlan.name} → ${newPlan.name}`
                 });
                 console.log(`Deducted ${tokensAmount} VirtFusion tokens for DNS plan upgrade`);
               } else {
-                // Add tokens for downgrade (refund)
-                await virtFusionApi.addCreditToUser(user.virtFusionId, {
+                // Add tokens for downgrade (refund) using correct method
+                await virtFusionApi.addCreditToUser(userId, {
                   tokens: tokensAmount,
                   reference_1: Date.now(),
                   reference_2: `DNS Plan Downgrade Refund: ${currentPlan.name} → ${newPlan.name}`
@@ -8254,6 +8258,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error(`Error updating setting:`, error);
       console.error(error.stack); // Log the full stack trace
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ----- Cron Job Management Routes -----
+
+  // Update DNS billing cron settings (admin only)
+  app.post("/api/admin/cron/dns-billing", isAdmin, async (req, res) => {
+    try {
+      const { enabled, schedule } = req.body;
+
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: "enabled must be a boolean" });
+      }
+
+      if (schedule && !cronService.validateCronExpression(schedule)) {
+        return res.status(400).json({ error: "Invalid cron schedule expression" });
+      }
+
+      await cronService.updateDnsBillingCron(enabled, schedule);
+
+      res.json({
+        success: true,
+        message: "DNS billing cron settings updated successfully",
+        enabled,
+        schedule: schedule || 'unchanged'
+      });
+    } catch (error: any) {
+      console.error("Error updating DNS billing cron:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Manually trigger DNS billing renewal (admin only)
+  app.post("/api/admin/cron/dns-billing/trigger", isAdmin, async (req, res) => {
+    try {
+      const results = await cronService.triggerDnsBillingManually();
+      res.json({
+        success: true,
+        message: "DNS billing renewal triggered successfully",
+        results
+      });
+    } catch (error: any) {
+      console.error("Error triggering DNS billing renewal:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get cron job status (admin only)
+  app.get("/api/admin/cron/status", isAdmin, async (req, res) => {
+    try {
+      const status = await cronService.getCronStatus();
+      const logs = await cronService.getCronLogs();
+      const dnsStats = await dnsBillingService.getRenewalStats();
+
+      res.json({
+        success: true,
+        cronStatus: status,
+        cronLogs: logs,
+        dnsStats
+      });
+    } catch (error: any) {
+      console.error("Error fetching cron status:", error);
       res.status(500).json({ error: error.message });
     }
   });

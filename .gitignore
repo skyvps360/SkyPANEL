@@ -6,7 +6,6 @@ vite.config.ts.*
 *.tar.gz
 attached_assets
 package-lock.json
-scripts
 dnsmasq.conf
 docs
 vitest.config.ts
