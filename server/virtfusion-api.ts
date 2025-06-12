@@ -458,7 +458,26 @@ export class VirtFusionApi {
   }
 
   /**
-   * Cancel/remove credit from a user
+   * Remove credit from a user by external relation ID using DELETE method
+   * @param extRelationId The external relation ID (our user ID)
+   * @param tokenData Object containing tokens and optional reference data
+   * @returns API response
+   */
+  async removeCreditFromUserByExtRelationId(extRelationId: number, tokenData: {
+    tokens: number;
+    reference_1?: number;
+    reference_2?: string;
+  }) {
+    console.log(`Removing ${tokenData.tokens} tokens from user with extRelationId ${extRelationId}`);
+    return this.request(
+      "DELETE",
+      `/selfService/credit/byUserExtRelationId/${extRelationId}`,
+      tokenData
+    );
+  }
+
+  /**
+   * Cancel/remove credit from a user (legacy method using credit ID)
    * @param creditId The ID of the credit to cancel
    * @returns API response
    */

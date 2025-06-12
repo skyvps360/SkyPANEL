@@ -151,6 +151,8 @@ export default function UserEditPage() {
   const [vfAddAmount, setVfAddAmount] = useState("");
   const [vfAddReference, setVfAddReference] = useState("");
   const [vfRemoveCreditId, setVfRemoveCreditId] = useState("");
+  const [vfRemoveAmount, setVfRemoveAmount] = useState("");
+  const [vfRemoveReference, setVfRemoveReference] = useState("");
   const [creditAddedId, setCreditAddedId] = useState<number | null>(null);
 
 
@@ -411,7 +413,7 @@ export default function UserEditPage() {
     }
   });
   
-  // Remove VirtFusion credit mutation
+  // Remove VirtFusion credit mutation (legacy method by Credit ID)
   const removeVirtFusionCreditMutation = useMutation({
     mutationFn: async (data: { creditId: string }) => {
       return await apiRequest(`/api/admin/users/${userId}/virtfusion-credit`, {
@@ -424,10 +426,10 @@ export default function UserEditPage() {
         title: "Credits removed successfully",
         description: data.message || `Credit ID ${vfRemoveCreditId} removed successfully`,
       });
-      
+
       // Clear the input fields
       setVfRemoveCreditId("");
-      
+
       // Refresh user data and usage data
       queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}/usage`] });
@@ -436,6 +438,36 @@ export default function UserEditPage() {
       toast({
         title: "Error removing credits",
         description: error.message || "Failed to remove credits from VirtFusion account",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Remove VirtFusion tokens mutation (new method by token amount)
+  const removeVirtFusionTokensMutation = useMutation({
+    mutationFn: async (data: { tokens: string; reference?: string }) => {
+      return await apiRequest(`/api/admin/users/${userId}/virtfusion-credit`, {
+        method: "DELETE",
+        body: data
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Tokens removed successfully",
+        description: `Removed ${vfRemoveAmount} tokens from VirtFusion account.`,
+      });
+
+      // Clear the input fields
+      setVfRemoveAmount("");
+      setVfRemoveReference("");
+
+      // Refresh the usage data
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}/usage`] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error removing tokens",
+        description: error.message || "Failed to remove tokens from VirtFusion account",
         variant: "destructive",
       });
     }
@@ -486,7 +518,7 @@ export default function UserEditPage() {
     });
   };
   
-  // Handle removing VirtFusion credit
+  // Handle removing VirtFusion credit (legacy method)
   const handleRemoveVirtFusionCredit = () => {
     if (!vfRemoveCreditId || isNaN(Number(vfRemoveCreditId)) || Number(vfRemoveCreditId) <= 0) {
       toast({
@@ -496,10 +528,29 @@ export default function UserEditPage() {
       });
       return;
     }
-    
+
     if (confirm(`Are you sure you want to remove credit ID ${vfRemoveCreditId} from VirtFusion? This action cannot be undone.`)) {
       removeVirtFusionCreditMutation.mutate({
         creditId: vfRemoveCreditId
+      });
+    }
+  };
+
+  // Handle removing VirtFusion tokens (new method)
+  const handleRemoveVirtFusionTokens = () => {
+    if (!vfRemoveAmount || isNaN(Number(vfRemoveAmount)) || Number(vfRemoveAmount) <= 0) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid token amount",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirm(`Are you sure you want to remove ${vfRemoveAmount} tokens from VirtFusion? This action cannot be undone.`)) {
+      removeVirtFusionTokensMutation.mutate({
+        tokens: vfRemoveAmount,
+        reference: vfRemoveReference || undefined
       });
     }
   };
@@ -904,9 +955,60 @@ export default function UserEditPage() {
                             </Button>
                           </div>
                         </div>
-                        {/* Remove Credits Form */}
+                        {/* Remove Tokens Form (New Method) */}
                         <div className="border rounded-lg p-4 bg-muted/20">
-                          <h4 className="font-medium mb-3">Remove Credits from VirtFusion</h4>
+                          <h4 className="font-medium mb-3">Remove Tokens from VirtFusion</h4>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label htmlFor="vfRemoveTokens">Amount (Tokens)</Label>
+                              <Input
+                                id="vfRemoveTokens"
+                                type="number"
+                                min="1"
+                                step="1"
+                                placeholder="100"
+                                value={vfRemoveAmount}
+                                onChange={(e) => setVfRemoveAmount(e.target.value)}
+                                disabled={removeVirtFusionTokensMutation.isPending}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                100 tokens = $1.00 USD in VirtFusion
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="vfRemoveReference">Reference (Optional)</Label>
+                              <Input
+                                id="vfRemoveReference"
+                                placeholder="Refund #12345"
+                                value={vfRemoveReference}
+                                onChange={(e) => setVfRemoveReference(e.target.value)}
+                                disabled={removeVirtFusionTokensMutation.isPending}
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-4 flex justify-end">
+                            <Button
+                              type="button"
+                              onClick={handleRemoveVirtFusionTokens}
+                              disabled={!vfRemoveAmount || removeVirtFusionTokensMutation.isPending}
+                              size="sm"
+                              variant="destructive"
+                            >
+                              {removeVirtFusionTokensMutation.isPending ? (
+                                <>
+                                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-b-0 border-r-0 rounded-full"></div>
+                                  Removing...
+                                </>
+                              ) : (
+                                <>Remove Tokens</>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Remove Credits Form (Legacy Method) */}
+                        <div className="border rounded-lg p-4 bg-muted/20">
+                          <h4 className="font-medium mb-3">Remove Credits by ID (Legacy)</h4>
                           <div className="grid gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="vfRemoveCredits">Credit ID</Label>
@@ -921,7 +1023,7 @@ export default function UserEditPage() {
                                 disabled={removeVirtFusionCreditMutation.isPending}
                               />
                               <p className="text-xs text-muted-foreground">
-                                The Credit ID is returned when credits are added to VirtFusion
+                                For credits added before the new token system. Credit ID is returned when credits are added.
                               </p>
                             </div>
                           </div>
@@ -931,7 +1033,7 @@ export default function UserEditPage() {
                               onClick={handleRemoveVirtFusionCredit}
                               disabled={!vfRemoveCreditId || removeVirtFusionCreditMutation.isPending}
                               size="sm"
-                              variant="destructive"
+                              variant="outline"
                             >
                               {removeVirtFusionCreditMutation.isPending ? (
                                 <>
@@ -939,7 +1041,7 @@ export default function UserEditPage() {
                                   Removing...
                                 </>
                               ) : (
-                                <>Remove Credits</>
+                                <>Remove by ID</>
                               )}
                             </Button>
                           </div>
@@ -948,11 +1050,12 @@ export default function UserEditPage() {
                           <div className="flex items-start">
                             <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
                             <div>
-                              <p className="font-medium">VirtFusion Credits Note</p>
+                              <p className="font-medium">VirtFusion Token Management</p>
                               <p className="mt-1 text-sm">
-                                Credits added to VirtFusion are managed separately from our local system.
-                                The Credit ID is required to remove credits and is returned in the API response
-                                when credits are added.
+                                <strong>New Method:</strong> Remove tokens by specifying the amount directly. This is the recommended approach for all new token removals.
+                              </p>
+                              <p className="mt-1 text-sm">
+                                <strong>Legacy Method:</strong> Remove credits using the Credit ID returned when credits were originally added. Use this only for credits added before the new token system.
                               </p>
                             </div>
                           </div>

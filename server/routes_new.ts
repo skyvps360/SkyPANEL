@@ -12,7 +12,7 @@ import {EmailVerificationService} from "./email-verification-service";
 import {discordService} from "./discord-service";
 import {discordBotService} from "./discord-bot-service";
 import {virtFusionService} from "./virtfusion-service";
-import {VirtFusionApi as ImportedVirtFusionApi} from "./virtfusion-api";
+import {VirtFusionApi as ImportedVirtFusionApi, virtFusionApi} from "./virtfusion-api";
 import {emailService} from "./email";
 import {betterStackService} from "./betterstack-service";
 import {geminiService} from "./gemini-service";
@@ -79,1391 +79,21 @@ function isAdmin(req: Request, res: Response, next: Function) {
   res.status(403).json({ error: "Forbidden: Admin access required" });
 }
 
-// VirtFusion API class for centralizing API calls
-export class VirtFusionApi {
-  private apiUrl: string;
-  private apiToken: string;
-  private sslVerify: boolean;
+// Duplicate VirtFusion API class removed - using imported global instance instead
 
-  constructor() {
-    // Default values - will be updated with getSettings()
-    // Make sure the URL doesn't have a trailing slash and doesn't include /api/v1 twice
-    const apiUrl = process.env.VIRTFUSION_API_URL || "https://skyvps360.xyz";
-    this.apiUrl = apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl;
 
-    // Ensure API URL ends with /api/v1
-    if (!this.apiUrl.endsWith("/api/v1")) {
-      this.apiUrl = `${this.apiUrl}/api/v1`;
-    }
 
-    this.apiToken = process.env.VIRTFUSION_API_TOKEN || "";
-    this.sslVerify = true;
-  }
 
-  // Check if VirtFusion API is properly configured
-  isConfigured(): boolean {
-    return !!this.apiUrl && !!this.apiToken;
-  }
 
-  // Get the API URL (for diagnostics)
-  getApiUrl(): string {
-    return this.apiUrl;
-  }
 
-  // Update API settings from environment variables
-  async updateSettings() {
-    try {
-      console.log("VirtFusion API Settings - Current values:", {
-        apiUrl: this.apiUrl,
-        apiToken: this.apiToken ? "***" : "not set",
-        sslVerify: this.sslVerify,
-      });
 
-      // Always prioritize environment variables over database settings
-      if (process.env.VIRTFUSION_API_URL) {
-        let apiUrl = process.env.VIRTFUSION_API_URL.trim();
 
-        // Remove trailing slash if present
-        if (apiUrl.endsWith('/')) {
-          apiUrl = apiUrl.slice(0, -1);
-        }
 
-        // Ensure API URL ends with /api/v1
-        if (!apiUrl.endsWith('/api/v1')) {
-          apiUrl = `${apiUrl}/api/v1`;
-        }
 
-        this.apiUrl = apiUrl;
-        console.log(`Using VirtFusion API URL from environment: ${this.apiUrl}`);
-      }
 
-      if (process.env.VIRTFUSION_API_TOKEN) {
-        this.apiToken = process.env.VIRTFUSION_API_TOKEN.trim();
-        console.log("Using VirtFusion API token from environment");
-      }
 
-      // SSL verification from environment variable
-      if (process.env.VIRTFUSION_SSL_VERIFY !== undefined) {
-        // Convert string to boolean properly
-        const sslValue = String(process.env.VIRTFUSION_SSL_VERIFY).trim().toLowerCase();
-        this.sslVerify = sslValue === "true" || sslValue === "1" || sslValue === "yes";
-        console.log(`Using SSL verification from environment: ${this.sslVerify}`);
-      }
 
-      // If environment variables are not set, fall back to database settings (for backward compatibility)
-      if (!process.env.VIRTFUSION_API_URL || !process.env.VIRTFUSION_API_TOKEN) {
-        console.log("Environment variables not fully set, checking database settings as fallback");
 
-        const apiUrlSetting = await storage.getSetting("virtfusion_api_url");
-        const apiTokenSetting = await storage.getSetting("virtfusion_api_token");
-        const sslVerifySetting = await storage.getSetting("virtfusion_ssl_verify");
-
-        console.log("VirtFusion API Settings - Retrieved from DB:", {
-          apiUrl: apiUrlSetting?.value || "not found",
-          apiToken: apiTokenSetting?.value ? "***" : "not found",
-          sslVerify: sslVerifySetting?.value || "not found",
-        });
-
-        // Only use DB settings if environment variables aren't set
-        if (!process.env.VIRTFUSION_API_URL && apiUrlSetting?.value) {
-          let apiUrl = apiUrlSetting.value.trim();
-
-          // Remove trailing slash if present
-          if (apiUrl.endsWith('/')) {
-            apiUrl = apiUrl.slice(0, -1);
-          }
-
-          // Ensure API URL ends with /api/v1
-          if (!apiUrl.endsWith('/api/v1')) {
-            apiUrl = `${apiUrl}/api/v1`;
-          }
-
-          this.apiUrl = apiUrl;
-          console.log("Using VirtFusion API URL from database");
-        }
-
-        if (!process.env.VIRTFUSION_API_TOKEN && apiTokenSetting?.value) {
-          this.apiToken = apiTokenSetting.value.trim();
-          console.log("Using VirtFusion API token from database");
-        }
-
-        // Fix the SSL verification parsing if not set in environment
-        if (
-          process.env.VIRTFUSION_SSL_VERIFY === undefined &&
-          sslVerifySetting !== null &&
-          sslVerifySetting !== undefined &&
-          sslVerifySetting.value !== undefined
-        ) {
-          // Convert string to boolean properly
-          const sslValue = String(sslVerifySetting.value).trim().toLowerCase();
-          this.sslVerify = sslValue === "true" || sslValue === "1" || sslValue === "yes";
-          console.log(`Using SSL verification from database: ${this.sslVerify}`);
-        }
-      }
-
-      console.log("VirtFusion API Settings - Final values:", {
-        apiUrl: this.apiUrl,
-        apiToken: this.apiToken ? "***" : "not set",
-        sslVerify: this.sslVerify,
-      });
-    } catch (error) {
-      const err = error as Error;
-      console.error("Error updating VirtFusion API settings:", err.message);
-      console.error(err.stack);
-    }
-  }
-
-  private async request(method: string, endpoint: string, data?: any) {
-    try {
-      // Validate required settings
-      if (!this.apiUrl || !this.apiToken) {
-        await this.updateSettings();
-
-        if (!this.apiUrl || !this.apiToken) {
-          throw new Error(
-            "Missing API URL or API token. Please configure VirtFusion API settings first.",
-          );
-        }
-      }
-
-      // Format the URL correctly to avoid double paths
-      let apiBase = this.apiUrl;
-      if (apiBase.endsWith("/")) {
-        apiBase = apiBase.slice(0, -1);
-      }
-
-      // Check if the API URL already contains /api/v1
-      const hasApiV1 = apiBase.toLowerCase().endsWith("/api/v1");
-
-      // If the endpoint starts with /api/v1 and our base already ends with it, remove from endpoint
-      let normalizedEndpoint = endpoint;
-      if (hasApiV1 && endpoint.startsWith("/api/v1")) {
-        normalizedEndpoint = endpoint.substring(7); // Remove /api/v1 prefix
-        console.log(
-          `Removed duplicate /api/v1 from endpoint. Original: ${endpoint}, New: ${normalizedEndpoint}`,
-        );
-      }
-
-      const fullUrl = `${apiBase}${normalizedEndpoint.startsWith("/") ? normalizedEndpoint : "/" + normalizedEndpoint}`;
-
-      // Log request details (mask token for security)
-      const maskedToken =
-        this.apiToken.length > 8
-          ? `${this.apiToken.substring(0, 4)}...${this.apiToken.substring(this.apiToken.length - 4)}`
-          : "********";
-      console.log(`Making ${method} request to ${fullUrl}`);
-      console.log(`Using token: ${maskedToken}`);
-      console.log(`SSL verification: ${this.sslVerify}`);
-
-      if (data) {
-        console.log(`Request data: ${JSON.stringify(data, null, 2)}`);
-      }
-
-      try {
-        const response = await axios({
-          method,
-          url: fullUrl,
-          headers: {
-            Authorization: `Bearer ${this.apiToken}`,
-            "Content-Type": "application/json",
-            Accept: "application/json, */*",
-          },
-          data,
-          // Apply SSL verification setting
-          httpsAgent: new https.Agent({ rejectUnauthorized: this.sslVerify }),
-          // Add a timeout to prevent hanging requests
-          timeout: 30000,
-        });
-
-        // Log response status
-        console.log(`VirtFusion API Response status: ${response.status}`);
-
-        // Check if response contains data
-        if (!response.data) {
-          console.warn("Empty response data from VirtFusion API");
-          return null;
-        }
-
-        // Log a truncated version of the response for debugging
-        const responseStr =
-          typeof response.data === "object"
-            ? JSON.stringify(response.data)
-            : String(response.data);
-        const truncatedResponse =
-          responseStr.length > 500
-            ? responseStr.substring(0, 500) + "..."
-            : responseStr;
-        console.log(`Response data (may be truncated): ${truncatedResponse}`);
-
-        // Check and log the response content type
-        const contentType = response.headers["content-type"];
-        console.log(`Response content type: ${contentType || "not specified"}`);
-
-        // Ensure we got JSON data
-        if (contentType && !contentType.includes("application/json")) {
-          console.warn(`Unexpected content type in response: ${contentType}`);
-
-          // Try to handle it anyway, but log the warning
-          if (typeof response.data === "string") {
-            try {
-              // Try to parse if it's JSON string despite content type
-              return JSON.parse(response.data);
-            } catch (parseErr) {
-              console.error("Failed to parse response as JSON:", parseErr);
-              throw new Error(
-                `Received non-JSON response: ${response.data.substring(0, 100)}...`,
-              );
-            }
-          }
-        }
-
-        // Handle paginated responses properly
-        if (
-          response.data &&
-          typeof response.data === "object" &&
-          "data" in response.data
-        ) {
-          console.log(
-            "Found data property in response, returning the full response object",
-          );
-          return response.data;
-        }
-
-        return response.data;
-      } catch (axiosError: any) {
-        // Handle Axios specific errors
-        if (axiosError.isAxiosError) {
-          console.error(`Axios Error: ${axiosError.message}`);
-
-          if (axiosError.response) {
-            // The request was made and the server responded with a status code outside of 2xx
-            console.error(`Response status: ${axiosError.response.status}`);
-
-            if (axiosError.response.headers) {
-              console.error(
-                `Response headers:`,
-                JSON.stringify(axiosError.response.headers, null, 2),
-              );
-            }
-
-            // Log response data safely
-            try {
-              console.error(
-                `Response data:`,
-                typeof axiosError.response.data === "object"
-                  ? JSON.stringify(axiosError.response.data, null, 2)
-                  : axiosError.response.data,
-              );
-            } catch (e: any) {
-              console.error(`Could not stringify response data: ${e.message}`);
-              console.error(`Raw response data:`, axiosError.response.data);
-            }
-
-            // Include error details from the API if available
-            if (
-              axiosError.response.data &&
-              typeof axiosError.response.data === "object"
-            ) {
-              if (axiosError.response.data.message) {
-                throw new Error(
-                  `VirtFusion API Error ${axiosError.response.status}: ${axiosError.response.data.message}`,
-                );
-              } else if (axiosError.response.data.error) {
-                throw new Error(
-                  `VirtFusion API Error ${axiosError.response.status}: ${axiosError.response.data.error}`,
-                );
-              }
-            }
-
-            throw new Error(
-              `VirtFusion API Error ${axiosError.response.status}: ${axiosError.message}`,
-            );
-          } else if (axiosError.request) {
-            // The request was made but no response was received
-            console.error(
-              "No response received. Check if the API URL is correct and the server is reachable.",
-            );
-            console.error(
-              "Request details:",
-              axiosError.request._header || JSON.stringify(axiosError.request),
-            );
-            throw new Error(
-              `VirtFusion API Error: No response received - ${axiosError.message}`,
-            );
-          } else {
-            // Something happened in setting up the request
-            console.error("Request setup error:", axiosError.message);
-            throw new Error(
-              `VirtFusion API Request Error: ${axiosError.message}`,
-            );
-          }
-        }
-
-        // Re-throw any other errors
-        throw axiosError;
-      }
-    } catch (error: any) {
-      console.error(`VirtFusion API Error: ${error.message}`);
-      console.error(error.stack);
-      throw error;
-    }
-  }
-
-  // General API operations
-  async testConnection() {
-    console.log("Testing VirtFusion API connection...");
-    try {
-      // Use connect endpoint to test connection (according to VirtFusion API docs)
-      const result = await this.request("GET", "/connect");
-      console.log("Connection test result:", JSON.stringify(result));
-      return result;
-    } catch (error) {
-      console.error("Connection test failed:", error);
-      throw error;
-    }
-  }
-
-  // Hypervisor operations
-  async getHypervisors() {
-    // Log that we're attempting to get hypervisors
-    console.log("Attempting to fetch hypervisors from VirtFusion API");
-    try {
-      // Test connection first to validate API credentials
-      console.log(
-        "Testing connection to VirtFusion API before retrieving hypervisors",
-      );
-      await this.testConnection();
-
-      // Use the correct API path directly (the fallback path was causing 404 errors)
-      console.log(
-        "Fetching hypervisors using API path: /compute/hypervisors",
-      );
-      const result = await this.request("GET", "/compute/hypervisors");
-      console.log("Raw hypervisors response:", JSON.stringify(result));
-      return result;
-    } catch (error) {
-      console.error("Error in getHypervisors method:", error);
-      // Return empty result instead of failing completely
-      return { data: [] };
-    }
-  }
-
-  async getHypervisor(id: number) {
-    return this.request("GET", `/compute/hypervisors/${id}`);
-  }
-
-  // Hypervisor Group operations
-  async getHypervisorGroups() {
-    return this.request("GET", "/compute/hypervisors/groups");
-  }
-
-  async getHypervisorGroup(id: number) {
-    return this.request("GET", `/compute/hypervisors/groups/${id}`);
-  }
-
-  async getHypervisorGroupResources(id: number) {
-    return this.request("GET", `/compute/hypervisors/groups/${id}/resources`);
-  }
-
-  // User operations
-  async createUser(userData: any) {
-    // Ensure userData has the fields required by VirtFusion API
-    const requiredData = {
-      name: userData.name,
-      email: userData.email,
-      extRelationId: userData.extRelationId,
-      selfService: userData.selfService || 0,
-      selfServiceHourlyCredit: userData.selfServiceHourlyCredit || false,
-      selfServiceHourlyResourcePack: userData.selfServiceHourlyResourcePack || null,
-      sendMail: userData.sendMail || false,
-    };
-
-    // Log the exact request we're sending
-    console.log(
-      "Creating user in VirtFusion API with exact data format:",
-      JSON.stringify(requiredData, null, 2),
-    );
-
-    try {
-      // Use the direct approach - only attempt the correct endpoint from the documentation
-      console.log("Making VirtFusion API request to: /users");
-      const result = await this.request("POST", "/users", requiredData);
-
-      // Process the response according to the API documentation
-      console.log(
-        "VirtFusion API user creation raw response:",
-        JSON.stringify(result, null, 2),
-      );
-
-      // Handle the expected response format: the user object is in the 'data' property
-      return result; // The request method already handles response.data extraction
-    } catch (error: any) {
-      console.error(
-        "VirtFusion user creation failed:",
-        error?.message || error,
-      );
-
-      // Provide detailed error information for debugging
-      if (error?.response) {
-        console.error("Response status:", error.response.status);
-        console.error(
-          "Response data:",
-          JSON.stringify(error.response.data, null, 2),
-        );
-
-        if (error.response.status === 422) {
-          console.error(
-            "Validation errors detected. Check the field requirements in the API docs.",
-          );
-        } else if (error.response.status === 401) {
-          console.error("Authentication failed. Check your API token.");
-        } else if (error.response.status === 404) {
-          console.error(
-            "API endpoint not found. Verify the API URL is correct.",
-          );
-        }
-      }
-
-      throw error;
-    }
-  }
-
-  async getUserByExtRelationId(extRelationId: number) {
-    // Using format from VirtFusion API docs
-    return this.request("GET", `/users/${extRelationId}/byExtRelation`);
-  }
-
-  async deleteUserByExtRelationId(extRelationId: number) {
-    // Using format from VirtFusion API docs
-    return this.request("DELETE", `/users/${extRelationId}/byExtRelation`);
-  }
-
-  async modifyUserByExtRelationId(extRelationId: number, userData: any) {
-    // Using format from VirtFusion API docs
-    return this.request(
-      "PUT",
-      `/users/${extRelationId}/byExtRelation`,
-      userData,
-    );
-  }
-
-  async generateAuthToken(extRelationId: number) {
-    // Using the correct endpoint format from the VirtFusion API documentation
-    console.log(`Generating auth token for extRelationId ${extRelationId}`);
-    try {
-      // Attempt to get user info first to verify the user exists in VirtFusion
-      console.log(
-        `Checking if user with extRelationId ${extRelationId} exists in VirtFusion`,
-      );
-      await this.request("GET", `/users/${extRelationId}/byExtRelation`);
-
-      // Now generate the auth token using the correct endpoint format from the VirtFusion API documentation
-      console.log(`User exists in VirtFusion, generating auth token`);
-      const result = await this.request(
-        "POST",
-        `/users/${extRelationId}/authenticationTokens`,
-      );
-      console.log(`Auth token generated:`, result);
-
-      // Process authentication token response based on VirtFusion API documentation structure
-      if (
-        result &&
-        typeof result === "object" &&
-        result.data &&
-        result.data.authentication
-      ) {
-        // Format response to match what the frontend expects
-        const authentication = result.data.authentication;
-
-        // Get base URL for VirtFusion panel by removing the /api/v1 portion from the API URL
-        // This ensures redirects go to the panel domain and not the API domain
-        const apiUrlParts = this.apiUrl.split("/");
-        const panelBaseUrl = apiUrlParts.slice(0, 3).join("/"); // Get https://domain.com part
-
-        // Build the full redirect URL by combining the panel base URL with the endpoint path
-        const redirectPath = authentication.endpoint_complete;
-        let fullRedirectUrl = "";
-
-        // Ensure we have a properly formed URL
-        if (redirectPath.startsWith("http")) {
-          // If the path already includes the domain (unlikely), use it as is
-          fullRedirectUrl = redirectPath;
-        } else {
-          // Otherwise combine the panel base URL with the path
-          fullRedirectUrl = `${panelBaseUrl}${redirectPath.startsWith("/") ? "" : "/"}${redirectPath}`;
-        }
-
-        const processedResult = {
-          token: authentication.tokens["1"], // First token from the response
-          redirectUrl: fullRedirectUrl, // Complete URL with tokens and domain
-        };
-
-        console.log(`Processed auth token for response compatibility:`, {
-          ...processedResult,
-          token: processedResult.token
-            ? `${processedResult.token.substring(0, 10)}...`
-            : undefined,
-          redirectUrl: processedResult.redirectUrl,
-        });
-
-        return processedResult;
-      }
-
-      return result;
-    } catch (error) {
-      console.error(
-        `Failed to generate auth token for extRelationId ${extRelationId}:`,
-        error,
-      );
-      throw error;
-    }
-  }
-
-  async generateServerAuthToken(extRelationId: number, serverId: number) {
-    // IMPORTANT: The extRelationId should be our user.id (NOT virtFusionId)
-    // This matches the Rel ID shown in the VirtFusion panel
-    console.log(
-      `Generating server auth token for extRelationId ${extRelationId} and serverId ${serverId}`,
-    );
-    try {
-      // Verify that the user and server exists first
-      console.log(
-        `Checking if user with extRelationId ${extRelationId} exists`,
-      );
-      await this.request("GET", `/users/${extRelationId}/byExtRelation`);
-
-      console.log(`Checking if server with ID ${serverId} exists`);
-      await this.request("GET", `/servers/${serverId}`);
-
-      console.log(`User and server exist, generating server auth token`);
-      const result = await this.request(
-        "POST",
-        `/users/${extRelationId}/serverAuthenticationTokens/${serverId}`,
-      );
-      console.log(`Server auth token generated:`, result);
-
-      // Process authentication token response based on VirtFusion API documentation structure
-      if (
-        result &&
-        typeof result === "object" &&
-        result.data &&
-        result.data.authentication
-      ) {
-        // Format response to match what the frontend expects
-        const authentication = result.data.authentication;
-
-        // Get base URL for VirtFusion panel by removing the /api/v1 portion from the API URL
-        // This ensures redirects go to the panel domain and not the API domain
-        const apiUrlParts = this.apiUrl.split("/");
-        const panelBaseUrl = apiUrlParts.slice(0, 3).join("/"); // Get https://domain.com part
-
-        // Build the full redirect URL by combining the panel base URL with the endpoint path
-        const redirectPath = authentication.endpoint_complete;
-        let fullRedirectUrl = "";
-
-        // Ensure we have a properly formed URL
-        if (redirectPath.startsWith("http")) {
-          // If the path already includes the domain (unlikely), use it as is
-          fullRedirectUrl = redirectPath;
-        } else {
-          // Otherwise combine the panel base URL with the path
-          fullRedirectUrl = `${panelBaseUrl}${redirectPath.startsWith("/") ? "" : "/"}${redirectPath}`;
-        }
-
-        const processedResult = {
-          token: authentication.tokens["1"], // First token from the response
-          redirectUrl: fullRedirectUrl, // Complete URL with tokens and domain
-        };
-
-        console.log(`Processed server auth token for response compatibility:`, {
-          ...processedResult,
-          token: processedResult.token
-            ? `${processedResult.token.substring(0, 10)}...`
-            : undefined,
-          redirectUrl: processedResult.redirectUrl,
-        });
-
-        return processedResult;
-      }
-
-      return result;
-    } catch (error) {
-      console.error(
-        `Failed to generate server auth token for extRelationId ${extRelationId} and serverId ${serverId}:`,
-        error,
-      );
-      throw error;
-    }
-  }
-
-  async resetUserPassword(extRelationId: number, passwordData: any = {}) {
-    // Use the correct endpoint format for external relation ID with resetPassword
-    // according to VirtFusion API docs
-    // VirtFusion API will generate a password and return it in the response
-    const response = await this.request(
-      "POST",
-      `/users/${extRelationId}/byExtRelation/resetPassword`,
-      passwordData,
-    );
-
-    // Return the full response which includes the generated password
-    return response;
-  }
-
-  // Server operations
-  async createServer(params: any) {
-    return this.request("POST", "/servers", params);
-  }
-
-  async getServers(params: any = {}) {
-    return this.request("GET", "/servers", params);
-  }
-
-  async getUserServers(userId: number) {
-    return this.request("GET", `/servers/user/${userId}`);
-  }
-
-  async getServer(id: number, remoteState: boolean = false) {
-    return this.request("GET", `/servers/${id}?remoteState=${remoteState}`);
-  }
-
-  async deleteServer(id: number, delayMinutes: number = 0) {
-    return this.request(
-      "DELETE",
-      `/servers/${id}${delayMinutes > 0 ? `?delay=${delayMinutes}` : ""}`,
-    );
-  }
-
-  async modifyServerBackupPlan(
-    serverId: number,
-    planId: number,
-    planData: any,
-  ) {
-    return this.request(
-      "PUT",
-      `/servers/${serverId}/backups/plan/${planId}`,
-      planData,
-    );
-  }
-
-  async changeServerOwner(serverId: number, newOwnerId: number) {
-    return this.request("PUT", `/servers/${serverId}/owner/${newOwnerId}`);
-  }
-
-  async buildServer(serverId: number, buildData: any) {
-    return this.request("POST", `/servers/${serverId}/build`, buildData);
-  }
-
-  async changeServerPackage(
-    serverId: number,
-    packageId: number,
-    packageOptions: any,
-  ) {
-    return this.request(
-      "PUT",
-      `/servers/${serverId}/package/${packageId}`,
-      packageOptions,
-    );
-  }
-
-  async modifyServerName(serverId: number, nameData: any) {
-    return this.request("PUT", `/servers/${serverId}/modify-name`, nameData);
-  }
-
-  async resetServerPassword(serverId: number, passwordData: any) {
-    return this.request(
-      "POST",
-      `/servers/${serverId}/resetPassword`,
-      passwordData,
-    );
-  }
-
-  async getServerTemplates(serverId: number) {
-    return this.request("GET", `/servers/${serverId}/templates`);
-  }
-
-  async suspendServer(serverId: number) {
-    return this.request("POST", `/servers/${serverId}/suspend`);
-  }
-
-  async unsuspendServer(serverId: number) {
-    return this.request("POST", `/servers/${serverId}/unsuspend`);
-  }
-
-  async modifyServerCpuThrottle(
-    serverId: number,
-    throttleData: any,
-    sync: boolean = false,
-  ) {
-    // Updated to correct endpoint path format per VirtFusion API docs
-    return this.request(
-      "PUT",
-      `/servers/${serverId}/modify/cpuThrottle${sync ? "?sync=true" : ""}`,
-      throttleData,
-    );
-  }
-
-  async getServerTraffic(serverId: number) {
-    return this.request("GET", `/servers/${serverId}/traffic`);
-  }
-
-  async toggleServerVnc(serverId: number, vncData: any) {
-    return this.request("POST", `/servers/${serverId}/vnc`, vncData);
-  }
-
-  // Server Network operations
-  async addServerNetworkWhitelist(serverId: number, whitelistData: any) {
-    return this.request(
-      "POST",
-      `/servers/${serverId}/networkWhitelist`,
-      whitelistData,
-    );
-  }
-
-  async removeServerNetworkWhitelist(serverId: number, whitelistData: any) {
-    return this.request(
-      "DELETE",
-      `/servers/${serverId}/networkWhitelist`,
-      whitelistData,
-    );
-  }
-
-  async addServerIpv4Qty(serverId: number, qtyData: any) {
-    return this.request("POST", `/servers/${serverId}/ipv4Qty`, qtyData);
-  }
-
-  async addServerIpv4(serverId: number, ipData: any) {
-    return this.request("POST", `/servers/${serverId}/ipv4`, ipData);
-  }
-
-  async removeServerIpv4(serverId: number, ipData: any) {
-    return this.request("DELETE", `/servers/${serverId}/ipv4`, ipData);
-  }
-
-  // Server Power operations
-  async bootServer(serverId: number) {
-    return this.request("POST", `/servers/${serverId}/power/boot`);
-  }
-
-  async shutdownServer(serverId: number) {
-    return this.request("POST", `/servers/${serverId}/power/shutdown`);
-  }
-
-  async restartServer(serverId: number) {
-    return this.request("POST", `/servers/${serverId}/power/restart`);
-  }
-
-  async poweroffServer(serverId: number) {
-    return this.request("POST", `/servers/${serverId}/power/poweroff`);
-  }
-
-  // Firewall operations
-  async getServerFirewall(serverId: number, interfaceName: string) {
-    return this.request(
-      "GET",
-      `/servers/${serverId}/firewall/${interfaceName}`,
-    );
-  }
-
-  async enableServerFirewall(serverId: number, interfaceName: string) {
-    return this.request(
-      "POST",
-      `/servers/${serverId}/firewall/${interfaceName}/enable`,
-    );
-  }
-
-  async disableServerFirewall(serverId: number, interfaceName: string) {
-    return this.request(
-      "POST",
-      `/servers/${serverId}/firewall/${interfaceName}/disable`,
-    );
-  }
-
-  async applyFirewallRules(
-    serverId: number,
-    interfaceName: string,
-    rulesData: any,
-  ) {
-    return this.request(
-      "POST",
-      `/servers/${serverId}/firewall/${interfaceName}/rules`,
-      rulesData,
-    );
-  }
-
-  // Traffic blocks operations
-  async getServerTrafficBlocks(serverId: number) {
-    return this.request("GET", `/servers/${serverId}/traffic/blocks`);
-  }
-
-  async addServerTrafficBlock(serverId: number, blockData: any) {
-    return this.request(
-      "POST",
-      `/servers/${serverId}/traffic/blocks`,
-      blockData,
-    );
-  }
-
-  async removeServerTrafficBlock(serverId: number, blockId: number) {
-    return this.request(
-      "DELETE",
-      `/servers/${serverId}/traffic/blocks/${blockId}`,
-    );
-  }
-
-  // IP Address operations
-  async getIpBlocks() {
-    return this.request("GET", "/connectivity/ipblocks");
-  }
-
-  async getIpBlock(blockId: number) {
-    return this.request("GET", `/connectivity/ipblocks/${blockId}`);
-  }
-
-  async addIpv4RangeToBlock(blockId: number, rangeData: any) {
-    return this.request(
-      "POST",
-      `/connectivity/ipblocks/${blockId}/ipv4`,
-      rangeData,
-    );
-  }
-
-  // Backward compatibility for our existing code
-  async getIpAddresses() {
-    return this.getIpBlocks();
-  }
-
-  async allocateIp(serverId: number, ipAddress: string) {
-    return this.addServerIpv4(serverId, {
-      addresses: [ipAddress],
-    });
-  }
-
-  async releaseIp(serverId: number, ipAddress: string) {
-    return this.removeServerIpv4(serverId, {
-      addresses: [ipAddress],
-    });
-  }
-
-  // Aliases for server power operations
-  // These methods are used for compatibility with different API naming conventions
-  powerOnServer = this.bootServer;
-  powerOffServer = this.shutdownServer;
-  rebootServer = this.restartServer;
-
-  // Backup operations
-  async getServerBackups(serverId: number) {
-    return this.request("GET", `/backups/server/${serverId}`);
-  }
-
-  // DNS operations
-  async getDnsService(serviceId: number) {
-    return this.request("GET", `/dns/services/${serviceId}`);
-  }
-
-  // Media operations
-  async getIso(isoId: number) {
-    return this.request("GET", `/media/iso/${isoId}`);
-  }
-
-  async getPackageTemplates(serverPackageId: number) {
-    return this.request(
-      "GET",
-      `/media/templates/fromServerPackageSpec/${serverPackageId}`,
-    );
-  }
-
-  // Package operations
-  async getPackage(packageId: number) {
-    return this.request("GET", `/api/v1/packages/${packageId}`);
-  }
-
-  async getPackages() {
-    return this.request("GET", "/api/v1/packages");
-  }
-
-  // Queue operations
-  async getQueueItem(queueId: number) {
-    return this.request("GET", `/queue/${queueId}`);
-  }
-
-  // SSH Key operations
-  async addSshKey(userData: {
-    userId: number;
-    name: string;
-    publicKey: string;
-  }) {
-    return this.request("POST", "/ssh_keys", userData);
-  }
-
-  async deleteSshKey(keyId: number) {
-    return this.request("DELETE", `/ssh_keys/${keyId}`);
-  }
-
-  async getSshKey(keyId: number) {
-    return this.request("GET", `/ssh_keys/${keyId}`);
-  }
-
-  async getUserSshKeys(userId: number) {
-    return this.request("GET", `/ssh_keys/user/${userId}`);
-  }
-
-  // Self Service operations
-  async getSelfServiceCurrencies() {
-    return this.request("GET", "/selfService/currencies");
-  }
-
-  async modifyUserResourcePack(packId: number, packData: any) {
-    return this.request("PUT", `/selfService/resourcePack/${packId}`, packData);
-  }
-
-  async suspendResourcePackServers(packId: number) {
-    return this.request(
-      "POST",
-      `/selfService/resourcePackServers/${packId}/suspend`,
-    );
-  }
-
-  async unsuspendResourcePackServers(packId: number) {
-    return this.request(
-      "POST",
-      `/selfService/resourcePackServers/${packId}/unsuspend`,
-    );
-  }
-
-  // Self Service operations for resource packs and credits
-  async cancelUserCredit(creditId: number) {
-    return this.request("DELETE", `/selfService/credit/${creditId}`);
-  }
-
-  async getUserResourcePack(packId: number, withServers: boolean = false) {
-    return this.request(
-      "GET",
-      `/selfService/resourcePack/${packId}${withServers ? "?withServers=true" : ""}`,
-    );
-  }
-
-  async deleteUserResourcePack(packId: number, disable: boolean = false) {
-    return this.request(
-      "DELETE",
-      `/selfService/resourcePack/${packId}${disable ? "?disable=true" : ""}`,
-    );
-  }
-
-  async deleteResourcePackServers(packId: number, delay: number = 30) {
-    return this.request(
-      "DELETE",
-      `/selfService/resourcePackServers/${packId}${delay !== 30 ? `?delay=${delay}` : ""}`,
-    );
-  }
-
-  // Self Service External Relation ID operations
-  async addCreditToUser(
-    extRelationId: number,
-    data: { tokens: number; reference_1?: number; reference_2?: string },
-  ) {
-    console.log(`Attempting to add credit (${data.tokens} tokens) to user with extRelationId: ${extRelationId}`);
-    console.log("Using exact format from VirtFusion API documentation");
-
-    // This is the exact format as specified in the VirtFusion documentation
-    // https://docs.virtfusion.com/api/stoplight.html#/paths/selfService-credit-byUserExtRelationId-extRelationId/post
-
-    // Log the full request details for debugging
-    const endpoint = `/selfService/credit/byUserExtRelationId/${extRelationId}`;
-    console.log(`Using endpoint: ${endpoint}`);
-    console.log(`Request data:`, JSON.stringify(data, null, 2));
-
-    try {
-      return await this.request(
-        "POST",
-        endpoint,
-        data
-      );
-    } catch (error: any) {
-      console.error("VirtFusion credit API error:", error);
-
-      // Additional debugging information
-      if (error.response) {
-        console.error("Response status:", error.response.status);
-        console.error("Response data:", error.response.data);
-      }
-
-      // For 404 errors, log more details about the API URL and paths
-      if (error.message && error.message.includes("404")) {
-        console.error("Received 404 - API endpoint may be incorrect");
-        console.error("Check if the API URL is correctly configured and includes /api/v1");
-        console.error(`Current API URL base: ${this.apiUrl}`);
-        console.error(`Attempted endpoint: ${endpoint}`);
-
-        // Try one alternative as a last resort - direct users endpoint
-        try {
-          console.log("Making one final attempt with users endpoint");
-          return await this.request(
-            "POST",
-            `/users/${extRelationId}/credit`,
-            data
-          );
-        } catch (finalError: any) {
-          console.error("Final attempt also failed:", finalError.message);
-          throw error; // Throw the original error
-        }
-      }
-
-      throw error;
-    }
-  }
-
-  async addHourlyGroupProfileToUser(extRelationId: number, profileId: number) {
-    return this.request(
-      "POST",
-      `/selfService/hourlyGroupProfile/byUserExtRelationId/${extRelationId}`,
-      { profileId },
-    );
-  }
-
-  async addResourceGroupProfileToUser(
-    extRelationId: number,
-    profileId: number,
-  ) {
-    return this.request(
-      "POST",
-      `/selfService/resourceGroupProfile/byUserExtRelationId/${extRelationId}`,
-      { profileId },
-    );
-  }
-
-  async addResourcePackToUser(
-    extRelationId: number,
-    packId: number,
-    enabled: boolean = true,
-  ) {
-    console.log(`Adding resource pack (ID=${packId}, enabled=${enabled}) to user with extRelationId=${extRelationId}`);
-    return this.request(
-      "POST",
-      `/selfService/resourcePack/byUserExtRelationId/${extRelationId}`,
-      {
-        packId,
-        enabled,
-      },
-    );
-  }
-
-  /**
-   * Add default resource pack (ID=1) to a new user
-   * This is used when creating new users to automatically assign them the default resource pack
-   * @param extRelationId The external relation ID of the user
-   * @returns The API response
-   */
-  async addDefaultResourcePackToUser(extRelationId: number) {
-    console.log(`Adding default resource pack (ID=1) to new user with extRelationId=${extRelationId}`);
-    // Always use packId=1 and enabled=true as specified in the requirements
-    return this.addResourcePackToUser(extRelationId, 1, true);
-  }
-
-  // New Self Service API endpoints
-
-  async getUserHourlyStats(
-    extRelationId: number,
-    period?: string[],
-    range?: string,
-  ) {
-    let endpoint = `/selfService/hourlyStats/byUserExtRelationId/${extRelationId}`;
-
-    // Build query parameters if provided
-    const params = new URLSearchParams();
-    if (period && Array.isArray(period)) {
-      period.forEach((p) => params.append("period[]", p));
-    }
-    if (range) {
-      params.append("range", range);
-    }
-
-    const queryString = params.toString();
-    if (queryString) {
-      endpoint += `?${queryString}`;
-    }
-
-    console.log(
-      `Fetching hourly stats for user ${extRelationId} with endpoint: ${endpoint}`,
-    );
-    return this.request("GET", endpoint);
-  }
-
-  async modifyUserAccess(
-    extRelationId: number,
-    accessData: { syncToProfiles: boolean },
-  ) {
-    console.log(`Modifying access for user ${extRelationId}:`, accessData);
-    return this.request(
-      "PUT",
-      `/selfService/access/byUserExtRelationId/${extRelationId}`,
-      accessData,
-    );
-  }
-
-  async removeHourlyGroupProfileFromUser(
-    profileId: number,
-    extRelationId: number,
-  ) {
-    console.log(
-      `Removing hourly group profile ${profileId} from user ${extRelationId}`,
-    );
-    return this.request(
-      "DELETE",
-      `/selfService/hourlyGroupProfile/${profileId}/byUserExtRelationId/${extRelationId}`,
-    );
-  }
-
-  async removeResourceGroupFromUser(profileId: number, extRelationId: number) {
-    console.log(
-      `Removing resource group profile ${profileId} from user ${extRelationId}`,
-    );
-    return this.request(
-      "DELETE",
-      `/selfService/resourceGroupProfile/${profileId}/byUserExtRelationId/${extRelationId}`,
-    );
-  }
-
-  async generateUserReport(extRelationId: number) {
-    console.log(`Generating report for user ${extRelationId}`);
-    return this.request(
-      "GET",
-      `/selfService/report/byUserExtRelationId/${extRelationId}`,
-    );
-  }
-
-  async setHourlyResourcePack(
-    extRelationId: number,
-    packData: { packId: number },
-  ) {
-    console.log(
-      `Setting hourly resource pack for user ${extRelationId}:`,
-      packData,
-    );
-    return this.request(
-      "PUT",
-      `/selfService/hourlyResourcePack/byUserExtRelationId/${extRelationId}`,
-      packData,
-    );
-  }
-
-  async getUserUsage(extRelationId: number, period?: string[], range?: string) {
-    let endpoint = `/selfService/usage/byUserExtRelationId/${extRelationId}`;
-
-    // Build query parameters if provided
-    const params = new URLSearchParams();
-    if (period && Array.isArray(period)) {
-      period.forEach((p) => params.append("period[]", p));
-    }
-    if (range) {
-      params.append("range", range);
-    }
-
-    const queryString = params.toString();
-    if (queryString) {
-      endpoint += `?${queryString}`;
-    }
-
-    console.log(
-      `Fetching usage for user ${extRelationId} with endpoint: ${endpoint}`,
-    );
-    return this.request("GET", endpoint);
-  }
-
-  // OS Templates operations
-  async getOsTemplates() {
-    try {
-      // First try getting OS templates from the dedicated endpoint
-      return await this.request("GET", "/templates/os");
-    } catch (error) {
-      console.error("Error fetching OS templates from /templates/os:", error);
-
-      try {
-        // Fallback to alternate endpoint
-        return await this.request("GET", "/compute/templates");
-      } catch (secondError) {
-        console.error(
-          "Error fetching OS templates from fallback endpoint:",
-          secondError,
-        );
-
-        // If API endpoints fail, provide default templates for testing
-        return {
-          data: [
-            {
-              id: 1,
-              name: "Ubuntu 22.04",
-              type: "linux",
-              version: "22.04",
-              architecture: "x86_64"
-            },
-            {
-              id: 2,
-              name: "CentOS 7",
-              type: "linux",
-              version: "7",
-              architecture: "x86_64"
-            },
-            {
-              id: 3,
-              name: "Debian 11",
-              type: "linux",
-              version: "11",
-              architecture: "x86_64"
-            },
-            {
-              id: 4,
-              name: "Windows Server 2019",
-              type: "windows",
-              version: "2019",
-              architecture: "x86_64"
-            },
-            {
-              id: 5,
-              name: "AlmaLinux 8",
-              type: "linux",
-              version: "8",
-              architecture: "x86_64"
-            }
-          ]
-        };
-      }
-    }
-  }
-
-  // Get OS templates available for a specific package
-  async getOsTemplatesForPackage(packageId: number) {
-    try {
-      console.log(`Attempting to fetch OS templates for package ID: ${packageId} using media/templates endpoint`);
-      return await this.request("GET", `/media/templates/fromServerPackageSpec/${packageId}`);
-    } catch (error) {
-      console.error(`Error fetching OS templates for package ${packageId} using media/templates endpoint:`, error);
-
-      try {
-        console.log(`Attempting to fetch OS templates for package ID: ${packageId} using server-package endpoint`);
-        return await this.request("GET", `/server-packages/${packageId}/templates`);
-      } catch (secondError) {
-        console.error(`Error fetching OS templates for package ${packageId} using server-package endpoint:`, secondError);
-
-        try {
-          // Fallback to generic OS templates
-          console.log(`Falling back to generic OS templates for package ${packageId}`);
-          return await this.getOsTemplates();
-        } catch (thirdError) {
-          console.error("Error fetching generic OS templates as fallback:", thirdError);
-          // Return default templates for testing if all attempts fail
-          return {
-            data: [
-              {
-                id: 1,
-                name: "Ubuntu 22.04",
-                type: "linux",
-                version: "22.04",
-                architecture: "x86_64"
-              },
-              {
-                id: 2,
-                name: "CentOS 7",
-                type: "linux",
-                version: "7",
-                architecture: "x86_64"
-              },
-              {
-                id: 3,
-                name: "Debian 11",
-                type: "linux",
-                version: "11",
-                architecture: "x86_64"
-              },
-              {
-                id: 4,
-                name: "Windows Server 2019",
-                type: "windows",
-                version: "2019",
-                architecture: "x86_64"
-              },
-              {
-                id: 5,
-                name: "AlmaLinux 8",
-                type: "linux",
-                version: "8",
-                architecture: "x86_64"
-              }
-            ]
-          };
-        }
-      }
-    }
-  }
-}
-
-// Direct API test function using Node.js https module (as shown in your example)
-async function testVirtFusionUserCreation(
-  apiUrl: string,
-  apiToken: string,
-  userData: any,
-) {
-  return new Promise((resolve, reject) => {
-    const https = require("https");
-    const url = new URL("/api/v1/users", apiUrl);
-
-    console.log(`Making direct HTTPS request to ${url.toString()}`);
-    console.log(
-      `Using token: ${apiToken.substring(0, 5)}...${apiToken.substring(apiToken.length - 3)}`,
-    );
-    console.log(`Request data:`, userData);
-
-    const options = {
-      method: "POST",
-      hostname: url.hostname,
-      port: url.port || null,
-      path: url.pathname,
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json, */*",
-        Authorization: `Bearer ${apiToken}`,
-      },
-      rejectUnauthorized: false, // Skip SSL verification for testing
-    };
-
-    const req = https.request(options, (res: any) => {
-      const chunks: any[] = [];
-
-      res.on("data", (chunk: any) => {
-        chunks.push(chunk);
-      });
-
-      res.on("end", () => {
-        const body = Buffer.concat(chunks);
-        const responseText = body.toString();
-        console.log(`Response status: ${res.statusCode}`);
-        console.log(`Response headers:`, res.headers);
-        console.log(`Response body:`, responseText);
-
-        try {
-          const data = JSON.parse(responseText);
-          resolve({ statusCode: res.statusCode, data });
-        } catch (error) {
-          resolve({
-            statusCode: res.statusCode,
-            data: responseText,
-            parseError: "Could not parse JSON response",
-          });
-        }
-      });
-    });
-
-    req.on("error", (error: any) => {
-      console.error(`Request error:`, error);
-      reject(error);
-    });
-
-    const requestBody = JSON.stringify(userData);
-    console.log(`Request body:`, requestBody);
-    req.write(requestBody);
-    req.end();
-  });
-}
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -1608,7 +238,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/public/packages", async (req, res) => {
     try {
       console.log("Getting all packages for public display");
-      const virtFusionApi = new VirtFusionApi();
 
       // Check if environment variables are set
       if (!process.env.VIRTFUSION_API_URL || !process.env.VIRTFUSION_API_TOKEN) {
@@ -1898,8 +527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Initialize VirtFusion API client
-  const virtFusionApi = new VirtFusionApi();
+  // Use the global VirtFusion API client (imported from virtfusion-api.ts)
 
   // Test endpoints removed - VirtFusion integration is now working properly
 
@@ -1909,7 +537,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Get all VirtFusion packages directly like the public endpoint
       console.log("Getting all packages for admin pricing page");
-      const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
 
       // Test connection first
@@ -2145,21 +772,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sendMail: false,
       };
 
-      console.log("Testing VirtFusion user creation with direct HTTPS request");
-      const directResult = await testVirtFusionUserCreation(
-        finalApiUrl,
-        finalApiToken,
-        testUserData,
-      );
-      console.log("Direct HTTPS request result:", directResult);
-
       console.log("Testing VirtFusion user creation with our API client");
+      await virtFusionApi.updateSettings();
       const clientResult = await virtFusionApi.createUser(testUserData);
       console.log("API client result:", clientResult);
 
       res.json({
         success: true,
-        directApiResult: directResult,
         apiClientResult: clientResult,
         testData: testUserData,
       });
@@ -2529,10 +1148,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use the VirtFusion API to reset the server password
       try {
-        // Create a new VirtFusion API instance to use the correct method
-        const vfApi = new ImportedVirtFusionApi();
-        await vfApi.updateSettings();
-        const response = await vfApi.resetServerPassword(serverId, 'root', true);
+        // Use the global VirtFusion API instance
+        await virtFusionApi.updateSettings();
+        const response = await virtFusionApi.resetServerPassword(serverId, 'root', true);
 
         console.log('User server password reset response:', response);
 
@@ -2753,9 +1371,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // WARNING: This will toggle the VNC state!
       console.log(`Making VNC API call - this will toggle VNC state for server ${serverId}`);
 
-      // Create a new VirtFusion API instance to use the request method
-      const vfApi = new VirtFusionApi();
-      const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
+      // Use the global VirtFusion API instance
+      await virtFusionApi.updateSettings();
+      const result = await (virtFusionApi as any).request("POST", `/servers/${serverId}/vnc`);
 
       if (result) {
         // NOTE: This endpoint unfortunately toggles VNC state due to VirtFusion API limitations
@@ -3060,7 +1678,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Since we no longer have IP addresses in the database,
       // we need to fetch them from VirtFusion API directly
-      const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
       const ipBlocksResponse = await virtFusionApi.getIpBlocks();
 
@@ -3625,7 +2242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If user has VirtFusion account linked, fetch their tokens
       if (user.virtFusionId) {
         try {
-          const virtFusionApi = new VirtFusionApi();
+          await virtFusionApi.updateSettings();
           if (virtFusionApi.isConfigured()) {
             // Use the VirtFusion API to get user hourly stats (which contains credit info)
             const virtFusionData = await virtFusionApi.getUserHourlyStats(user.id);
@@ -3704,7 +2321,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`User has VirtFusion extRelationId: ${req.user!.virtFusionId}`);
 
       // Check VirtFusion API configuration
-      const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
 
       // Validate VirtFusion API settings before proceeding
@@ -4121,7 +2737,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check VirtFusion token balance
-      const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
 
       if (!virtFusionApi.isConfigured()) {
@@ -4309,7 +2924,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         // Check VirtFusion token balance
-        const virtFusionApi = new VirtFusionApi();
         await virtFusionApi.updateSettings();
 
         if (!virtFusionApi.isConfigured()) {
@@ -4561,7 +3175,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (Math.abs(proratedAmount) > 0.01) {
         const user = await storage.getUser(userId);
         if (user && user.virtFusionId) {
-          const virtFusionApi = new VirtFusionApi();
           await virtFusionApi.updateSettings();
 
           if (virtFusionApi.isConfigured()) {
@@ -4819,7 +3432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("User found:", user.id, "VirtFusion ID:", user.virtFusionId);
 
       // Make sure VirtFusion API is configured
-      const virtFusionApi = new VirtFusionApi();
+      await virtFusionApi.updateSettings();
       console.log("VirtFusion API configuration:", {
         isConfigured: virtFusionApi.isConfigured(),
         apiUrl: virtFusionApi.getApiUrl()
@@ -4900,7 +3513,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Admin test: Adding ${tokens} tokens to VirtFusion user with extRelationId: ${extRelationId}`);
 
       // Check VirtFusion API configuration
-      const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
 
       // Validate VirtFusion API settings
@@ -5552,7 +4164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (ticket.vpsId) {
         try {
           // Fetch VPS data from VirtFusion API if the ticket has a VPS ID
-          const virtFusionApi = new VirtFusionApi();
+          await virtFusionApi.updateSettings();
 
           // Get VPS info
           if (req.user.virtFusionId) {
@@ -5658,12 +4270,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         try {
           // Fetch VPS data from VirtFusion API
-          const virtFusionApiService = new VirtFusionApi();
+          await virtFusionApi.updateSettings();
 
           // Get user's VPS info from VirtFusion
           if (req.user.virtFusionId) {
             console.log(`Fetching VPS info for user ${req.user.virtFusionId} from VirtFusion API`);
-            const userServers = await virtFusionApiService.getUserServers(req.user.virtFusionId);
+            const userServers = await virtFusionApi.getUserServers(req.user.virtFusionId);
 
             // Check if requested VPS belongs to user
             const server = userServers.data.find((s: any) => s.id === vpsId);
@@ -6038,7 +4650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (ticket.vpsId) {
         try {
           console.log(`Fetching VPS info for ticket ${ticketId} (VPS ID: ${ticket.vpsId})`);
-          const virtFusionApi = new VirtFusionApi();
+          await virtFusionApi.updateSettings();
           const serverResponse = await virtFusionApi.getServer(ticket.vpsId, false);
 
           if (serverResponse && serverResponse.data) {
@@ -6676,9 +5288,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           console.log(`Updating user status in VirtFusion. User ID: ${userId}, Enabled: ${enabled}`);
 
-          // Create a new instance of VirtFusionApi
-          const api = new VirtFusionApi();
-          await api.updateSettings();
+          // Use the global VirtFusion API instance
+          await virtFusionApi.updateSettings();
 
           // For VirtFusion, we need to set selfService parameter:
           // 0 = disabled (suspended)
@@ -6698,7 +5309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Sending VirtFusion update data:`, JSON.stringify(updateData, null, 2));
 
           // Use the modifyUserByExtRelationId method to update the user's status in VirtFusion
-          await api.modifyUserByExtRelationId(user.id, updateData);
+          await virtFusionApi.modifyUserByExtRelationId(user.id, updateData);
 
           console.log(`Successfully updated user status in VirtFusion. User ID: ${userId}`);
 
@@ -6881,14 +5492,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Adding ${amount} tokens to VirtFusion for user ${userId} (extRelationId: ${extRelationId})`);
 
       // Call VirtFusion API
-      const api = new VirtFusionApi();
-      await api.updateSettings();
+      await virtFusionApi.updateSettings();
 
       // Get user's balance BEFORE adding tokens (to detect negative balance)
       let initialBalance = 0;
       try {
         console.log("Fetching user's initial VirtFusion balance");
-        const balanceData = await api.getUserHourlyStats(userId);
+        const balanceData = await virtFusionApi.getUserHourlyStats(userId);
 
         if (balanceData?.data?.credit?.tokens) {
           const tokenAmount = parseFloat(balanceData.data.credit.tokens);
@@ -6909,7 +5519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         reference_2: reference || `Added via Admin Portal on ${new Date().toISOString()}`
       };
 
-      const result = await api.addCreditToUser(extRelationId, creditData);
+      const result = await virtFusionApi.addCreditToUser(extRelationId, creditData);
 
       if (!result || !result.data || !result.data.id) {
         return res.status(500).json({ error: "Failed to add credits to VirtFusion" });
@@ -6933,7 +5543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get user's balance AFTER adding tokens to detect negative balance deduction
       try {
         console.log("Fetching user's updated VirtFusion balance");
-        const updatedBalanceData = await api.getUserHourlyStats(userId);
+        const updatedBalanceData = await virtFusionApi.getUserHourlyStats(userId);
 
         if (updatedBalanceData?.data?.credit?.tokens) {
           const updatedTokens = parseFloat(updatedBalanceData.data.credit.tokens);
@@ -7015,104 +5625,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "User is not linked to VirtFusion" });
       }
 
-      // Validate request data
-      const { creditId } = req.body;
+      // Check if this is a legacy credit ID removal or new token amount removal
+      const { creditId, tokens, reference } = req.body;
 
-      if (!creditId || isNaN(Number(creditId)) || Number(creditId) <= 0) {
-        return res.status(400).json({ error: "Invalid credit ID" });
-      }
+      if (creditId) {
+        // Legacy method: Remove by Credit ID
+        if (isNaN(Number(creditId)) || Number(creditId) <= 0) {
+          return res.status(400).json({ error: "Invalid credit ID" });
+        }
 
-      // Find the transaction that recorded this credit being added
-      const userTransactions = await storage.getUserTransactions(userId);
+        console.log(`Removing credit ID ${creditId} from VirtFusion for user ${userId} (legacy method)`);
 
-      // Look for a transaction with this credit ID in the description
-      const creditTransaction = userTransactions.find(tx =>
-        tx.type === "virtfusion_credit" && tx.description.includes(`Credit ID: ${creditId}`)
-      );
+        // Call VirtFusion API using legacy method
+        await virtFusionApi.updateSettings();
 
-      // If we can't find a matching transaction, try to extract from any transaction
-      const anyMatchingTransaction = !creditTransaction
-        ? userTransactions.find(tx => tx.description.includes(`Credit ID: ${creditId}`))
-        : null;
+        if (!virtFusionApi.isConfigured()) {
+          return res.status(500).json({
+            error: "VirtFusion API configuration is incomplete. Please contact support.",
+            details: "Missing API URL or token"
+          });
+        }
 
-      // If we still can't find a transaction, require the amount
-      if (!creditTransaction && !anyMatchingTransaction) {
+        try {
+          const virtFusionResult = await virtFusionApi.removeCreditFromUser(Number(creditId));
+          console.log("VirtFusion legacy credit removal result:", virtFusionResult);
+
+          // Log a transaction for history (amount unknown for legacy method)
+          await storage.createTransaction({
+            userId: user.id,
+            amount: 0, // Amount unknown for legacy removals
+            description: `Removed VirtFusion credit (Legacy Credit ID: ${creditId})`,
+            type: "debit",
+            status: "completed"
+          });
+
+          return res.json({
+            success: true,
+            message: "VirtFusion credit removed successfully (legacy method).",
+            creditId: creditId
+          });
+        } catch (apiError: any) {
+          console.error("Error calling VirtFusion API (legacy method):", apiError);
+          return res.status(500).json({
+            error: "Failed to remove credit from VirtFusion",
+            details: apiError.message || "Unknown error"
+          });
+        }
+      } else if (tokens) {
+        // New method: Remove by token amount using extRelationId
+        if (isNaN(Number(tokens)) || Number(tokens) <= 0) {
+          return res.status(400).json({ error: "Invalid token amount" });
+        }
+
+        const tokenAmount = Number(tokens);
+        const dollarAmount = tokenAmount / 100; // 100 tokens = $1.00
+        const extRelationId = userId; // Use userId as extRelationId
+
+        console.log(`Removing ${tokenAmount} tokens from VirtFusion for user ${userId} (extRelationId: ${extRelationId})`);
+
+        // Call VirtFusion API
+        await virtFusionApi.updateSettings();
+
+        if (!virtFusionApi.isConfigured()) {
+          return res.status(500).json({
+            error: "VirtFusion API configuration is incomplete. Please contact support.",
+            details: "Missing API URL or token"
+          });
+        }
+
+        // Format the data for VirtFusion API
+        const tokenData = {
+          tokens: tokenAmount,
+          reference_1: undefined, // Will be set after transaction creation
+          reference_2: reference || `Admin token removal - User ID: ${userId}`
+        };
+
+        try {
+          // Create a transaction record first to get the transaction ID
+          const createdTransaction = await storage.createTransaction({
+            userId: user.id,
+            amount: -Math.abs(dollarAmount),
+            description: `Removed ${tokenAmount} tokens from VirtFusion${reference ? ` (${reference})` : ''}`,
+            type: "debit",
+            status: "pending"
+          });
+
+          // Update the reference with the transaction ID
+          tokenData.reference_1 = createdTransaction.id;
+
+          console.log(`Sending to VirtFusion API with extRelationId=${extRelationId}:`, tokenData);
+
+          // Call the VirtFusion API to remove tokens
+          const virtFusionResult = await virtFusionApi.removeCreditFromUserByExtRelationId(
+            extRelationId,
+            tokenData
+          );
+
+          console.log("VirtFusion token removal result:", virtFusionResult);
+
+          // Update transaction status to completed
+          await storage.updateTransaction(createdTransaction.id, { status: "completed" });
+
+          return res.json({
+            success: true,
+            message: "VirtFusion tokens removed successfully.",
+            tokens: tokenAmount,
+            dollarAmount: dollarAmount,
+            transactionId: createdTransaction.id
+          });
+        } catch (apiError: any) {
+          console.error("Error calling VirtFusion API:", apiError);
+
+          // Update transaction status to failed if it was created
+          if (tokenData.reference_1) {
+            await storage.updateTransaction(tokenData.reference_1, { status: "failed" });
+          }
+
+          return res.status(500).json({
+            error: "Failed to remove tokens from VirtFusion",
+            details: apiError.message || "Unknown error"
+          });
+        }
+      } else {
         return res.status(400).json({
-          error: "Unable to find transaction record for this credit ID. Please contact support."
-        });
-      }
-
-      // Use transaction data to determine the amount
-      const transaction = creditTransaction || anyMatchingTransaction;
-
-      // Try to extract the token amount from the description
-      const tokenMatch = transaction.description.match(/Added (\d+) tokens/);
-      const tokenAmount = tokenMatch ? tokenMatch[1] : null;
-
-      if (!tokenAmount) {
-        return res.status(400).json({
-          error: "Could not determine the original token amount. Please contact support."
-        });
-      }
-
-      // Convert from tokens to dollars (100 tokens = $1.00)
-      const creditAmount = tokenAmount;
-      const dollarAmount = Number(tokenAmount) / 100;
-
-      console.log(`Found matching transaction ${transaction.id}: "${transaction.description}"`);
-      console.log(`Removing credit ID ${creditId} (${creditAmount} tokens = $${dollarAmount}) from VirtFusion for user ${userId}`);
-
-      // Use direct axios call to VirtFusion API
-      const virtFusionApiUrl = process.env.VIRTFUSION_API_URL || 'https://vdc.skyvps360.xyz/api/v1';
-      const virtFusionApiToken = process.env.VIRTFUSION_API_TOKEN;
-
-      if (!virtFusionApiUrl || !virtFusionApiToken) {
-        return res.status(500).json({ error: "VirtFusion API URL or token not configured" });
-      }
-
-      // Format the URL correctly
-      let apiBase = virtFusionApiUrl;
-      if (apiBase.endsWith("/")) {
-        apiBase = apiBase.slice(0, -1);
-      }
-
-      // Use the correct endpoint format for credit removal
-      const fullUrl = `${apiBase}/selfService/credit/${creditId}`;
-      console.log(`Making direct DELETE request to ${fullUrl}`);
-
-      try {
-        // Make the request
-        const response = await axios({
-          method: 'DELETE',
-          url: fullUrl,
-          headers: {
-            Authorization: `Bearer ${virtFusionApiToken}`,
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-          },
-          httpsAgent: new https.Agent({ rejectUnauthorized: true })
-        });
-
-        // Legacy local credit update removed. VirtFusion tokens are the source of truth.
-        // Optionally, log a transaction for history
-        await storage.createTransaction({
-          userId: user.id,
-          amount: -Math.abs(Number(dollarAmount)),
-          description: `Removed ${creditAmount} tokens from VirtFusion (Credit ID: ${creditId})`,
-          type: "debit",
-          status: "completed"
-        });
-
-        return res.json({
-          success: true,
-          message: "VirtFusion credit removed successfully.",
-          creditId: creditId
-        });
-      } catch (apiError: any) {
-        console.error("Error calling VirtFusion API:", apiError);
-        return res.status(500).json({
-          error: "Failed to remove credit from VirtFusion",
-          details: apiError.message || "Unknown error"
+          error: "Either creditId (legacy) or tokens (new method) is required"
         });
       }
     } catch (error: any) {
@@ -8415,9 +7051,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // WARNING: This will toggle the VNC state!
       console.log(`Making VNC API call - this will toggle VNC state for server ${serverId}`);
 
-      // Create a new VirtFusion API instance to use the request method
-      const vfApi = new VirtFusionApi();
-      const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
+      // Use the global VirtFusion API instance
+      await virtFusionApi.updateSettings();
+      const result = await (virtFusionApi as any).request("POST", `/servers/${serverId}/vnc`);
 
       if (result) {
         res.json({ success: true, data: result });
@@ -8505,8 +7141,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Admin enabling VNC for server ID: ${serverId}`);
 
       // VirtFusion API: POST /servers/{serverId}/vnc toggles VNC and returns status
-      const vfApi = new VirtFusionApi();
-      const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
+      await virtFusionApi.updateSettings();
+      const result = await (virtFusionApi as any).request("POST", `/servers/${serverId}/vnc`);
 
       if (result) {
         // Log VNC enable action (this is an intentional admin action)
@@ -8558,8 +7194,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Admin disabling VNC for server ID: ${serverId}`);
 
       // VirtFusion API: POST /servers/{serverId}/vnc toggles VNC and returns status
-      const vfApi = new VirtFusionApi();
-      const result = await (vfApi as any).request("POST", `/servers/${serverId}/vnc`);
+      await virtFusionApi.updateSettings();
+      const result = await (virtFusionApi as any).request("POST", `/servers/${serverId}/vnc`);
 
       if (result) {
         // Log VNC disable action (this is an intentional admin action)
@@ -9752,7 +8388,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/packages", isAuthenticated, async (req, res) => {
     try {
       console.log("Getting all packages");
-      const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
 
       // Test the connection first to make sure API is reachable
@@ -9795,7 +8430,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       console.log(`Getting package with ID: ${id}`);
-      const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
 
       // Test connection first
@@ -9839,7 +8473,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Testing VirtFusion credit API with extRelationId=${extRelationId}, tokens=${tokens}`);
 
       // Update API settings first
-      const virtFusionApi = new VirtFusionApi();
       await virtFusionApi.updateSettings();
 
       // Test VirtFusion connection
@@ -11424,7 +10057,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/public/platform-stats", async (req, res) => {
     try {
       console.log("Getting platform statistics");
-      const virtFusionApi = new VirtFusionApi();
 
       // Update VirtFusion API settings
       await virtFusionApi.updateSettings();
