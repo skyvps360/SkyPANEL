@@ -458,7 +458,8 @@ export class VirtFusionApi {
   }
 
   /**
-   * Remove credit from a user by external relation ID using DELETE method
+   * Remove credit from a user by external relation ID using POST with negative tokens
+   * VirtFusion v6.0.0+ supports negative credits via POST method
    * @param extRelationId The external relation ID (our user ID)
    * @param tokenData Object containing tokens and optional reference data
    * @returns API response
@@ -468,11 +469,20 @@ export class VirtFusionApi {
     reference_1?: number;
     reference_2?: string;
   }) {
-    console.log(`Removing ${tokenData.tokens} tokens from user with extRelationId ${extRelationId}`);
+    console.log(`Removing ${tokenData.tokens} tokens from user with extRelationId ${extRelationId} (using negative credit)`);
+
+    // VirtFusion v6.0.0+ requires POST with negative tokens instead of DELETE
+    const negativeTokenData = {
+      ...tokenData,
+      tokens: -Math.abs(tokenData.tokens) // Ensure tokens are negative
+    };
+
+    console.log(`Sending negative credit data:`, negativeTokenData);
+
     return this.request(
-      "DELETE",
+      "POST",
       `/selfService/credit/byUserExtRelationId/${extRelationId}`,
-      tokenData
+      negativeTokenData
     );
   }
 

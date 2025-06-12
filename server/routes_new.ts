@@ -3450,8 +3450,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // VirtFusion expects the user's ID from our system as extRelationId
       console.log("Calling VirtFusion API hourly stats with extRelationId (user.id):", user.id);
 
-      // Use the VirtFusion API class's built-in method to make the API call with user.id
-      const response = await virtFusionApi.getUserHourlyStats(user.id);
+      // Debug: Check if the method exists
+      console.log("Available VirtFusion API methods:", Object.getOwnPropertyNames(Object.getPrototypeOf(virtFusionApi)));
+      console.log("getUserHourlyStats method exists:", typeof virtFusionApi.getUserHourlyStats);
+
+      let response;
+
+      // Check if the method exists, if not use fallback
+      if (typeof virtFusionApi.getUserHourlyStats === 'function') {
+        console.log("Using getUserHourlyStats method");
+        response = await virtFusionApi.getUserHourlyStats(user.id);
+      } else {
+        console.log("getUserHourlyStats method not found, using fallback request");
+        // Fallback: Use direct request method
+        const period = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        const endpoint = `/selfService/hourlyStats/byUserExtRelationId/${user.id}?period[]=${period}&range=m`;
+
+        try {
+          response = await virtFusionApi.request("GET", endpoint);
+        } catch (firstError) {
+          console.log("HourlyStats endpoint failed, trying usage endpoint");
+          const usageEndpoint = `/selfService/usage/byUserExtRelationId/${user.id}?period[]=${period}&range=m`;
+
+          try {
+            response = await virtFusionApi.request("GET", usageEndpoint);
+          } catch (secondError) {
+            console.log("Both endpoints failed, returning empty data");
+            response = {
+              data: {
+                monthlyTotal: {
+                  value: "0.00",
+                  hours: 0,
+                  tokens: false
+                }
+              }
+            };
+          }
+        }
+      }
+
       console.log("VirtFusion API raw response:", response);
 
       if (!response || !response.data) {
