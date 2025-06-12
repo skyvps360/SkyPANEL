@@ -153,11 +153,7 @@ export default function UserEditPage() {
   const [vfRemoveCreditId, setVfRemoveCreditId] = useState("");
   const [creditAddedId, setCreditAddedId] = useState<number | null>(null);
 
-  // Custom credits state
-  const [customCreditAddAmount, setCustomCreditAddAmount] = useState("");
-  const [customCreditAddReason, setCustomCreditAddReason] = useState("");
-  const [customCreditRemoveAmount, setCustomCreditRemoveAmount] = useState("");
-  const [customCreditRemoveReason, setCustomCreditRemoveReason] = useState("");
+
 
   // Define transaction table columns
   const transactionColumns: DataTableColumn<CreditTransaction>[] = [
@@ -216,11 +212,7 @@ export default function UserEditPage() {
       accessorKey: "description",
       header: "Description",
       cell: (transaction: CreditTransaction) => {
-        // Replace hardcoded "custom_credits" with branded name
         let description = transaction.description || 'No description';
-        if (description.includes('custom_credits')) {
-          description = description.replace(/custom_credits/g, brandingData?.custom_credits_name || 'Custom Credits');
-        }
 
         return (
           <div className="max-w-xs">
@@ -280,28 +272,7 @@ export default function UserEditPage() {
     retry: 1
   });
 
-  // Fetch custom credits data
-  const {
-    data: customCreditsData,
-    isLoading: isLoadingCustomCredits,
-    error: customCreditsError
-  } = useQuery<{
-    balance: number;
-    transactions: any[];
-    user: { id: number; username: string; email: string; fullName: string };
-  }, Error>({
-    queryKey: [`/api/admin/users/${userId}/custom-credits`],
-    enabled: !isNaN(userId) && userId > 0,
-    retry: 1
-  });
 
-  // Fetch branding data for custom credits name
-  const { data: brandingData } = useQuery<{
-    company_name: string;
-    custom_credits_name?: string;
-  }>({
-    queryKey: ['/api/settings/branding'],
-  });
 
   // Set up form with user data
   const form = useForm<UserFormData>({
@@ -470,65 +441,7 @@ export default function UserEditPage() {
     }
   });
 
-  // Add custom credits mutation
-  const addCustomCreditsMutation = useMutation({
-    mutationFn: async (data: { amount: string; reason: string }) => {
-      return await apiRequest(`/api/admin/users/${userId}/custom-credits`, {
-        method: "POST",
-        body: data
-      });
-    },
-    onSuccess: (data) => {
-      toast({
-        title: `${brandingData?.custom_credits_name || 'Custom credits'} added successfully`,
-        description: `Added $${customCreditAddAmount} to user's ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} balance.`,
-      });
 
-      // Clear the input fields
-      setCustomCreditAddAmount("");
-      setCustomCreditAddReason("");
-
-      // Refresh the custom credits data
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}/custom-credits`] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: `Error adding ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}`,
-        description: error.message || `Failed to add ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}`,
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Remove custom credits mutation
-  const removeCustomCreditsMutation = useMutation({
-    mutationFn: async (data: { amount: string; reason: string }) => {
-      return await apiRequest(`/api/admin/users/${userId}/custom-credits`, {
-        method: "DELETE",
-        body: data
-      });
-    },
-    onSuccess: (data) => {
-      toast({
-        title: `${brandingData?.custom_credits_name || 'Custom credits'} removed successfully`,
-        description: `Removed $${customCreditRemoveAmount} from user's ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} balance.`,
-      });
-
-      // Clear the input fields
-      setCustomCreditRemoveAmount("");
-      setCustomCreditRemoveReason("");
-
-      // Refresh the custom credits data
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/users/${userId}/custom-credits`] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: `Error removing ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}`,
-        description: error.message || `Failed to remove ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}`,
-        variant: "destructive",
-      });
-    }
-  });
 
   // Handle tab changes with URL state persistence
   const handleTabChange = (newTab: string) => {
@@ -591,59 +504,7 @@ export default function UserEditPage() {
     }
   };
 
-  // Handle adding custom credits
-  const handleAddCustomCredits = () => {
-    if (!customCreditAddAmount || isNaN(Number(customCreditAddAmount)) || Number(customCreditAddAmount) <= 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid credit amount",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    if (!customCreditAddReason || customCreditAddReason.trim().length === 0) {
-      toast({
-        title: "Reason required",
-        description: "Please provide a reason for adding credits",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    addCustomCreditsMutation.mutate({
-      amount: customCreditAddAmount,
-      reason: customCreditAddReason
-    });
-  };
-
-  // Handle removing custom credits
-  const handleRemoveCustomCredits = () => {
-    if (!customCreditRemoveAmount || isNaN(Number(customCreditRemoveAmount)) || Number(customCreditRemoveAmount) <= 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid credit amount",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!customCreditRemoveReason || customCreditRemoveReason.trim().length === 0) {
-      toast({
-        title: "Reason required",
-        description: "Please provide a reason for removing credits",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (confirm(`Are you sure you want to remove $${customCreditRemoveAmount} from this user's ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}? This action cannot be undone.`)) {
-      removeCustomCreditsMutation.mutate({
-        amount: customCreditRemoveAmount,
-        reason: customCreditRemoveReason
-      });
-    }
-  };
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -861,10 +722,7 @@ export default function UserEditPage() {
                 <UserCog className="h-4 w-4 mr-2" />
                 Permissions
               </TabsTrigger>
-              <TabsTrigger value="customCredits" className="data-[state=active]:bg-background">
-                <CreditCard className="h-4 w-4 mr-2" />
-                {brandingData?.custom_credits_name || 'Custom Credits'}
-              </TabsTrigger>
+
               {user.virtFusionId && (
                 <TabsTrigger value="credits" className="data-[state=active]:bg-background">
                   <CreditCard className="h-4 w-4 mr-2" />
@@ -1396,126 +1254,7 @@ export default function UserEditPage() {
             </TabsContent>
           )}
 
-          {/* Custom Credits Tab */}
-          <TabsContent value="customCredits" className="m-0">
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">{brandingData?.custom_credits_name || 'Custom Credits'} Management</h3>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Current Balance</p>
-                    <p className={`text-2xl font-bold ${(customCreditsData?.balance || 0) < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      ${(customCreditsData?.balance || 0).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
 
-                <Separator />
-
-                {/* Add Credits Section */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <h4 className="text-base font-medium mb-4 text-green-800">Add {brandingData?.custom_credits_name || 'Custom Credits'}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="customCreditAddAmount">Amount ($)</Label>
-                      <Input
-                        id="customCreditAddAmount"
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        placeholder="0.00"
-                        value={customCreditAddAmount}
-                        onChange={(e) => setCustomCreditAddAmount(e.target.value)}
-                        disabled={addCustomCreditsMutation.isPending}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="customCreditAddReason">Reason</Label>
-                      <Input
-                        id="customCreditAddReason"
-                        placeholder="Reason for adding credits"
-                        value={customCreditAddReason}
-                        onChange={(e) => setCustomCreditAddReason(e.target.value)}
-                        disabled={addCustomCreditsMutation.isPending}
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleAddCustomCredits}
-                    disabled={addCustomCreditsMutation.isPending || !customCreditAddAmount || !customCreditAddReason}
-                    className="mt-4 bg-green-600 hover:bg-green-700"
-                  >
-                    {addCustomCreditsMutation.isPending ? "Adding..." : "Add Credits"}
-                  </Button>
-                </div>
-
-                {/* Remove Credits Section */}
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h4 className="text-base font-medium mb-4 text-red-800">Remove {brandingData?.custom_credits_name || 'Custom Credits'}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="customCreditRemoveAmount">Amount ($)</Label>
-                      <Input
-                        id="customCreditRemoveAmount"
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        placeholder="0.00"
-                        value={customCreditRemoveAmount}
-                        onChange={(e) => setCustomCreditRemoveAmount(e.target.value)}
-                        disabled={removeCustomCreditsMutation.isPending}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="customCreditRemoveReason">Reason</Label>
-                      <Input
-                        id="customCreditRemoveReason"
-                        placeholder="Reason for removing credits"
-                        value={customCreditRemoveReason}
-                        onChange={(e) => setCustomCreditRemoveReason(e.target.value)}
-                        disabled={removeCustomCreditsMutation.isPending}
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleRemoveCustomCredits}
-                    disabled={removeCustomCreditsMutation.isPending || !customCreditRemoveAmount || !customCreditRemoveReason}
-                    variant="destructive"
-                    className="mt-4"
-                  >
-                    {removeCustomCreditsMutation.isPending ? "Removing..." : "Remove Credits"}
-                  </Button>
-                </div>
-
-                {/* Enhanced Transaction History */}
-                <div>
-                  <h4 className="text-base font-medium mb-4">Transaction History</h4>
-                  {customCreditsError ? (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Error</AlertTitle>
-                      <AlertDescription>
-                        Failed to load {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} data: {customCreditsError.message}
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    <DataTable<CreditTransaction>
-                      data={customCreditsData?.transactions || []}
-                      columns={transactionColumns}
-                      enableSearch={true}
-                      searchFunction={searchTransactions}
-                      searchPlaceholder="Search by ID, amount, description, or date..."
-                      enablePagination={true}
-                      defaultPageSize={5}
-                      pageSizeOptions={[5, 10, 25, 50, 100]}
-                      isLoading={isLoadingCustomCredits}
-                      emptyMessage={`No ${brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'} transactions found.`}
-                    />
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </TabsContent>
         </Tabs>
       </Card>
     </AdminLayout>

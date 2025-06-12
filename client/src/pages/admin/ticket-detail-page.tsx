@@ -212,23 +212,7 @@ export default function AdminTicketDetailPage() {
     retry: 1,
   });
 
-  // Fetch user's custom credits balance
-  const { data: userCustomCredits } = useQuery<{ balance: number; transactions: any[] }>({
-    queryKey: [`/api/admin/users/${data?.ticket?.userId}/custom-credits`],
-    enabled: !!data?.ticket?.userId,
-    retry: 1,
-  });
 
-  // Fetch branding data for custom credits name
-  const { data: brandingData } = useQuery<{
-    company_name: string;
-    primary_color: string;
-    secondary_color: string;
-    accent_color: string;
-    custom_credits_name?: string;
-  }>({
-    queryKey: ['/api/settings/branding'],
-  });
 
   // Fetch AI status
   const { data: aiStatusData } = useQuery<{ enabled: boolean; message: string }>({
@@ -888,32 +872,7 @@ export default function AdminTicketDetailPage() {
             </Card>
           )}
 
-          {/* Custom Credits */}
-          {userCustomCredits && (
-            <Card>
-              <CardHeader className="py-3 px-4" style={getContainerStyle()}>
-                <CardTitle className="text-md font-medium flex items-center">
-                  <Coins className="h-4 w-4 mr-2" style={{ color: brandColors.secondary.full }} />
-                  User's {brandingData?.custom_credits_name || 'Custom Credits'}
-                </CardTitle>
-                <CardDescription className="text-xs mt-1">
-                  Platform credits for services and features
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">
-                    <span className={`font-semibold ${userCustomCredits.balance < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      ${userCustomCredits.balance.toFixed(2)}
-                    </span> USD
-                  </p>
-                  <p className="text-xs px-2 py-1 rounded-md" style={getBadgeStyle(secondaryColor, 0.1)}>
-                    {userCustomCredits.balance < 0 ? 'Negative Balance' : 'Available'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+
         </div>
       </div>
     </AdminLayout>

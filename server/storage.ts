@@ -1115,25 +1115,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(settings).where(eq(settings.key, key));
   }
 
-  /**
-   * Get the custom credits name from branding settings
-   * @returns Promise that resolves with the custom credits name
-   */
-  async getCustomCreditsName(): Promise<string> {
-    try {
-      const brandingSettings = await db.select()
-        .from(settings)
-        .where(inArray(settings.key, ['company_name', 'custom_credits_name']));
 
-      const companyName = brandingSettings.find(s => s.key === 'company_name')?.value || 'SkyPANEL';
-      const customCreditsName = brandingSettings.find(s => s.key === 'custom_credits_name')?.value;
-
-      return customCreditsName || `${companyName} Credits`;
-    } catch (error) {
-      console.error('Error fetching branding settings for custom credits name:', error);
-      return 'Custom Credits'; // Fallback
-    }
-  }
 
   /**
    * Get all admin users

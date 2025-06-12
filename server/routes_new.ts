@@ -44,7 +44,6 @@ import PDFDocument from "pdfkit";
 import {formatTicketPdf} from "./ticket-download";
 import * as schema from "../shared/schema";
 import {
-  creditTransactions as creditTransactionsTable,
   dnsDomains as dnsDomainsTable,
   dnsPlans as dnsPlansTable,
   dnsPlanSubscriptions as dnsPlanSubscriptionsTable,
@@ -52,8 +51,7 @@ import {
   insertTicketMessageSchema,
   insertTicketSchema,
   InsertTransaction,
-  transactions,
-  userCredits as userCreditsTable
+  transactions
 } from "@shared/schema";
 import {z, ZodError} from "zod";
 import {fromZodError} from "zod-validation-error";
@@ -3160,9 +3158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyLogo = await storage.getSetting('company_logo');
       const companyLogoValue = companyLogo?.value || '';
 
-      // Get custom credits branding
-      const customCreditsName = await storage.getSetting('custom_credits_name');
-      const customCreditsNameValue = customCreditsName?.value || 'Custom Credits';
+
 
       // Generate PDF
       const doc = new PDFDocument({ margin: 50 });
@@ -3171,8 +3167,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let buffers: Buffer[] = [];
       doc.on('data', buffers.push.bind(buffers));
 
-      // Format the document with transaction data and branding
-      formatTransactionsPdf(doc, transactions, user, companyNameValue, companyLogoValue, customCreditsNameValue);
+      // Format the document with transaction data
+      formatTransactionsPdf(doc, transactions, user, companyNameValue, companyLogoValue);
 
       // Finalize the PDF and convert to base64
       doc.end();
@@ -3251,23 +3247,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Helper function to format transaction descriptions with branding
-  function formatTransactionDescriptionForPdf(description: string, customCreditsName: string): string {
+  // Helper function to format transaction descriptions
+  function formatTransactionDescriptionForPdf(description: string): string {
     if (!description) return 'N/A';
 
-    // Replace hardcoded "custom_credits" with branded name in all descriptions
     let formattedDescription = description;
-    if (formattedDescription.includes('custom_credits')) {
-      formattedDescription = formattedDescription.replace(/custom_credits/g, customCreditsName);
-    }
-
-    // Also handle variations like "Custom_credits" or "Custom Credits"
-    if (formattedDescription.includes('Custom_credits')) {
-      formattedDescription = formattedDescription.replace(/Custom_credits/g, customCreditsName);
-    }
-    if (formattedDescription.includes('Custom Credits') && customCreditsName !== 'Custom Credits') {
-      formattedDescription = formattedDescription.replace(/Custom Credits/g, customCreditsName);
-    }
 
     // Fix arrow symbol formatting issues in PDF generation
     // Replace corrupted arrow symbols with proper directional arrows
@@ -3284,21 +3268,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return formattedDescription;
   }
 
-  // Helper function to format payment methods with branding
-  function formatPaymentMethodForPdf(paymentMethod: string, customCreditsName: string): string {
+  // Helper function to format payment methods
+  function formatPaymentMethodForPdf(paymentMethod: string): string {
     if (!paymentMethod) return 'N/A';
 
-    // Handle custom credits payment methods
-    if (paymentMethod === 'custom_credits' ||
-        paymentMethod?.includes('_credits') ||
-        paymentMethod?.includes('credits')) {
-      return customCreditsName;
-    }
-
-    // Handle other payment methods
+    // Handle payment methods
     switch (paymentMethod.toLowerCase()) {
       case 'paypal':
         return 'PayPal';
+      case 'virtfusion_tokens':
+        return 'VirtFusion Tokens';
       case 'credit':
         return 'VirtFusion Credits';
       case 'stripe':
@@ -3309,7 +3288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Helper function to format a single transaction PDF
-  function formatSingleTransactionPdf(doc: PDFKit.PDFDocument, transaction: any, user: any, companyName: string, companyLogo: string, customCreditsName: string = 'Custom Credits') {
+  function formatSingleTransactionPdf(doc: PDFKit.PDFDocument, transaction: any, user: any, companyName: string, companyLogo: string) {
     // Debug transaction data
     console.log('Generating PDF for transaction:', JSON.stringify(transaction, null, 2));
 
@@ -3391,19 +3370,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     addField('Status:', transaction.status || 'N/A', rightColX, currentY);
     currentY += lineHeight;
 
-    // Row 3 - For description, use the full width with branding
+    // Row 3 - For description, use the full width
     doc.fontSize(10).font('Helvetica-Bold').text('Description:', leftColX, currentY);
     doc.font('Helvetica').text(
-        formatTransactionDescriptionForPdf(transaction.description, customCreditsName),
+        formatTransactionDescriptionForPdf(transaction.description),
       leftColX + labelWidth,
       currentY,
       { width: 380, ellipsis: true }
     );
     currentY += lineHeight;
 
-    // Row 4 - Payment details if available with branding
+    // Row 4 - Payment details if available
     if (transaction.paymentMethod) {
-      addField('Payment Method:', formatPaymentMethodForPdf(transaction.paymentMethod, customCreditsName), leftColX, currentY);
+      addField('Payment Method:', formatPaymentMethodForPdf(transaction.paymentMethod), leftColX, currentY);
       currentY += lineHeight;
     }
 
@@ -3446,7 +3425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Helper function to format transactions PDF
-  function formatTransactionsPdf(doc: PDFKit.PDFDocument, transactions: any[], user: any, companyName: string, companyLogo: string, customCreditsName: string = 'Custom Credits') {
+  function formatTransactionsPdf(doc: PDFKit.PDFDocument, transactions: any[], user: any, companyName: string, companyLogo: string) {
     // Add logo if available
     if (companyLogo) {
       try {
@@ -3554,11 +3533,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.rect(50, y - 3, 500, 20).fill('#f6f6f6');
       }
 
-      // Draw row content with branding
+      // Draw row content
       doc.fillColor('#000000');
       doc.fontSize(8).text(transaction.id ? `#${transaction.id}` : 'N/A', 50, y);
       doc.text(date, 130, y);
-      doc.text(formatTransactionDescriptionForPdf(transaction.description, customCreditsName), 190, y, {
+      doc.text(formatTransactionDescriptionForPdf(transaction.description), 190, y, {
         width: 150,
         ellipsis: true
       });
@@ -3627,7 +3606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Get current balance (both VirtFusion tokens and custom credits)
+  // Get current balance (VirtFusion tokens only)
   app.get("/api/billing/balance", isAuthenticated, async (req, res) => {
     try {
       const user = await storage.getUser(req.user!.id);
@@ -3635,27 +3614,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Initialize response with both VirtFusion and custom credit data
+      // Initialize response with VirtFusion data only
       const response = {
         virtFusionCredits: 0,
-        virtFusionTokens: 0,
-        customCredits: 0
+        virtFusionTokens: 0
       };
 
-      // Fetch custom credits from local database
-      try {
-        const userCredits = await db.select()
-          .from(userCreditsTable)
-          .where(eq(userCreditsTable.userId, user.id))
-          .limit(1);
 
-        if (userCredits.length > 0) {
-          response.customCredits = userCredits[0].balance || 0;
-        }
-      } catch (customCreditsError) {
-        console.error("Error fetching custom credits:", customCreditsError);
-        // Continue with 0 balance if we can't fetch custom credits
-      }
 
       // If user has VirtFusion account linked, fetch their tokens
       if (user.virtFusionId) {
@@ -4044,22 +4009,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Helper function to get custom credits name from branding settings
-  async function getCustomCreditsName(): Promise<string> {
-    try {
-      const brandingSettings = await db.select()
-        .from(settings)
-        .where(inArray(settings.key, ['company_name', 'custom_credits_name']));
 
-      const companyName = brandingSettings.find(s => s.key === 'company_name')?.value || 'SkyPANEL';
-      const customCreditsName = brandingSettings.find(s => s.key === 'custom_credits_name')?.value;
-
-      return customCreditsName || `${companyName} Credits`;
-    } catch (error) {
-      console.error('Error fetching branding settings for custom credits name:', error);
-      return 'Custom Credits'; // Fallback
-    }
-  }
 
   // Custom Credits System Endpoints
 
@@ -4160,23 +4110,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Get user's custom credits balance
-      const [userCredits] = await db.select()
-        .from(userCreditsTable)
-        .where(eq(userCreditsTable.userId, userId))
-        .limit(1);
-
-      const currentBalance = userCredits?.balance || 0;
-
-      if (currentBalance < plan.price) {
-        return res.status(400).json({
-          error: "Insufficient custom credits balance",
-          required: plan.price,
-          available: currentBalance
-        });
+      // Get user for VirtFusion integration
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
       }
 
-      const newBalance = currentBalance - plan.price;
+      if (!user.virtFusionId) {
+        return res.status(400).json({ error: "User is not linked to VirtFusion" });
+      }
+
+      // Check VirtFusion token balance
+      const virtFusionApi = new VirtFusionApi();
+      await virtFusionApi.updateSettings();
+
+      if (!virtFusionApi.isConfigured()) {
+        return res.status(500).json({ error: "VirtFusion API not configured" });
+      }
+
+      // Get user's VirtFusion balance
+      let virtFusionBalance = 0;
+      try {
+        const balanceResponse = await virtFusionApi.getUserBalance(user.virtFusionId);
+        virtFusionBalance = balanceResponse?.data?.balance || 0;
+      } catch (error: any) {
+        console.error("Error fetching VirtFusion balance:", error);
+        return res.status(500).json({ error: "Failed to check VirtFusion balance" });
+      }
+
+      // Convert plan price to tokens (assuming 1 USD = 100 tokens)
+      const tokensRequired = plan.price * 100;
+
+      if (virtFusionBalance < tokensRequired) {
+        return res.status(400).json({
+          error: "Insufficient VirtFusion tokens",
+          required: tokensRequired,
+          available: virtFusionBalance
+        });
+      }
       const now = new Date();
 
       // Calculate billing cycle end date - always end on the 1st of the next month
@@ -4185,78 +4156,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endDate = new Date(nextFirstOfMonth.getTime() - 1); // End of current billing cycle (last millisecond before next 1st)
       const nextPaymentDate = nextFirstOfMonth; // Next billing date is always the 1st of next month
 
-      // Get dynamic custom credits name for transaction description
-      const customCreditsName = await getCustomCreditsName();
-
       // Create transaction record in main transactions table
       const transaction: InsertTransaction = {
         userId: userId,
         amount: -plan.price, // Negative for debit
         type: "dns_plan_purchase",
-        description: `DNS Plan Purchase: ${plan.name} using ${customCreditsName}`,
+        description: `DNS Plan Purchase: ${plan.name} using VirtFusion tokens`,
         status: "completed",
-        paymentMethod: customCreditsName.toLowerCase().replace(/\s+/g, '_')
+        paymentMethod: "virtfusion_tokens"
       };
 
       const createdTransaction = await storage.createTransaction(transaction);
 
-      // Start database transaction
-      await db.transaction(async (tx) => {
-        // Update user credits balance
-        if (userCredits) {
-          await tx.update(userCreditsTable)
-            .set({
-              balance: newBalance,
-              updatedAt: new Date()
-            })
-            .where(eq(userCreditsTable.userId, userId));
-        } else {
-          // Create user credits record if it doesn't exist (shouldn't happen, but safety check)
-          await tx.insert(userCreditsTable).values({
-            userId: userId,
-            balance: newBalance
-          });
-        }
-
-        // Create credit transaction record (audit trail)
-        await tx.insert(creditTransactionsTable).values({
-          userId: userId,
-          amount: -plan.price, // Negative for debit
-          type: 'dns_plan_purchase',
-          description: `DNS Plan Purchase: ${plan.name} using ${customCreditsName}`,
-          status: 'completed',
-          paymentMethod: customCreditsName.toLowerCase().replace(/\s+/g, '_'),
-          balanceBefore: currentBalance,
-          balanceAfter: newBalance,
-          metadata: {
-            planId: plan.id,
-            planName: plan.name,
-            mainTransactionId: createdTransaction.id
-          }
+      // Deduct tokens from VirtFusion
+      try {
+        await virtFusionApi.deductCreditFromUser(user.virtFusionId, {
+          tokens: tokensRequired,
+          reference_1: createdTransaction.id,
+          reference_2: `DNS Plan Purchase: ${plan.name}`
         });
-
-        // Create DNS plan subscription
-        await tx.insert(dnsPlanSubscriptionsTable).values({
-          userId: userId,
-          planId: plan.id,
-          status: 'active',
-          startDate: now,
-          endDate: endDate,
-          autoRenew: true,
-          lastPaymentDate: now,
-          nextPaymentDate: nextPaymentDate
+      } catch (error: any) {
+        console.error("Error deducting VirtFusion tokens:", error);
+        // Update transaction status to failed
+        await storage.updateTransaction(createdTransaction.id, {
+          status: "failed",
+          description: `DNS Plan Purchase: ${plan.name} using VirtFusion tokens (Failed to deduct tokens)`
         });
+        return res.status(500).json({ error: "Failed to deduct VirtFusion tokens" });
+      }
+
+      // Create DNS plan subscription
+      await db.insert(dnsPlanSubscriptionsTable).values({
+        userId: userId,
+        planId: plan.id,
+        status: 'active',
+        startDate: now,
+        endDate: endDate,
+        autoRenew: true,
+        lastPaymentDate: now,
+        nextPaymentDate: nextPaymentDate
       });
 
-      console.log(`DNS plan purchased successfully: ${plan.name} for user ${userId}`);
+      console.log(`User ${userId} purchased DNS plan ${plan.name} for ${tokensRequired} VirtFusion tokens`);
 
       res.json({
         success: true,
-        plan: plan,
-        newBalance: newBalance,
-        subscriptionEndDate: endDate,
-        transactionId: createdTransaction.id,
-        message: `Successfully purchased ${plan.name} DNS plan`
+        message: `Successfully purchased ${plan.name} plan`,
+        subscription: {
+          planId: plan.id,
+          planName: plan.name,
+          startDate: now,
+          endDate: endDate,
+          nextPaymentDate: nextPaymentDate
+        },
+        tokensDeducted: tokensRequired
       });
 
     } catch (error: any) {
@@ -4343,22 +4296,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isDowngrade = newPlan.price < currentPlan.price;
       const isFreeDowngrade = newPlan.price === 0;
 
-      // For upgrades, check if user has sufficient credits
+      // For upgrades, check if user has sufficient VirtFusion tokens
       if (isUpgrade && proratedAmount > 0) {
-        // Get user credits
-        const [userCredits] = await db.select()
-          .from(userCreditsTable)
-          .where(eq(userCreditsTable.userId, userId))
-          .limit(1);
+        // Get user for VirtFusion integration
+        const user = await storage.getUser(userId);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
 
-        const currentBalance = userCredits?.balance || 0;
+        if (!user.virtFusionId) {
+          return res.status(400).json({ error: "User is not linked to VirtFusion" });
+        }
 
-        if (currentBalance < proratedAmount) {
+        // Check VirtFusion token balance
+        const virtFusionApi = new VirtFusionApi();
+        await virtFusionApi.updateSettings();
+
+        if (!virtFusionApi.isConfigured()) {
+          return res.status(500).json({ error: "VirtFusion API not configured" });
+        }
+
+        // Get user's VirtFusion balance
+        let virtFusionBalance = 0;
+        try {
+          const balanceResponse = await virtFusionApi.getUserBalance(user.virtFusionId);
+          virtFusionBalance = balanceResponse?.data?.balance || 0;
+        } catch (error: any) {
+          console.error("Error fetching VirtFusion balance:", error);
+          return res.status(500).json({ error: "Failed to check VirtFusion balance" });
+        }
+
+        // Convert prorated amount to tokens (assuming 1 USD = 100 tokens)
+        const tokensRequired = proratedAmount * 100;
+
+        if (virtFusionBalance < tokensRequired) {
           return res.status(400).json({
-            error: "Insufficient custom credits for upgrade",
-            required: proratedAmount,
-            available: currentBalance,
-            shortfall: proratedAmount - currentBalance
+            error: "Insufficient VirtFusion tokens for upgrade",
+            required: tokensRequired,
+            available: virtFusionBalance,
+            shortfall: tokensRequired - virtFusionBalance
           });
         }
       }
@@ -4376,41 +4352,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Start database transaction
       await db.transaction(async (tx) => {
-        // Handle credit transactions for upgrades/downgrades
+        // Handle VirtFusion token transactions for upgrades/downgrades
         if (Math.abs(proratedAmount) > 0.01) { // Only process if amount is significant
-          // Get current balance for transaction records
-          const [userCredits] = await tx.select()
-            .from(userCreditsTable)
-            .where(eq(userCreditsTable.userId, userId))
-            .limit(1);
-
-          const currentBalance = userCredits?.balance || 0;
-          const newBalance = currentBalance - proratedAmount; // Subtract for upgrade, add for downgrade (negative amount)
-
-          // Update user credits balance
-          if (userCredits) {
-            await tx.update(userCreditsTable)
-              .set({
-                balance: newBalance,
-                updatedAt: new Date()
-              })
-              .where(eq(userCreditsTable.userId, userId));
-          } else {
-            // Create user credits record if it doesn't exist
-            await tx.insert(userCreditsTable).values({
-              userId: userId,
-              balance: newBalance
-            });
+          // Get user for VirtFusion integration
+          const user = await storage.getUser(userId);
+          if (!user || !user.virtFusionId) {
+            throw new Error("User not found or not linked to VirtFusion");
           }
-
-          // Get dynamic custom credits name for transaction description
-          const customCreditsName = await getCustomCreditsName();
 
           // Create main transaction record
           const transactionType = isUpgrade ? 'dns_plan_upgrade' : 'dns_plan_downgrade';
           const transactionDescription = isUpgrade
-            ? `DNS Plan Upgrade: ${currentPlan.name} → ${newPlan.name} using ${customCreditsName}`
-            : `DNS Plan Downgrade: ${currentPlan.name} → ${newPlan.name} using ${customCreditsName}`;
+            ? `DNS Plan Upgrade: ${currentPlan.name} → ${newPlan.name} using VirtFusion tokens`
+            : `DNS Plan Downgrade: ${currentPlan.name} → ${newPlan.name} using VirtFusion tokens`;
 
           const createdTransaction = await tx.insert(transactions).values({
             userId: userId,
@@ -4418,29 +4372,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: transactionType,
             description: transactionDescription,
             status: 'completed',
-            paymentMethod: customCreditsName.toLowerCase().replace(/\s+/g, '_')
+            paymentMethod: 'virtfusion_tokens'
           }).returning();
 
-          // Create credit transaction record (audit trail)
-          await tx.insert(creditTransactionsTable).values({
-            userId: userId,
-            amount: -proratedAmount,
-            type: isUpgrade ? 'dns_plan_upgrade' : 'dns_plan_downgrade',
-            description: transactionDescription,
-            status: 'completed',
-            paymentMethod: customCreditsName.toLowerCase().replace(/\s+/g, '_'),
-            balanceBefore: currentBalance,
-            balanceAfter: newBalance,
-            metadata: {
-              oldPlanId: currentPlan.id,
-              oldPlanName: currentPlan.name,
-              newPlanId: newPlan.id,
-              newPlanName: newPlan.name,
-              daysRemaining: daysRemaining,
-              proratedAmount: proratedAmount,
-              mainTransactionId: createdTransaction[0].id
-            }
-          });
+          // Handle VirtFusion token deduction/refund outside the database transaction
+          // We'll do this after the database transaction completes successfully
         }
 
         // Handle domain removal for downgrades
@@ -4620,6 +4556,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
           nextPaymentDate: nextPaymentDate
         });
       });
+
+      // Handle VirtFusion token deduction/refund after successful database transaction
+      if (Math.abs(proratedAmount) > 0.01) {
+        const user = await storage.getUser(userId);
+        if (user && user.virtFusionId) {
+          const virtFusionApi = new VirtFusionApi();
+          await virtFusionApi.updateSettings();
+
+          if (virtFusionApi.isConfigured()) {
+            try {
+              const tokensAmount = Math.abs(proratedAmount) * 100; // Convert to tokens
+
+              if (isUpgrade) {
+                // Deduct tokens for upgrade
+                await virtFusionApi.deductCreditFromUser(user.virtFusionId, {
+                  tokens: tokensAmount,
+                  reference_1: Date.now(),
+                  reference_2: `DNS Plan Upgrade: ${currentPlan.name} → ${newPlan.name}`
+                });
+                console.log(`Deducted ${tokensAmount} VirtFusion tokens for DNS plan upgrade`);
+              } else {
+                // Add tokens for downgrade (refund)
+                await virtFusionApi.addCreditToUser(user.virtFusionId, {
+                  tokens: tokensAmount,
+                  reference_1: Date.now(),
+                  reference_2: `DNS Plan Downgrade Refund: ${currentPlan.name} → ${newPlan.name}`
+                });
+                console.log(`Refunded ${tokensAmount} VirtFusion tokens for DNS plan downgrade`);
+              }
+            } catch (virtFusionError: any) {
+              console.error("Error handling VirtFusion tokens for DNS plan change:", virtFusionError);
+              // Don't fail the entire operation, but log the error
+            }
+          }
+        }
+      }
 
       const actionType = isUpgrade ? 'upgraded' : 'downgraded';
       console.log(`DNS plan ${actionType} successfully: ${currentPlan.name} → ${newPlan.name} for user ${userId}`);
@@ -4821,201 +4793,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add custom credits via PayPal
-  app.post("/api/billing/custom-credits/add", isAuthenticated, async (req, res) => {
-    try {
-      const { amount, paymentId, verificationData } = req.body;
 
-      console.log(`Processing custom credit purchase: amount=${amount}, paymentId=${paymentId}`);
 
-      if (!amount || amount <= 0 || !paymentId) {
-        console.log("Invalid custom credit purchase request - missing amount or paymentId");
-        return res.status(400).json({ error: "Invalid amount or payment ID" });
-      }
 
-      // Validate amount limits (minimum $1, maximum $1000)
-      if (amount < 1) {
-        console.log(`Amount too low: ${amount}`);
-        return res.status(400).json({ error: "Minimum amount is $1.00" });
-      }
-
-      if (amount > 1000) {
-        console.log(`Amount too high: ${amount}`);
-        return res.status(400).json({ error: "Maximum amount is $1000.00" });
-      }
-
-      // Get dynamic custom credits name for transaction description
-      const customCreditsName = await getCustomCreditsName();
-
-      // Create a new transaction record in the main transactions table for unified history
-      const transaction: InsertTransaction = {
-        userId: req.user!.id,
-        amount: amount,
-        type: "custom_credit",
-        description: `${customCreditsName} purchase via PayPal`,
-        status: "pending",
-        paymentMethod: "paypal",
-        paymentId: paymentId,
-      };
-
-      console.log("Creating main transaction record:", transaction);
-      const createdTransaction = await storage.createTransaction(transaction);
-      console.log("Main transaction created with ID:", createdTransaction.id);
-
-      // Verify we have verification data
-      if (!verificationData || !verificationData.verified) {
-        console.error("Payment not verified through server-side validation");
-
-        // Update main transaction status to failed
-        await storage.updateTransaction(createdTransaction.id, {
-          status: "failed",
-          description: `${customCreditsName} purchase via PayPal (Payment verification failed)`
-        });
-
-        return res.status(400).json({
-          error: "Payment verification failed. Please try again.",
-          needsVerification: true
-        });
-      }
-
-      // Compare amounts for extra security
-      if (verificationData.amount !== amount) {
-        console.error(`Amount mismatch: verified=${verificationData.amount}, requested=${amount}`);
-
-        // Update main transaction status to failed
-        await storage.updateTransaction(createdTransaction.id, {
-          status: "failed",
-          description: `${customCreditsName} purchase via PayPal (Amount mismatch)`
-        });
-
-        return res.status(400).json({
-          error: "Payment amount doesn't match the verification data",
-          needsVerification: true
-        });
-      }
-
-      const userId = req.user!.id;
-
-      // Get or create user credits record
-      let userCredits = await db.select()
-        .from(userCreditsTable)
-        .where(eq(userCreditsTable.userId, userId))
-        .limit(1);
-
-      let currentBalance = 0;
-      if (userCredits.length === 0) {
-        // Create new user credits record
-        await db.insert(userCreditsTable).values({
-          userId: userId,
-          balance: 0
-        });
-        console.log(`Created new user credits record for user ${userId}`);
-      } else {
-        currentBalance = userCredits[0].balance;
-      }
-
-      const newBalance = currentBalance + amount;
-
-      try {
-        // Start transaction to ensure data consistency
-        await db.transaction(async (tx) => {
-          // Update user credits balance
-          await tx.update(userCreditsTable)
-            .set({
-              balance: newBalance,
-              updatedAt: new Date()
-            })
-            .where(eq(userCreditsTable.userId, userId));
-
-          // Create credit transaction record (for audit trail)
-          await tx.insert(creditTransactionsTable).values({
-            userId: userId,
-            amount: amount,
-            type: 'purchase',
-            description: `${customCreditsName} purchase via PayPal`,
-            status: 'completed',
-            paymentMethod: 'paypal',
-            paymentId: paymentId,
-            balanceBefore: currentBalance,
-            balanceAfter: newBalance,
-            metadata: {
-              verificationData,
-              mainTransactionId: createdTransaction.id // Link to main transaction
-            }
-          });
-        });
-
-        // Update main transaction status to completed
-        await storage.updateTransaction(createdTransaction.id, {
-          status: "completed",
-          description: `${customCreditsName} purchase via PayPal (Transaction ID: ${createdTransaction.id})`
-        });
-
-        console.log(`Successfully added $${amount} ${customCreditsName.toLowerCase()} to user ${userId}. New balance: $${newBalance}`);
-
-        res.json({
-          success: true,
-          amountAdded: amount,
-          newBalance: newBalance,
-          transactionId: createdTransaction.id,
-          message: `Successfully added $${amount.toFixed(2)} to your ${customCreditsName.toLowerCase()} balance`
-        });
-
-      } catch (dbError: any) {
-        console.error("Database error during custom credit purchase:", dbError);
-
-        // Update main transaction status to failed
-        await storage.updateTransaction(createdTransaction.id, {
-          status: "failed",
-          description: `${customCreditsName} purchase via PayPal (Database error)`
-        });
-
-        return res.status(500).json({ error: `Failed to process ${customCreditsName.toLowerCase()} purchase` });
-      }
-
-    } catch (error: any) {
-      console.error(`Error processing custom credit purchase:`, error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get custom credit transactions
-  app.get("/api/billing/custom-credits/transactions", isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user!.id;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 20;
-      const offset = (page - 1) * limit;
-
-      const transactions = await db.select()
-        .from(creditTransactionsTable)
-        .where(eq(creditTransactionsTable.userId, userId))
-        .orderBy(desc(creditTransactionsTable.createdAt))
-        .limit(limit)
-        .offset(offset);
-
-      // Get total count for pagination
-      const totalResult = await db.select({ count: sql<number>`count(*)` })
-        .from(creditTransactionsTable)
-        .where(eq(creditTransactionsTable.userId, userId));
-
-      const total = totalResult[0]?.count || 0;
-
-      res.json({
-        transactions,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit)
-        }
-      });
-
-    } catch (error: any) {
-      console.error(`Error fetching custom credit transactions:`, error);
-      res.status(500).json({ error: error.message });
-    }
-  });
 
   // Get VirtFusion usage for the last 30 days
   app.get("/api/billing/usage/last30days", isAuthenticated, async (req, res) => {
@@ -7344,258 +7124,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin Custom Credits Management Endpoints
 
-  // Get user's custom credits balance and transactions (admin only)
-  app.get("/api/admin/users/:id/custom-credits", isAdmin, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.id);
 
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
 
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
 
-      // Get user credits balance
-      let userCredits = await db.select()
-        .from(userCreditsTable)
-        .where(eq(userCreditsTable.userId, userId))
-        .limit(1);
 
-      const balance = userCredits.length > 0 ? userCredits[0].balance : 0;
-
-      // Get recent transactions (last 50)
-      const transactions = await db.select()
-        .from(creditTransactionsTable)
-        .where(eq(creditTransactionsTable.userId, userId))
-        .orderBy(desc(creditTransactionsTable.createdAt))
-        .limit(50);
-
-      res.json({
-        balance,
-        transactions,
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          fullName: user.fullName
-        }
-      });
-
-    } catch (error: any) {
-      console.error("Error fetching user custom credits:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Add custom credits to a user (admin only)
-  app.post("/api/admin/users/:id/custom-credits", isAdmin, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const { amount, reason } = req.body;
-
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
-
-      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-        return res.status(400).json({ error: "Invalid credit amount" });
-      }
-
-      if (!reason || reason.trim().length === 0) {
-        return res.status(400).json({ error: "Reason is required" });
-      }
-
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      // Get dynamic custom credits name for transaction description
-      const customCreditsName = await getCustomCreditsName();
-
-      const adminUser = req.user as any;
-      const creditAmount = Number(amount);
-
-      // Get or create user credits record
-      let userCredits = await db.select()
-        .from(userCreditsTable)
-        .where(eq(userCreditsTable.userId, userId))
-        .limit(1);
-
-      let currentBalance = 0;
-      if (userCredits.length === 0) {
-        // Create new user credits record
-        await db.insert(userCreditsTable).values({
-          userId: userId,
-          balance: 0
-        });
-        console.log(`Created new user credits record for user ${userId}`);
-      } else {
-        currentBalance = userCredits[0].balance;
-      }
-
-      const newBalance = currentBalance + creditAmount;
-
-      // Start transaction to ensure data consistency
-      await db.transaction(async (tx) => {
-        // Update user credits balance
-        await tx.update(userCreditsTable)
-          .set({
-            balance: newBalance,
-            updatedAt: new Date()
-          })
-          .where(eq(userCreditsTable.userId, userId));
-
-        // Create main transaction record (unified history)
-        const createdTransaction = await tx.insert(transactions).values({
-          userId: userId,
-          amount: creditAmount, // Positive for credit addition
-          type: 'admin_credit_add',
-          description: `Admin ${customCreditsName} Addition: ${reason}`,
-          status: 'completed',
-          paymentMethod: 'admin'
-        }).returning();
-
-        // Create credit transaction record (audit trail)
-        await tx.insert(creditTransactionsTable).values({
-          userId: userId,
-          amount: creditAmount,
-          type: 'admin_add',
-          description: `Admin ${customCreditsName.toLowerCase()} addition: ${reason}`,
-          status: 'completed',
-          paymentMethod: 'admin',
-          adminUserId: adminUser.id,
-          adminReason: reason,
-          balanceBefore: currentBalance,
-          balanceAfter: newBalance,
-          metadata: {
-            adminUser: { id: adminUser.id, username: adminUser.username },
-            mainTransactionId: createdTransaction[0].id
-          }
-        });
-      });
-
-      console.log(`Admin ${adminUser.username} added $${creditAmount} ${customCreditsName.toLowerCase()} to user ${userId}. New balance: $${newBalance}`);
-
-      res.json({
-        success: true,
-        amountAdded: creditAmount,
-        newBalance: newBalance,
-        message: `Successfully added $${creditAmount.toFixed(2)} to user's ${customCreditsName.toLowerCase()} balance`
-      });
-
-    } catch (error: any) {
-      console.error("Error adding custom credits:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Remove custom credits from a user (admin only)
-  app.delete("/api/admin/users/:id/custom-credits", isAdmin, async (req, res) => {
-    try {
-      const userId = parseInt(req.params.id);
-      const { amount, reason } = req.body;
-
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
-
-      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-        return res.status(400).json({ error: "Invalid credit amount" });
-      }
-
-      if (!reason || reason.trim().length === 0) {
-        return res.status(400).json({ error: "Reason is required" });
-      }
-
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const adminUser = req.user as any;
-      const creditAmount = Number(amount);
-
-      // Get user credits record
-      let userCredits = await db.select()
-        .from(userCreditsTable)
-        .where(eq(userCreditsTable.userId, userId))
-        .limit(1);
-
-      // Get dynamic custom credits name for transaction description
-      const customCreditsName = await getCustomCreditsName();
-
-      if (userCredits.length === 0) {
-        return res.status(400).json({ error: `User has no ${customCreditsName.toLowerCase()} balance` });
-      }
-
-      const currentBalance = userCredits[0].balance;
-      const newBalance = currentBalance - creditAmount;
-
-      // Allow negative balances but warn admin
-      if (newBalance < 0) {
-        console.warn(`Admin ${adminUser.username} is setting user ${userId} to negative balance: $${newBalance}`);
-      }
-
-      // Start transaction to ensure data consistency
-      await db.transaction(async (tx) => {
-        // Update user credits balance
-        await tx.update(userCreditsTable)
-          .set({
-            balance: newBalance,
-            updatedAt: new Date()
-          })
-          .where(eq(userCreditsTable.userId, userId));
-
-        // Create main transaction record (unified history)
-        const createdTransaction = await tx.insert(transactions).values({
-          userId: userId,
-          amount: -creditAmount, // Negative for credit removal
-          type: 'admin_credit_remove',
-          description: `Admin ${customCreditsName} Removal: ${reason}`,
-          status: 'completed',
-          paymentMethod: 'admin'
-        }).returning();
-
-        // Create credit transaction record (audit trail)
-        await tx.insert(creditTransactionsTable).values({
-          userId: userId,
-          amount: -creditAmount, // Negative amount for removal
-          type: 'admin_remove',
-          description: `Admin ${customCreditsName.toLowerCase()} removal: ${reason}`,
-          status: 'completed',
-          paymentMethod: 'admin',
-          adminUserId: adminUser.id,
-          adminReason: reason,
-          balanceBefore: currentBalance,
-          balanceAfter: newBalance,
-          metadata: {
-            adminUser: { id: adminUser.id, username: adminUser.username },
-            mainTransactionId: createdTransaction[0].id
-          }
-        });
-      });
-
-      console.log(`Admin ${adminUser.username} removed $${creditAmount} ${customCreditsName.toLowerCase()} from user ${userId}. New balance: $${newBalance}`);
-
-      res.json({
-        success: true,
-        amountRemoved: creditAmount,
-        newBalance: newBalance,
-        message: `Successfully removed $${creditAmount.toFixed(2)} from user's ${customCreditsName.toLowerCase()} balance`,
-        warning: newBalance < 0 ? "User now has a negative balance" : null
-      });
-
-    } catch (error: any) {
-      console.error("Error removing custom credits:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
 
   // Delete user (admin only)
   app.delete("/api/admin/users/:id", isAdmin, async (req, res) => {
@@ -9865,8 +9398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'primary_color', 'secondary_color', 'accent_color',
           // Legacy color (for backward compatibility)
           'company_color',
-          // Custom credits settings
-          'custom_credits_name', 'custom_credits_currency', 'custom_credits_symbol',
+
           // Loading screen settings
           'loading_screen_enabled', 'loading_screen_animation_duration',
           'loading_screen_min_duration', 'loading_screen_show_on_all_pages'
@@ -9903,18 +9435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         brandingObject.company_color = brandingObject.primary_color;
       }
 
-      // Set default custom credits settings if not set
-      if (!brandingObject.custom_credits_name) {
-        brandingObject.custom_credits_name = `${brandingObject.company_name || 'SkyPANEL'} Credits`;
-      }
 
-      if (!brandingObject.custom_credits_currency) {
-        brandingObject.custom_credits_currency = 'USD';
-      }
-
-      if (!brandingObject.custom_credits_symbol) {
-        brandingObject.custom_credits_symbol = '$';
-      }
 
       res.json(brandingObject);
     } catch (error: any) {
@@ -10529,8 +10050,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      // Format the PDF with branding
-      formatSingleTransactionPdf(doc, transaction, user, companyName.value, companyLogo.value, customCreditsName.value);
+      // Format the PDF
+      formatSingleTransactionPdf(doc, transaction, user, companyName.value, companyLogo.value);
 
       // Finalize the PDF
       doc.end();

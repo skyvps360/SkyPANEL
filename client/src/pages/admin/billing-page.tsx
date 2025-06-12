@@ -39,8 +39,7 @@ export default function AdminBillingPage() {
     primary_color: string;
     secondary_color: string;
     accent_color: string;
-    custom_credits_name?: string;
-    custom_credits_symbol?: string;
+
   }>({
     queryKey: ['/api/settings/branding'],
   });
@@ -87,7 +86,7 @@ export default function AdminBillingPage() {
       accessorKey: "amount",
       header: "Amount",
       cell: (item: Transaction) => {
-        const isCredit = item.type === 'virtfusion_credit' || item.type === 'custom_credit' || item.type === 'admin_credit_add' || item.type === 'dns_plan_downgrade' || item.amount > 0;
+        const isCredit = item.type === 'virtfusion_credit' || item.type === 'dns_plan_downgrade' || item.amount > 0;
         return (
           <span
             className={`font-medium ${isCredit ? 'text-secondary' : 'text-destructive'}`}
@@ -102,15 +101,14 @@ export default function AdminBillingPage() {
       accessorKey: "type",
       header: "Type",
       cell: (item: Transaction) => {
-        const isCredit = item.type === 'virtfusion_credit' || item.type === 'custom_credit' || item.type === 'admin_credit_add' || item.type === 'dns_plan_downgrade' || item.amount > 0;
+        const isCredit = item.type === 'virtfusion_credit' || item.type === 'dns_plan_downgrade' || item.amount > 0;
         const displayType = item.type === 'virtfusion_credit' ? 'VirtFusion Credit' :
-                           item.type === 'custom_credit' ? (brandingData?.custom_credits_name || 'Custom Credit') :
                            item.type === 'credit' ? 'VirtFusion Credit' :
                            item.type === 'dns_plan_purchase' ? 'DNS Plan Purchase' :
                            item.type === 'dns_plan_upgrade' ? 'DNS Plan Upgrade' :
                            item.type === 'dns_plan_downgrade' ? 'DNS Plan Downgrade' :
-                           item.type === 'admin_credit_add' ? `Admin ${brandingData?.custom_credits_name || 'Custom Credit'} Addition` :
-                           item.type === 'admin_credit_remove' ? `Admin ${brandingData?.custom_credits_name || 'Custom Credit'} Removal` :
+
+
                            item.type;
         return (
           <Badge
@@ -149,9 +147,7 @@ export default function AdminBillingPage() {
                 {!item.paymentMethod && <AlertCircle className="h-4 w-4 text-muted-foreground" />}
                 <span className="text-foreground">
                   {item.paymentMethod
-                    ? (item.paymentMethod === 'custom_credits' || item.paymentMethod?.includes('_credits') || item.paymentMethod?.includes('credits')
-                        ? (brandingData?.custom_credits_name || 'Custom Credits')
-                        : item.paymentMethod.charAt(0).toUpperCase() + item.paymentMethod.slice(1))
+                    ? (item.paymentMethod === 'virtfusion_tokens' ? 'VirtFusion Tokens' : item.paymentMethod.charAt(0).toUpperCase() + item.paymentMethod.slice(1))
                     : "N/A"}
                 </span>
               </div>
@@ -159,13 +155,11 @@ export default function AdminBillingPage() {
             <TooltipContent>
               <p>Payment ID: {item.paymentId || 'None'}</p>
               <p>Type: {item.type === 'virtfusion_credit' ? 'VirtFusion Credit' :
-                       item.type === 'custom_credit' ? (brandingData?.custom_credits_name || 'Custom Credit') :
                        item.type === 'credit' ? 'VirtFusion Credit' :
                        item.type === 'dns_plan_purchase' ? 'DNS Plan Purchase' :
                        item.type === 'dns_plan_upgrade' ? 'DNS Plan Upgrade' :
                        item.type === 'dns_plan_downgrade' ? 'DNS Plan Downgrade' :
-                       item.type === 'admin_credit_add' ? `Admin ${brandingData?.custom_credits_name || 'Custom Credit'} Addition` :
-                       item.type === 'admin_credit_remove' ? `Admin ${brandingData?.custom_credits_name || 'Custom Credit'} Removal` :
+
                        item.type}</p>
               <p>Status: {item.status}</p>
             </TooltipContent>
@@ -252,7 +246,6 @@ export default function AdminBillingPage() {
     .filter(t => {
       // Include all credit purchases that add money to the system
       const isCreditPurchase = t.type === 'virtfusion_credit' ||
-                              t.type === 'custom_credit' ||
                               t.type === 'credit';
       return isCreditPurchase && t.status === 'completed' && Number(t.amount) > 0;
     })
@@ -344,7 +337,7 @@ export default function AdminBillingPage() {
                 <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
-                Unified billing from VirtFusion & {brandingData?.custom_credits_name?.toLowerCase() || 'custom credits'}
+                VirtFusion token billing system
               </p>
             </CardContent>
           </Card>

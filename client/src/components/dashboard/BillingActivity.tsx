@@ -50,36 +50,17 @@ export function BillingActivity() {
         queryKey: ["/api/settings/branding"],
     });
 
-    // Helper function to format transaction description with branding
+    // Helper function to format transaction description
     const formatDescription = (description: string) => {
         if (!description) return '';
-
-        // Replace hardcoded "custom_credits" with branded name
-        if (description.includes('custom_credits')) {
-            return description.replace(/custom_credits/g, brandingData?.custom_credits_name || 'Custom Credits');
-        }
-
-        // Always replace "Custom Credits" with branded name, even if they're the same
-        // This ensures consistency in case the branding name changes in the future
-        if (description.includes('Custom Credits') && brandingData?.custom_credits_name) {
-            return description.replace(/Custom Credits/g, brandingData.custom_credits_name);
-        }
-
         return description;
     };
 
-    // Helper function to format payment method with branding
+    // Helper function to format payment method
     const formatPaymentMethod = (paymentMethod: string) => {
         if (!paymentMethod) return '';
 
-        // Handle custom credits payment methods
-        if (paymentMethod === 'custom_credits' ||
-            paymentMethod.includes('_credits') ||
-            paymentMethod.includes('credits')) {
-            return brandingData?.custom_credits_name || 'Custom Credits';
-        }
-
-        // Capitalize first letter for other payment methods
+        // Capitalize first letter for payment methods
         return paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1);
     };
 

@@ -165,9 +165,7 @@ router.put('/branding/update', async (req, res) => {
       secondary_color: z.string().optional(),
       custom_css: z.string().optional(),
       custom_js: z.string().optional(),
-      custom_credits_name: z.string().optional(),
-      custom_credits_currency: z.string().optional(),
-      custom_credits_symbol: z.string().optional()
+
     });
     
     const validationResult = schema.safeParse(req.body);

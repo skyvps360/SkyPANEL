@@ -20,13 +20,8 @@ interface Transaction {
 }
 
 // Helper function to format transaction descriptions for better readability
-const formatTransactionDescription = (transaction: Transaction, brandingData?: { custom_credits_name?: string }) => {
+const formatTransactionDescription = (transaction: Transaction) => {
   let description = transaction.description;
-
-  // Replace hardcoded "custom_credits" with branded name in all descriptions
-  if (description && description.includes('custom_credits')) {
-    description = description.replace(/custom_credits/g, brandingData?.custom_credits_name || 'Custom Credits');
-  }
 
   // Handle DNS plan transactions with plan name extraction
   if (transaction.type === 'dns_plan_purchase' && description.includes('DNS Plan Purchase:')) {
@@ -84,12 +79,10 @@ const isDebit = (transaction: Transaction) => {
 };
 
 // Helper function to format transaction type for display
-const formatTransactionType = (transaction: Transaction, brandingData?: { custom_credits_name?: string }) => {
+const formatTransactionType = (transaction: Transaction) => {
   switch (transaction.type) {
     case 'virtfusion_credit':
       return 'VirtFusion Credit';
-    case 'custom_credit':
-      return brandingData?.custom_credits_name || 'Custom Credit';
     case 'credit':
       return 'VirtFusion Credit';
     case 'dns_plan_purchase':
@@ -98,10 +91,6 @@ const formatTransactionType = (transaction: Transaction, brandingData?: { custom
       return 'DNS Plan Upgrade';
     case 'dns_plan_downgrade':
       return 'DNS Plan Downgrade';
-    case 'admin_credit_add':
-      return `Admin ${brandingData?.custom_credits_name || 'Custom Credit'} Addition`;
-    case 'admin_credit_remove':
-      return `Admin ${brandingData?.custom_credits_name || 'Custom Credit'} Removal`;
     default:
       return transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1).replace(/_/g, ' ');
   }
@@ -116,13 +105,7 @@ export default function TransactionDetailPage() {
   console.log("Transaction ID from URL:", params?.id);
   console.log("Parsed Transaction ID:", transactionId);
 
-  // Fetch branding data for dynamic custom credits naming
-  const { data: brandingData } = useQuery<{
-    company_name: string;
-    custom_credits_name?: string;
-  }>({
-    queryKey: ['/api/settings/branding'],
-  });
+
 
   // Fetch transaction details with improved debugging
   const { data: transaction, isLoading, error } = useQuery<Transaction>({
@@ -267,7 +250,7 @@ export default function TransactionDetailPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Description</h3>
-              <p className="text-lg font-medium">{formatTransactionDescription(transaction, brandingData)}</p>
+              <p className="text-lg font-medium">{formatTransactionDescription(transaction)}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Amount</h3>
@@ -277,7 +260,7 @@ export default function TransactionDetailPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Type</h3>
-              <p className="text-lg font-medium">{formatTransactionType(transaction, brandingData)}</p>
+              <p className="text-lg font-medium">{formatTransactionType(transaction)}</p>
             </div>
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Status</h3>
@@ -287,9 +270,7 @@ export default function TransactionDetailPage() {
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">Payment Method</h3>
                 <p className="text-lg font-medium capitalize">
-                  {transaction.paymentMethod === 'custom_credits' || transaction.paymentMethod?.includes('_credits') || transaction.paymentMethod?.includes('credits')
-                    ? (brandingData?.custom_credits_name || 'Custom Credits')
-                    : transaction.paymentMethod}
+                  {transaction.paymentMethod === 'virtfusion_tokens' ? 'VirtFusion Tokens' : transaction.paymentMethod}
                 </p>
               </div>
             )}

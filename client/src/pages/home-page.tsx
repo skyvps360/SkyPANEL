@@ -63,8 +63,7 @@ interface BrandingData {
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
-  custom_credits_name?: string;
-  custom_credits_symbol?: string;
+
 }
 
 // Define types for the balance data
@@ -72,7 +71,6 @@ interface BalanceData {
   credits: number;
   virtFusionCredits: number | null;
   virtFusionTokens: number | null;
-  customCredits: number;
 }
 
 export default function HomePage() {
@@ -314,53 +312,7 @@ export default function HomePage() {
                       </td>
                     </tr>
 
-                    {/* Custom Credits Row */}
-                    <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{ backgroundColor: `var(--brand-secondary, ${brandColors.secondary.full})` }}
-                          >
-                            <Coins className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{brandingData?.custom_credits_name || 'Custom Credits'}</p>
-                            <p className="text-sm text-gray-500">DNS</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-right">
-                          <p className={`text-lg font-semibold ${(balanceData?.customCredits || 0) < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                            ${(balanceData?.customCredits || 0).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })}
-                          </p>
-                          <p className="text-xs text-gray-500">Available balance</p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                          <span className="text-sm text-gray-600">Active</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex justify-center">
-                          <Link href="/billing">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                            >
-                              Manage
-                            </Button>
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
+
 
                     {/* DNS Domains Row */}
                     <tr className="hover:bg-gray-50 transition-colors duration-200">

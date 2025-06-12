@@ -36,9 +36,7 @@ interface DnsPlanSubscription {
   plan: DnsPlan;
 }
 
-interface CustomCreditsBalance {
-  customCredits: number;
-}
+
 
 export default function DnsPlansPage() {
   const { toast } = useToast();
@@ -49,13 +47,7 @@ export default function DnsPlansPage() {
   const itemsPerPage = 5;
   const brandColors = getBrandColors();
 
-  // Fetch branding data for custom credits name
-  const { data: brandingData } = useQuery<{
-    company_name: string;
-    custom_credits_name?: string;
-  }>({
-    queryKey: ['/api/settings/branding'],
-  });
+
 
   // Domain selection modal state for downgrades
   const [domainSelectionModal, setDomainSelectionModal] = useState<{
@@ -84,10 +76,7 @@ export default function DnsPlansPage() {
     queryKey: ["/api/dns-plans/subscriptions"],
   });
 
-  // Fetch custom credits balance
-  const { data: balanceData } = useQuery<CustomCreditsBalance>({
-    queryKey: ["/api/billing/balance"],
-  });
+
 
   // Change DNS plan mutation (upgrade/downgrade/switch)
   const changePlanMutation = useMutation({
@@ -281,7 +270,7 @@ export default function DnsPlansPage() {
     currentPage * itemsPerPage
   );
 
-  const customCredits = balanceData?.customCredits || 0;
+
 
   if (plansLoading || subscriptionsLoading) {
     return (
@@ -316,40 +305,7 @@ export default function DnsPlansPage() {
           </div>
         </div>
 
-        {/* Custom Credits Card - Moved to top */}
-        <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
-          <div className="px-6 py-4 flex items-center justify-between border-b border-border">
-            <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-secondary" />
-              {brandingData?.custom_credits_name || 'Custom Credits'}
-            </CardTitle>
-            <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
-              <Plus className="h-5 w-5 text-secondary" />
-            </div>
-          </div>
-          <CardContent className="px-6 py-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-1 mb-2">
-                  <span className={`text-2xl font-bold ${customCredits < 0 ? 'text-red-600' : 'text-secondary'}`}>
-                    ${customCredits.toFixed(2)}
-                  </span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Available for DNS plan purchases
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                className="border-secondary/20 text-secondary hover:bg-secondary/10"
-                onClick={() => window.location.href = '/billing'}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Credits
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+
 
         {/* Active Subscriptions */}
         {subscriptions.length > 0 && (
@@ -540,7 +496,7 @@ export default function DnsPlansPage() {
                       }
                     }
 
-                    const canAfford = isFree || !isUpgrade || customCredits >= proratedAmount;
+                    const canAfford = true; // VirtFusion token billing - affordability checked server-side
 
                     return (
                       <div className="space-y-2">
@@ -561,7 +517,7 @@ export default function DnsPlansPage() {
                           ) : isActive ? (
                             "Current Plan"
                           ) : !canAfford && !isFree ? (
-                            "Insufficient Credits"
+                            "Insufficient Tokens"
                           ) : isFree ? (
                             currentPlan ? "Downgrade" : "Activate"
                           ) : isUpgrade ? (
@@ -585,11 +541,7 @@ export default function DnsPlansPage() {
                           </div>
                         )}
 
-                        {!canAfford && !isActive && !isFree && isUpgrade && (
-                          <div className="text-xs p-2 bg-amber-50 text-amber-700 rounded">
-                            Need ${(proratedAmount - customCredits).toFixed(2)} more
-                          </div>
-                        )}
+
 
                         {isActive && subscription && (
                           <div className="text-xs text-center text-muted-foreground">

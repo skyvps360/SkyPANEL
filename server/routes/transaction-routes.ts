@@ -7,21 +7,17 @@ import { transactions, InsertTransaction } from "@shared/schema";
 const router = Router();
 
 // Helper function to format transaction description for PDF
-function formatTransactionDescriptionForPdf(description: string, customCreditsName: string): string {
+function formatTransactionDescriptionForPdf(description: string): string {
   if (description.includes('VirtFusion Credits')) {
     return description.replace('VirtFusion Credits', 'Credits');
-  } else if (description.includes('Custom Credits')) {
-    return description.replace('Custom Credits', customCreditsName);
   }
   return description;
 }
 
 // Helper function to format payment method for PDF
-function formatPaymentMethodForPdf(paymentMethod: string, customCreditsName: string): string {
+function formatPaymentMethodForPdf(paymentMethod: string): string {
   if (paymentMethod === 'VirtFusion Credits') {
     return 'Credits';
-  } else if (paymentMethod === 'Custom Credits') {
-    return customCreditsName;
   }
   return paymentMethod;
 }
@@ -32,8 +28,7 @@ function formatSingleTransactionPdf(
   transaction: any,
   user: any,
   companyName: string,
-  companyLogo: string | null,
-  customCreditsName: string
+  companyLogo: string | null
 ) {
   // Set up the document
   doc.font('Helvetica');
@@ -68,7 +63,7 @@ function formatSingleTransactionPdf(
   // Left column
   y = addField('Receipt #:', transaction.id.toString(), 50, y);
   y = addField('Date:', new Date(transaction.createdAt).toLocaleDateString(), 50, y);
-  y = addField('Payment Method:', formatPaymentMethodForPdf(transaction.paymentMethod, customCreditsName), 50, y);
+  y = addField('Payment Method:', formatPaymentMethodForPdf(transaction.paymentMethod), 50, y);
   
   // Right column
   let rightY = companyLogo ? 180 : 150;
@@ -93,7 +88,7 @@ function formatSingleTransactionPdf(
   
   // Add transaction item
   doc.font('Helvetica').fontSize(12);
-  doc.text(formatTransactionDescriptionForPdf(transaction.description, customCreditsName), 50, y);
+  doc.text(formatTransactionDescriptionForPdf(transaction.description), 50, y);
   doc.text(`$${transaction.amount.toFixed(2)}`, 400, y, { align: 'right' });
   
   // Add total
@@ -113,8 +108,7 @@ function formatTransactionsPdf(
   transactions: any[],
   user: any,
   companyName: string,
-  companyLogo: string | null,
-  customCreditsName: string
+  companyLogo: string | null
 ) {
   // Set up the document
   doc.font('Helvetica');
@@ -181,8 +175,8 @@ function formatTransactionsPdf(
     }
     
     const date = new Date(transaction.createdAt).toLocaleDateString();
-    const description = formatTransactionDescriptionForPdf(transaction.description, customCreditsName);
-    const paymentMethod = formatPaymentMethodForPdf(transaction.paymentMethod, customCreditsName);
+    const description = formatTransactionDescriptionForPdf(transaction.description);
+    const paymentMethod = formatPaymentMethodForPdf(transaction.paymentMethod);
     const amount = `$${transaction.amount.toFixed(2)}`;
     
     doc.text(date, 50, y);
@@ -222,9 +216,7 @@ router.get('/credits', async (req, res) => {
     
     const userId = req.user.id;
     
-    // Get custom credits
-    const userCredits = await storage.db.select().from(storage.schema.userCredits)
-      .where(storage.schema.userCredits.userId.equals(userId));
+
     
     // Get VirtFusion credits
     let virtFusionCredits = 0;
@@ -242,15 +234,9 @@ router.get('/credits', async (req, res) => {
     
     // Prepare response
     const response = {
-      virtFusionCredits: 0,
-      customCredits: 0
+      virtFusionCredits: 0
     };
-    
-    // Set custom credits if available
-    if (userCredits && userCredits.length > 0) {
-      response.customCredits = userCredits[0].balance || 0;
-    }
-    
+
     // Set VirtFusion credits
     response.virtFusionCredits = virtFusionCredits || 0;
     
@@ -338,21 +324,18 @@ router.get('/:id/receipt', async (req, res) => {
     const companyName = brandingSettings.company_name || 'SkyPANEL';
     const companyLogo = brandingSettings.logo_url || null;
     
-    // Get custom credits name
-    const customCreditsName = await storage.getCustomCreditsName() || `${companyName} Credits`;
-    
     // Create PDF
     const doc = new PDFDocument({ margin: 50 });
-    
+
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=receipt-${transactionId}.pdf`);
-    
+
     // Pipe PDF to response
     doc.pipe(res);
-    
+
     // Format PDF
-    formatSingleTransactionPdf(doc, transaction, req.user, companyName, companyLogo, customCreditsName);
+    formatSingleTransactionPdf(doc, transaction, req.user, companyName, companyLogo);
     
     // Finalize PDF
     doc.end();
@@ -381,21 +364,18 @@ router.get('/download/all', async (req, res) => {
     const companyName = brandingSettings.company_name || 'SkyPANEL';
     const companyLogo = brandingSettings.logo_url || null;
     
-    // Get custom credits name
-    const customCreditsName = await storage.getCustomCreditsName() || `${companyName} Credits`;
-    
     // Create PDF
     const doc = new PDFDocument({ margin: 50 });
-    
+
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename=transactions.pdf');
-    
+
     // Pipe PDF to response
     doc.pipe(res);
-    
+
     // Format PDF
-    formatTransactionsPdf(doc, transactions, req.user, companyName, companyLogo, customCreditsName);
+    formatTransactionsPdf(doc, transactions, req.user, companyName, companyLogo);
     
     // Finalize PDF
     doc.end();

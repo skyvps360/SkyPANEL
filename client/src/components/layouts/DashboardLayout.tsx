@@ -134,8 +134,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     primary_color?: string,
     secondary_color?: string,
     accent_color?: string,
-    custom_credits_name?: string,
-    custom_credits_symbol?: string
+
   }>({
     queryKey: ["/api/settings/branding"],
     enabled: !!user,
@@ -236,11 +235,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
 
 
-  // Fetch balance data (both VirtFusion and custom credits)
+  // Fetch balance data (VirtFusion only)
   const { data: balanceData } = useQuery<{
     virtFusionCredits: number,
-    virtFusionTokens: number,
-    customCredits: number
+    virtFusionTokens: number
   }>({
     queryKey: ["/api/billing/balance"],
     staleTime: 30 * 1000, // 30 seconds
@@ -1076,21 +1074,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                 </span>
               </Link>
 
-              {/* Custom Credits */}
-              <Link
-                href="/billing"
-                className="hidden sm:flex items-center px-3 py-2 rounded-xl hover:shadow-sm transition-all duration-200 group"
-                style={{ backgroundColor: `var(--brand-secondary-lighter, ${brandColors.secondary.lighter})` }}
-                title={`${brandingSettings?.custom_credits_name || 'Custom Credits'} - Go to Billing`}
-              >
-                <CreditCard
-                  className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform duration-200"
-                  style={{ color: `var(--brand-secondary, ${brandColors.secondary.full})` }}
-                />
-                <span className="text-sm font-semibold text-gray-900">
-                  ${balanceData?.customCredits?.toFixed(2) || "0.00"}
-                </span>
-              </Link>
+
 
               {/* Enhanced Profile Dropdown */}
               <DropdownMenu>
