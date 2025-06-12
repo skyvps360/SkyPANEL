@@ -64,7 +64,6 @@ import DnsPlansPage from "@/pages/dns-plans-page";
 // Serverless pages
 import ServerlessOverviewPage from "@/pages/serverless/index";
 import ServerlessAiPage from "@/pages/serverless/ai";
-import ServerlessHostingPage from "@/pages/serverless/hosting";
 
 import {AdminProtectedRoute, ProtectedRoute} from "@/lib/protected-route-new";
 
@@ -144,12 +143,9 @@ export function AppRouter() {
                 {/* DNS Management - User access allowed */}
                 <ProtectedRoute path="/dns" component={DnsDomainsPage}/>
                 <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage}/>
-                <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/>
-
-                {/* Serverless Services - User access allowed */}
+                <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/>                {/* Serverless Services - User access allowed */}
                 <ProtectedRoute path="/serverless" component={ServerlessOverviewPage}/>
                 <ProtectedRoute path="/serverless/ai" component={ServerlessAiPage}/>
-                <ProtectedRoute path="/serverless/hosting" component={ServerlessHostingPage}/>
 
                 {/* Admin Routes */}
                 <AdminProtectedRoute path="/admin" component={AdminDashboard}/>

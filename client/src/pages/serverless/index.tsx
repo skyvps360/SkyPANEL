@@ -171,19 +171,11 @@ const ServerlessOverviewPage: React.FC = () => {
   }, [brandColors, brandingData?.primary_color, brandingData?.secondary_color, brandingData?.accent_color]);
 
   const serverlessServices = [
-    {
-      title: "AI Services",
+    {      title: "AI Services",
       description: "Access 28+ AI models including GPT-4, Claude, and more with unlimited conversations and streaming responses.",
       icon: <MessageSquare className="h-8 w-8" />,
       href: "/serverless/ai",
       features: ["28+ AI Models", "Unlimited Conversations", "Streaming Responses"]
-    },
-    {
-      title: "Web Hosting",
-      description: "Deploy static websites instantly with integrated file management.",
-      icon: <Sparkles className="h-8 w-8" />,
-      href: "/serverless/hosting",
-      features: ["Instant Deployment", "File Management", "Static Sites"]
     }
   ];
 
@@ -400,8 +392,7 @@ const ServerlessOverviewPage: React.FC = () => {
           <h2 className="text-3xl font-bold">Ready to Go Serverless?</h2>
           <p className="text-lg text-muted-foreground">
             Choose a service below and start building your next project
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          </p>          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
               onClick={() => setLocation('/serverless/ai')}
@@ -410,29 +401,6 @@ const ServerlessOverviewPage: React.FC = () => {
               <Bot className="h-5 w-5 mr-2" />
               Try AI Services
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => setLocation('/serverless/hosting')}
-              className="text-white"
-              style={{
-                backgroundColor: 'transparent',
-                borderColor: brandColors.primary.medium,
-                color: brandColors.primary.full
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = brandColors.primary.full;
-                e.currentTarget.style.color = 'white';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = brandColors.primary.full;
-              }}
-            >
-              <Sparkles className="h-5 w-5 mr-2" />
-              Deploy a Website
-            </Button>
-
           </div>
         </div>
       </div>

@@ -377,11 +377,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           href: "/serverless/ai",
           icon: <MessageSquare className="h-4 w-4 mr-3" />,
         },
-        {
-          name: "Hosting",
-          href: "/serverless/hosting",
-          icon: <Sparkles className="h-4 w-4 mr-3" />,
-        },
       ],
     },
     {
