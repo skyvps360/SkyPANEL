@@ -12,6 +12,14 @@ import { getBrandColors } from "@/lib/brand-theme";
 import { DomainSelectionModal } from "@/components/dns/DomainSelectionModal";
 import { getDnsDomains } from "@/lib/api";
 
+interface BrandingSettings {
+  company_name: string;
+  company_color?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  accent_color?: string;
+}
+
 interface DnsPlan {
   id: number;
   name: string;
@@ -47,7 +55,12 @@ export default function DnsPlansPage() {
   const itemsPerPage = 5;
   const brandColors = getBrandColors();
 
-
+  // Fetch branding settings to get company name
+  const { data: branding = { company_name: "SkyVPS360" } } = useQuery<BrandingSettings>({
+    queryKey: ["/api/settings/branding"],
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
 
   // Domain selection modal state for downgrades
   const [domainSelectionModal, setDomainSelectionModal] = useState<{
@@ -109,11 +122,11 @@ export default function DnsPlansPage() {
         if (results.successful.length > 0) {
           toast({
             title: "Domains Removed Successfully",
-            description: `Successfully removed ${results.successful.length} domain${results.successful.length !== 1 ? 's' : ''} from both local database and InterServer: ${results.successful.join(', ')}`,
+            description: `Successfully removed ${results.successful.length} domain${results.successful.length !== 1 ? 's' : ''} from both local database and ${branding.company_name}: ${results.successful.join(', ')}`,
           });
         }
 
-        // Show warning for domains that failed to delete from InterServer
+        // Show warning for domains that failed to delete from DNS provider
         if (results.failed.length > 0) {
           toast({
             title: "Domain Deletion Issues",
@@ -122,11 +135,11 @@ export default function DnsPlansPage() {
           });
         }
 
-        // Show info for domains without InterServer IDs
+        // Show info for domains without DNS provider IDs
         if (results.skippedNoInterServerId.length > 0) {
           toast({
             title: "Domains Removed Locally Only",
-            description: `${results.skippedNoInterServerId.length} domain${results.skippedNoInterServerId.length !== 1 ? 's' : ''} removed from local database only (no InterServer ID): ${results.skippedNoInterServerId.join(', ')}`,
+            description: `${results.skippedNoInterServerId.length} domain${results.skippedNoInterServerId.length !== 1 ? 's' : ''} removed from local database only (no ${branding.company_name} ID): ${results.skippedNoInterServerId.join(', ')}`,
           });
         }
       }
