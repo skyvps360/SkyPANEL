@@ -11221,9 +11221,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Importing Discord bot service...");
       const { discordBotService } = await import('./discord-bot-service');
-      // discordBotService is already an instance, not a class
 
-      console.log("Discord bot instance obtained, calling searchDiscordUsers...");
+      // Check if Discord bot is enabled and ready
+      console.log("Checking if Discord bot is enabled...");
+      const isEnabled = await discordBotService.isEnabled();
+      if (!isEnabled) {
+        console.log("Discord bot is disabled");
+        return res.status(503).json({
+          error: "Discord bot is disabled",
+          details: "Please enable the Discord bot in admin settings"
+        });
+      }
+
+      console.log("Discord bot is enabled, calling searchDiscordUsers...");
       const users = await discordBotService.searchDiscordUsers(query.trim(), limit);
 
       console.log(`Search completed, returning ${users.length} users`);
@@ -11253,9 +11263,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Importing Discord bot service...");
       const { discordBotService } = await import('./discord-bot-service');
-      // discordBotService is already an instance, not a class
 
-      console.log("Discord bot instance obtained, calling getDiscordUser...");
+      // Check if Discord bot is enabled and ready
+      console.log("Checking if Discord bot is enabled...");
+      const isEnabled = await discordBotService.isEnabled();
+      if (!isEnabled) {
+        console.log("Discord bot is disabled");
+        return res.status(503).json({
+          error: "Discord bot is disabled",
+          details: "Please enable the Discord bot in admin settings"
+        });
+      }
+
+      console.log("Discord bot is enabled, calling getDiscordUser...");
       const user = await discordBotService.getDiscordUser(userId);
 
       if (!user) {
@@ -11270,6 +11290,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error stack:", error.stack);
       res.status(500).json({
         error: "Failed to fetch Discord user",
+        details: error.message
+      });
+    }
+  });
+
+  // Discord bot status endpoint for debugging
+  app.get("/api/admin/discord/status", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      console.log("Discord bot status endpoint called");
+
+      const { discordBotService } = await import('./discord-bot-service');
+      const { discordBotCore } = await import('./discord/discord-bot-core');
+
+      // Check bot configuration
+      const isEnabled = await discordBotService.isEnabled();
+      const botToken = await storage.getSetting('discord_bot_token');
+      const guildId = await storage.getSetting('discord_guild_id');
+      const channelId = await storage.getSetting('discord_channel_id');
+
+      // Check bot connection status
+      const client = discordBotCore.getClient();
+      const isReady = discordBotCore.isReady();
+
+      const status = {
+        enabled: isEnabled,
+        configured: {
+          botToken: !!botToken?.value,
+          guildId: !!guildId?.value,
+          channelId: !!channelId?.value
+        },
+        connection: {
+          clientExists: !!client,
+          isReady: isReady,
+          clientStatus: client?.readyAt ? 'Connected' : 'Disconnected'
+        },
+        settings: {
+          guildId: guildId?.value || 'Not configured',
+          channelId: channelId?.value || 'Not configured'
+        }
+      };
+
+      console.log("Discord bot status:", status);
+      res.json(status);
+    } catch (error: any) {
+      console.error("Error getting Discord bot status:", error);
+      res.status(500).json({
+        error: "Failed to get Discord bot status",
         details: error.message
       });
     }

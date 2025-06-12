@@ -7,6 +7,7 @@ import {discordStatusService} from './discord/discord-status-service';
 import {discordTodoService} from './discord/discord-todo-service';
 import {discordHelpService} from './discord/discord-help-service';
 import {discordAIService} from './discord/discord-ai-service';
+import {DiscordUtils} from './discord/discord-utils';
 
 /**
  * Main Discord bot service that initializes and coordinates all Discord-related functionality
@@ -120,6 +121,77 @@ export class DiscordBotService {
     adminName: string
   ): Promise<boolean> {
       return discordTicketService.handleTicketDeletion(ticketId, adminName);
+  }
+
+  /**
+   * Search for Discord users by query
+   * @param query The search query
+   * @param limit The maximum number of results to return
+   * @returns The matching users
+   */
+  public async searchDiscordUsers(
+    query: string,
+    limit: number = 10
+  ): Promise<Array<{ id: string; username: string; globalName?: string; displayName: string; avatar: string; bot: boolean }>> {
+    try {
+      console.log(`DiscordBotService: Searching for users with query "${query}", limit ${limit}`);
+
+      // Use DiscordUtils to search for users
+      const results = await DiscordUtils.searchDiscordUsers(query, limit);
+
+      console.log(`DiscordBotService: Found ${results.length} users`);
+
+      // Transform the results to match the expected format for the frontend
+      const transformedResults = results.map(user => ({
+        id: user.id,
+        username: user.name,
+        globalName: user.name,
+        displayName: user.name,
+        avatar: `https://cdn.discordapp.com/embed/avatars/${parseInt(user.id) % 5}.png`, // Default avatar
+        bot: false
+      }));
+
+      return transformedResults;
+    } catch (error: any) {
+      console.error('DiscordBotService: Error searching Discord users:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Get a Discord user by ID
+   * @param userId The user ID
+   * @returns The user information or null if not found
+   */
+  public async getDiscordUser(
+    userId: string
+  ): Promise<{ id: string; username: string; globalName?: string; displayName: string; avatar: string; bot: boolean } | null> {
+    try {
+      console.log(`DiscordBotService: Getting user with ID "${userId}"`);
+
+      // Use DiscordUtils to get user
+      const result = await DiscordUtils.getDiscordUser(userId);
+
+      if (!result) {
+        console.log(`DiscordBotService: User with ID "${userId}" not found`);
+        return null;
+      }
+
+      console.log(`DiscordBotService: Found user "${result.name}"`);
+
+      // Transform the result to match the expected format for the frontend
+      return {
+        id: result.id,
+        username: result.name,
+        globalName: result.name,
+        displayName: result.name,
+        avatar: `https://cdn.discordapp.com/embed/avatars/${parseInt(result.id) % 5}.png`, // Default avatar
+        bot: false
+      };
+    } catch (error: any) {
+      console.error('DiscordBotService: Error getting Discord user:', error.message);
+      return null;
+    }
   }
 }
 
