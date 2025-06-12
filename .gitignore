@@ -10,9 +10,6 @@ dnsmasq.conf
 docs
 vitest.config.ts
 yaml-docs
-docs
-docs/tasks.md
-tests
 
 # DotFiles
 .env
