@@ -8,6 +8,7 @@
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "start:pm2": "pm2 start pm2.config.cjs",
+    "start:pm2:windows": "pm2 start dist/index.js --name skypanel --node-args \"\" --max-memory-restart 2G",
     "stop:pm2": "pm2 stop skypanel",
     "restart:pm2": "pm2 restart skypanel",
     "logs:pm2": "pm2 logs skypanel",
