@@ -140,22 +140,32 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
 
                     // If maintenance is enabled and we're not on an allowed path,
                     // redirect to maintenance page (unless user is admin)
-                    if (data.enabled && !isPathAllowed() && !isAdmin && !bypassGranted && location !== '/maintenance') {
+                    // Add additional check to prevent infinite redirects
+                    if (data.enabled && !isPathAllowed() && !isAdmin && !bypassGranted &&
+                        location !== '/maintenance' && location !== '/auth') {
+                        console.log('Redirecting to maintenance page from:', location);
                         setLocation('/maintenance');
                     }
                 }
             } catch (error) {
                 console.error('Error checking maintenance status:', error);
+                // Set maintenance mode to false on error to prevent blocking
+                if (isMounted) {
+                    setIsMaintenanceMode(false);
+                }
             }
         }
 
-        checkMaintenanceStatus();
+        // Only check maintenance status if we haven't already determined it
+        if (isMaintenanceMode === null) {
+            checkMaintenanceStatus();
+        }
 
         // Cleanup function to prevent state updates after unmount
         return () => {
             isMounted = false;
         };
-    }, [location, isAdmin, bypassGranted]);
+    }, [location, isAdmin, bypassGranted, isMaintenanceMode]);
 
     // If still loading maintenance status, show loading spinner
     if (isMaintenanceMode === null) {

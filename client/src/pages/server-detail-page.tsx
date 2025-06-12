@@ -891,7 +891,8 @@ export default function ServerDetailPage() {
       return response.json();
     },
     enabled: !!id && !isNaN(serverId),
-    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchInterval: 10000, // Reduced frequency to 10 seconds to prevent infinite loops
+    staleTime: 5000, // Cache for 5 seconds
   });
 
   // Extract the server data from the response
@@ -932,7 +933,8 @@ export default function ServerDetailPage() {
         }
       }
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
 
   // Fetch specific template by ID if not found in all-templates
@@ -957,7 +959,8 @@ export default function ServerDetailPage() {
       }
     },
     enabled: !!osTemplateId && !!osTemplates && osTemplates.length > 0 && !osTemplates.find((t: any) => t.id === osTemplateId || t.id === String(osTemplateId) || Number(t.id) === osTemplateId),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
 
   // Get OS information for the server

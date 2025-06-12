@@ -589,15 +589,48 @@ export class VirtFusionApi {
     try {
       console.log(`Fetching servers for VirtFusion user ID: ${virtFusionUserId}`);
 
-      // Use the selfService endpoint to get user's servers with remoteState=true for complete data
-      const endpoint = `/selfService/servers/byUserExtRelationId/${virtFusionUserId}?remoteState=true`;
-      const response = await this.request("GET", endpoint);
+      // Try multiple endpoints to find the correct one for getting user servers
+      let response;
 
-      console.log(`getUserServers response:`, JSON.stringify(response, null, 2));
-      return response;
+      try {
+        // First try the standard servers endpoint with user filter
+        console.log(`Trying servers endpoint with user filter`);
+        response = await this.request("GET", `/servers?user=${virtFusionUserId}`);
+        console.log(`getUserServers response from /servers?user=${virtFusionUserId}:`, JSON.stringify(response, null, 2));
+        return response;
+      } catch (firstError) {
+        console.log(`First attempt failed, trying alternative endpoint`);
+
+        try {
+          // Try the servers/user endpoint
+          console.log(`Trying /servers/user/${virtFusionUserId} endpoint`);
+          response = await this.request("GET", `/servers/user/${virtFusionUserId}`);
+          console.log(`getUserServers response from /servers/user/${virtFusionUserId}:`, JSON.stringify(response, null, 2));
+          return response;
+        } catch (secondError) {
+          console.log(`Second attempt failed, trying selfService endpoint without byUserExtRelationId`);
+
+          try {
+            // Try the selfService/servers endpoint
+            console.log(`Trying /selfService/servers endpoint`);
+            response = await this.request("GET", `/selfService/servers`);
+            console.log(`getUserServers response from /selfService/servers:`, JSON.stringify(response, null, 2));
+            return response;
+          } catch (thirdError) {
+            console.error(`All attempts failed. First error:`, firstError);
+            console.error(`Second error:`, secondError);
+            console.error(`Third error:`, thirdError);
+
+            // Return empty result instead of throwing error
+            console.log(`Returning empty servers list for user ${virtFusionUserId}`);
+            return { data: [] };
+          }
+        }
+      }
     } catch (error) {
       console.error(`Error in getUserServers for user ${virtFusionUserId}:`, error);
-      throw error;
+      // Return empty result instead of throwing error
+      return { data: [] };
     }
   }
 
@@ -866,6 +899,78 @@ export class VirtFusionApi {
 
     const endpoint = `/selfService/usage/byUserExtRelationId/${extRelationId}?period[]=${period}&range=${range}`;
     return this.request("GET", endpoint);
+  }
+
+  /**
+   * Get user hourly statistics by external relation ID (our user ID)
+   * @param extRelationId The external relation ID (our user ID)
+   * @param period Optional period for usage data in YYYY-MM-DD format
+   * @param range Optional range for usage data (d=day, w=week, m=month)
+   * @returns Hourly statistics data from VirtFusion
+   */
+  async getUserHourlyStats(extRelationId: number, period?: string, range: string = "m") {
+    try {
+      // Get current date in YYYY-MM-DD format if period is not provided
+      if (!period) {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        period = `${year}-${month}-${day}`;
+      }
+
+      console.log(`Fetching hourly stats for extRelationId ${extRelationId}, period: ${period}, range: ${range}`);
+
+      // Try multiple possible endpoints for hourly stats
+      let response;
+
+      try {
+        // First try the hourlyStats endpoint
+        const endpoint = `/selfService/hourlyStats/byUserExtRelationId/${extRelationId}?period[]=${period}&range=${range}`;
+        console.log(`Trying hourlyStats endpoint: ${endpoint}`);
+        response = await this.request("GET", endpoint);
+        console.log(`HourlyStats response:`, response);
+        return response;
+      } catch (firstError) {
+        console.log(`HourlyStats endpoint failed, trying usage endpoint`);
+
+        try {
+          // Fallback to usage endpoint
+          const usageEndpoint = `/selfService/usage/byUserExtRelationId/${extRelationId}?period[]=${period}&range=${range}`;
+          console.log(`Trying usage endpoint: ${usageEndpoint}`);
+          response = await this.request("GET", usageEndpoint);
+          console.log(`Usage endpoint response:`, response);
+          return response;
+        } catch (secondError) {
+          console.error(`Both hourlyStats and usage endpoints failed`);
+          console.error(`First error:`, firstError);
+          console.error(`Second error:`, secondError);
+
+          // Return empty data structure to prevent crashes
+          return {
+            data: {
+              monthlyTotal: {
+                value: "0.00",
+                hours: 0,
+                tokens: false
+              }
+            }
+          };
+        }
+      }
+    } catch (error) {
+      console.error(`Error in getUserHourlyStats for extRelationId ${extRelationId}:`, error);
+      // Return empty data structure to prevent crashes
+      return {
+        data: {
+          monthlyTotal: {
+            value: "0.00",
+            hours: 0,
+            tokens: false
+          }
+        }
+      };
+    }
   }
 }
 

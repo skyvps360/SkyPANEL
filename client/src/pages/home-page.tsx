@@ -119,12 +119,16 @@ export default function HomePage() {
   // Fetch VirtFusion usage data
   const { data: usageData } = useQuery<{ usage: number, rawData: any }>({
     queryKey: ["/api/billing/usage/last30days"],
+    staleTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    retry: 1, // Only retry once on failure
   });
 
   // Fetch user servers
   const { data: serversResponse } = useQuery<{ data: any[], pagination: any }>({
     queryKey: ["/api/user/servers"],
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 60 * 1000, // 60 seconds
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
 
   const servers = serversResponse?.data || [];
@@ -132,7 +136,8 @@ export default function HomePage() {
   // Fetch DNS domains
   const { data: dnsDomainsResponse } = useQuery<{ domains: any[] }>({
     queryKey: ["/api/dns/domains"],
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 60 * 1000, // 60 seconds
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
   });
 
   const dnsDomains = dnsDomainsResponse?.domains || [];

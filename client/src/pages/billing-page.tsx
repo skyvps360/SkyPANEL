@@ -120,10 +120,13 @@ export default function BillingPage() {
   const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: any }>({
     queryKey: ["/api/billing/usage/last30days"],
     staleTime: 300000, // 5 minutes
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    retry: 1, // Only retry once on failure
+    retryDelay: 5000, // Wait 5 seconds before retry
   });
 
-  // Log usage data when it changes
-  React.useEffect(() => {
+  // Log usage data when it changes - use useCallback to prevent re-renders
+  const logUsageData = React.useCallback(() => {
     if (usageData) {
       console.log("VirtFusion usage data:", usageData);
     }
@@ -131,6 +134,10 @@ export default function BillingPage() {
       console.error("VirtFusion usage API error:", usageErrorData);
     }
   }, [usageData, usageError, usageErrorData]);
+
+  React.useEffect(() => {
+    logUsageData();
+  }, [logUsageData]);
 
 
 
