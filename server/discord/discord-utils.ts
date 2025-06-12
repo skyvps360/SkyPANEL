@@ -14,12 +14,12 @@ export class DiscordUtils {
      * Search for Discord users by query
      * @param query The search query
      * @param limit The maximum number of results to return
-     * @returns The matching users
+     * @returns The matching users with avatar information
      */
     public static async searchDiscordUsers(
         query: string,
         limit: number = 10
-    ): Promise<Array<{ id: string; name: string; roles: string[] }>> {
+    ): Promise<Array<{ id: string; name: string; roles: string[]; avatar: string | null; username: string }>> {
         try {
             const client = discordBotCore.getClient();
             const guildId = await discordBotCore.getGuildId();
@@ -40,7 +40,7 @@ export class DiscordUtils {
             await guild.members.fetch();
 
             // Search for members
-            const results: Array<{ id: string; name: string; roles: string[] }> = [];
+            const results: Array<{ id: string; name: string; roles: string[]; avatar: string | null; username: string }> = [];
             const lowerQuery = query.toLowerCase();
 
             // Search through members
@@ -65,10 +65,12 @@ export class DiscordUtils {
                         .filter(role => role.id !== guild.id) // Filter out @everyone role
                         .map(role => role.name);
 
-                    // Add the member to the results
+                    // Add the member to the results with avatar information
                     results.push({
                         id: member.user.id,
                         name: member.nickname || member.user.username,
+                        username: member.user.username,
+                        avatar: member.user.avatar, // This is the avatar hash from Discord
                         roles
                     });
 
@@ -87,11 +89,11 @@ export class DiscordUtils {
     /**
      * Get a Discord user by ID
      * @param userId The user ID
-     * @returns The user information or null if not found
+     * @returns The user information with avatar or null if not found
      */
     public static async getDiscordUser(
         userId: string
-    ): Promise<{ id: string; name: string; roles: string[] } | null> {
+    ): Promise<{ id: string; name: string; roles: string[]; avatar: string | null; username: string } | null> {
         try {
             const client = discordBotCore.getClient();
             const guildId = await discordBotCore.getGuildId();
@@ -118,10 +120,12 @@ export class DiscordUtils {
                     .filter(role => role.id !== guild.id) // Filter out @everyone role
                     .map(role => role.name);
 
-                // Return the user information
+                // Return the user information with avatar
                 return {
                     id: member.user.id,
                     name: member.nickname || member.user.username,
+                    username: member.user.username,
+                    avatar: member.user.avatar, // This is the avatar hash from Discord
                     roles
                 };
             } catch {
@@ -249,5 +253,25 @@ export class DiscordUtils {
      */
     public static isValidDiscordId(id: string): boolean {
         return /^\d{17,19}$/.test(id);
+    }
+
+    /**
+     * Get Discord avatar URL for a user
+     * @param userId The user's Discord ID
+     * @param avatarHash The user's avatar hash (null if using default)
+     * @param size The desired image size (default: 128)
+     * @returns The Discord avatar URL
+     */
+    public static getDiscordAvatarUrl(userId: string, avatarHash: string | null, size: number = 128): string {
+        if (avatarHash) {
+            // User has a custom avatar
+            const extension = avatarHash.startsWith('a_') ? 'gif' : 'png';
+            return `https://cdn.discordapp.com/avatars/${userId}/${avatarHash}.${extension}?size=${size}`;
+        } else {
+            // User is using default avatar
+            // Use BigInt to handle large Discord IDs properly
+            const defaultAvatarNumber = Number(BigInt(userId) % 5n);
+            return `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`;
+        }
     }
 }

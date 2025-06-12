@@ -144,10 +144,10 @@ export class DiscordBotService {
       // Transform the results to match the expected format for the frontend
       const transformedResults = results.map(user => ({
         id: user.id,
-        username: user.name,
+        username: user.username,
         globalName: user.name,
         displayName: user.name,
-        avatar: `https://cdn.discordapp.com/embed/avatars/${parseInt(user.id) % 5}.png`, // Default avatar
+        avatar: DiscordUtils.getDiscordAvatarUrl(user.id, user.avatar, 128), // Proper Discord avatar URL
         bot: false
       }));
 
@@ -182,10 +182,10 @@ export class DiscordBotService {
       // Transform the result to match the expected format for the frontend
       return {
         id: result.id,
-        username: result.name,
+        username: result.username,
         globalName: result.name,
         displayName: result.name,
-        avatar: `https://cdn.discordapp.com/embed/avatars/${parseInt(result.id) % 5}.png`, // Default avatar
+        avatar: DiscordUtils.getDiscordAvatarUrl(result.id, result.avatar, 128), // Proper Discord avatar URL
         bot: false
       };
     } catch (error: any) {
