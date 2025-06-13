@@ -45,7 +45,7 @@ export class DiscordBotCore {
     private commandHandler: any;
     private moderationService: any;
     private statusService: any;
-
+    private todoService: any;
     private helpService: any;
     private aiService: any;
 
@@ -79,7 +79,7 @@ export class DiscordBotCore {
         this.commandHandler = commandHandler;
         this.moderationService = moderationService;
         this.statusService = statusService;
-        // todoService removed
+        this.todoService = todoService;
         this.helpService = helpService;
         this.aiService = aiService;
     }
@@ -169,6 +169,10 @@ export class DiscordBotCore {
                     else if (interaction.commandName === 'ask') {
                         await this.aiService.handleAICommand(interaction);
                     }
+                    // Check if it's a todo command
+                    else if (interaction.commandName === 'todo') {
+                        await this.todoService.handleTodoCommand(interaction);
+                    }
                     // Check if it's a moderation command
                     else if (this.moderationService.isModerationCommand(interaction.commandName)) {
                         await this.moderationService.handleModerationCommand(interaction);
@@ -178,7 +182,12 @@ export class DiscordBotCore {
                         await this.commandHandler.handleCommand(interaction);
                     }
                 } else if (interaction.isButton()) {
-                    await this.handleButton(interaction);
+                    // Handle todo pagination buttons
+                    if (interaction.customId.startsWith('todo_list:')) {
+                        await this.todoService.handleButtonInteraction(interaction);
+                    } else {
+                        await this.handleButton(interaction);
+                    }
                 }
             });
 
@@ -249,7 +258,8 @@ export class DiscordBotCore {
                 // Ticket commands
                 ...this.commandHandler.getTicketCommands(),
 
-                // Todo commands removed
+                // Todo commands
+                ...this.todoService.getTodoCommands(),
             ];
 
             const rest = new REST().setToken(botToken);

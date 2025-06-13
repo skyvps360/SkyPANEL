@@ -19,3 +19,4 @@ export * from './faq-schema';
 export * from './legal-schema';
 export * from './team-schema';
 export * from './chat-schema';
+export * from './discord-schema';

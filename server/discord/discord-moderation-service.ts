@@ -2,9 +2,11 @@ import {
     ChatInputCommandInteraction,
     SlashCommandBuilder,
     GuildMember,
-    PermissionFlagsBits
+    PermissionFlagsBits,
+    User
 } from 'discord.js';
 import {discordBotCore} from './discord-bot-core';
+import {DiscordEmbedUtils} from './discord-embed-utils';
 
 /**
  * Service for handling Discord moderation commands

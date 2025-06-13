@@ -6,6 +6,7 @@ import {
 } from 'discord.js';
 import {discordBotCore} from './discord-bot-core';
 import {geminiService} from '../gemini-service';
+import {DiscordEmbedUtils} from './discord-embed-utils';
 
 /**
  * Service for handling Discord AI commands and interactions
@@ -38,7 +39,7 @@ export class DiscordAIService {
             const prompt = interaction.options.getString('prompt');
             if (!prompt) {
                 await interaction.reply({
-                    content: 'You must specify a prompt.',
+                    embeds: [DiscordEmbedUtils.createErrorEmbed('Missing Prompt', 'You must specify a prompt to ask the AI.')],
                     ephemeral: true
                 });
                 return;
@@ -78,12 +79,16 @@ export class DiscordAIService {
                     );
                 }
 
-                // Send the response
-                await this.sendLongMessage(interaction, response);
+                // Send the response using embed
+                await this.sendAIResponse(interaction, prompt, response);
             } catch (aiError: any) {
                 console.error('Error calling AI service:', aiError.message);
                 try {
-                    await interaction.editReply(`Error: ${aiError.message}`);
+                    const errorEmbed = DiscordEmbedUtils.createErrorEmbed(
+                        'AI Service Error',
+                        `Failed to get AI response: ${aiError.message}`
+                    );
+                    await interaction.editReply({ embeds: [errorEmbed] });
                 } catch (replyError: any) {
                     // If we can't reply (e.g., interaction expired), just log it
                     if (replyError.code === 10062) {
@@ -104,12 +109,17 @@ export class DiscordAIService {
             }
 
             try {
-                // Reply with an error message
+                // Reply with an error message using embed
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed(
+                    'Command Error',
+                    `Failed to process AI command: ${error.message}`
+                );
+
                 if (interaction.deferred) {
-                    await interaction.editReply(`Failed to process AI command: ${error.message}`);
+                    await interaction.editReply({ embeds: [errorEmbed] });
                 } else {
                     await interaction.reply({
-                        content: `Failed to process AI command: ${error.message}`,
+                        embeds: [errorEmbed],
                         ephemeral: true
                     });
                 }
@@ -167,26 +177,17 @@ export class DiscordAIService {
                     );
                 }
 
-                // Split the response into chunks if it's too long
-                const maxLength = 2000;
-                if (response.length <= maxLength) {
-                    await message.reply(response);
-                } else {
-                    // Split the message into chunks
-                    const chunks = [];
-                    for (let i = 0; i < response.length; i += maxLength) {
-                        chunks.push(response.substring(i, i + maxLength));
-                    }
-
-                    // Send each chunk
-                    for (const chunk of chunks) {
-                        await message.channel.send(chunk);
-                    }
-                }
+                // Send response using embed
+                const embed = DiscordEmbedUtils.createAIEmbed(content, response, message.author);
+                await message.reply({ embeds: [embed] });
             } catch (aiError: any) {
                 console.error('Error calling AI service:', aiError.message);
                 try {
-                    await message.reply(`Error: ${aiError.message}`);
+                    const errorEmbed = DiscordEmbedUtils.createErrorEmbed(
+                        'AI Service Error',
+                        `Failed to get AI response: ${aiError.message}`
+                    );
+                    await message.reply({ embeds: [errorEmbed] });
                 } catch (replyError: any) {
                     console.error('Error sending AI error response in DM:', replyError.message);
                 }
@@ -194,7 +195,11 @@ export class DiscordAIService {
         } catch (error: any) {
             console.error('Error handling direct message:', error.message);
             try {
-                await message.reply(`An error occurred while processing your message: ${error.message}`);
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed(
+                    'Message Processing Error',
+                    `An error occurred while processing your message: ${error.message}`
+                );
+                await message.reply({ embeds: [errorEmbed] });
             } catch (replyError: any) {
                 console.error('Error sending error response in DM:', replyError.message);
             }
@@ -229,66 +234,33 @@ export class DiscordAIService {
     }
 
     /**
-     * Send a long message, splitting it into chunks if necessary
+     * Send AI response using embed
      * @param interaction The interaction
-     * @param message The message to send
-     * @param isEdit Whether to edit the reply or send a new one
+     * @param prompt The user's prompt
+     * @param response The AI response
      */
-    private async sendLongMessage(
+    private async sendAIResponse(
         interaction: ChatInputCommandInteraction,
-        message: string,
-        isEdit: boolean = true
+        prompt: string,
+        response: string
     ): Promise<void> {
         try {
-            const maxLength = 2000;
-
-            if (message.length <= maxLength) {
-                // If the message is short enough, send it as is
-                if (isEdit) {
-                    await interaction.editReply(message);
-                } else {
-                    await interaction.followUp(message);
-                }
-            } else {
-                // Split the message into chunks
-                const chunks = [];
-                for (let i = 0; i < message.length; i += maxLength) {
-                    chunks.push(message.substring(i, i + maxLength));
-                }
-
-                // Send each chunk
-                for (let i = 0; i < chunks.length; i++) {
-                    try {
-                        if (i === 0 && isEdit) {
-                            await interaction.editReply(chunks[i]);
-                        } else {
-                            await interaction.followUp(chunks[i]);
-                        }
-                    } catch (chunkError: any) {
-                        // If we get an Unknown Interaction error, log it but don't throw
-                        // This happens when the interaction expires during processing
-                        if (chunkError.code === 10062) {
-                            console.error(`Interaction expired while sending chunk ${i+1}/${chunks.length}:`, chunkError.message);
-                            // Stop trying to send more chunks if the interaction is expired
-                            return;
-                        } else {
-                            // For other errors, log and continue trying other chunks
-                            console.error(`Error sending chunk ${i+1}/${chunks.length}:`, chunkError.message);
-                        }
-                    }
-                }
-            }
+            const embed = DiscordEmbedUtils.createAIEmbed(prompt, response, interaction.user);
+            await interaction.editReply({ embeds: [embed] });
         } catch (error: any) {
             // Handle Unknown Interaction error specifically
             if (error.code === 10062) {
-                console.error('Interaction expired while sending message:', error.message);
-                // Don't throw, just log the error
+                console.error('Interaction expired while sending AI response:', error.message);
                 return;
             }
 
-            console.error('Error sending long message:', error.message);
-            // Don't throw the error to prevent crashing the application
-            // Just log it and continue
+            console.error('Error sending AI response:', error.message);
+            // Fallback to plain text if embed fails
+            try {
+                await interaction.editReply(`**AI Response:**\n${DiscordEmbedUtils.truncateText(response, 1900)}`);
+            } catch (fallbackError: any) {
+                console.error('Error sending fallback AI response:', fallbackError.message);
+            }
         }
     }
 
