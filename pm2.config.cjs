@@ -8,7 +8,7 @@ module.exports = {
       instances: "1",
       autorestart: true,
       watch: false, // Disable watch mode in production
-      max_memory_restart: "2G",
+      max_memory_restart: "512M",
       // Production specific settings
       merge_logs: true,
       time: true,
