@@ -22,3 +22,5 @@ yaml-docs
 .windsurf
 .windsurfignore
 .aiignore
+logs/
+*.log
