@@ -493,7 +493,7 @@ export default function BillingPage() {
         </div>
 
         {/* Billing Summary - Modern Card Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* VirtFusion Tokens Card */}
           <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border">
@@ -502,7 +502,7 @@ export default function BillingPage() {
                 <DollarSign className="h-5 w-5 text-primary" />
               </div>
             </div>
-            <CardContent className="px-6 py-5">
+            <CardContent className="p-6">
               <div className="mb-2">
                 <div className="flex items-center gap-1">
                   <span className={`text-2xl font-bold ${summaryData.virtFusionTokens < 0 ? 'text-red-600' : 'text-primary'}`}>
