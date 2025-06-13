@@ -296,6 +296,85 @@ export class VirtFusionApi {
     return this.request("GET", `/users/${extRelationId}/byExtRelation`);
   }
 
+  /**
+   * Generate authentication tokens for SSO login
+   * @param extRelationId The external relation ID (our user ID)
+   * @returns Authentication tokens and redirect URL
+   */
+  async generateAuthToken(extRelationId: number) {
+    // Using the correct endpoint format from the VirtFusion API documentation
+    console.log(`Generating auth token for extRelationId ${extRelationId}`);
+    try {
+      // Attempt to get user info first to verify the user exists in VirtFusion
+      console.log(
+        `Checking if user with extRelationId ${extRelationId} exists in VirtFusion`,
+      );
+      await this.request("GET", `/users/${extRelationId}/byExtRelation`);
+
+      // Now generate the auth token using the correct endpoint format from the VirtFusion API documentation
+      console.log(`User exists in VirtFusion, generating auth token`);
+      const result = await this.request(
+        "POST",
+        `/users/${extRelationId}/authenticationTokens`,
+      );
+      console.log(`Auth token generated:`, result);
+
+      // Process authentication token response based on VirtFusion API documentation structure
+      if (
+        result &&
+        typeof result === "object" &&
+        result.data &&
+        result.data.authentication
+      ) {
+        // Format response to match what the frontend expects
+        const authentication = result.data.authentication;
+
+        // Get base URL for VirtFusion panel by removing the /api/v1 portion from the API URL
+        // This ensures redirects go to the panel domain and not the API domain
+        const apiUrlParts = this.apiUrl.split("/");
+        const panelBaseUrl = apiUrlParts.slice(0, 3).join("/"); // Get https://domain.com part
+
+        // Build the full redirect URL by combining the panel base URL with the endpoint path
+        const redirectPath = authentication.endpoint_complete;
+        let fullRedirectUrl = "";
+
+        // Ensure we have a properly formed URL
+        if (redirectPath.startsWith("http")) {
+          // If the path already includes the domain (unlikely), use it as is
+          fullRedirectUrl = redirectPath;
+        } else {
+          // Otherwise combine the panel base URL with the path
+          fullRedirectUrl = `${panelBaseUrl}${redirectPath.startsWith("/") ? "" : "/"}${redirectPath}`;
+        }
+
+        const processedResult = {
+          token: authentication.tokens["1"], // First token from the response
+          redirectUrl: fullRedirectUrl, // Complete URL with tokens and domain
+        };
+
+        console.log(`Processed auth token for response compatibility:`, {
+          ...processedResult,
+          token: processedResult.token
+            ? `${processedResult.token.substring(0, 10)}...`
+            : undefined,
+          redirectUrl: processedResult.redirectUrl,
+        });
+
+        return processedResult;
+      }
+
+      return result;
+    } catch (error) {
+      console.error(
+        `Failed to generate auth token for extRelationId ${extRelationId}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+
+
 
 
   async deleteUserByExtRelationId(extRelationId: number) {
