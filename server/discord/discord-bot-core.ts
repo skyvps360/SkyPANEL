@@ -45,7 +45,7 @@ export class DiscordBotCore {
     private commandHandler: any;
     private moderationService: any;
     private statusService: any;
-    private todoService: any;
+
     private helpService: any;
     private aiService: any;
 
@@ -79,7 +79,7 @@ export class DiscordBotCore {
         this.commandHandler = commandHandler;
         this.moderationService = moderationService;
         this.statusService = statusService;
-        this.todoService = todoService;
+        // todoService removed
         this.helpService = helpService;
         this.aiService = aiService;
     }
@@ -249,8 +249,7 @@ export class DiscordBotCore {
                 // Ticket commands
                 ...this.commandHandler.getTicketCommands(),
 
-                // Todo commands
-                ...this.todoService.getTodoCommands()
+                // Todo commands removed
             ];
 
             const rest = new REST().setToken(botToken);
@@ -290,19 +289,7 @@ export class DiscordBotCore {
                 return;
             }
 
-            // Todo buttons
-            if (customId.startsWith('todo:')) {
-                const action = customId.split(':')[1];
-
-                if (action === 'complete') {
-                    await this.todoService.handleTodoCompleteCommand(interaction, true);
-                } else if (action === 'incomplete') {
-                    await this.todoService.handleTodoCompleteCommand(interaction, false);
-                } else if (action === 'delete') {
-                    await this.todoService.handleTodoDeleteCommand(interaction);
-                }
-                return;
-            }
+            // Todo buttons removed
 
             // Ticket buttons
             if (customId.startsWith('close:') || customId.startsWith('reopen:')) {

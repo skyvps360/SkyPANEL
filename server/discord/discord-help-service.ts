@@ -9,7 +9,7 @@ import {
 } from 'discord.js';
 import {discordBotCore} from './discord-bot-core';
 import {discordModerationService} from './discord-moderation-service';
-import {discordTodoService} from './discord-todo-service';
+
 
 /**
  * Service for handling Discord help commands
@@ -69,7 +69,7 @@ export class DiscordHelpService {
             .addFields(
                 {name: '🎫 Tickets', value: 'Commands for managing support tickets', inline: true},
                 {name: '🛡️ Moderation', value: 'Commands for server moderation', inline: true},
-                {name: '📝 Todo', value: 'Commands for managing your todo list', inline: true},
+
                 {name: '📊 Status', value: 'Commands for checking system status', inline: true},
                 {name: '🤖 AI', value: 'Commands for interacting with AI', inline: true},
                 {name: '❓ Help', value: 'Commands for getting help', inline: true}
@@ -89,11 +89,7 @@ export class DiscordHelpService {
                     .setLabel('Moderation')
                     .setStyle(ButtonStyle.Primary)
                     .setEmoji('🛡️'),
-                new ButtonBuilder()
-                    .setCustomId('help:todo')
-                    .setLabel('Todo')
-                    .setStyle(ButtonStyle.Primary)
-                    .setEmoji('📝')
+
             );
 
         const row2 = new ActionRowBuilder<ButtonBuilder>()
@@ -206,19 +202,7 @@ export class DiscordHelpService {
                     );
                 break;
 
-            case 'todo':
-                embed = new EmbedBuilder()
-                    .setColor(0x0099FF)
-                    .setTitle('📝 Todo Commands')
-                    .setDescription('Commands for managing your todo list')
-                    .addFields(
-                        {name: '/todo add', value: 'Add a new todo', inline: true},
-                        {name: '/todo complete', value: 'Mark a todo as complete', inline: true},
-                        {name: '/todo incomplete', value: 'Mark a todo as incomplete', inline: true},
-                        {name: '/todo delete', value: 'Delete a todo', inline: true},
-                        {name: '/todo list', value: 'List your todos', inline: true}
-                    );
-                break;
+
 
             case 'status':
                 embed = new EmbedBuilder()
@@ -279,11 +263,7 @@ export class DiscordHelpService {
                     .setLabel('Moderation')
                     .setStyle(ButtonStyle.Primary)
                     .setEmoji('🛡️'),
-                new ButtonBuilder()
-                    .setCustomId('help:todo')
-                    .setLabel('Todo')
-                    .setStyle(ButtonStyle.Primary)
-                    .setEmoji('📝')
+
             );
 
         const row2 = new ActionRowBuilder<ButtonBuilder>()
@@ -335,7 +315,7 @@ export class DiscordHelpService {
                     .addChoices(
                         {name: 'Tickets', value: 'tickets'},
                         {name: 'Moderation', value: 'moderation'},
-                        {name: 'Todo', value: 'todo'},
+
                         {name: 'Status', value: 'status'},
                         {name: 'AI', value: 'ai'},
                         {name: 'Help', value: 'help'}

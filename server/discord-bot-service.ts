@@ -4,7 +4,7 @@ import {discordTicketService} from './discord/discord-ticket-service';
 import {discordCommandHandler} from './discord/discord-command-handler';
 import {discordModerationService} from './discord/discord-moderation-service';
 import {discordStatusService} from './discord/discord-status-service';
-import {discordTodoService} from './discord/discord-todo-service';
+
 import {discordHelpService} from './discord/discord-help-service';
 import {discordAIService} from './discord/discord-ai-service';
 import {DiscordUtils} from './discord/discord-utils';
@@ -48,7 +48,7 @@ export class DiscordBotService {
             discordCommandHandler,
             discordModerationService,
             discordStatusService,
-            discordTodoService,
+            null, // Removed todo service
             discordHelpService,
             discordAIService
         );
