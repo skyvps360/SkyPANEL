@@ -267,7 +267,7 @@ diff --git a/client/src/pages/home-page.tsx b/client/src/pages/home-page.tsx
 +    secondaryColor: brandingData.secondary_color || '10b981',
 @@ -103,1 +103,1 @@
 -    accentColor: brandingData?.accent_color || 'f59e0b'
-+    accentColor: brandingData.accent_color || 'f59e0b'
++    accentColor: brandingData?.accent_color ?? 'f59e0b'
 @@ -108,1 +108,1 @@
 -  const { data: ticketsResponse } = useQuery<{ data: any[], pagination: any }>({
 +  const { data: ticketsResponse } = useQuery<{ data: unknown[], pagination: any }>({
@@ -426,7 +426,7 @@ diff --git a/client/src/pages/admin/user-edit-page.tsx b/client/src/pages/admin/
 +      (transaction.description?.toLowerCase().includes(searchTerm)) ||
 @@ -253,1 +253,1 @@
 -      (transaction.adminReason && transaction.adminReason.toLowerCase().includes(searchTerm)) ||
-+      (transaction.adminReason?.toLowerCase().includes(searchTerm)) ||
++      (transaction.adminReason && transaction.adminReason.toLowerCase().includes(searchTerm)) ??
 @@ -254,1 +254,1 @@
 -      (transaction.type && transaction.type.toLowerCase().includes(searchTerm)) ||
 +      (transaction.type?.toLowerCase().includes(searchTerm)) ||
@@ -516,7 +516,7 @@ diff --git a/server/virtfusion-api.ts b/server/virtfusion-api.ts
 +        (responseError as unknown).response = error.response;
 @@ -463,1 +463,1 @@
 -      (error as any).status = 0;
-+      (error).status = 0;
++      (error as unknown).status = 0;
 @@ -468,1 +468,1 @@
 -  async modifyUserByExtRelationId(extRelationId: number, userData: any) {
 +  async modifyUserByExtRelationId(extRelationId: number, userData: unknown) {
@@ -876,7 +876,7 @@ diff --git a/client/src/pages/billing-page.tsx b/client/src/pages/billing-page.t
 +        const searchInCreditId = (transaction as unknown).virtFusionCreditId?.toLowerCase?.() || '';
 @@ -99,1 +99,1 @@
 -          (transaction.paymentId && transaction.paymentId.toLowerCase().includes(query)) ||
-+          (transaction.paymentId && transaction.paymentId.toLowerCase().includes(query)) ??
++          (transaction.paymentId?.toLowerCase().includes(query)) ||
 @@ -120,1 +120,1 @@
 -  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: any }>({
 +  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: unknown }>({
