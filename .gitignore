@@ -28,3 +28,7 @@ SkyPANEL.zip
 .aiignore
 logs/
 *.log
+
+
+#Ignore vscode AI rules
+.github\copilot-instructions.md

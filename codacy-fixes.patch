@@ -1,0 +1,1135 @@
+diff --git a/scripts/test-virtfusion-sso.ts b/scripts/test-virtfusion-sso.ts
+--- a/scripts/test-virtfusion-sso.ts
++++ b/scripts/test-virtfusion-sso.ts
+@@ -35,1 +35,1 @@
+-    } catch (error: any) {
++    } catch (error: unknown) {
+@@ -56,1 +56,1 @@
+-      if (authResponse && authResponse.data) {
++      if (authResponse?.data) {
+@@ -64,1 +64,1 @@
+-          if (authentication && authentication.tokens) {
++          if (authentication?.tokens) {
+diff --git a/client/src/pages/auth/verify-page.tsx b/client/src/pages/auth/verify-page.tsx
+--- a/client/src/pages/auth/verify-page.tsx
++++ b/client/src/pages/auth/verify-page.tsx
+@@ -45,1 +45,1 @@
+-      .catch(error => {
++      .catch((error: unknown) => {
+@@ -79,1 +79,1 @@
+-      return () => clearTimeout(timer);
++      return () => { clearTimeout(timer); };
+@@ -99,1 +99,1 @@
+-    if (!isLoading && user && user.isVerified && !redirecting) {
++    if (!isLoading && user?.isVerified && !redirecting) {
+@@ -119,1 +119,1 @@
+-        return clearInterval(interval);
++        clearInterval(interval); return;
+@@ -305,1 +305,1 @@
+-                  onChange={(e) => setVerificationCode(e.target.value)}
++                  onChange={(e) => { setVerificationCode(e.target.value); }}
+diff --git a/server/services/cron-service.ts b/server/services/cron-service.ts
+--- a/server/services/cron-service.ts
++++ b/server/services/cron-service.ts
+@@ -6,1 +6,1 @@
+-  private jobs: Map<string, cron.ScheduledTask> = new Map();
++  private jobs = new Map<string, cron.ScheduledTask>();
+@@ -81,1 +81,1 @@
+-        } catch (error: any) {
++        } catch (error: unknown) {
+@@ -129,1 +129,1 @@
+-        const finalSchedule = schedule || (await storage.getSetting('dns_billing_cron_schedule'))?.value || '0 2 1 * *';
++        const finalSchedule = (schedule ?? (await storage.getSetting('dns_billing_cron_schedule'))?.value) || '0 2 1 * *';
+@@ -135,1 +135,1 @@
+-      console.log(`DNS billing cron updated: enabled=${enabled}, schedule=${schedule || 'unchanged'}`);
++      console.log(`DNS billing cron updated: enabled=${enabled}, schedule=${schedule ?? 'unchanged'}`);
+@@ -188,1 +188,1 @@
+-  async triggerDnsBillingManually(): Promise<any> {
++  async triggerDnsBillingManually(): Promise<unknown> {
+@@ -206,1 +206,1 @@
+-  private async logCronJobResult(jobName: string, status: 'success' | 'failed', data: any): Promise<void> {
++  private async logCronJobResult(jobName: string, status: 'success' | 'failed', data: unknown): Promise<void> {
+@@ -254,1 +254,1 @@
+-      lastResult?: any;
++      lastResult?: unknown;
+diff --git a/server/discord/discord-help-service.ts b/server/discord/discord-help-service.ts
+--- a/server/discord/discord-help-service.ts
++++ b/server/discord/discord-help-service.ts
+@@ -50,1 +50,1 @@
+-        } catch (error: any) {
++        } catch (error: unknown) {
+@@ -306,1 +306,1 @@
+-    public getHelpCommand(): any {
++    public getHelpCommand(): unknown {
+diff --git a/scripts/add-dual-billing-system.ts b/scripts/add-dual-billing-system.ts
+--- a/scripts/add-dual-billing-system.ts
++++ b/scripts/add-dual-billing-system.ts
+@@ -148,1 +148,1 @@
+-addDualBillingSystem();
++void addDualBillingSystem();
+diff --git a/server/discord/discord-embed-utils.ts b/server/discord/discord-embed-utils.ts
+--- a/server/discord/discord-embed-utils.ts
++++ b/server/discord/discord-embed-utils.ts
+@@ -190,1 +190,1 @@
+-        services: Array<{ name: string; status: string; uptime?: string }>
++        services: { name: string; status: string; uptime?: string }[]
+@@ -257,1 +257,1 @@
+-    public static truncateText(text: string, maxLength: number = 1024): string {
++    public static truncateText(text: string, maxLength = 1024): string {
+@@ -273,1 +273,1 @@
+-    public static createLoadingEmbed(message: string = 'Processing...'): EmbedBuilder {
++    public static createLoadingEmbed(message = 'Processing...'): EmbedBuilder {
+diff --git a/server/discord/discord-ai-service.ts b/server/discord/discord-ai-service.ts
+--- a/server/discord/discord-ai-service.ts
++++ b/server/discord/discord-ai-service.ts
+@@ -16,1 +16,1 @@
+-    private userConversations: Map<string, Array<{ role: string, parts: Array<{ text: string }> }>> = new Map();
++    private userConversations = new Map<string, Array<{ role: string, parts: Array<{ text: string }> }>>();
+@@ -84,1 +84,1 @@
+-            } catch (aiError: any) {
++            } catch (aiError: unknown) {
+@@ -92,1 +92,1 @@
+-                } catch (replyError: any) {
++                } catch (replyError: unknown) {
+@@ -101,1 +101,1 @@
+-        } catch (error: any) {
++        } catch (error: unknown) {
+@@ -218,1 +218,1 @@
+-        conversation: Array<{ role: string, parts: Array<{ text: string }> }>,
++        conversation: { role: string, parts: Array<{ text: string }> }[],
+@@ -219,1 +219,1 @@
+-        username: string = "Discord User"
++        username = "Discord User"
+@@ -261,1 +261,1 @@
+-            } catch (fallbackError: any) {
++            } catch (fallbackError: unknown) {
+@@ -288,1 +288,1 @@
+-    public getAIChatCommands(): any {
++    public getAIChatCommands(): unknown {
+diff --git a/scripts/test-email-verification-improvements.ts b/scripts/test-email-verification-improvements.ts
+--- a/scripts/test-email-verification-improvements.ts
++++ b/scripts/test-email-verification-improvements.ts
+@@ -113,1 +113,1 @@
+-testEmailVerificationImprovements();
++void testEmailVerificationImprovements();
+diff --git a/scripts/assign-free-dns-plans.ts b/scripts/assign-free-dns-plans.ts
+--- a/scripts/assign-free-dns-plans.ts
++++ b/scripts/assign-free-dns-plans.ts
+@@ -127,1 +127,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/server/discord/discord-bot-core.ts b/server/discord/discord-bot-core.ts
+--- a/server/discord/discord-bot-core.ts
++++ b/server/discord/discord-bot-core.ts
+@@ -40,1 +40,1 @@
+-    private ready: boolean = false;
++    private ready = false;
+@@ -41,1 +41,1 @@
+-    private commandsRegistered: boolean = false;
++    private commandsRegistered = false;
+@@ -44,1 +44,1 @@
+-    private ticketService: any;
++    private ticketService: unknown;
+@@ -45,1 +45,1 @@
+-    private commandHandler: any;
++    private commandHandler: unknown;
+@@ -46,1 +46,1 @@
+-    private moderationService: any;
++    private moderationService: unknown;
+@@ -47,1 +47,1 @@
+-    private statusService: any;
++    private statusService: unknown;
+@@ -48,1 +48,1 @@
+-    private todoService: any;
++    private todoService: unknown;
+@@ -49,1 +49,1 @@
+-    private helpService: any;
++    private helpService: unknown;
+@@ -50,1 +50,1 @@
+-    private aiService: any;
++    private aiService: unknown;
+@@ -70,1 +70,1 @@
+-        ticketService: any,
++        ticketService: unknown,
+diff --git a/scripts/add-virtfusion-credit-id.ts b/scripts/add-virtfusion-credit-id.ts
+--- a/scripts/add-virtfusion-credit-id.ts
++++ b/scripts/add-virtfusion-credit-id.ts
+@@ -41,1 +41,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/scripts/test-interserver-domain-deletion.ts b/scripts/test-interserver-domain-deletion.ts
+--- a/scripts/test-interserver-domain-deletion.ts
++++ b/scripts/test-interserver-domain-deletion.ts
+@@ -117,1 +117,1 @@
+-testInterServerDomainDeletion();
++void testInterServerDomainDeletion();
+diff --git a/scripts/test-discord-bot.ts b/scripts/test-discord-bot.ts
+--- a/scripts/test-discord-bot.ts
++++ b/scripts/test-discord-bot.ts
+@@ -33,1 +33,1 @@
+-testDiscordBot().catch(error => {
++testDiscordBot().catch((error: unknown) => {
+diff --git a/scripts/test-dns-billing-fix.ts b/scripts/test-dns-billing-fix.ts
+--- a/scripts/test-dns-billing-fix.ts
++++ b/scripts/test-dns-billing-fix.ts
+@@ -88,1 +88,1 @@
+-}).catch((error) => {
++}).catch((error: unknown) => {
+diff --git a/client/src/hooks/useThemeManager.ts b/client/src/hooks/useThemeManager.ts
+--- a/client/src/hooks/useThemeManager.ts
++++ b/client/src/hooks/useThemeManager.ts
+@@ -16,1 +16,1 @@
+-      targetTheme = localStorage.getItem('admin-theme') || 'dark';
++      targetTheme = localStorage.getItem('admin-theme') ?? 'dark';
+@@ -46,1 +46,1 @@
+-    return () => clearTimeout(timeoutId);
++    return () => { clearTimeout(timeoutId); };
+diff --git a/scripts/investigate-subscription-counts.ts b/scripts/investigate-subscription-counts.ts
+--- a/scripts/investigate-subscription-counts.ts
++++ b/scripts/investigate-subscription-counts.ts
+@@ -144,1 +144,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/scripts/test-dns-plan-fixes.ts b/scripts/test-dns-plan-fixes.ts
+--- a/scripts/test-dns-plan-fixes.ts
++++ b/scripts/test-dns-plan-fixes.ts
+@@ -68,1 +68,1 @@
+-    } catch (constraintError: any) {
++    } catch (constraintError: unknown) {
+@@ -69,1 +69,1 @@
+-      if (constraintError.message && constraintError.message.includes('unique')) {
++      if (constraintError.message?.includes('unique')) {
+@@ -182,1 +182,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/scripts/investigate-dns-subscriptions.ts b/scripts/investigate-dns-subscriptions.ts
+--- a/scripts/investigate-dns-subscriptions.ts
++++ b/scripts/investigate-dns-subscriptions.ts
+@@ -183,1 +183,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/client/src/pages/dns-plans-page.tsx b/client/src/pages/dns-plans-page.tsx
+--- a/client/src/pages/dns-plans-page.tsx
++++ b/client/src/pages/dns-plans-page.tsx
+@@ -148,1 +148,1 @@
+-      queryClient.invalidateQueries({ queryKey: ["/api/dns-plans/subscriptions"] });
++      void queryClient.invalidateQueries({ queryKey: ["/api/dns-plans/subscriptions"] });
+@@ -149,1 +149,1 @@
+-      queryClient.invalidateQueries({ queryKey: ["/api/billing/balance"] });
++      void queryClient.invalidateQueries({ queryKey: ["/api/billing/balance"] });
+@@ -150,1 +150,1 @@
+-      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
++      void queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+@@ -153,1 +153,1 @@
+-      queryClient.invalidateQueries({ queryKey: ["dns-plan-limits"] });
++      void queryClient.invalidateQueries({ queryKey: ["dns-plan-limits"] });
+@@ -154,1 +154,1 @@
+-      queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
++      void queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
+@@ -158,1 +158,1 @@
+-    onError: (error: any) => {
++    onError: (error: unknown) => {
+diff --git a/server/cache-service.ts b/server/cache-service.ts
+--- a/server/cache-service.ts
++++ b/server/cache-service.ts
+@@ -70,1 +70,1 @@
+-    (betterStack as any).monitorsCache = [];
++    (betterStack as unknown).monitorsCache = [];
+@@ -71,1 +71,1 @@
+-    (betterStack as any).lastFetch = 0;
++    (betterStack as unknown).lastFetch = 0;
+@@ -149,1 +149,1 @@
+-    const betterStackCache = (betterStack as any).monitorsCache || [];
++    const betterStackCache = (betterStack as unknown).monitorsCache || [];
+@@ -150,1 +150,1 @@
+-    const betterStackLastFetch = (betterStack as any).lastFetch || 0;
++    const betterStackLastFetch = (betterStack as unknown).lastFetch || 0;
+diff --git a/scripts/restore-admin-dns-plan.ts b/scripts/restore-admin-dns-plan.ts
+--- a/scripts/restore-admin-dns-plan.ts
++++ b/scripts/restore-admin-dns-plan.ts
+@@ -143,1 +143,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/client/src/pages/home-page.tsx b/client/src/pages/home-page.tsx
+--- a/client/src/pages/home-page.tsx
++++ b/client/src/pages/home-page.tsx
+@@ -24,1 +24,1 @@
+-function generateServerDescription(servers: any[]): string {
++function generateServerDescription(servers: unknown[]): string {
+@@ -30,1 +30,1 @@
+-  const categoryGroups: { [key: string]: number } = {};
++  const categoryGroups: Record<string, number> = {};
+@@ -101,1 +101,1 @@
+-    primaryColor: brandingData?.primary_color || brandingData?.company_color || '2563eb',
++    primaryColor: (brandingData?.primary_color ?? brandingData?.company_color) || '2563eb',
+@@ -102,1 +102,1 @@
+-    secondaryColor: brandingData?.secondary_color || '10b981',
++    secondaryColor: brandingData.secondary_color || '10b981',
+@@ -103,1 +103,1 @@
+-    accentColor: brandingData?.accent_color || 'f59e0b'
++    accentColor: brandingData.accent_color || 'f59e0b'
+@@ -108,1 +108,1 @@
+-  const { data: ticketsResponse } = useQuery<{ data: any[], pagination: any }>({
++  const { data: ticketsResponse } = useQuery<{ data: unknown[], pagination: any }>({
+@@ -112,1 +112,1 @@
+-  const tickets = ticketsResponse?.data || [];
++  const tickets = ticketsResponse?.data ?? [];
+@@ -120,1 +120,1 @@
+-  const { data: usageData } = useQuery<{ usage: number, rawData: any }>({
++  const { data: usageData } = useQuery<{ usage: number, rawData: unknown }>({
+@@ -128,1 +128,1 @@
+-  const { data: serversResponse } = useQuery<{ data: any[], pagination: any }>({
++  const { data: serversResponse } = useQuery<{ data: unknown[], pagination: any }>({
+@@ -134,1 +134,1 @@
+-  const servers = serversResponse?.data || [];
++  const servers = serversResponse?.data ?? [];
+@@ -137,1 +137,1 @@
+-  const { data: dnsDomainsResponse } = useQuery<{ domains: any[] }>({
++  const { data: dnsDomainsResponse } = useQuery<{ domains: unknown[] }>({
+@@ -143,1 +143,1 @@
+-  const dnsDomains = dnsDomainsResponse?.domains || [];
++  const dnsDomains = dnsDomainsResponse?.domains ?? [];
+diff --git a/scripts/fix-dns-subscriptions.ts b/scripts/fix-dns-subscriptions.ts
+--- a/scripts/fix-dns-subscriptions.ts
++++ b/scripts/fix-dns-subscriptions.ts
+@@ -168,1 +168,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/scripts/test-actual-downgrade-scenario.ts b/scripts/test-actual-downgrade-scenario.ts
+--- a/scripts/test-actual-downgrade-scenario.ts
++++ b/scripts/test-actual-downgrade-scenario.ts
+@@ -168,1 +168,1 @@
+-testActualDowngradeScenario();
++void testActualDowngradeScenario();
+diff --git a/scripts/test-dual-billing-system.ts b/scripts/test-dual-billing-system.ts
+--- a/scripts/test-dual-billing-system.ts
++++ b/scripts/test-dual-billing-system.ts
+@@ -131,1 +131,1 @@
+-testDualBillingSystem();
++void testDualBillingSystem();
+diff --git a/scripts/add-todos-table.ts b/scripts/add-todos-table.ts
+--- a/scripts/add-todos-table.ts
++++ b/scripts/add-todos-table.ts
+@@ -61,1 +61,1 @@
+-addDiscordTodosTable();
++void addDiscordTodosTable();
+diff --git a/scripts/debug-admin-subscriptions.ts b/scripts/debug-admin-subscriptions.ts
+--- a/scripts/debug-admin-subscriptions.ts
++++ b/scripts/debug-admin-subscriptions.ts
+@@ -122,1 +122,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/client/src/components/admin/ServerCreateModal.tsx b/client/src/components/admin/ServerCreateModal.tsx
+--- a/client/src/components/admin/ServerCreateModal.tsx
++++ b/client/src/components/admin/ServerCreateModal.tsx
+@@ -69,1 +69,1 @@
+-  const [selectedPackage, setSelectedPackage] = useState<any>(null);
++  const [selectedPackage, setSelectedPackage] = useState<unknown>(null);
+@@ -70,1 +70,1 @@
+-  const [selectedUser, setSelectedUser] = useState<any>(null);
++  const [selectedUser, setSelectedUser] = useState<unknown>(null);
+@@ -141,1 +141,1 @@
+-      queryClient.invalidateQueries({ queryKey: ['/api/admin/servers'] });
++      void queryClient.invalidateQueries({ queryKey: ['/api/admin/servers'] });
+@@ -213,1 +213,1 @@
+-                            const pkg = packages?.find((p: any) => p.id === packageId);
++                            const pkg = packages?.find((p: unknown) => p.id === packageId);
+@@ -223,1 +223,1 @@
+-                            {packages?.map((pkg: any) => (
++                            {packages?.map((pkg: unknown) => (
+@@ -251,1 +251,1 @@
+-                            const user = users?.find((u: any) => u.id === userId);
++                            const user = users?.find((u: unknown) => u.id === userId);
+@@ -261,1 +261,1 @@
+-                            {users?.map((user: any) => (
++                            {users?.map((user: unknown) => (
+@@ -293,1 +293,1 @@
+-                            {hypervisors?.data?.map((hypervisor: any) => (
++                            {hypervisors?.data?.map((hypervisor: unknown) => (
+diff --git a/scripts/fix-dual-billing-schema.ts b/scripts/fix-dual-billing-schema.ts
+--- a/scripts/fix-dual-billing-schema.ts
++++ b/scripts/fix-dual-billing-schema.ts
+@@ -148,1 +148,1 @@
+-fixDualBillingSchema();
++void fixDualBillingSchema();
+diff --git a/server/services/auth/auth.ts b/server/services/auth/auth.ts
+--- a/server/services/auth/auth.ts
++++ b/server/services/auth/auth.ts
+@@ -17,1 +17,1 @@
+-    interface User extends SelectUser {}
++    type User = SelectUser
+@@ -223,1 +223,1 @@
+-        if (err) return next(err);
++        if (err) { next(err); return; }
+@@ -243,1 +243,1 @@
+-        return next(err);
++        next(err); return;
+@@ -248,1 +248,1 @@
+-        if (info && info.needsVerification) {
++        if (info?.needsVerification) {
+@@ -259,1 +259,1 @@
+-          error: info && info.message ? info.message : 'Authentication failed' 
++          error: info?.message ? info.message : 'Authentication failed' 
+@@ -266,1 +266,1 @@
+-          return next(loginErr);
++          next(loginErr); return;
+diff --git a/scripts/detailed-admin-subscriptions.ts b/scripts/detailed-admin-subscriptions.ts
+--- a/scripts/detailed-admin-subscriptions.ts
++++ b/scripts/detailed-admin-subscriptions.ts
+@@ -75,1 +75,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/scripts/add-dns-tables.ts b/scripts/add-dns-tables.ts
+--- a/scripts/add-dns-tables.ts
++++ b/scripts/add-dns-tables.ts
+@@ -70,1 +70,1 @@
+-addDnsTables();
++void addDnsTables();
+diff --git a/scripts/test-gemini-fix.ts b/scripts/test-gemini-fix.ts
+--- a/scripts/test-gemini-fix.ts
++++ b/scripts/test-gemini-fix.ts
+@@ -59,1 +59,1 @@
+-  } catch (error: any) {
++  } catch (error: unknown) {
+diff --git a/scripts/check-admin-subscriptions.ts b/scripts/check-admin-subscriptions.ts
+--- a/scripts/check-admin-subscriptions.ts
++++ b/scripts/check-admin-subscriptions.ts
+@@ -65,1 +65,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/scripts/test-dns-system-complete.ts b/scripts/test-dns-system-complete.ts
+--- a/scripts/test-dns-system-complete.ts
++++ b/scripts/test-dns-system-complete.ts
+@@ -120,1 +120,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/client/src/pages/admin/user-edit-page.tsx b/client/src/pages/admin/user-edit-page.tsx
+--- a/client/src/pages/admin/user-edit-page.tsx
++++ b/client/src/pages/admin/user-edit-page.tsx
+@@ -80,1 +80,1 @@
+-  metadata?: any;
++  metadata?: unknown;
+@@ -147,1 +147,1 @@
+-  const [activeTab, setActiveTab] = useState(urlParams.get('tab') || "profile");
++  const [activeTab, setActiveTab] = useState(urlParams.get('tab') ?? "profile");
+@@ -198,1 +198,1 @@
+-          {transaction.type?.replace('_', ' ') || 'Unknown'}
++          {transaction.type.replace('_', ' ') || 'Unknown'}
+@@ -208,1 +208,1 @@
+-          {transaction.amount >= 0 ? '+' : ''}${transaction.amount?.toFixed(2) || '0.00'}
++          {transaction.amount >= 0 ? '+' : ''}${transaction.amount.toFixed(2) || '0.00'}
+@@ -239,1 +239,1 @@
+-          ${transaction.balanceAfter?.toFixed(2) || '0.00'}
++          ${transaction.balanceAfter.toFixed(2) || '0.00'}
+@@ -252,1 +252,1 @@
+-      (transaction.description && transaction.description.toLowerCase().includes(searchTerm)) ||
++      (transaction.description?.toLowerCase().includes(searchTerm)) ||
+@@ -253,1 +253,1 @@
+-      (transaction.adminReason && transaction.adminReason.toLowerCase().includes(searchTerm)) ||
++      (transaction.adminReason?.toLowerCase().includes(searchTerm)) ||
+@@ -254,1 +254,1 @@
+-      (transaction.type && transaction.type.toLowerCase().includes(searchTerm)) ||
++      (transaction.type?.toLowerCase().includes(searchTerm)) ||
+@@ -271,1 +271,1 @@
+-  } = useQuery<VirtFusionUsageData, Error>({
++  } = useQuery<VirtFusionUsageData>({
+@@ -316,1 +316,1 @@
+-    onError: (error: any) => {
++    onError: (error: unknown) => {
+@@ -391,1 +391,1 @@
+-      if (data && data.creditId) {
++      if (data?.creditId) {
+@@ -580,1 +580,1 @@
+-  if (error || !user) {
++  if (error ?? !user) {
+@@ -622,1 +622,1 @@
+-        setTimeout(() => setPasswordCopied(false), 2000);
++        setTimeout(() => { setPasswordCopied(false); }, 2000);
+@@ -667,1 +667,1 @@
+-              onClick={() => setShowPasswordModal(false)}
++              onClick={() => { setShowPasswordModal(false); }}
+@@ -752,1 +752,1 @@
+-                {user.virtFusionId || <span className="text-amber-600">Not linked</span>}
++                {user.virtFusionId ?? <span className="text-amber-600">Not linked</span>}
+@@ -881,1 +881,1 @@
+-                            {usageData && usageData.data && usageData.data.data && usageData.data.data.credit && usageData.data.data.credit.tokens
++                            {usageData?.data?.data?.credit?.tokens
+@@ -892,1 +892,1 @@
+-                            ${usageData && usageData.data && usageData.data.data && usageData.data.data.credit && usageData.data.data.credit.value
++                            ${usageData?.data?.data?.credit?.value
+@@ -922,1 +922,1 @@
+-                                onChange={(e) => setVfAddAmount(e.target.value)}
++                                onChange={(e) => { setVfAddAmount(e.target.value); }}
+@@ -935,1 +935,1 @@
+-                                onChange={(e) => setVfAddReference(e.target.value)}
++                                onChange={(e) => { setVfAddReference(e.target.value); }}
+@@ -971,1 +971,1 @@
+-                                onChange={(e) => setVfRemoveAmount(e.target.value)}
++                                onChange={(e) => { setVfRemoveAmount(e.target.value); }}
+@@ -984,1 +984,1 @@
+-                                onChange={(e) => setVfRemoveReference(e.target.value)}
++                                onChange={(e) => { setVfRemoveReference(e.target.value); }}
+@@ -1022,1 +1022,1 @@
+-                                onChange={(e) => setVfRemoveCreditId(e.target.value)}
++                                onChange={(e) => { setVfRemoveCreditId(e.target.value); }}
+@@ -1117,1 +1117,1 @@
+-                ) : !usageData || !usageData.data || !usageData.data.data || !usageData.data.data.credit ? (
++                ) : !usageData?.data?.data?.credit ? (
+@@ -1131,1 +1131,1 @@
+-                        {usageData.data.data && usageData.data.data.user && usageData.data.data.user.name ? (
++                        {usageData.data.data?.user?.name ? (
+@@ -1143,1 +1143,1 @@
+-                        {usageData.data.data && usageData.data.data.user && usageData.data.data.user.email ? (
++                        {usageData.data.data?.user?.email ? (
+diff --git a/server/virtfusion-api.ts b/server/virtfusion-api.ts
+--- a/server/virtfusion-api.ts
++++ b/server/virtfusion-api.ts
+@@ -14,1 +14,1 @@
+-    const apiUrl = process.env.VIRTFUSION_API_URL || "https://skyvps360.xyz";
++    const apiUrl = process.env.VIRTFUSION_API_URL ?? "https://skyvps360.xyz";
+@@ -22,1 +22,1 @@
+-    this.apiToken = process.env.VIRTFUSION_API_TOKEN || "";
++    this.apiToken = process.env.VIRTFUSION_API_TOKEN ?? "";
+@@ -93,1 +93,1 @@
+-  async request(method: string, endpoint: string, data?: any) {
++  async request(method: string, endpoint: string, data?: unknown) {
+@@ -215,1 +215,1 @@
+-      } catch (axiosError: any) {
++      } catch (axiosError: unknown) {
+@@ -239,1 +239,1 @@
+-            } catch (e: any) {
++            } catch (e: unknown) {
+@@ -287,1 +287,1 @@
+-    } catch (error: any) {
++    } catch (error: unknown) {
+@@ -445,1 +445,1 @@
+-          (structuredError as any).status = error.response.status;
++          (structuredError as unknown).status = error.response.status;
+@@ -446,1 +446,1 @@
+-          (structuredError as any).response = error.response;
++          (structuredError as unknown).response = error.response;
+@@ -452,1 +452,1 @@
+-        (responseError as any).status = error.response.status;
++        (responseError as unknown).status = error.response.status;
+@@ -453,1 +453,1 @@
+-        (responseError as any).response = error.response;
++        (responseError as unknown).response = error.response;
+@@ -463,1 +463,1 @@
+-      (error as any).status = 0;
++      (error).status = 0;
+@@ -468,1 +468,1 @@
+-  async modifyUserByExtRelationId(extRelationId: number, userData: any) {
++  async modifyUserByExtRelationId(extRelationId: number, userData: unknown) {
+@@ -502,1 +502,1 @@
+-  async createUser(userData: any) {
++  async createUser(userData: unknown) {
+@@ -629,1 +629,1 @@
+-  async getServers(page: number = 1, perPage: number = 10, params: any = {}) {
++  async getServers(page = 1, perPage: number = 10, params: any = {}) {
+@@ -658,1 +658,1 @@
+-      if (response && response.data) {
++      if (response?.data) {
+@@ -737,1 +737,1 @@
+-  async getServer(serverId: number, detailed: boolean = false) {
++  async getServer(serverId: number, detailed = false) {
+@@ -779,1 +779,1 @@
+-  async createServer(serverData: any) {
++  async createServer(serverData: unknown) {
+@@ -790,1 +790,1 @@
+-  async buildServer(serverId: number, buildData: any) {
++  async buildServer(serverId: number, buildData: unknown) {
+@@ -869,1 +869,1 @@
+-  async resetServerPassword(serverId: number, user: string, sendMail: boolean = true) {
++  async resetServerPassword(serverId: number, user: string, sendMail = true) {
+@@ -895,1 +895,1 @@
+-      if (response && response.data && response.data.expectedPassword) {
++      if (response?.data?.expectedPassword) {
+@@ -979,1 +979,1 @@
+-  async getUserUsageByExtRelationId(extRelationId: number, period?: string, range: string = "m") {
++  async getUserUsageByExtRelationId(extRelationId: number, period?: string, range = "m") {
+@@ -1000,1 +1000,1 @@
+-  async getUserHourlyStats(extRelationId: number, period?: string, range: string = "m") {
++  async getUserHourlyStats(extRelationId: number, period?: string, range = "m") {
+diff --git a/server/discord-bot-service.ts b/server/discord-bot-service.ts
+--- a/server/discord-bot-service.ts
++++ b/server/discord-bot-service.ts
+@@ -59,1 +59,1 @@
+-    } catch (error: any) {
++    } catch (error: unknown) {
+@@ -135,1 +135,1 @@
+-    limit: number = 10
++    limit = 10
+@@ -136,1 +136,1 @@
+-  ): Promise<Array<{ id: string; username: string; globalName?: string; displayName: string; avatar: string; bot: boolean }>> {
++  ): Promise<{ id: string; username: string; globalName?: string; displayName: string; avatar: string; bot: boolean }[]> {
+diff --git a/server/interserver-api.ts b/server/interserver-api.ts
+--- a/server/interserver-api.ts
++++ b/server/interserver-api.ts
+@@ -52,1 +52,1 @@
+-  private baseUrl: string = 'https://my.interserver.net/apiv2';
++  private baseUrl = 'https://my.interserver.net/apiv2';
+@@ -55,1 +55,1 @@
+-    this.apiKey = apiKey || process.env.INTERSERVER_API_KEY || '';
++    this.apiKey = (apiKey ?? process.env.INTERSERVER_API_KEY) || '';
+@@ -204,1 +204,1 @@
+-  async deleteDnsDomain(domainId: number): Promise<any> {
++  async deleteDnsDomain(domainId: number): Promise<unknown> {
+@@ -230,1 +230,1 @@
+-  async updateDnsRecord(domainId: number, recordId: number, recordData: DnsUpdateRecord): Promise<any> {
++  async updateDnsRecord(domainId: number, recordId: number, recordData: DnsUpdateRecord): Promise<unknown> {
+@@ -258,1 +258,1 @@
+-  async deleteDnsRecord(domainId: number, recordId: number): Promise<any> {
++  async deleteDnsRecord(domainId: number, recordId: number): Promise<unknown> {
+@@ -284,1 +284,1 @@
+-  async addDnsRecord(domainId: number, recordData: DnsUpdateRecord): Promise<any> {
++  async addDnsRecord(domainId: number, recordData: DnsUpdateRecord): Promise<unknown> {
+@@ -288,1 +288,1 @@
+-        name: recordData.name || '',
++        name: recordData.name ?? '',
+@@ -289,1 +289,1 @@
+-        type: recordData.type || 'A',
++        type: recordData.type ?? 'A',
+@@ -290,1 +290,1 @@
+-        content: recordData.content || '',
++        content: recordData.content ?? '',
+@@ -291,1 +291,1 @@
+-        ttl: recordData.ttl || '86400',
++        ttl: recordData.ttl ?? '86400',
+@@ -292,1 +292,1 @@
+-        prio: recordData.prio || '0',
++        prio: recordData.prio ?? '0',
+@@ -293,1 +293,1 @@
+-        disabled: recordData.disabled || '0',
++        disabled: recordData.disabled ?? '0',
+@@ -294,1 +294,1 @@
+-        ordername: recordData.ordername || '',
++        ordername: recordData.ordername ?? '',
+@@ -295,1 +295,1 @@
+-        auth: recordData.auth || '1'
++        auth: recordData.auth ?? '1'
+diff --git a/scripts/add-dns-subscription-constraint.ts b/scripts/add-dns-subscription-constraint.ts
+--- a/scripts/add-dns-subscription-constraint.ts
++++ b/scripts/add-dns-subscription-constraint.ts
+@@ -64,1 +64,1 @@
+-  } catch (error: any) {
++  } catch (error: unknown) {
+@@ -68,1 +68,1 @@
+-    if (error.message && error.message.includes('already exists')) {
++    if (error.message?.includes('already exists')) {
+@@ -83,1 +83,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/server/index.ts b/server/index.ts
+--- a/server/index.ts
++++ b/server/index.ts
+@@ -55,1 +55,1 @@
+-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
++  let capturedJsonResponse: Record<string, unknown> | undefined = undefined;
+@@ -126,1 +126,1 @@
+-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
++  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+@@ -147,1 +147,1 @@
+-  const port = process.env.PORT || 5000;
++  const port = process.env.PORT ?? 5000;
+@@ -148,1 +148,1 @@
+-  const host = process.env.HOST || "0.0.0.0"; // Allow external connections on VPS
++  const host = process.env.HOST ?? "0.0.0.0"; // Allow external connections on VPS
+diff --git a/server/services/auth/verification-rate-limiter.ts b/server/services/auth/verification-rate-limiter.ts
+--- a/server/services/auth/verification-rate-limiter.ts
++++ b/server/services/auth/verification-rate-limiter.ts
+@@ -137,1 +137,1 @@
+-        const insertData: any = {
++        const insertData: unknown = {
+@@ -256,1 +256,1 @@
+-      if (recentAttempt && recentAttempt.lastAttemptAt) {
++      if (recentAttempt?.lastAttemptAt) {
+diff --git a/scripts/test-dns-downgrade-domain-deletion.ts b/scripts/test-dns-downgrade-domain-deletion.ts
+--- a/scripts/test-dns-downgrade-domain-deletion.ts
++++ b/scripts/test-dns-downgrade-domain-deletion.ts
+@@ -219,1 +219,1 @@
+-testDnsDowngradeDomainDeletion();
++void testDnsDowngradeDomainDeletion();
+diff --git a/scripts/test-dns-limits.ts b/scripts/test-dns-limits.ts
+--- a/scripts/test-dns-limits.ts
++++ b/scripts/test-dns-limits.ts
+@@ -95,1 +95,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/server/auth.ts b/server/auth.ts
+--- a/server/auth.ts
++++ b/server/auth.ts
+@@ -17,1 +17,1 @@
+-    interface User extends SelectUser {}
++    type User = SelectUser
+@@ -223,1 +223,1 @@
+-        if (err) return next(err);
++        if (err) { next(err); return; }
+@@ -243,1 +243,1 @@
+-        return next(err);
++        next(err); return;
+@@ -248,1 +248,1 @@
+-        if (info && info.needsVerification) {
++        if (info?.needsVerification) {
+@@ -259,1 +259,1 @@
+-          error: info && info.message ? info.message : 'Authentication failed' 
++          error: info?.message ? info.message : 'Authentication failed' 
+@@ -266,1 +266,1 @@
+-          return next(loginErr);
++          next(loginErr); return;
+diff --git a/scripts/test-admin-dns-api.ts b/scripts/test-admin-dns-api.ts
+--- a/scripts/test-admin-dns-api.ts
++++ b/scripts/test-admin-dns-api.ts
+@@ -112,1 +112,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/server/discord/discord-todo-service.ts b/server/discord/discord-todo-service.ts
+--- a/server/discord/discord-todo-service.ts
++++ b/server/discord/discord-todo-service.ts
+@@ -65,1 +65,1 @@
+-        } catch (error: any) {
++        } catch (error: unknown) {
+@@ -242,1 +242,1 @@
+-                { name: 'â Completed At', value: DiscordEmbedUtils.formatTimestamp(completedTodo.completedAt!, 'f'), inline: true },
++                { name: 'â Completed At', value: DiscordEmbedUtils.formatTimestamp(completedTodo.completedAt, 'f'), inline: true },
+@@ -499,1 +499,1 @@
+-    public getTodoCommands(): any[] {
++    public getTodoCommands(): unknown[] {
+diff --git a/scripts/run-email-verification-migration.ts b/scripts/run-email-verification-migration.ts
+--- a/scripts/run-email-verification-migration.ts
++++ b/scripts/run-email-verification-migration.ts
+@@ -57,1 +57,1 @@
+-runMigration();
++void runMigration();
+diff --git a/server/discord/discord-moderation-service.ts b/server/discord/discord-moderation-service.ts
+--- a/server/discord/discord-moderation-service.ts
++++ b/server/discord/discord-moderation-service.ts
+@@ -97,1 +97,1 @@
+-        } catch (error: any) {
++        } catch (error: unknown) {
+@@ -599,1 +599,1 @@
+-    public getModerationCommands(): any[] {
++    public getModerationCommands(): unknown[] {
+diff --git a/scripts/cleanup-admin-subscriptions.ts b/scripts/cleanup-admin-subscriptions.ts
+--- a/scripts/cleanup-admin-subscriptions.ts
++++ b/scripts/cleanup-admin-subscriptions.ts
+@@ -184,1 +184,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/scripts/test-domain-selection-downgrade.ts b/scripts/test-domain-selection-downgrade.ts
+--- a/scripts/test-domain-selection-downgrade.ts
++++ b/scripts/test-domain-selection-downgrade.ts
+@@ -175,1 +175,1 @@
+-}).catch(error => {
++}).catch((error: unknown) => {
+diff --git a/client/src/components/dns/AddRecordDialog.tsx b/client/src/components/dns/AddRecordDialog.tsx
+--- a/client/src/components/dns/AddRecordDialog.tsx
++++ b/client/src/components/dns/AddRecordDialog.tsx
+@@ -116,1 +116,1 @@
+-    onError: (error: any) => {
++    onError: (error: unknown) => {
+diff --git a/client/src/components/layout/AdminLayout.tsx b/client/src/components/layout/AdminLayout.tsx
+--- a/client/src/components/layout/AdminLayout.tsx
++++ b/client/src/components/layout/AdminLayout.tsx
+@@ -151,1 +151,1 @@
+-  const { data: ticketsResponse } = useQuery<{ data: TicketType[], pagination: any }>({
++  const { data: ticketsResponse } = useQuery<{ data: TicketType[], pagination: unknown }>({
+@@ -184,1 +184,1 @@
+-  const companyName = brandSettings?.company_name || "Admin Portal";
++  const companyName = brandSettings?.company_name ?? "Admin Portal";
+@@ -188,1 +188,1 @@
+-    primaryColor: brandSettings?.primary_color || brandSettings?.company_color,  // Fallback to company_color for backward compatibility
++    primaryColor: brandSettings?.primary_color ?? brandSettings?.company_color,  // Fallback to company_color for backward compatibility
+@@ -269,1 +269,1 @@
+-    usersData?.forEach((user) => {
++    usersData.forEach((user) => {
+@@ -272,1 +272,1 @@
+-        (user.fullName?.toLowerCase().includes(lowerQuery) ||
++        (user.fullName.toLowerCase().includes(lowerQuery) ||
+@@ -273,1 +273,1 @@
+-        user.username?.toLowerCase().includes(lowerQuery) ||
++        user.username.toLowerCase().includes(lowerQuery) ||
+@@ -274,1 +274,1 @@
+-        user.email?.toLowerCase().includes(lowerQuery))
++        user.email.toLowerCase().includes(lowerQuery))
+@@ -288,1 +288,1 @@
+-    ticketsResponse?.data?.forEach((ticket) => {
++    ticketsResponse?.data.forEach((ticket) => {
+@@ -293,1 +293,1 @@
+-          ticket.subject?.toLowerCase().includes(lowerQuery)
++          ticket.subject.toLowerCase().includes(lowerQuery)
+@@ -313,1 +313,1 @@
+-    transactionsData?.forEach((transaction) => {
++    transactionsData.forEach((transaction) => {
+@@ -315,1 +315,1 @@
+-        transaction.description?.toLowerCase().includes(lowerQuery) ||
++        transaction.description.toLowerCase().includes(lowerQuery) ||
+@@ -316,1 +316,1 @@
+-        transaction.type?.toLowerCase().includes(lowerQuery) ||
++        transaction.type.toLowerCase().includes(lowerQuery) ||
+@@ -333,1 +333,1 @@
+-    serversData?.forEach((server) => {
++    serversData.forEach((server) => {
+@@ -355,1 +355,1 @@
+-        if (server.powerStatus && server.powerStatus.powerState) {
++        if (server.powerStatus?.powerState) {
+@@ -415,1 +415,1 @@
+-      return () => clearTimeout(delaySearch);
++      return () => { clearTimeout(delaySearch); };
+@@ -476,1 +476,1 @@
+-    return () => window.removeEventListener("keydown", handleKeyDown);
++    return () => { window.removeEventListener("keydown", handleKeyDown); };
+@@ -711,1 +711,1 @@
+-                  onFocus={() => setShowSearchPopup(true)}
++                  onFocus={() => { setShowSearchPopup(true); }}
+@@ -770,1 +770,1 @@
+-                    onClick={() => setShowSearchPopup(false)}
++                    onClick={() => { setShowSearchPopup(false); }}
+@@ -811,1 +811,1 @@
+-                                          onClick={() => navigateToResult(result)}
++                                          onClick={() => { navigateToResult(result); }}
+@@ -812,1 +812,1 @@
+-                                          onMouseEnter={() => setActiveResultIndex(overallIndex)}
++                                          onMouseEnter={() => { setActiveResultIndex(overallIndex); }}
+diff --git a/client/src/components/app/MaintenanceGuard.tsx b/client/src/components/app/MaintenanceGuard.tsx
+--- a/client/src/components/app/MaintenanceGuard.tsx
++++ b/client/src/components/app/MaintenanceGuard.tsx
+@@ -31,1 +31,1 @@
+-        if (savedBypassToken || urlToken) {
++        if (savedBypassToken ?? urlToken) {
+@@ -32,1 +32,1 @@
+-            const tokenToValidate = urlToken || savedBypassToken;
++            const tokenToValidate = urlToken ?? savedBypassToken;
+@@ -59,1 +59,1 @@
+-                .catch(error => {
++                .catch((error: unknown) => {
+@@ -125,1 +125,1 @@
+-        checkUser();
++        void checkUser();
+@@ -161,1 +161,1 @@
+-        checkMaintenanceStatus();
++        void checkMaintenanceStatus();
+diff --git a/client/src/pages/auth-page.tsx b/client/src/pages/auth-page.tsx
+--- a/client/src/pages/auth-page.tsx
++++ b/client/src/pages/auth-page.tsx
+@@ -69,1 +69,1 @@
+-  const [brandStyle, setBrandStyle] = useState<{ [key: string]: string }>({});
++  const [brandStyle, setBrandStyle] = useState<Record<string, string>>({});
+@@ -146,1 +146,1 @@
+-      .catch(error => {
++      .catch((error: unknown) => {
+@@ -199,1 +199,1 @@
+-        return clearInterval(interval);
++        clearInterval(interval); return;
+@@ -226,1 +226,1 @@
+-    response: any;
++    response: unknown;
+@@ -237,1 +237,1 @@
+-    if (response && response.id && !response.isVerified) {
++    if (response?.id && !response.isVerified) {
+@@ -290,1 +290,1 @@
+-    } catch (error: any) {
++    } catch (error: unknown) {
+@@ -397,1 +397,1 @@
+-    error: any;
++    error: unknown;
+@@ -511,1 +511,1 @@
+-                  onChange={(e) => setVerificationCode(e.target.value)}
++                  onChange={(e) => { setVerificationCode(e.target.value); }}
+@@ -547,1 +547,1 @@
+-              onClick={() => setVerificationNeeded(false)}
++              onClick={() => { setVerificationNeeded(false); }}
+@@ -795,1 +795,1 @@
+-                    onClick={() => setActiveTab("register")}
++                    onClick={() => { setActiveTab("register"); }}
+@@ -805,1 +805,1 @@
+-                    onClick={() => setActiveTab("verify")}
++                    onClick={() => { setActiveTab("verify"); }}
+@@ -818,1 +818,1 @@
+-                    onClick={() => setActiveTab("login")}
++                    onClick={() => { setActiveTab("login"); }}
+diff --git a/server/services/dns-billing-service.ts b/server/services/dns-billing-service.ts
+--- a/server/services/dns-billing-service.ts
++++ b/server/services/dns-billing-service.ts
+@@ -16,1 +16,1 @@
+-    errors: Array<{ userId: number; planName: string; error: string }>;
++    errors: { userId: number; planName: string; error: string }[];
+@@ -33,1 +33,1 @@
+-      errors: [] as Array<{ userId: number; planName: string; error: string }>
++      errors: [] as { userId: number; planName: string; error: string }[]
+@@ -67,1 +67,1 @@
+-        } catch (error: any) {
++        } catch (error: unknown) {
+diff --git a/scripts/test-dns-upgrade.ts b/scripts/test-dns-upgrade.ts
+--- a/scripts/test-dns-upgrade.ts
++++ b/scripts/test-dns-upgrade.ts
+@@ -41,1 +41,1 @@
+-  } catch (error: any) {
++  } catch (error: unknown) {
+@@ -48,1 +48,1 @@
+-testDnsUpgrade();
++void testDnsUpgrade();
+diff --git a/client/src/pages/billing-page.tsx b/client/src/pages/billing-page.tsx
+--- a/client/src/pages/billing-page.tsx
++++ b/client/src/pages/billing-page.tsx
+@@ -90,1 +90,1 @@
+-        const searchInCreditId = (transaction as any).virtFusionCreditId?.toLowerCase?.() || '';
++        const searchInCreditId = (transaction as unknown).virtFusionCreditId?.toLowerCase?.() || '';
+@@ -99,1 +99,1 @@
+-          (transaction.paymentId && transaction.paymentId.toLowerCase().includes(query)) ||
++          (transaction.paymentId && transaction.paymentId.toLowerCase().includes(query)) ??
+@@ -120,1 +120,1 @@
+-  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: any }>({
++  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: unknown }>({
+@@ -378,1 +378,1 @@
+-    const decimalCount = (sanitizedValue.match(/\./g) || []).length;
++    const decimalCount = (sanitizedValue.match(/\./g) ?? []).length;
+@@ -482,1 +482,1 @@
+-                      <DropdownMenuItem onClick={() => handleTabChange("addCredits")}>
++                      <DropdownMenuItem onClick={() => { handleTabChange("addCredits"); }}>
+@@ -600,1 +600,1 @@
+-                          onChange={(e) => setSearchQuery(e.target.value)}
++                          onChange={(e) => { setSearchQuery(e.target.value); }}
+@@ -607,1 +607,1 @@
+-                          onChange={(e) => setStatusFilter(e.target.value)}
++                          onChange={(e) => { setStatusFilter(e.target.value); }}
+@@ -769,1 +769,1 @@
+-                            <Badge variant={variant as any} className="capitalize font-normal">
++                            <Badge variant={variant as unknown} className="capitalize font-normal">
+@@ -832,1 +832,1 @@
+-                          onClick={() => handlePredefinedAmountSelect(amount)}
++                          onClick={() => { handlePredefinedAmountSelect(amount); }}
+@@ -860,1 +860,1 @@
+-                            onChange={(e) => handleCustomAmountChange(e.target.value)}
++                            onChange={(e) => { handleCustomAmountChange(e.target.value); }}
+diff --git a/client/src/hooks/use-toast.ts b/client/src/hooks/use-toast.ts
+--- a/client/src/hooks/use-toast.ts
++++ b/client/src/hooks/use-toast.ts
+@@ -129,1 +129,1 @@
+-const listeners: Array<(state: State) => void> = []
++const listeners: ((state: State) => void)[] = []
+@@ -150,1 +150,1 @@
+-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
++  const dismiss = () => { dispatch({ type: "DISMISS_TOAST", toastId: id }); }
+@@ -187,1 +187,1 @@
+-    dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
++    dismiss: (toastId?: string) => { dispatch({ type: "DISMISS_TOAST", toastId }); },
+diff --git a/scripts/add-free-dns-plan.ts b/scripts/add-free-dns-plan.ts
+--- a/scripts/add-free-dns-plan.ts
++++ b/scripts/add-free-dns-plan.ts
+@@ -132,1 +132,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/readme.md b/readme.md
+--- a/readme.md
++++ b/readme.md
+@@ -1,1 +1,1 @@
+-# ð SkyPANEL - Enterprise VirtFusion Management Platform
++# ð SkyPANEL - Enterprise VirtFusion Management Platform
+
+@@ -23,1 +23,1 @@
+-## ð Support My Work
++## ð Support My Work
+
+@@ -83,1 +83,1 @@
+-### Frontend
++### Frontend
+
+@@ -84,1 +84,1 @@
+-- **React 18**: Modern UI library with hooks and concurrent features
++
+- **React 18**: Modern UI library with hooks and concurrent features
+@@ -99,1 +99,1 @@
+-### Backend
++### Backend
+
+@@ -100,1 +100,1 @@
+-- **Node.js**: JavaScript runtime for server-side development
++
+- **Node.js**: JavaScript runtime for server-side development
+@@ -113,1 +113,1 @@
+-### AI & Integrations
++### AI & Integrations
+
+@@ -114,1 +114,1 @@
+-- **Google Gemini 2.5 Flash**: Advanced AI for customer support
++
+- **Google Gemini 2.5 Flash**: Advanced AI for customer support
+@@ -120,1 +120,1 @@
+-### DevOps & Tooling
++### DevOps & Tooling
+
+@@ -121,1 +121,1 @@
+-- **ESBuild**: Fast JavaScript bundler for production
++
+- **ESBuild**: Fast JavaScript bundler for production
+@@ -131,1 +131,1 @@
+-### ð¥ User Management
++### ð¥ User Management
+
+@@ -132,1 +132,1 @@
+-- **Secure Authentication**: Email verification, password reset, and account recovery
++
+- **Secure Authentication**: Email verification, password reset, and account recovery
+@@ -138,1 +138,1 @@
+-### ð³ Billing System
++### ð³ Billing System
+
+@@ -139,1 +139,1 @@
+-- **Credit-Based Billing**: Flexible credit system with real-time balance tracking
++
+- **Credit-Based Billing**: Flexible credit system with real-time balance tracking
+@@ -146,1 +146,1 @@
+-### ð¤ VirtFusion Integration
++### ð¤ VirtFusion Integration
+
+@@ -147,1 +147,1 @@
+-- **Direct API Integration**: Complete VirtFusion API integration for all operations
++
+- **Direct API Integration**: Complete VirtFusion API integration for all operations
+@@ -154,1 +154,1 @@
+-### ð« Support System
++### ð« Support System
+
+@@ -155,1 +155,1 @@
+-- **Ticket Management**: Full-featured support ticket system with departments
++
+- **Ticket Management**: Full-featured support ticket system with departments
+@@ -162,1 +162,1 @@
+-### ð Admin Dashboard
++### ð Admin Dashboard
+
+@@ -163,1 +163,1 @@
+-- **User Management**: Comprehensive user administration with VirtFusion sync
++
+- **User Management**: Comprehensive user administration with VirtFusion sync
+@@ -170,1 +170,1 @@
+-### ð Notifications
++### ð Notifications
+
+@@ -171,1 +171,1 @@
+-- **Email Notifications**: Automated emails for account events and transactions
++
+- **Email Notifications**: Automated emails for account events and transactions
+@@ -185,1 +185,1 @@
+-#### API Key Authentication
++#### API Key Authentication
+
+@@ -191,1 +191,1 @@
+-#### Available Scopes
++#### Available Scopes
+
+@@ -192,1 +192,1 @@
+-- `read:user` - Read user profile information
++
+- `read:user` - Read user profile information
+@@ -202,1 +202,1 @@
+-#### Rate Limiting
++#### Rate Limiting
+
+@@ -203,1 +203,1 @@
+-- **100 requests per minute** per API key
++
+- **100 requests per minute** per API key
+@@ -209,1 +209,1 @@
+-#### User Management
++#### User Management
+
+@@ -217,1 +217,1 @@
+-#### Authentication
++#### Authentication
+
+@@ -232,1 +232,1 @@
+-#### User Server Operations
++#### User Server Operations
+
+@@ -243,1 +243,1 @@
+-#### Server Packages & Plans
++#### Server Packages & Plans
+
+@@ -252,1 +252,1 @@
+-#### User Billing
++#### User Billing
+
+@@ -263,1 +263,1 @@
+-#### PayPal Integration
++#### PayPal Integration
+
+@@ -270,1 +270,1 @@
+-#### Ticket Management
++#### Ticket Management
+
+@@ -284,1 +284,1 @@
+-#### Personal API Keys
++#### Personal API Keys
+
+@@ -293,1 +293,1 @@
+-#### User Administration
++#### User Administration
+
+@@ -303,1 +303,1 @@
+-#### Server Administration
++#### Server Administration
+
+@@ -317,1 +317,1 @@
+-#### Billing Administration
++#### Billing Administration
+
+@@ -325,1 +325,1 @@
+-#### Support Administration
++#### Support Administration
+
+@@ -331,1 +331,1 @@
+-#### System Administration
++#### System Administration
+
+@@ -342,1 +342,1 @@
+-#### Content Management
++#### Content Management
+
+@@ -364,1 +364,1 @@
+-#### Public Information
++#### Public Information
+
+@@ -378,1 +378,1 @@
+-#### Maintenance Management
++#### Maintenance Management
+
+@@ -389,1 +389,1 @@
+-#### User Profile Management
++#### User Profile Management
+
+@@ -396,1 +396,1 @@
+-#### Password & Authentication Management
++#### Password & Authentication Management
+
+@@ -404,1 +404,1 @@
+-#### Server Management (User Access)
++#### Server Management (User Access)
+
+diff --git a/scripts/check-dns-plans.ts b/scripts/check-dns-plans.ts
+--- a/scripts/check-dns-plans.ts
++++ b/scripts/check-dns-plans.ts
+@@ -37,1 +37,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/scripts/test-lockout-reset.ts b/scripts/test-lockout-reset.ts
+--- a/scripts/test-lockout-reset.ts
++++ b/scripts/test-lockout-reset.ts
+@@ -120,1 +120,1 @@
+-testLockoutReset();
++void testLockoutReset();
+diff --git a/scripts/test-dns-plan-system.ts b/scripts/test-dns-plan-system.ts
+--- a/scripts/test-dns-plan-system.ts
++++ b/scripts/test-dns-plan-system.ts
+@@ -185,1 +185,1 @@
+-  .catch((error) => {
++  .catch((error: unknown) => {
+diff --git a/client/src/components/dns/EditRecordDialog.tsx b/client/src/components/dns/EditRecordDialog.tsx
+--- a/client/src/components/dns/EditRecordDialog.tsx
++++ b/client/src/components/dns/EditRecordDialog.tsx
+@@ -137,1 +137,1 @@
+-      type: record.type as any,
++      type: record.type as unknown,
+@@ -174,1 +174,1 @@
+-    onError: (error: any) => {
++    onError: (error: unknown) => {

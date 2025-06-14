@@ -11,7 +11,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
-import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, ExternalLink, Eye, Receipt, FileText, Edit3, Search, ChevronDown } from "lucide-react";
+import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, Eye, Receipt, FileText, Edit3, Search, ChevronDown } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PayPalCheckout } from "@/components/billing/PayPalCheckout";
 
