@@ -66,6 +66,85 @@ Search Strategy:
 - Understand the full context before implementation
 ```
 
+### #websearch Tool Usage
+```
+### When to use #websearch:
+
+1. **Technology Research and Best Practices**
+   - When implementing new technologies or libraries not currently in the project
+   - Researching current best practices for specific programming patterns
+   - Finding optimal solutions for performance or security challenges
+   - Investigating latest security vulnerabilities and mitigation strategies
+
+2. **API and Library Documentation**
+   - When working with external APIs that need current documentation
+   - Researching third-party library usage and configuration
+   - Finding examples of complex integrations
+   - Checking for library updates, deprecations, or breaking changes
+
+3. **Problem-Solving and Debugging**
+   - When encountering error messages or issues not documented in the codebase
+   - Researching solutions for complex technical problems
+   - Finding workarounds for known issues in dependencies
+   - Investigating platform-specific implementation details
+
+4. **Standards and Compliance**
+   - Researching current security standards (OWASP guidelines, etc.)
+   - Finding compliance requirements for specific industries
+   - Checking current accessibility standards (WCAG, etc.)
+   - Researching data protection regulations (GDPR, CCPA, etc.)
+
+5. **Performance and Optimization**
+   - Researching current performance optimization techniques
+   - Finding benchmarking data for technology comparisons
+   - Investigating database optimization strategies
+   - Researching caching patterns and implementations
+
+### When NOT to use #websearch:
+
+1. **Project-Specific Information**
+   - Use `#codebase` instead for understanding existing implementations
+   - Use `#changes` for project history and recent modifications
+   - Use `#mcp-server-neon` for database-related queries within the project
+
+2. **Basic Programming Questions**
+   - Standard language syntax and features
+   - Well-established programming patterns
+   - Common framework usage that's already documented
+
+3. **Internal Business Logic**
+   - Project-specific requirements and constraints
+   - Internal API specifications
+   - Custom business rules and workflows
+
+### Implementation Strategy:
+
+```
+#websearch Usage Format:
+1. Search Objective: [What specific information are you seeking?]
+2. Context: [Why is this information needed for the current task?]
+3. Scope Limitation: [What aspects are most relevant to avoid information overload?]
+4. Application Plan: [How will the found information be applied to the project?]
+```
+
+### Quality Filters:
+
+- **Prioritize** official documentation and authoritative sources
+- **Verify** information currency (prefer recent sources)
+- **Cross-reference** multiple sources for critical decisions
+- **Adapt** external examples to fit SkyPANEL's coding standards
+- **Document** the research findings for future reference
+
+### Integration with Other Tools:
+
+- Use `#websearch` first for external research, then `#codebase` to see how to integrate
+- Combine with `#thinking` to analyze and evaluate found information
+- Use `#mcp-server-neon` to implement database-related findings
+- Document research results in code comments for team knowledge sharing
+
+This ensures `#websearch` is used strategically to enhance the development process while maintaining focus on the project's specific needs and standards.
+```
+
 ### #changes Tool Usage
 ```
 When to use #changes:
