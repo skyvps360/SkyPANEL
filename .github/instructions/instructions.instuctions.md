@@ -1,5 +1,5 @@
 ---
-applyTo: `**`
+applyTo: '**'
 ---
 # Copilot Coding Agent Guidelines for SkyPANEL
 
