@@ -3,6 +3,9 @@
 		{
 			"name": "SkyPANEL",
 			"path": "."
+		},
+		{
+			"path": "../DisPANEL"
 		}
 	],
 	"settings": {},
