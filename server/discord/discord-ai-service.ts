@@ -154,10 +154,10 @@ export class DiscordAIService {
             conversation.push({
                 role: 'user',
                 parts: [{text: content}]
-            });
-
-            // Show typing indicator
-            await message.channel.sendTyping();
+            });            // Show typing indicator (if channel supports it)
+            if ('sendTyping' in message.channel && typeof message.channel.sendTyping === 'function') {
+                await message.channel.sendTyping();
+            }
 
             try {
                 // Call the AI service to get a response
@@ -175,11 +175,9 @@ export class DiscordAIService {
                         message.author.id,
                         conversation.slice(conversation.length - 10)
                     );
-                }
-
-                // Send response using embed
-                const embed = DiscordEmbedUtils.createAIEmbed(content, response, message.author);
-                await message.reply({ embeds: [embed] });
+                }                // Send response using embeds (supports long responses)
+                const embeds = DiscordEmbedUtils.createLongAIResponseEmbeds(content, response, message.author);
+                await message.reply({ embeds });
             } catch (aiError: any) {
                 console.error('Error calling AI service:', aiError.message);
                 try {
@@ -231,10 +229,8 @@ export class DiscordAIService {
             console.error('Error calling AI service:', error.message);
             throw new Error(`Failed to get AI response: ${error.message}`);
         }
-    }
-
-    /**
-     * Send AI response using embed
+    }    /**
+     * Send AI response using embed(s) - supports long responses
      * @param interaction The interaction
      * @param prompt The user's prompt
      * @param response The AI response
@@ -245,8 +241,8 @@ export class DiscordAIService {
         response: string
     ): Promise<void> {
         try {
-            const embed = DiscordEmbedUtils.createAIEmbed(prompt, response, interaction.user);
-            await interaction.editReply({ embeds: [embed] });
+            const embeds = DiscordEmbedUtils.createLongAIResponseEmbeds(prompt, response, interaction.user);
+            await interaction.editReply({ embeds });
         } catch (error: any) {
             // Handle Unknown Interaction error specifically
             if (error.code === 10062) {
@@ -257,7 +253,18 @@ export class DiscordAIService {
             console.error('Error sending AI response:', error.message);
             // Fallback to plain text if embed fails
             try {
-                await interaction.editReply(`**AI Response:**\n${DiscordEmbedUtils.truncateText(response, 1900)}`);
+                // For very long responses, split into multiple messages
+                if (response.length > 1900) {
+                    const chunks = DiscordEmbedUtils.splitTextIntoChunks(response, 1900);
+                    await interaction.editReply(`**AI Response (Part 1):**\n${chunks[0]}`);
+                    
+                    // Send additional chunks as follow-up messages
+                    for (let i = 1; i < chunks.length; i++) {
+                        await interaction.followUp(`**AI Response (Part ${i + 1}):**\n${chunks[i]}`);
+                    }
+                } else {
+                    await interaction.editReply(`**AI Response:**\n${response}`);
+                }
             } catch (fallbackError: any) {
                 console.error('Error sending fallback AI response:', fallbackError.message);
             }

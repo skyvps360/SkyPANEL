@@ -275,4 +275,119 @@ export class DiscordEmbedUtils {
             .setTitle('⏳ Loading')
             .setDescription(message);
     }
+
+    /**
+     * Create AI response embeds that can handle long responses
+     * Splits responses across multiple embeds if needed
+     */
+    public static createLongAIResponseEmbeds(
+        prompt: string,
+        response: string,
+        user?: User | GuildMember
+    ): EmbedBuilder[] {
+        const embeds: EmbedBuilder[] = [];
+        
+        // Constants for Discord limits
+        const MAX_EMBED_DESCRIPTION = 4000; // Leave some buffer from 4096 limit
+        const MAX_FIELD_VALUE = 1020; // Leave some buffer from 1024 limit
+        
+        // Create the first embed with the prompt
+        const baseEmbed = this.createBaseEmbed(this.COLORS.PURPLE)
+            .setTitle('🤖 AI Assistant Response');
+            
+        if (user) {
+            baseEmbed.setAuthor({
+                name: user instanceof GuildMember ? user.displayName : user.username,
+                iconURL: user.displayAvatarURL()
+            });
+        }
+        
+        // Add the prompt field (truncate if too long)
+        const truncatedPrompt = prompt.length > MAX_FIELD_VALUE 
+            ? prompt.substring(0, MAX_FIELD_VALUE - 3) + '...'
+            : prompt;
+        baseEmbed.addFields({ name: '💭 Your Question', value: truncatedPrompt });
+        
+        // Handle the response
+        if (response.length <= MAX_EMBED_DESCRIPTION) {
+            // Response fits in a single embed description
+            baseEmbed.setDescription(`**🎯 AI Response:**\n${response}`);
+            embeds.push(baseEmbed);
+        } else {
+            // Response needs to be split across multiple embeds
+            baseEmbed.setDescription('**🎯 AI Response:**\n*Response continues in the following embeds...*');
+            embeds.push(baseEmbed);
+            
+            // Split the response into chunks
+            const chunks = this.splitTextIntoChunks(response, MAX_EMBED_DESCRIPTION - 50); // Leave room for formatting
+            
+            chunks.forEach((chunk, index) => {
+                const continuationEmbed = this.createBaseEmbed(this.COLORS.PURPLE)
+                    .setTitle(`🤖 AI Response (Part ${index + 2})`)
+                    .setDescription(chunk);
+                    
+                if (user) {
+                    continuationEmbed.setAuthor({
+                        name: user instanceof GuildMember ? user.displayName : user.username,
+                        iconURL: user.displayAvatarURL()
+                    });
+                }
+                
+                embeds.push(continuationEmbed);
+            });
+        }
+        
+        return embeds;
+    }
+    
+    /**
+     * Split text into chunks that fit within Discord embed limits
+     * Tries to split at natural break points (sentences, paragraphs)
+     */
+    public static splitTextIntoChunks(text: string, maxLength: number): string[] {
+        if (text.length <= maxLength) return [text];
+        
+        const chunks: string[] = [];
+        let remainingText = text;
+        
+        while (remainingText.length > 0) {
+            if (remainingText.length <= maxLength) {
+                chunks.push(remainingText);
+                break;
+            }
+            
+            // Try to find a good break point
+            let breakPoint = maxLength;
+            
+            // Look for paragraph breaks (double newlines)
+            const paragraphBreak = remainingText.lastIndexOf('\n\n', maxLength);
+            if (paragraphBreak > maxLength * 0.5) { // Only use if it's not too early
+                breakPoint = paragraphBreak + 2;
+            } else {
+                // Look for sentence breaks
+                const sentenceBreak = remainingText.lastIndexOf('. ', maxLength);
+                if (sentenceBreak > maxLength * 0.5) {
+                    breakPoint = sentenceBreak + 2;
+                } else {
+                    // Look for any newline
+                    const lineBreak = remainingText.lastIndexOf('\n', maxLength);
+                    if (lineBreak > maxLength * 0.5) {
+                        breakPoint = lineBreak + 1;
+                    } else {
+                        // Look for word boundaries
+                        const wordBreak = remainingText.lastIndexOf(' ', maxLength);
+                        if (wordBreak > maxLength * 0.5) {
+                            breakPoint = wordBreak + 1;
+                        }
+                        // If no good break point found, use maxLength (hard break)
+                    }
+                }
+            }
+            
+            chunks.push(remainingText.substring(0, breakPoint));
+            remainingText = remainingText.substring(breakPoint);
+        }
+        
+        return chunks;
+    }
 }
