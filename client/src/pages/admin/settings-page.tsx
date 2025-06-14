@@ -47,7 +47,8 @@ import {
   CheckCircle,
   Info,
   X,
-  DollarSign
+  DollarSign,
+  MessageCircle
 } from "lucide-react";
 
 interface Setting {
@@ -306,12 +307,11 @@ type CloudPricingFormData = z.infer<typeof cloudPricingSchema>;
 
 // Define the settings options for dropdown
 const settingsOptions = [
-  { value: "general", label: "General", icon: <SettingsIcon className="h-4 w-4 mr-2" /> },
-  { value: "billing", label: "Billing", icon: <CreditCard className="h-4 w-4 mr-2" /> },
+  { value: "general", label: "General", icon: <SettingsIcon className="h-4 w-4 mr-2" /> },  { value: "billing", label: "Billing", icon: <CreditCard className="h-4 w-4 mr-2" /> },
 
   { value: "cloud", label: "Cloud", icon: <Cloud className="h-4 w-4 mr-2" /> },
   { value: "email", label: "Email", icon: <Mail className="h-4 w-4 mr-2" /> },
-  { value: "notifications", label: "Notifications", icon: <Bell className="h-4 w-4 mr-2" /> },
+  { value: "notifications", label: "Discord", icon: <MessageCircle className="h-4 w-4 mr-2" /> },
   { value: "team", label: "Team", icon: <Users className="h-4 w-4 mr-2" /> },
   { value: "virtfusion", label: "VirtFusion API", icon: <Server className="h-4 w-4 mr-2" /> },
   { value: "departments", label: "Departments", icon: <Merge className="h-4 w-4 mr-2" /> },
