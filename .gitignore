@@ -12,7 +12,8 @@ yaml-docs
 migrations
 SkyPANEL.zip
 tests
-
+logs/
+roadmap
 
 # DotFiles
 .env
@@ -25,9 +26,7 @@ tests
 .windsurf
 .windsurfignore
 .aiignore
-logs/
 *.log
-
 
 #Ignore vscode AI rules
 .github\copilot-instructions.md

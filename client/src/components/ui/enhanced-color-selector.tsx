@@ -6,7 +6,7 @@
  * @version 1.0.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { Palette, Pipette, Star, Sparkles } from 'lucide-react';
 
@@ -159,21 +159,28 @@ export function EnhancedColorSelector({
   const [activeTab, setActiveTab] = useState('picker');
   const [localValue, setLocalValue] = useState(value);
 
+  // Sync localValue with prop value when it changes
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
   // Handle color change with validation
   const handleColorChange = (newColor: string) => {
     const cleanColor = newColor.replace('#', '');
     setLocalValue(cleanColor);
     onChange(cleanColor);
   };
-
   // Handle hex input change
   const handleHexInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = event.target.value.replace('#', '');
     setLocalValue(inputValue);
     
-    // Only update parent if it's a valid hex color
+    // Only update parent if it's a valid hex color (but allow partial typing)
     if (/^[0-9A-Fa-f]{6}$/.test(inputValue)) {
       onChange(inputValue);
+    } else if (inputValue === '') {
+      // Also handle empty input
+      onChange('000000'); // Default to black for empty input
     }
   };
 
