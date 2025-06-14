@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { Request, Response } from 'express';
 import { geminiRateLimiter } from './gemini-rate-limiter';
+import { db } from './db';
+import { docs, blogPosts } from '@shared/schemas';
+import { sql, desc, ilike, or } from 'drizzle-orm';
 
 /**
  * Service for interacting with Google's Gemini AI API
@@ -107,7 +110,6 @@ export class GeminiService {
 
 - SkyVPS360 AI Helper`;
   }
-
   /**
    * Filter AI responses to ensure consistent identity
    * @param response The raw response from the AI
@@ -136,6 +138,129 @@ export class GeminiService {
     }
 
     return filteredResponse;
+  }
+
+  /**
+   * Search for relevant documentation based on keywords
+   * @param keywords Array of keywords to search for
+   * @returns Array of relevant documentation
+   */
+  private async searchDocumentation(keywords: string[]): Promise<Array<{ title: string; content: string }>> {
+    try {
+      if (keywords.length === 0) return [];
+
+      // Create search conditions for title and content
+      const searchConditions = keywords.map(keyword => 
+        or(
+          ilike(docs.title, `%${keyword}%`),
+          ilike(docs.content, `%${keyword}%`)
+        )
+      );
+
+      const relevantDocs = await db
+        .select({
+          title: docs.title,
+          content: docs.content
+        })
+        .from(docs)
+        .where(or(...searchConditions))
+        .orderBy(desc(docs.updatedAt))
+        .limit(3); // Limit to top 3 most relevant docs
+
+      return relevantDocs;
+    } catch (error: any) {
+      console.error('Error searching documentation:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Search for relevant blog posts based on keywords
+   * @param keywords Array of keywords to search for
+   * @returns Array of relevant blog posts
+   */
+  private async searchBlogPosts(keywords: string[]): Promise<Array<{ title: string; content: string }>> {
+    try {
+      if (keywords.length === 0) return [];
+
+      // Create search conditions for title and content
+      const searchConditions = keywords.map(keyword => 
+        or(
+          ilike(blogPosts.title, `%${keyword}%`),
+          ilike(blogPosts.content, `%${keyword}%`)
+        )
+      );
+
+      const relevantPosts = await db
+        .select({
+          title: blogPosts.title,
+          content: blogPosts.content
+        })
+        .from(blogPosts)
+        .where(or(...searchConditions))
+        .orderBy(desc(blogPosts.published))
+        .limit(2); // Limit to top 2 most relevant blog posts
+
+      return relevantPosts;
+    } catch (error: any) {
+      console.error('Error searching blog posts:', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Extract keywords from user prompt for content searching
+   * @param prompt The user's prompt
+   * @returns Array of relevant keywords
+   */
+  private extractKeywords(prompt: string): string[] {
+    // Convert to lowercase and remove common stop words
+    const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'cannot', 'what', 'where', 'when', 'why', 'how', 'who'];
+    
+    const words = prompt.toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // Remove punctuation
+      .split(/\s+/)
+      .filter(word => word.length > 2 && !stopWords.includes(word))
+      .slice(0, 5); // Take first 5 relevant words
+
+    return words;
+  }
+
+  /**
+   * Format additional context from documentation and blog posts
+   * @param docs Array of documentation articles
+   * @param blogs Array of blog posts
+   * @returns Formatted context string
+   */
+  private formatAdditionalContext(
+    docs: Array<{ title: string; content: string }>,
+    blogs: Array<{ title: string; content: string }>
+  ): string {
+    let context = '';
+
+    if (docs.length > 0) {
+      context += '\n\nRELEVANT DOCUMENTATION:\n';
+      docs.forEach((doc, index) => {
+        // Truncate content to prevent token limit issues
+        const truncatedContent = doc.content.length > 500 
+          ? doc.content.substring(0, 500) + '...' 
+          : doc.content;
+        context += `${index + 1}. ${doc.title}\n${truncatedContent}\n\n`;
+      });
+    }
+
+    if (blogs.length > 0) {
+      context += '\nRELEVANT BLOG POSTS:\n';
+      blogs.forEach((blog, index) => {
+        // Truncate content to prevent token limit issues
+        const truncatedContent = blog.content.length > 300 
+          ? blog.content.substring(0, 300) + '...' 
+          : blog.content;
+        context += `${index + 1}. ${blog.title}\n${truncatedContent}\n\n`;
+      });
+    }
+
+    return context;
   }
 
   /**
@@ -170,10 +295,7 @@ export class GeminiService {
           response: rateCheck.message || 'Rate limit exceeded. Please try again later.'
         };
       }
-    }
-
-    try {
-      // Initialize model with v1 API version specified and use gemini-1.5-flash
+    }    try {      // Initialize model with v1 API version specified and use gemini-1.5-flash
       const model = this.genAI!.getGenerativeModel(
         { 
           model: "gemini-1.5-flash",
@@ -311,9 +433,7 @@ export class GeminiService {
       if (this.isIdentityQuestion(question)) {
         const identityResponse = this.getIdentityResponse();
         return { success: true, response: identityResponse };
-      }
-
-      // Initialize model with same settings as ticket response generation
+      }      // Initialize model with same settings as ticket response generation
       const model = this.genAI!.getGenerativeModel(
         { 
           model: "gemini-1.5-flash",
@@ -337,10 +457,20 @@ export class GeminiService {
           ],
         },
         { apiVersion: "v1" }
-      );
-
-      // Get company name from environment or use default
+      );      // Get company name from environment or use default
       const companyName = process.env.COMPANY_NAME || "SkyVPS360";
+
+      // Extract keywords from the user's question for content searching
+      const keywords = this.extractKeywords(question);
+      
+      // Search for relevant documentation and blog content
+      const [relevantDocs, relevantBlogs] = await Promise.all([
+        this.searchDocumentation(keywords),
+        this.searchBlogPosts(keywords)
+      ]);
+
+      // Format additional context from documentation and blog posts
+      const additionalContext = this.formatAdditionalContext(relevantDocs, relevantBlogs);
 
       // Build system prompt with context about the company and services
       let systemPrompt = `IMPORTANT: You are SkyVPS360 AI Helper, a virtual assistant created specifically for ${companyName}. 
@@ -366,40 +496,72 @@ export class GeminiService {
       - Our pricing starts at $2/month
       - We have a ticket system for technical support
 
+      ENHANCED KNOWLEDGE BASE:
+      You have access to our documentation and blog content to provide more detailed and accurate responses.
+      ${additionalContext}
+
       When answering questions:
       1. Be concise and professional
-      2. If you don't know the specific answer about our services, suggest contacting support through the ticket system
-      3. Don't make up specific features or prices that weren't mentioned above
-      4. Always maintain a helpful and supportive tone
-      5. For technical questions beyond basic info, suggest creating a support ticket
-      6. Always sign your responses with "- SkyVPS360 AI Helper" at the end
+      2. Use information from the documentation and blog posts when relevant
+      3. If you don't know the specific answer about our services, suggest contacting support through the ticket system
+      4. Don't make up specific features or prices that weren't mentioned above or in the provided content
+      5. Always maintain a helpful and supportive tone
+      6. For technical questions beyond basic info, suggest creating a support ticket
+      7. Always sign your responses with "- SkyVPS360 AI Helper" at the end
       `;
 
       // Set up basic generation config without system instructions
       const generationConfig = {
-        temperature: 0.2,
-        maxOutputTokens: 800
-      };
+        temperature: 0.3, // Slightly higher for more natural responses with additional context
+        maxOutputTokens: 1000 // Increased to accommodate additional context
+      };      // For Gemini API, we need to handle system context differently
+      // We'll prepend the system prompt to the user's question instead of using conversation history
+      let chat;
+      
+      if (conversationHistory.length === 0) {
+        // If no conversation history, start fresh chat
+        chat = model.startChat({
+          generationConfig: generationConfig
+        });
+        
+        // Prepend system prompt to the user's question for context
+        const contextualQuestion = `${systemPrompt}\n\nUser Question: ${question}`;
+        
+        // Track this request for rate limiting
+        if (req) {
+          geminiRateLimiter.trackUsageForRequest(req);
+        }
 
-      // For Gemini API, we need a different approach to handle system context
-      // Instead of using systemInstruction, we'll add the prompt as a model message
-      // at the beginning of the conversation if there's no existing conversation
-      let history = [...conversationHistory]; // Make a copy to avoid modifying the original
+        const result = await chat.sendMessage(contextualQuestion);
+        const response = result.response;
+        const responseText = this.filterAIResponse(response.text());
 
-      // If the conversation is empty or just starting, add our system context
-      // as the first message from the model
-      if (history.length === 0) {
-        history.unshift({
-          role: "model",
-          parts: [{text: systemPrompt}]
+        // Log the successful interaction
+        console.log(`Generated chat response for ${username}'s question`);
+
+        return { success: true, response: responseText };
+      } else {
+        // If we have conversation history, we need to ensure it starts with a user message
+        let history = [...conversationHistory];
+        
+        // If the first message is not from user, we need to restructure
+        if (history.length > 0 && history[0].role !== 'user') {
+          // Find the first user message and start from there
+          const firstUserIndex = history.findIndex(msg => msg.role === 'user');
+          if (firstUserIndex > 0) {
+            history = history.slice(firstUserIndex);
+          } else if (firstUserIndex === -1) {
+            // No user messages found, start fresh
+            history = [];
+          }
+        }
+
+        // Start the chat with cleaned history
+        chat = model.startChat({
+          history: history,
+          generationConfig: generationConfig
         });
       }
-
-      // Start the chat with history including system prompt
-      let chat = model.startChat({
-        history: history,
-        generationConfig: generationConfig
-      });
 
       // Track this request for rate limiting
       if (req) {

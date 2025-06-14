@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Discord AI Service for handling AI commands and interactions
+ * @author SkyPANEL Development Team
+ * @created 2025-01-14
+ * @modified 2025-01-14
+ * @version 2.0.0
+ */
+
 import {
     ChatInputCommandInteraction,
     SlashCommandBuilder,
@@ -7,13 +15,14 @@ import {
 import {discordBotCore} from './discord-bot-core';
 import {geminiService} from '../gemini-service';
 import {DiscordEmbedUtils} from './discord-embed-utils';
+import {discordAIStorageService} from '../services/discord-ai-storage-service';
 
 /**
  * Service for handling Discord AI commands and interactions
+ * Uses PostgreSQL database for persistent conversation storage (up to 50 messages per user)
  */
 export class DiscordAIService {
     private static instance: DiscordAIService;
-    private userConversations: Map<string, Array<{ role: string, parts: Array<{ text: string }> }>> = new Map();
 
     private constructor() {
     }
@@ -30,7 +39,7 @@ export class DiscordAIService {
     }
 
     /**
-     * Handle the AI command
+     * Handle the AI command (/ask)
      * @param interaction The command interaction
      */
     public async handleAICommand(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -48,39 +57,38 @@ export class DiscordAIService {
             // Defer the reply as this might take some time
             await interaction.deferReply();
 
-            // Get or initialize the conversation for this user
-            if (!this.userConversations.has(interaction.user.id)) {
-                this.userConversations.set(interaction.user.id, []);
-            }
-
-            const conversation = this.userConversations.get(interaction.user.id)!;
-
-            // Add the user's message to the conversation
-            conversation.push({
-                role: 'user',
-                parts: [{text: prompt}]
-            });
+            const userId = interaction.user.id;
+            const username = interaction.user.username;
 
             try {
+                // Get conversation history from database
+                const conversationHistory = await discordAIStorageService.getConversationHistory(userId);
+                const conversation = discordAIStorageService.formatConversationForAI(conversationHistory);
+
+                // Save user's message to database
+                await discordAIStorageService.saveConversationMessage(
+                    userId,
+                    username,
+                    'user',
+                    prompt
+                );
+
                 // Call the AI service to get a response
-                const response = await this.callAIService(prompt, conversation, interaction.user.username);
+                const response = await this.callAIService(prompt, conversation, username);
 
-                // Add the AI's response to the conversation
-                conversation.push({
-                    role: 'model',
-                    parts: [{text: response}]
-                });
+                // Save AI's response to database
+                await discordAIStorageService.saveConversationMessage(
+                    userId,
+                    username,
+                    'model',
+                    response
+                );
 
-                // Limit the conversation history to the last 10 messages
-                if (conversation.length > 10) {
-                    this.userConversations.set(
-                        interaction.user.id,
-                        conversation.slice(conversation.length - 10)
-                    );
-                }
+                // Get recent messages for "memory" display - only show user's last 3 questions
+                const memoryDisplay = await discordAIStorageService.getFormattedRecentMessages(userId, 3, 'user');
 
-                // Send the response using embed
-                await this.sendAIResponse(interaction, prompt, response);
+                // Send the response using embed with memory
+                await this.sendAIResponse(interaction, prompt, response, memoryDisplay);
             } catch (aiError: any) {
                 console.error('Error calling AI service:', aiError.message);
                 try {
@@ -143,40 +151,52 @@ export class DiscordAIService {
             const content = message.content.trim();
             if (!content) return;
 
-            // Get or initialize the conversation for this user
-            if (!this.userConversations.has(message.author.id)) {
-                this.userConversations.set(message.author.id, []);
-            }
+            const userId = message.author.id;
+            const username = message.author.username;
 
-            const conversation = this.userConversations.get(message.author.id)!;
-
-            // Add the user's message to the conversation
-            conversation.push({
-                role: 'user',
-                parts: [{text: content}]
-            });            // Show typing indicator (if channel supports it)
+            // Show typing indicator (if channel supports it)
             if ('sendTyping' in message.channel && typeof message.channel.sendTyping === 'function') {
                 await message.channel.sendTyping();
             }
 
             try {
+                // Get conversation history from database
+                const conversationHistory = await discordAIStorageService.getConversationHistory(userId);
+                const conversation = discordAIStorageService.formatConversationForAI(conversationHistory);
+
+                // Save user's message to database
+                await discordAIStorageService.saveConversationMessage(
+                    userId,
+                    username,
+                    'user',
+                    content
+                );
+
                 // Call the AI service to get a response
-                const response = await this.callAIService(content, conversation, message.author.username);
+                const response = await this.callAIService(content, conversation, username);
 
-                // Add the AI's response to the conversation
-                conversation.push({
-                    role: 'model',
-                    parts: [{text: response}]
-                });
+                // Save AI's response to database
+                await discordAIStorageService.saveConversationMessage(
+                    userId,
+                    username,
+                    'model',
+                    response                );
 
-                // Limit the conversation history to the last 10 messages
-                if (conversation.length > 10) {
-                    this.userConversations.set(
-                        message.author.id,
-                        conversation.slice(conversation.length - 10)
-                    );
-                }                // Send response using embeds (supports long responses)
+                // Get recent messages for "memory" display - only show user's last 3 questions
+                const memoryDisplay = await discordAIStorageService.getFormattedRecentMessages(userId, 3, 'user');
+
+                // Send response using embeds (supports long responses)
                 const embeds = DiscordEmbedUtils.createLongAIResponseEmbeds(content, response, message.author);
+                  // Add memory display as a separate embed if available
+                if (memoryDisplay && memoryDisplay !== 'No previous questions found.') {
+                    const memoryEmbed = new EmbedBuilder()
+                        .setColor('#3b82f6')
+                        .setTitle('📚 Conversation Memory')
+                        .setDescription(memoryDisplay)
+                        .setTimestamp();
+                    embeds.unshift(memoryEmbed); // Add at the beginning
+                }
+                
                 await message.reply({ embeds });
             } catch (aiError: any) {
                 console.error('Error calling AI service:', aiError.message);
@@ -229,19 +249,34 @@ export class DiscordAIService {
             console.error('Error calling AI service:', error.message);
             throw new Error(`Failed to get AI response: ${error.message}`);
         }
-    }    /**
-     * Send AI response using embed(s) - supports long responses
+    }
+
+    /**
+     * Send AI response using embed(s) - supports long responses with memory display
      * @param interaction The interaction
      * @param prompt The user's prompt
      * @param response The AI response
+     * @param memoryDisplay Formatted recent conversation for display
      */
     private async sendAIResponse(
         interaction: ChatInputCommandInteraction,
         prompt: string,
-        response: string
+        response: string,
+        memoryDisplay?: string
     ): Promise<void> {
         try {
             const embeds = DiscordEmbedUtils.createLongAIResponseEmbeds(prompt, response, interaction.user);
+            
+            // Add memory display as a separate embed if provided
+            if (memoryDisplay && memoryDisplay !== 'No previous conversation history.') {
+                const memoryEmbed = new EmbedBuilder()
+                    .setColor('#3b82f6')
+                    .setTitle('📚 Conversation Memory')
+                    .setDescription(memoryDisplay)
+                    .setTimestamp();
+                embeds.unshift(memoryEmbed); // Add at the beginning
+            }
+            
             await interaction.editReply({ embeds });
         } catch (error: any) {
             // Handle Unknown Interaction error specifically
@@ -272,20 +307,56 @@ export class DiscordAIService {
     }
 
     /**
-     * Get the formatted conversation for a user
+     * Get the formatted conversation for a user from database
      * @param userId The user ID
      * @returns The formatted conversation
      */
-    public getFormattedConversation(userId: string): string {
-        const conversation = this.userConversations.get(userId);
-        if (!conversation || conversation.length === 0) {
-            return 'No conversation history.';
-        }
+    public async getFormattedConversation(userId: string): Promise<string> {
+        try {
+            const conversationHistory = await discordAIStorageService.getConversationHistory(userId);
+            
+            if (!conversationHistory || conversationHistory.length === 0) {
+                return 'No conversation history.';
+            }
 
-        return conversation.map(msg => {
-            const role = msg.role === 'user' ? 'You' : 'AI';
-            return `**${role}**: ${msg.parts.map(part => part.text).join(' ')}`;
-        }).join('\n\n');
+            return conversationHistory.map(msg => {
+                const role = msg.role === 'user' ? 'You' : 'AI';
+                const timestamp = new Date(msg.createdAt).toLocaleTimeString();
+                return `**${role}** (${timestamp}): ${msg.message}`;
+            }).join('\n\n');
+        } catch (error: any) {
+            console.error('Error getting formatted conversation:', error.message);
+            return 'Unable to retrieve conversation history.';
+        }
+    }
+
+    /**
+     * Clear conversation history for a user
+     * @param userId The user ID
+     * @returns Success status
+     */
+    public async clearUserConversation(userId: string): Promise<boolean> {
+        try {
+            await discordAIStorageService.clearUserConversation(userId);
+            return true;
+        } catch (error: any) {
+            console.error('Error clearing user conversation:', error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Get conversation statistics for a user
+     * @param userId The user ID
+     * @returns Conversation statistics
+     */
+    public async getUserStats(userId: string): Promise<any> {
+        try {
+            return await discordAIStorageService.getConversationStats(userId);
+        } catch (error: any) {
+            console.error('Error getting user stats:', error.message);
+            return null;
+        }
     }
 
     /**
@@ -295,7 +366,7 @@ export class DiscordAIService {
     public getAIChatCommands(): any {
         return new SlashCommandBuilder()
             .setName('ask')
-            .setDescription('Ask a question to the AI')
+            .setDescription('Ask a question to the AI (with persistent conversation history)')
             .addStringOption(option =>
                 option
                     .setName('prompt')
