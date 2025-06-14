@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { HexColorPicker } from "react-colorful";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { EnhancedColorSelector, ColorPreview } from "@/components/ui/enhanced-color-selector";
 import { getBrandColors } from "@/lib/brand-theme";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -326,8 +326,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
   const [saveInProgress, setSaveInProgress] = useState(false);
   const [testConnectionInProgress, setTestConnectionInProgress] = useState(false);
-  const [maintenanceToken, setMaintenanceToken] = useState<string>("");
-  const [regeneratingToken, setRegeneratingToken] = useState(false);
+  const [maintenanceToken, setMaintenanceToken] = useState<string>("");  const [regeneratingToken, setRegeneratingToken] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<TicketDepartment | null>(null);
   const [isAddingDepartment, setIsAddingDepartment] = useState(false);
   const [themeKey, setThemeKey] = useState(0); // Force re-render key
@@ -335,9 +334,6 @@ export default function SettingsPage() {
   const [migrationResult, setMigrationResult] = useState<MigrationResult | null>(null);
   const [syncInProgress, setSyncInProgress] = useState(false);
   const [syncResult, setSyncResult] = useState<MigrationResult | null>(null);
-
-  // State for color pickers
-  const [activeColorPicker, setActiveColorPicker] = useState<"primary" | "secondary" | "accent" | null>(null);
 
   // Listen for theme changes to force re-render
   useEffect(() => {
@@ -2651,319 +2647,53 @@ export default function SettingsPage() {
                           <p className="text-sm text-muted-foreground mt-1">
                             Base URL used in email links and external references
                           </p>
-                        </div>
+                        </div>                        <div className="space-y-6">
+                          <h4 className="font-medium">Brand Colors</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Customize your platform's visual identity with these brand colors. Changes will be applied across the entire interface.
+                          </p>
+                          
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Color Selectors */}
+                            <div className="space-y-6">
+                              <EnhancedColorSelector
+                                label="Primary Color"
+                                value={generalForm.watch("primaryColor")}
+                                onChange={(color) => generalForm.setValue("primaryColor", color, { shouldDirty: true })}
+                                error={generalForm.formState.errors.primaryColor?.message}
+                                description="Main brand color for primary elements and actions"
+                                type="primary"
+                                disabled={saveInProgress}
+                              />
 
-                        <div className="space-y-5">
-                          <h4 className="font-medium mb-2">Brand Colors</h4>
-                          <div className="space-y-3 border p-4 rounded-lg">
-                            {/* Primary Color */}
-                            <div className="space-y-2">
-                              <Label htmlFor="primaryColor">Primary Color</Label>
-                              <div className="flex items-center space-x-2">
-                                <div
-                                  className="w-10 h-10 rounded-full border shadow-sm transition-colors cursor-pointer relative"
-                                  style={{
-                                    backgroundColor: `#${generalForm.watch("primaryColor") || "2563eb"}`,
-                                    borderColor: generalForm.formState.errors.primaryColor ? "rgb(239, 68, 68)" : "rgb(226, 232, 240)"
-                                  }}
-                                  onClick={() => {
-                                    setActiveColorPicker(activeColorPicker === "primary" ? null : "primary");
-                                  }}
-                                />
-                                <Input
-                                  id="primaryColor"
-                                  placeholder="2563eb"
-                                  value={generalForm.watch("primaryColor")}
-                                  onChange={(e) => generalForm.setValue("primaryColor", e.target.value, { shouldDirty: true })}
-                                  className="font-mono"
-                                />
-                                {activeColorPicker === "primary" && (
-                                  <div className="absolute z-10 mt-2 ml-10" style={{ top: "100%" }}>
-                                    <div className="fixed inset-0" onClick={() => setActiveColorPicker(null)} />
-                                    <div className="relative">
-                                      <HexColorPicker
-                                        color={`#${generalForm.watch("primaryColor")}`}
-                                        onChange={(color) => {
-                                          // Remove the # and set the value
-                                          generalForm.setValue("primaryColor", color.replace("#", ""), { shouldDirty: true });
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                              <EnhancedColorSelector
+                                label="Secondary Color"
+                                value={generalForm.watch("secondaryColor")}
+                                onChange={(color) => generalForm.setValue("secondaryColor", color, { shouldDirty: true })}
+                                error={generalForm.formState.errors.secondaryColor?.message}
+                                description="Supporting color for secondary elements and accents"
+                                type="secondary"
+                                disabled={saveInProgress}
+                              />
 
-                              {generalForm.formState.errors.primaryColor && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {generalForm.formState.errors.primaryColor.message}
-                                </p>
-                              )}
-                              <p className="text-xs text-muted-foreground">
-                                Main brand color for primary elements and actions
-                              </p>
+                              <EnhancedColorSelector
+                                label="Accent Color"
+                                value={generalForm.watch("accentColor")}
+                                onChange={(color) => generalForm.setValue("accentColor", color, { shouldDirty: true })}
+                                error={generalForm.formState.errors.accentColor?.message}
+                                description="Highlight color for callouts and important elements"
+                                type="accent"
+                                disabled={saveInProgress}
+                              />
                             </div>
 
-                            {/* Secondary Color */}
-                            <div className="space-y-2">
-                              <Label htmlFor="secondaryColor">Secondary Color</Label>
-                              <div className="flex items-center space-x-2">
-                                <div
-                                  className="w-10 h-10 rounded-full border shadow-sm transition-colors cursor-pointer relative"
-                                  style={{
-                                    backgroundColor: `#${generalForm.watch("secondaryColor") || "10b981"}`,
-                                    borderColor: generalForm.formState.errors.secondaryColor ? "rgb(239, 68, 68)" : "rgb(226, 232, 240)"
-                                  }}
-                                  onClick={() => {
-                                    setActiveColorPicker(activeColorPicker === "secondary" ? null : "secondary");
-                                  }}
-                                />
-                                <Input
-                                  id="secondaryColor"
-                                  placeholder="10b981"
-                                  value={generalForm.watch("secondaryColor")}
-                                  onChange={(e) => generalForm.setValue("secondaryColor", e.target.value, { shouldDirty: true })}
-                                  className="font-mono"
-                                />
-                                {activeColorPicker === "secondary" && (
-                                  <div className="absolute z-10 mt-2 ml-10" style={{ top: "100%" }}>
-                                    <div className="fixed inset-0" onClick={() => setActiveColorPicker(null)} />
-                                    <div className="relative">
-                                      <HexColorPicker
-                                        color={`#${generalForm.watch("secondaryColor")}`}
-                                        onChange={(color) => {
-                                          // Remove the # and set the value
-                                          generalForm.setValue("secondaryColor", color.replace("#", ""), { shouldDirty: true });
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                              {generalForm.formState.errors.secondaryColor && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {generalForm.formState.errors.secondaryColor.message}
-                                </p>
-                              )}
-                              <p className="text-xs text-muted-foreground">
-                                Supporting color for secondary elements and accents
-                              </p>
-                            </div>
-
-                            {/* Accent Color */}
-                            <div className="space-y-2">
-                              <Label htmlFor="accentColor">Accent Color</Label>
-                              <div className="flex items-center space-x-2">
-                                <div
-                                  className="w-10 h-10 rounded-full border shadow-sm transition-colors cursor-pointer relative"
-                                  style={{
-                                    backgroundColor: `#${generalForm.watch("accentColor") || "f59e0b"}`,
-                                    borderColor: generalForm.formState.errors.accentColor ? "rgb(239, 68, 68)" : "rgb(226, 232, 240)"
-                                  }}
-                                  onClick={() => {
-                                    setActiveColorPicker(activeColorPicker === "accent" ? null : "accent");
-                                  }}
-                                />
-                                <Input
-                                  id="accentColor"
-                                  placeholder="f59e0b"
-                                  value={generalForm.watch("accentColor")}
-                                  onChange={(e) => generalForm.setValue("accentColor", e.target.value, { shouldDirty: true })}
-                                  className="font-mono"
-                                />
-                                {activeColorPicker === "accent" && (
-                                  <div className="absolute z-10 mt-2 ml-10" style={{ top: "100%" }}>
-                                    <div className="fixed inset-0" onClick={() => setActiveColorPicker(null)} />
-                                    <div className="relative">
-                                      <HexColorPicker
-                                        color={`#${generalForm.watch("accentColor")}`}
-                                        onChange={(color) => {
-                                          // Remove the # and set the value
-                                          generalForm.setValue("accentColor", color.replace("#", ""), { shouldDirty: true });
-                                        }}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                              {generalForm.formState.errors.accentColor && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {generalForm.formState.errors.accentColor.message}
-                                </p>
-                              )}
-                              <p className="text-xs text-muted-foreground">
-                                Highlight color for callouts and important elements
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="p-3 border rounded-lg">
-                            <h5 className="text-sm font-medium mb-2">Color Preview</h5>
-                            <div className="grid grid-cols-3 gap-2">
-                              <div className="flex flex-col space-y-1 items-center">
-                                <div
-                                  className="w-full h-8 rounded-md shadow-sm"
-                                  style={{ backgroundColor: `#${generalForm.watch("primaryColor") || "2563eb"}` }}
-                                ></div>
-                                <span className="text-xs text-muted-foreground">Primary</span>
-                              </div>
-                              <div className="flex flex-col space-y-1 items-center">
-                                <div
-                                  className="w-full h-8 rounded-md shadow-sm"
-                                  style={{ backgroundColor: `#${generalForm.watch("secondaryColor") || "10b981"}` }}
-                                ></div>
-                                <span className="text-xs text-muted-foreground">Secondary</span>
-                              </div>
-                              <div className="flex flex-col space-y-1 items-center">
-                                <div
-                                  className="w-full h-8 rounded-md shadow-sm"
-                                  style={{ backgroundColor: `#${generalForm.watch("accentColor") || "f59e0b"}` }}
-                                ></div>
-                                <span className="text-xs text-muted-foreground">Accent</span>
-                              </div>
-                              <div className="col-span-3 mt-2">
-                                <div className="grid grid-cols-3 gap-2">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="w-full"
-                                    style={{
-                                      backgroundColor: `#${generalForm.watch("primaryColor") || "2563eb"}`,
-                                      color: "white",
-                                      borderColor: `#${generalForm.watch("primaryColor") || "2563eb"}`
-                                    }}
-                                  >
-                                    Primary
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="w-full"
-                                    style={{
-                                      backgroundColor: `#${generalForm.watch("secondaryColor") || "10b981"}`,
-                                      color: "white",
-                                      borderColor: `#${generalForm.watch("secondaryColor") || "10b981"}`
-                                    }}
-                                  >
-                                    Secondary
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="w-full"
-                                    style={{
-                                      backgroundColor: `#${generalForm.watch("accentColor") || "f59e0b"}`,
-                                      color: "white",
-                                      borderColor: `#${generalForm.watch("accentColor") || "f59e0b"}`
-                                    }}
-                                  >
-                                    Accent
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-3">
+                            {/* Color Preview */}
                             <div>
-                              <h6 className="text-xs font-medium mb-1">Primary Presets</h6>
-                              <div className="flex flex-wrap gap-1">
-                                {[
-                                  "2563eb", // Blue (default)
-                                  "7c3aed", // Purple
-                                  "0ea5e9", // Sky Blue
-                                  "0d9488", // Teal
-                                  "f97316", // Orange
-                                  "ef4444", // Red
-                                  "1d4ed8", // Dark Blue
-                                  "9333ea", // Violet
-                                  "059669", // Emerald
-                                  "dc2626", // Dark Red
-                                  "ea580c", // Dark Orange
-                                  "4338ca", // Indigo
-                                  "0891b2", // Cyan
-                                  "16a34a", // Green
-                                  "c2410c", // Amber
-                                  "be123c"  // Rose
-                                ].map(
-                                  (color) => (
-                                    <div
-                                      key={color}
-                                      className="w-6 h-6 rounded-full border border-gray-200 cursor-pointer transition-transform hover:scale-110"
-                                      style={{ backgroundColor: `#${color}` }}
-                                      onClick={() => generalForm.setValue("primaryColor", color, { shouldDirty: true })}
-                                      title={`Primary color #${color}`}
-                                    />
-                                  )
-                                )}
-                              </div>
-                            </div>
-                            <div>
-                              <h6 className="text-xs font-medium mb-1">Secondary Presets</h6>
-                              <div className="flex flex-wrap gap-1">
-                                {[
-                                  "10b981", // Emerald (default)
-                                  "8b5cf6", // Violet
-                                  "06b6d4", // Cyan
-                                  "14b8a6", // Teal
-                                  "fb923c", // Orange
-                                  "f87171", // Red
-                                  "059669", // Dark Emerald
-                                  "7c3aed", // Purple
-                                  "0891b2", // Dark Cyan
-                                  "0d9488", // Dark Teal
-                                  "ea580c", // Dark Orange
-                                  "dc2626", // Dark Red
-                                  "16a34a", // Green
-                                  "9333ea", // Dark Violet
-                                  "0284c7", // Blue
-                                  "be123c"  // Rose
-                                ].map(
-                                  (color) => (
-                                    <div
-                                      key={color}
-                                      className="w-6 h-6 rounded-full border border-gray-200 cursor-pointer transition-transform hover:scale-110"
-                                      style={{ backgroundColor: `#${color}` }}
-                                      onClick={() => generalForm.setValue("secondaryColor", color, { shouldDirty: true })}
-                                      title={`Secondary color #${color}`}
-                                    />
-                                  )
-                                )}
-                              </div>
-                            </div>
-                            <div>
-                              <h6 className="text-xs font-medium mb-1">Accent Presets</h6>
-                              <div className="flex flex-wrap gap-1">
-                                {[
-                                  "f59e0b", // Amber (default)
-                                  "ec4899", // Pink
-                                  "0284c7", // Blue
-                                  "0f766e", // Teal
-                                  "ea580c", // Orange
-                                  "dc2626", // Red
-                                  "d97706", // Dark Amber
-                                  "db2777", // Dark Pink
-                                  "0369a1", // Dark Blue
-                                  "0d9488", // Dark Teal
-                                  "c2410c", // Dark Orange
-                                  "b91c1c", // Dark Red
-                                  "fbbf24", // Yellow
-                                  "a855f7", // Purple
-                                  "06b6d4", // Cyan
-                                  "84cc16"  // Lime
-                                ].map(
-                                  (color) => (
-                                    <div
-                                      key={color}
-                                      className="w-6 h-6 rounded-full border border-gray-200 cursor-pointer transition-transform hover:scale-110"
-                                      style={{ backgroundColor: `#${color}` }}
-                                      onClick={() => generalForm.setValue("accentColor", color, { shouldDirty: true })}
-                                      title={`Accent color #${color}`}
-                                    />
-                                  )
-                                )}
-                              </div>
+                              <ColorPreview
+                                primaryColor={generalForm.watch("primaryColor") || "2563eb"}
+                                secondaryColor={generalForm.watch("secondaryColor") || "10b981"}
+                                accentColor={generalForm.watch("accentColor") || "f59e0b"}
+                              />
                             </div>
                           </div>
                         </div>
