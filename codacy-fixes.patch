@@ -84,7 +84,7 @@ diff --git a/server/discord/discord-ai-service.ts b/server/discord/discord-ai-se
 +++ b/server/discord/discord-ai-service.ts
 @@ -16,1 +16,1 @@
 -    private userConversations: Map<string, Array<{ role: string, parts: Array<{ text: string }> }>> = new Map();
-+    private userConversations = new Map<string, Array<{ role: string, parts: Array<{ text: string }> }>>();
++    private userConversations: Map<string, { role: string, parts: Array<{ text: string }> }[]> = new Map();
 @@ -84,1 +84,1 @@
 -            } catch (aiError: any) {
 +            } catch (aiError: unknown) {
@@ -261,10 +261,10 @@ diff --git a/client/src/pages/home-page.tsx b/client/src/pages/home-page.tsx
 +  const categoryGroups: Record<string, number> = {};
 @@ -101,1 +101,1 @@
 -    primaryColor: brandingData?.primary_color || brandingData?.company_color || '2563eb',
-+    primaryColor: (brandingData?.primary_color ?? brandingData?.company_color) || '2563eb',
++    primaryColor: brandingData.primary_color || brandingData?.company_color || '2563eb',
 @@ -102,1 +102,1 @@
 -    secondaryColor: brandingData?.secondary_color || '10b981',
-+    secondaryColor: brandingData.secondary_color || '10b981',
++    secondaryColor: brandingData?.secondary_color ?? '10b981',
 @@ -103,1 +103,1 @@
 -    accentColor: brandingData?.accent_color || 'f59e0b'
 +    accentColor: brandingData?.accent_color ?? 'f59e0b'
@@ -516,7 +516,7 @@ diff --git a/server/virtfusion-api.ts b/server/virtfusion-api.ts
 +        (responseError as unknown).response = error.response;
 @@ -463,1 +463,1 @@
 -      (error as any).status = 0;
-+      (error as unknown).status = 0;
++      (error).status = 0;
 @@ -468,1 +468,1 @@
 -  async modifyUserByExtRelationId(extRelationId: number, userData: any) {
 +  async modifyUserByExtRelationId(extRelationId: number, userData: unknown) {
@@ -876,7 +876,7 @@ diff --git a/client/src/pages/billing-page.tsx b/client/src/pages/billing-page.t
 +        const searchInCreditId = (transaction as unknown).virtFusionCreditId?.toLowerCase?.() || '';
 @@ -99,1 +99,1 @@
 -          (transaction.paymentId && transaction.paymentId.toLowerCase().includes(query)) ||
-+          (transaction.paymentId?.toLowerCase().includes(query)) ||
++          (transaction.paymentId && transaction.paymentId.toLowerCase().includes(query)) ??
 @@ -120,1 +120,1 @@
 -  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: any }>({
 +  const { data: usageData, isError: usageError, error: usageErrorData } = useQuery<{ usage: number, rawData: unknown }>({
