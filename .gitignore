@@ -7,7 +7,6 @@ vite.config.ts.*
 attached_assets
 package-lock.json
 dnsmasq.conf
-docs
 vitest.config.ts
 yaml-docs
 migrations
