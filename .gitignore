@@ -8,12 +8,12 @@ attached_assets
 package-lock.json
 dnsmasq.conf
 docs
-docs/*
 vitest.config.ts
 yaml-docs
 migrations
-Migrations/*
 SkyPANEL.zip
+tests
+
 
 # DotFiles
 .env
