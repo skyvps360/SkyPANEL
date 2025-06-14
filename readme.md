@@ -692,7 +692,7 @@ const monthlyTotal = parseFloat(response.data.monthlyTotal.value);
 
 ---
 
-## 🎨 Brand Theming System
+## 🎨 Brand Theming System 
 
 SkyPANEL implements a comprehensive brand theming system for dynamic customization.
 
