@@ -38,14 +38,11 @@ export class DiscordBotCore {
     private static instance: DiscordBotCore;
     private client: Client | null = null;
     private ready: boolean = false;
-    private commandsRegistered: boolean = false;
-
-    // Services that will be initialized
+    private commandsRegistered: boolean = false;    // Services that will be initialized
     private ticketService: any;
     private commandHandler: any;
     private moderationService: any;
     private statusService: any;
-    private todoService: any;
     private helpService: any;
     private aiService: any;
 
@@ -61,9 +58,7 @@ export class DiscordBotCore {
             DiscordBotCore.instance = new DiscordBotCore();
         }
         return DiscordBotCore.instance;
-    }
-
-    /**
+    }    /**
      * Set the service instances
      */
     public setServices(
@@ -71,7 +66,6 @@ export class DiscordBotCore {
         commandHandler: any,
         moderationService: any,
         statusService: any,
-        todoService: any,
         helpService: any,
         aiService: any
     ): void {
@@ -79,7 +73,6 @@ export class DiscordBotCore {
         this.commandHandler = commandHandler;
         this.moderationService = moderationService;
         this.statusService = statusService;
-        this.todoService = todoService;
         this.helpService = helpService;
         this.aiService = aiService;
     }
@@ -169,10 +162,6 @@ export class DiscordBotCore {
                     else if (interaction.commandName === 'ask') {
                         await this.aiService.handleAICommand(interaction);
                     }
-                    // Check if it's a todo command
-                    else if (interaction.commandName === 'todo') {
-                        await this.todoService.handleTodoCommand(interaction);
-                    }
                     // Check if it's a moderation command
                     else if (this.moderationService.isModerationCommand(interaction.commandName)) {
                         await this.moderationService.handleModerationCommand(interaction);
@@ -180,14 +169,8 @@ export class DiscordBotCore {
                     // Handle ticket commands (require thread context)
                     else {
                         await this.commandHandler.handleCommand(interaction);
-                    }
-                } else if (interaction.isButton()) {
-                    // Handle todo pagination buttons
-                    if (interaction.customId.startsWith('todo_list:')) {
-                        await this.todoService.handleButtonInteraction(interaction);
-                    } else {
-                        await this.handleButton(interaction);
-                    }
+                    }                } else if (interaction.isButton()) {
+                    await this.handleButton(interaction);
                 }
             });
 
@@ -253,13 +236,8 @@ export class DiscordBotCore {
                 this.aiService.getAIChatCommands(),
 
                 // Moderation commands
-                ...this.moderationService.getModerationCommands(),
-
-                // Ticket commands
+                ...this.moderationService.getModerationCommands(),                // Ticket commands
                 ...this.commandHandler.getTicketCommands(),
-
-                // Todo commands
-                ...this.todoService.getTodoCommands(),
             ];
 
             const rest = new REST().setToken(botToken);
@@ -294,12 +272,10 @@ export class DiscordBotCore {
             }
 
             // Help button
-            if (customId.startsWith('help:')) {
+            if (customId.startsWith('help:')) {  
                 await this.helpService.handleHelpButton(interaction);
                 return;
             }
-
-            // Todo buttons removed
 
             // Ticket buttons
             if (customId.startsWith('close:') || customId.startsWith('reopen:')) {

@@ -7,7 +7,6 @@ import {discordStatusService} from './discord/discord-status-service';
 
 import {discordHelpService} from './discord/discord-help-service';
 import {discordAIService} from './discord/discord-ai-service';
-import {discordTodoService} from './discord/discord-todo-service';
 import {DiscordUtils} from './discord/discord-utils';
 
 /**
@@ -42,14 +41,12 @@ export class DiscordBotService {
    * @returns True if initialization was successful
    */
   public async initialize(): Promise<boolean> {
-    try {
-        // Set up the services in the core
+    try {        // Set up the services in the core
         discordBotCore.setServices(
             discordTicketService,
             discordCommandHandler,
             discordModerationService,
             discordStatusService,
-            discordTodoService,
             discordHelpService,
             discordAIService
         );

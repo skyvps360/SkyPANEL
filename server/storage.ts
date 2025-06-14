@@ -32,10 +32,8 @@ import {
   chatTypingIndicators,
   chatDepartments,
   chatDepartmentAdmins,
-
   dnsDomains,
   dnsRecords,
-  discordTodos,
   type User,
   type InsertUser,
   type Transaction,
@@ -95,12 +93,8 @@ import {
   type ChatTypingIndicator,
   type InsertChatTypingIndicator,
   type ChatDepartment,
-  type InsertChatDepartment,
-  type ChatDepartmentAdmin,
+  type InsertChatDepartment,  type ChatDepartmentAdmin,
   type InsertChatDepartmentAdmin,
-  type DiscordTodo,
-  type InsertDiscordTodo,
-  type UpdateDiscordTodo,
 
 } from "@shared/schema";
 import { db } from "./db";
@@ -406,22 +400,6 @@ export interface IStorage {
   getChatSessionsWithDepartments(): Promise<(ChatSession & { user: User; assignedAdmin?: User; department?: ChatDepartment })[]>;
   getChatSessionsByDepartment(departmentId: number): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]>;
   getUserChatHistory(userId: number, limit?: number, offset?: number): Promise<(ChatSession & { department?: ChatDepartment })[]>;
-
-  // Discord todo operations
-  getDiscordTodos(discordUserId: string): Promise<DiscordTodo[]>;
-  getDiscordTodosByUser(userId: number): Promise<DiscordTodo[]>;
-  getDiscordTodo(id: number): Promise<DiscordTodo | undefined>;
-  createDiscordTodo(todo: InsertDiscordTodo): Promise<DiscordTodo>;
-  updateDiscordTodo(id: number, updates: UpdateDiscordTodo): Promise<DiscordTodo>;
-  deleteDiscordTodo(id: number): Promise<void>;
-  completeDiscordTodo(id: number): Promise<DiscordTodo>;
-  getDiscordTodosByCategory(discordUserId: string, category: string): Promise<DiscordTodo[]>;
-  getDiscordTodosByPriority(discordUserId: string, priority: string): Promise<DiscordTodo[]>;
-  getCompletedDiscordTodos(discordUserId: string): Promise<DiscordTodo[]>;
-  getPendingDiscordTodos(discordUserId: string): Promise<DiscordTodo[]>;
-  clearCompletedDiscordTodos(discordUserId: string): Promise<void>;
-  searchDiscordTodos(discordUserId: string, searchTerm: string): Promise<DiscordTodo[]>;
-
 
 }
 
@@ -2574,119 +2552,6 @@ export class DatabaseStorage implements IStorage {
       department: session.chatDepartment
     })));
   }
-
-  // Discord todo operations
-  async getDiscordTodos(discordUserId: string): Promise<DiscordTodo[]> {
-    return await db.select()
-      .from(discordTodos)
-      .where(eq(discordTodos.discordUserId, discordUserId))
-      .orderBy(desc(discordTodos.createdAt));
-  }
-
-  async getDiscordTodosByUser(userId: number): Promise<DiscordTodo[]> {
-    return await db.select()
-      .from(discordTodos)
-      .where(eq(discordTodos.userId, userId))
-      .orderBy(desc(discordTodos.createdAt));
-  }
-
-  async getDiscordTodo(id: number): Promise<DiscordTodo | undefined> {
-    const [todo] = await db.select()
-      .from(discordTodos)
-      .where(eq(discordTodos.id, id));
-    return todo;
-  }
-
-  async createDiscordTodo(todo: InsertDiscordTodo): Promise<DiscordTodo> {
-    const [createdTodo] = await db.insert(discordTodos).values(todo).returning();
-    return createdTodo;
-  }
-
-  async updateDiscordTodo(id: number, updates: UpdateDiscordTodo): Promise<DiscordTodo> {
-    const [updatedTodo] = await db.update(discordTodos)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(discordTodos.id, id))
-      .returning();
-    return updatedTodo;
-  }
-
-  async deleteDiscordTodo(id: number): Promise<void> {
-    await db.delete(discordTodos).where(eq(discordTodos.id, id));
-  }
-
-  async completeDiscordTodo(id: number): Promise<DiscordTodo> {
-    const [completedTodo] = await db.update(discordTodos)
-      .set({
-        completed: true,
-        completedAt: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(discordTodos.id, id))
-      .returning();
-    return completedTodo;
-  }
-
-  async getDiscordTodosByCategory(discordUserId: string, category: string): Promise<DiscordTodo[]> {
-    return await db.select()
-      .from(discordTodos)
-      .where(and(
-        eq(discordTodos.discordUserId, discordUserId),
-        eq(discordTodos.category, category)
-      ))
-      .orderBy(desc(discordTodos.createdAt));
-  }
-
-  async getDiscordTodosByPriority(discordUserId: string, priority: string): Promise<DiscordTodo[]> {
-    return await db.select()
-      .from(discordTodos)
-      .where(and(
-        eq(discordTodos.discordUserId, discordUserId),
-        eq(discordTodos.priority, priority)
-      ))
-      .orderBy(desc(discordTodos.createdAt));
-  }
-
-  async getCompletedDiscordTodos(discordUserId: string): Promise<DiscordTodo[]> {
-    return await db.select()
-      .from(discordTodos)
-      .where(and(
-        eq(discordTodos.discordUserId, discordUserId),
-        eq(discordTodos.completed, true)
-      ))
-      .orderBy(desc(discordTodos.completedAt));
-  }
-
-  async getPendingDiscordTodos(discordUserId: string): Promise<DiscordTodo[]> {
-    return await db.select()
-      .from(discordTodos)
-      .where(and(
-        eq(discordTodos.discordUserId, discordUserId),
-        eq(discordTodos.completed, false)
-      ))
-      .orderBy(desc(discordTodos.createdAt));
-  }
-
-  async clearCompletedDiscordTodos(discordUserId: string): Promise<void> {
-    await db.delete(discordTodos)
-      .where(and(
-        eq(discordTodos.discordUserId, discordUserId),
-        eq(discordTodos.completed, true)
-      ));
-  }
-
-  async searchDiscordTodos(discordUserId: string, searchTerm: string): Promise<DiscordTodo[]> {
-    return await db.select()
-      .from(discordTodos)
-      .where(and(
-        eq(discordTodos.discordUserId, discordUserId),
-        or(
-          ilike(discordTodos.task, `%${searchTerm}%`),
-          ilike(discordTodos.description, `%${searchTerm}%`)
-        )
-      ))
-      .orderBy(desc(discordTodos.createdAt));
-  }
-
 
 }
 
