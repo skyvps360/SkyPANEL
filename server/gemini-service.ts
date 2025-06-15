@@ -649,22 +649,25 @@ export class GeminiService {
     if (!modelsList.success || !modelsList.models) {
       console.warn('Could not fetch models list, falling back to gemini-1.5-flash');
       return 'gemini-1.5-flash';
-    }
-
-    // Priority order for models (newest/best first)
+    }    // Priority order for models (newest/best first, based on actual availability)
     const preferredModels = [
-      'models/gemini-2.5-flash-preview-05-20',
-      'models/gemini-2.0-flash-exp',
       'models/gemini-2.0-flash',
+      'models/gemini-2.0-flash-001', 
+      'models/gemini-2.0-flash-lite',
+      'models/gemini-2.0-flash-lite-001',
       'models/gemini-1.5-pro',
+      'models/gemini-1.5-pro-002',
       'models/gemini-1.5-flash',
-    ];
-
-    // Find the first available model from our preferred list
+      'models/gemini-1.5-flash-002',
+      'models/gemini-1.5-flash-8b',
+      'models/gemini-1.5-flash-8b-001'
+    ];    // Find the first available model from our preferred list
     for (const preferredModel of preferredModels) {
       const foundModel = modelsList.models.find((model: any) => 
         model.name === preferredModel && 
-        model.supportedGenerationMethods?.includes('generateContent')
+        model.supportedGenerationMethods?.includes('generateContent') &&
+        !model.displayName?.toLowerCase().includes('vision') && // Skip vision models for text generation
+        !model.displayName?.toLowerCase().includes('embedding') // Skip embedding models
       );
       
       if (foundModel) {
@@ -675,7 +678,9 @@ export class GeminiService {
 
     // If none of our preferred models are available, use the first available one that supports generateContent
     const fallbackModel = modelsList.models.find((model: any) => 
-      model.supportedGenerationMethods?.includes('generateContent')
+      model.supportedGenerationMethods?.includes('generateContent') &&
+      !model.displayName?.toLowerCase().includes('vision') && // Skip vision models for text generation
+      !model.displayName?.toLowerCase().includes('embedding') // Skip embedding models
     );
 
     if (fallbackModel) {
