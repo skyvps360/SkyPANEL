@@ -105,10 +105,10 @@ export class GeminiService {
    * @returns A consistent identity statement
    */
   private getIdentityResponse(): string {
-    const companyName = process.env.COMPANY_NAME || "SkyVPS360";
-    return `I am SkyVPS360 AI Helper, a virtual assistant created by ${companyName} to help with questions about our VPS hosting services. I can answer questions about our hosting plans, features, and provide basic technical support. For more complex issues, I can help guide you to our support ticket system.
+    const companyName = process.env.COMPANY_NAME || "";
+    return `I am SkyAI, a virtual assistant created by ${companyName} to help with questions about our VPS hosting services. I can answer questions about our hosting plans, features, and provide basic technical support. For more complex issues, I can help guide you to our support ticket system.
 
-- SkyVPS360 AI Helper`;
+- SkyAI`;
   }
   /**
    * Filter AI responses to ensure consistent identity
@@ -116,7 +116,7 @@ export class GeminiService {
    * @returns The filtered response
    */
   private filterAIResponse(response: string): string {
-    const companyName = process.env.COMPANY_NAME || "SkyVPS360";
+    const companyName = process.env.COMPANY_NAME || "";
 
     // Replace generic AI introductions with our branded identity
     const genericIntros = [
@@ -295,10 +295,10 @@ export class GeminiService {
           response: rateCheck.message || 'Rate limit exceeded. Please try again later.'
         };
       }
-    }    try {      // Initialize model with v1 API version specified and use gemini-1.5-flash
+    }    try {      // Initialize model with v1 API version specified and use gemini-2.5-pro-exp-03-25
       const model = this.genAI!.getGenerativeModel(
         { 
-          model: "gemini-1.5-flash",
+          model: "gemma-3n-e4b-it",
           safetySettings: [
             {
               category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -323,7 +323,7 @@ export class GeminiService {
       );
 
       // Get company name from environment or use default
-      const companyName = process.env.COMPANY_NAME || "SkyVPS360";
+      const companyName = process.env.COMPANY_NAME || "";
 
       // Format conversation context for the AI
       let prompt = `You are a helpful customer support assistant for a VPS hosting company called ${companyName}.
@@ -436,7 +436,7 @@ export class GeminiService {
       }      // Initialize model with same settings as ticket response generation
       const model = this.genAI!.getGenerativeModel(
         { 
-          model: "gemini-1.5-flash",
+          model: "gemma-3n-e4b-it",
           safetySettings: [
             {
               category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -458,7 +458,7 @@ export class GeminiService {
         },
         { apiVersion: "v1" }
       );      // Get company name from environment or use default
-      const companyName = process.env.COMPANY_NAME || "SkyVPS360";
+      const companyName = process.env.COMPANY_NAME || "";
 
       // Extract keywords from the user's question for content searching
       const keywords = this.extractKeywords(question);
@@ -473,15 +473,15 @@ export class GeminiService {
       const additionalContext = this.formatAdditionalContext(relevantDocs, relevantBlogs);
 
       // Build system prompt with context about the company and services
-      let systemPrompt = `IMPORTANT: You are SkyVPS360 AI Helper, a virtual assistant created specifically for ${companyName}. 
+      let systemPrompt = `IMPORTANT: You are ${companyName}'s AI Helper, a virtual assistant created specifically for ${companyName}. 
       You are NOT a general AI, large language model, or Google product. You are a specialized customer support assistant owned by ${companyName}.
 
       IDENTITY REQUIREMENTS:
-      - ALWAYS introduce yourself as "SkyVPS360 AI Helper" when asked who you are
+      - ALWAYS introduce yourself as "${companyName}'s AI Helper" when asked who you are
       - NEVER say you are "a large language model" or "an AI trained by Google"
       - NEVER refer to yourself as an AI model, LLM, or similar technical terms
       - If asked about your capabilities, say you are a specialized support assistant for ${companyName}
-      - ALWAYS sign your responses with "- SkyVPS360 AI Helper"
+      - ALWAYS sign your responses with "- ${companyName}'s AI Helper"
 
       YOUR JOB:
       Your job is to answer questions about our VPS hosting services. Be concise, professional, and helpful.
@@ -507,7 +507,7 @@ export class GeminiService {
       4. Don't make up specific features or prices that weren't mentioned above or in the provided content
       5. Always maintain a helpful and supportive tone
       6. For technical questions beyond basic info, suggest creating a support ticket
-      7. Always sign your responses with "- SkyVPS360 AI Helper" at the end
+      7. Always sign your responses with "- ${companyName}'s AI Helper" at the end
       `;
 
       // Set up basic generation config without system instructions

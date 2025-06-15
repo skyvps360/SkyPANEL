@@ -123,3 +123,10 @@ preferred_libraries:
   authentication: Passport.js with local strategy
   api_requests: Axios with proper error handling
   validation: Zod for both frontend and backend
+
+# Puter.js AI (third-party free service):
+
+  Puter.js: Just integrated as a bonus feature for users
+  Puter.js: Uses whatever models Puter.js supports
+  Puter.js: Not managed by you or SkyPANEL
+  Puter.js: Their platform, their limitations

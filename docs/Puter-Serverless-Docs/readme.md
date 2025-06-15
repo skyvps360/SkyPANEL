@@ -126,7 +126,7 @@ In case of an error, the `Promise` will reject with an error message.
 
 ## Vendors
 
-We use the following vendors to provide AI services:
+We use the following vendors to provide AI services on the Puter.js serverless platform:
 
 - `gpt-4o-mini` (default): OpenAI
 - `gpt-4o`: OpenAI
