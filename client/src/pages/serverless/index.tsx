@@ -239,7 +239,7 @@ const ServerlessOverviewPage: React.FC = () => {
         </div>
 
         {/* Services Grid - Matching brand theme */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ gridAutoRows: '1fr' }}>
+        <div className="grid grid-cols-1 gap-6" style={{ gridAutoRows: '1fr' }}>
           {serverlessServices.map((service, index) => (
             <Card
               key={index}
@@ -267,7 +267,7 @@ const ServerlessOverviewPage: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-grow flex flex-col justify-between">
-                <div className="grid grid-cols-2 gap-2 mb-6">
+                <div className="mb-6">
                   {service.features.map((feature, featureIndex) => (
                     <div key={featureIndex} className="flex items-center text-sm text-muted-foreground">
                       <div
