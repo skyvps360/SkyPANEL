@@ -200,9 +200,9 @@ export function SharedFooter() {
               <li className="group">
                 <FooterLink href="/status">System Status</FooterLink>
               </li>
-              <li className="group">
+              {/* <li className="group">
                 <FooterLink href="/speed-test">Network Speed Test</FooterLink>
-              </li>
+              </li> */} {/* Temporarily hidden for fixes */}
             </ul>
           </div>
 
@@ -322,7 +322,7 @@ export function SharedFooter() {
                   Status
                 </span>
               </Link>
-              <Link href="/speed-test">
+              {/* <Link href="/speed-test">
                 <span 
                   className="text-gray-500 text-sm transition-colors duration-200 hover:text-gray-900"
                   style={{ color: `inherit` }}
@@ -331,7 +331,7 @@ export function SharedFooter() {
                 >
                   Speed Test
                 </span>
-              </Link>
+              </Link> */} {/* Temporarily hidden for fixes */}
               <Link href="/tos">
                 <span 
                   className="text-gray-500 text-sm transition-colors duration-200 hover:text-gray-900"

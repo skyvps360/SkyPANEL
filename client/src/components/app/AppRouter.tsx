@@ -28,7 +28,7 @@ import PrivacyPolicyPage from "@/pages/privacy-page";
 import BlogListPage from "@/pages/blog/index";
 import DocsListPage from "@/pages/docs/index";
 import StatusPage from "@/pages/status/index";
-import SpeedTestPage from "@/pages/speed-test/index";
+// import SpeedTestPage from "@/pages/speed-test/index"; // Temporarily hidden for fixes
 import PlansPage from "@/pages/plans/index";
 import TeamsPage from "@/pages/teams-page";
 import DashboardBlogPage from "@/pages/dashboard-blog-page";
@@ -127,11 +127,10 @@ export function AppRouter() {
 
                 {/* Public standalone blog and docs pages */}
                 <Route path="/blog" component={BlogListPage}/>
-                <Route path="/blog/:slug" component={BlogListPage}/>
-                <Route path="/docs" component={DocsListPage}/>
+                <Route path="/blog/:slug" component={BlogListPage}/>                <Route path="/docs" component={DocsListPage}/>
                 <Route path="/docs/:slug" component={DocsListPage}/>
                 <Route path="/status" component={StatusPage}/>
-                <Route path="/speed-test" component={SpeedTestPage}/>
+                {/* <Route path="/speed-test" component={SpeedTestPage}/> */} {/* Temporarily hidden for fixes */}
                 <Route path="/plans" component={PlansPage}/>
                 <Route path="/team" component={TeamsPage}/>
                 <Route path="/tos" component={TermsOfServicePage}/>

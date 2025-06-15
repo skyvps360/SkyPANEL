@@ -306,15 +306,14 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: "Status",
       description: "Check system status",
       url: "/status",
-      icon: <Activity className="h-4 w-4" />
-    },
-    {
-      id: "speed-test",
-      name: "Speed Test",
-      description: "Test your connection speed",
-      url: "/speed-test",
-      icon: <Zap className="h-4 w-4" />
-    },
+      icon: <Activity className="h-4 w-4" />    },
+    // {
+    //   id: "speed-test",
+    //   name: "Speed Test",
+    //   description: "Test your connection speed",
+    //   url: "/speed-test",
+    //   icon: <Zap className="h-4 w-4" />
+    // }, // Temporarily hidden for fixes
     {
       id: "dns",
       name: "DNS Management",
