@@ -48,7 +48,7 @@ import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
 
 type NavigationItem = {
   name: string;
-  href: string | null;
+  href: string | undefined;
   icon: ReactNode;
   adminOnly?: boolean;
   children?: NavigationItem[];
@@ -764,11 +764,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       return newSet;
     });
   };
-
   // Check if a navigation item or its children are active
   const isNavItemActive = (item: NavigationItem): boolean => {
-    // If item.href is null, it can't be active by direct match
-    if (item.href !== null && location === item.href) return true;
+    // If item.href is undefined, it can't be active by direct match
+    if (item.href && location === item.href) return true;
     // Check if any children are active
     if (item.children) {
       return item.children.some(child => location === child.href);
@@ -846,10 +845,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                       isActive
                         ? "bg-primary text-primary-foreground shadow-lg"
                         : "text-gray-300 hover:bg-gray-800 hover:text-white",
-                    )}
-                    onClick={() => {
-                      // Only navigate if href is not null
-                      if (item.href !== null) {
+                    )}                    onClick={() => {
+                      // Only navigate if href exists
+                      if (item.href) {
                         navigate(item.href);
                       }
                       // If it has children, toggle the submenu
@@ -883,14 +881,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                     {isActive && !hasChildren && (
                       <div className="w-2 h-2 rounded-full bg-primary-foreground/40" />
                     )}
-                  </div>
-
-                  {/* Submenu items */}
+                  </div>                  {/* Submenu items */}
                   {hasChildren && isExpanded && (
                     <div className="ml-6 mt-2 space-y-1">
                       {item.children!.map((child) => {
                         const isChildActive = location === child.href;
-                        return (
+                        // Only render Link if href exists
+                        return child.href ? (
                           <Link
                             key={child.href}
                             href={child.href}
@@ -912,6 +909,17 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                               <div className="ml-auto w-2 h-2 rounded-full bg-primary-foreground/40" />
                             )}
                           </Link>
+                        ) : (
+                          // Fallback for items without href (though none exist currently)
+                          <div
+                            key={child.name}
+                            className="flex items-center px-4 py-2 rounded-lg text-sm font-medium text-gray-500"
+                          >
+                            <div className="mr-3">
+                              {child.icon}
+                            </div>
+                            <span className="font-medium">{child.name}</span>
+                          </div>
                         );
                       })}
                     </div>
