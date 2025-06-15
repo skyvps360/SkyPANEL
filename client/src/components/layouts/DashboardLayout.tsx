@@ -26,11 +26,9 @@ import {
   Receipt,
   FileText,
   BookOpen,
-  Activity,
-  Zap,
+  Activity,  Zap,
   MessageSquare,
   Globe,
-  Cloud,
   Sparkles,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -361,22 +359,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       href: "/servers",
       icon: <Server className="h-5 w-5 mr-3" />,
     },
-    {
-      name: "Server Plans",
+    {      name: "Server Plans",
       href: "/packages",
       icon: <HardDrive className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "Serverless",
-      href: "/serverless", // Link to overview page
-      icon: <Cloud className="h-5 w-5 mr-3" />,
-      children: [
-        {
-          name: "AI",
-          href: "/serverless/ai",
-          icon: <MessageSquare className="h-4 w-4 mr-3" />,
-        },
-      ],
     },
     {
       name: "Billing & Payments",

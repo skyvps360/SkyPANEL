@@ -61,10 +61,6 @@ import DnsDomainsPage from "@/pages/dns-domains-page";
 import DnsRecordsPage from "@/pages/dns-records-page";
 import DnsPlansPage from "@/pages/dns-plans-page";
 
-// Serverless pages
-import ServerlessOverviewPage from "@/pages/serverless/index";
-import ServerlessAiPage from "@/pages/serverless/ai";
-
 import {AdminProtectedRoute, ProtectedRoute} from "@/lib/protected-route-new";
 
 // Lazy load the landing page to avoid issues with direct file redirect
@@ -139,12 +135,9 @@ export function AppRouter() {
                 {/* VNC Console - User access allowed */}
                 <ProtectedRoute path="/vnc-console" component={VNCConsole}/>
 
-                {/* DNS Management - User access allowed */}
-                <ProtectedRoute path="/dns" component={DnsDomainsPage}/>
+                {/* DNS Management - User access allowed */}                <ProtectedRoute path="/dns" component={DnsDomainsPage}/>
                 <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage}/>
-                <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/>                {/* Serverless Services - User access allowed */}
-                <ProtectedRoute path="/serverless" component={ServerlessOverviewPage}/>
-                <ProtectedRoute path="/serverless/ai" component={ServerlessAiPage}/>
+                <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/>
 
                 {/* Admin Routes */}
                 <AdminProtectedRoute path="/admin" component={AdminDashboard}/>
