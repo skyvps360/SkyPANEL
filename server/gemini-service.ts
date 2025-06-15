@@ -294,11 +294,13 @@ export class GeminiService {
           success: false,
           response: rateCheck.message || 'Rate limit exceeded. Please try again later.'
         };
-      }
-    }    try {      // Initialize model with v1 API version specified and use gemini-2.5-pro-exp-03-25
+      }    }    try {      // Get the best available model dynamically
+      const modelName = await this.getBestAvailableModel();
+      console.log(`Using model for docs response: ${modelName}`);
+      
       const model = this.genAI!.getGenerativeModel(
         { 
-          model: "gemma-3n-e4b-it",
+          model: modelName,
           safetySettings: [
             {
               category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -432,11 +434,13 @@ export class GeminiService {
       // Check if this is a question about the AI's identity, handle it directly
       if (this.isIdentityQuestion(question)) {
         const identityResponse = this.getIdentityResponse();
-        return { success: true, response: identityResponse };
-      }      // Initialize model with same settings as ticket response generation
+        return { success: true, response: identityResponse };      }      // Get the best available model dynamically
+      const modelName = await this.getBestAvailableModel();
+      console.log(`Using model for chat response: ${modelName}`);
+      
       const model = this.genAI!.getGenerativeModel(
         { 
-          model: "gemma-3n-e4b-it",
+          model: modelName,
           safetySettings: [
             {
               category: HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -583,6 +587,139 @@ export class GeminiService {
         response: `Sorry, I encountered an error while processing your question: ${error.message}. Please try again later or create a support ticket for assistance.` 
       };
     }
+  }
+
+  /**
+   * List all available models from the Gemini API
+   * @returns Promise with list of available models
+   */
+  public async listAvailableModels(): Promise<{ success: boolean; models: any[] | null; error?: string }> {
+    if (!this.isReady()) {
+      return { 
+        success: false, 
+        models: null,
+        error: 'AI service is not configured. Please contact an administrator.' 
+      };
+    }    try {
+      // Use fetch to directly call the Google AI API listModels endpoint
+      const apiKey = process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY;
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
+      
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      const models = data.models || [];
+      
+      console.log('Available Gemini models:');
+      models.forEach((model: any) => {
+        console.log(`- ${model.name} (${model.displayName})`);
+      });
+
+      return { 
+        success: true, 
+        models: models.map((model: any) => ({
+          name: model.name,
+          displayName: model.displayName,
+          description: model.description,
+          inputTokenLimit: model.inputTokenLimit,
+          outputTokenLimit: model.outputTokenLimit,
+          supportedGenerationMethods: model.supportedGenerationMethods
+        }))
+      };
+    } catch (error: any) {
+      console.error('Error listing available models:', error);
+      return { 
+        success: false, 
+        models: null,
+        error: error.message 
+      };
+    }
+  }
+
+  /**
+   * Find the best available model for our use case
+   * Prioritizes newer models while ensuring they support generateContent
+   * @returns The model name to use
+   */
+  public async getBestAvailableModel(): Promise<string> {
+    const modelsList = await this.listAvailableModels();
+    
+    if (!modelsList.success || !modelsList.models) {
+      console.warn('Could not fetch models list, falling back to gemini-1.5-flash');
+      return 'gemini-1.5-flash';
+    }
+
+    // Priority order for models (newest/best first)
+    const preferredModels = [
+      'models/gemini-2.5-flash-preview-05-20',
+      'models/gemini-2.0-flash-exp',
+      'models/gemini-2.0-flash',
+      'models/gemini-1.5-pro',
+      'models/gemini-1.5-flash',
+    ];
+
+    // Find the first available model from our preferred list
+    for (const preferredModel of preferredModels) {
+      const foundModel = modelsList.models.find((model: any) => 
+        model.name === preferredModel && 
+        model.supportedGenerationMethods?.includes('generateContent')
+      );
+      
+      if (foundModel) {
+        console.log(`Selected model: ${foundModel.name} (${foundModel.displayName})`);
+        return foundModel.name;
+      }
+    }
+
+    // If none of our preferred models are available, use the first available one that supports generateContent
+    const fallbackModel = modelsList.models.find((model: any) => 
+      model.supportedGenerationMethods?.includes('generateContent')
+    );
+
+    if (fallbackModel) {
+      console.log(`Using fallback model: ${fallbackModel.name} (${fallbackModel.displayName})`);
+      return fallbackModel.name;
+    }
+
+    // Last resort
+    console.warn('No suitable models found, falling back to gemini-1.5-flash');
+    return 'gemini-1.5-flash';
+  }
+
+  /**
+   * Test function to list and display available models
+   * Call this to see what models are available in your API
+   */
+  public async testAvailableModels(): Promise<void> {
+    console.log('=== Testing Available Gemini Models ===');
+    
+    const result = await this.listAvailableModels();
+    
+    if (result.success && result.models) {
+      console.log(`Found ${result.models.length} available models:`);
+      console.log('');
+      
+      result.models.forEach((model: any) => {
+        console.log(`📋 ${model.name}`);
+        console.log(`   Display Name: ${model.displayName}`);
+        console.log(`   Description: ${model.description || 'No description'}`);
+        console.log(`   Input Token Limit: ${model.inputTokenLimit || 'Unknown'}`);
+        console.log(`   Output Token Limit: ${model.outputTokenLimit || 'Unknown'}`);
+        console.log(`   Supported Methods: ${model.supportedGenerationMethods?.join(', ') || 'None'}`);
+        console.log('');
+      });
+      
+      // Test the best model selection
+      const bestModel = await this.getBestAvailableModel();
+      console.log(`🎯 Best selected model: ${bestModel}`);
+      
+    } else {
+      console.error('❌ Failed to fetch models:', result.error);
+    }
+    
+    console.log('=== End Test ===');
   }
 }
 
