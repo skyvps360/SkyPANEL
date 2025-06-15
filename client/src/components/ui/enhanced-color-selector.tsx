@@ -50,6 +50,30 @@ interface EnhancedColorSelectorProps {
 // Predefined color themes
 const COLOR_THEMES: ColorTheme[] = [
   {
+    name: 'Corporate Elegance',
+    description: 'Deep blues with sophisticated grays for professional branding',
+    primary: '2C3E50',
+    secondary: '34495E',
+    accent: '3498DB',
+    category: 'professional'
+  },
+  {
+    name: 'Strategic Vision',
+    description: 'Bold blues with green and amber accents for dynamic brands',
+    primary: '2980B9',
+    secondary: '85C1AE',
+    accent: 'F7DC6F',
+    category: 'professional'
+  },
+  {
+    name: 'Contemporary Focus',
+    description: 'Modern tech startup palette with balanced contrast',
+    primary: '34495E',
+    secondary: '5DADE2',
+    accent: 'E74C3C',
+    category: 'professional'
+  },
+  {
     name: 'Professional Blue',
     description: 'Classic business colors with blue primary',
     primary: '2563eb',
@@ -58,15 +82,23 @@ const COLOR_THEMES: ColorTheme[] = [
     category: 'professional'
   },
   {
-    name: 'Modern Purple',
-    description: 'Contemporary purple-based theme',
+    name: 'Financial Trust',
+    description: 'Trustworthy deep blues with emerald accents',
+    primary: '1e3a8a',
+    secondary: '059669',
+    accent: 'd97706',
+    category: 'professional'
+  },
+  {
+    name: 'Tech Innovation',
+    description: 'Modern purple with cyan and orange highlights',
     primary: '7c3aed',
     secondary: '06b6d4',
-    accent: 'ec4899',
+    accent: 'f97316',
     category: 'vibrant'
   },
   {
-    name: 'Nature Green',
+    name: 'Nature Harmony',
     description: 'Earthy green tones inspired by nature',
     primary: '059669',
     secondary: '0d9488',
@@ -74,28 +106,158 @@ const COLOR_THEMES: ColorTheme[] = [
     category: 'nature'
   },
   {
-    name: 'Sunset Orange',
-    description: 'Warm orange and red tones',
+    name: 'Sunset Warmth',
+    description: 'Warm orange and red tones for energetic brands',
     primary: 'ea580c',
     secondary: 'dc2626',
     accent: 'fbbf24',
     category: 'warm'
   },
   {
-    name: 'Ocean Blue',
-    description: 'Cool blue and teal combination',
+    name: 'Ocean Depth',
+    description: 'Cool blue and teal combination for calm professionalism',
     primary: '0284c7',
     secondary: '0891b2',
     accent: '06b6d4',
     category: 'cool'
   },
   {
-    name: 'Royal Purple',
-    description: 'Elegant purple with gold accents',
+    name: 'Royal Luxury',
+    description: 'Elegant purple with gold accents for premium brands',
     primary: '9333ea',
     secondary: '7c3aed',
     accent: 'd97706',
     category: 'vibrant'
+  },
+  {
+    name: 'Enterprise Growth',
+    description: 'Professional green with blue and amber support',
+    primary: '16a34a',
+    secondary: '2563eb',
+    accent: 'f59e0b',
+    category: 'professional'
+  },  {
+    name: 'Creative Energy',
+    description: 'Vibrant magenta with purple and orange accents',
+    primary: 'c026d3',
+    secondary: '9333ea',
+    accent: 'f97316',
+    category: 'vibrant'
+  },
+  // Additional Vibrant Themes
+  {
+    name: 'Electric Fusion',
+    description: 'High-energy cyan and lime with hot pink accents',
+    primary: '06b6d4',
+    secondary: '84cc16',
+    accent: 'ec4899',
+    category: 'vibrant'
+  },
+  {
+    name: 'Neon Dreams',
+    description: 'Electric blue with neon green and bright yellow',
+    primary: '0ea5e9',
+    secondary: '22c55e',
+    accent: 'eab308',
+    category: 'vibrant'
+  },
+  {
+    name: 'Pop Culture',
+    description: 'Hot pink with electric purple and lime highlights',
+    primary: 'ec4899',
+    secondary: 'a855f7',
+    accent: '84cc16',
+    category: 'vibrant'
+  },
+  {
+    name: 'Digital Glow',
+    description: 'Bright blue with electric orange and neon purple',
+    primary: '3b82f6',
+    secondary: 'f97316',
+    accent: 'a855f7',
+    category: 'vibrant'
+  },
+  // Additional Nature Themes
+  {
+    name: 'Forest Deep',
+    description: 'Deep forest greens with moss and earth tones',
+    primary: '166534',
+    secondary: '65a30d',
+    accent: 'a3a3a3',
+    category: 'nature'
+  },
+  {
+    name: 'Mountain Ridge',
+    description: 'Sage green with stone gray and warm brown',
+    primary: '84cc16',
+    secondary: '6b7280',
+    accent: 'a3a3a3',
+    category: 'nature'
+  },
+  {
+    name: 'Garden Fresh',
+    description: 'Fresh spring green with lavender and peach',
+    primary: '22c55e',
+    secondary: 'a855f7',
+    accent: 'fb923c',
+    category: 'nature'
+  },
+  {
+    name: 'Earth Elements',
+    description: 'Terra cotta with sage green and warm beige',
+    primary: 'dc2626',
+    secondary: '65a30d',
+    accent: 'f59e0b',
+    category: 'nature'
+  },
+  {
+    name: 'Ocean Breeze',
+    description: 'Sea blue with seafoam green and sandy beige',
+    primary: '0284c7',
+    secondary: '10b981',
+    accent: 'fbbf24',
+    category: 'nature'
+  },
+  // Additional Warm Themes
+  {
+    name: 'Autumn Glow',
+    description: 'Burnt orange with warm red and golden yellow',
+    primary: 'ea580c',
+    secondary: 'dc2626',
+    accent: 'f59e0b',
+    category: 'warm'
+  },
+  {
+    name: 'Desert Sand',
+    description: 'Warm beige with rust and amber tones',
+    primary: 'd97706',
+    secondary: 'dc2626',
+    accent: 'fbbf24',
+    category: 'warm'
+  },
+  {
+    name: 'Cozy Hearth',
+    description: 'Warm brick with cream and golden accents',
+    primary: 'dc2626',
+    secondary: 'f59e0b',
+    accent: 'fbbf24',
+    category: 'warm'
+  },
+  {
+    name: 'Spice Market',
+    description: 'Cinnamon and paprika with saffron highlights',
+    primary: 'ea580c',
+    secondary: 'dc2626',
+    accent: 'f59e0b',
+    category: 'warm'
+  },
+  {
+    name: 'Sunset Coral',
+    description: 'Coral pink with warm orange and peach',
+    primary: 'f97316',
+    secondary: 'fb923c',
+    accent: 'fbbf24',
+    category: 'warm'
   }
 ];
 
@@ -157,12 +319,16 @@ export function EnhancedColorSelector({
 }: EnhancedColorSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('picker');
-  const [localValue, setLocalValue] = useState(value);
+  const [localValue, setLocalValue] = useState(value || '');
 
   // Sync localValue with prop value when it changes
   useEffect(() => {
-    setLocalValue(value);
-  }, [value]);
+    // Ensure we always have a valid value, defaulting based on type
+    const defaultValue = type === 'primary' ? '2563eb' : 
+                        type === 'secondary' ? '10b981' : 
+                        'f59e0b';
+    setLocalValue(value || defaultValue);
+  }, [value, type]);
 
   // Handle color change with validation
   const handleColorChange = (newColor: string) => {
@@ -486,6 +652,168 @@ export function ColorPreview({ primaryColor, secondaryColor, accentColor }: Colo
             >
               Accent
             </Badge>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Dedicated theme selector component for applying complete color schemes
+ */
+interface ThemeSelectorProps {
+  currentTheme?: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
+  onThemeSelect: (theme: ColorTheme) => void;
+  disabled?: boolean;
+}
+
+export function ThemeSelector({ currentTheme, onThemeSelect, disabled = false }: ThemeSelectorProps) {
+  const [selectedCategory, setSelectedCategory] = useState<string>('professional');
+  
+  // Get unique categories
+  const categories = Array.from(new Set(COLOR_THEMES.map(theme => theme.category)));
+  
+  // Filter themes by category
+  const filteredThemes = COLOR_THEMES.filter(theme => theme.category === selectedCategory);
+  
+  // Check if a theme matches the current colors
+  const isThemeActive = (theme: ColorTheme) => {
+    if (!currentTheme) return false;
+    return theme.primary.toLowerCase() === currentTheme.primary.toLowerCase() &&
+           theme.secondary.toLowerCase() === currentTheme.secondary.toLowerCase() &&
+           theme.accent.toLowerCase() === currentTheme.accent.toLowerCase();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Sparkles className="w-5 h-5" />
+          Brand Theme Selector
+        </CardTitle>
+        <CardDescription>
+          Choose a complete color scheme to apply all brand colors at once
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Category Filter */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Theme Category</Label>
+          <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="professional">Professional</TabsTrigger>
+              <TabsTrigger value="vibrant">Vibrant</TabsTrigger>
+              <TabsTrigger value="nature">Nature</TabsTrigger>
+              <TabsTrigger value="warm">Warm</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* Current Theme Display */}
+        {currentTheme && (
+          <div className="p-4 rounded-lg border bg-muted/30">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium">Current Theme</h4>
+              <div className="flex space-x-1">
+                <div 
+                  className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                  style={{ backgroundColor: `#${currentTheme.primary}` }}
+                  title="Primary"
+                />
+                <div 
+                  className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                  style={{ backgroundColor: `#${currentTheme.secondary}` }}
+                  title="Secondary"
+                />
+                <div 
+                  className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                  style={{ backgroundColor: `#${currentTheme.accent}` }}
+                  title="Accent"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="text-center">
+                <p className="font-medium">Primary</p>
+                <p className="text-muted-foreground font-mono">#{currentTheme.primary}</p>
+              </div>
+              <div className="text-center">
+                <p className="font-medium">Secondary</p>
+                <p className="text-muted-foreground font-mono">#{currentTheme.secondary}</p>
+              </div>
+              <div className="text-center">
+                <p className="font-medium">Accent</p>
+                <p className="text-muted-foreground font-mono">#{currentTheme.accent}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Theme Options */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium">Available Themes</Label>
+            <Badge variant="secondary" className="text-xs">
+              {filteredThemes.length} themes
+            </Badge>
+          </div>
+          
+          <div className="grid gap-3 max-h-96 overflow-y-auto">
+            {filteredThemes.map((theme) => {
+              const isActive = isThemeActive(theme);
+              return (
+                <Card 
+                  key={theme.name} 
+                  className={`cursor-pointer transition-all hover:shadow-md ${
+                    isActive ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-accent/30'
+                  } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => !disabled && onThemeSelect(theme)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium text-sm">{theme.name}</h4>
+                          {isActive && (
+                            <Badge variant="default" className="text-xs">
+                              Active
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {theme.category}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {theme.description}
+                        </p>
+                      </div>
+                      <div className="flex space-x-1 ml-3">
+                        <div 
+                          className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
+                          style={{ backgroundColor: `#${theme.primary}` }}
+                          title="Primary"
+                        />
+                        <div 
+                          className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
+                          style={{ backgroundColor: `#${theme.secondary}` }}
+                          title="Secondary"
+                        />
+                        <div 
+                          className="w-6 h-6 rounded-full border-2 border-white shadow-sm"
+                          style={{ backgroundColor: `#${theme.accent}` }}
+                          title="Accent"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </CardContent>

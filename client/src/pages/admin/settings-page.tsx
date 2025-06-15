@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
-import { EnhancedColorSelector, ColorPreview } from "@/components/ui/enhanced-color-selector";
+import { EnhancedColorSelector, ColorPreview, ThemeSelector } from "@/components/ui/enhanced-color-selector";
 import { getBrandColors } from "@/lib/brand-theme";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -2653,9 +2653,31 @@ export default function SettingsPage() {
                             Customize your platform's visual identity with these brand colors. Changes will be applied across the entire interface.
                           </p>
                           
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Theme Selector */}
+                          <ThemeSelector
+                            currentTheme={{
+                              primary: generalForm.watch("primaryColor") || "2563eb",
+                              secondary: generalForm.watch("secondaryColor") || "10b981",
+                              accent: generalForm.watch("accentColor") || "f59e0b"
+                            }}
+                            onThemeSelect={(theme) => {
+                              // Apply all three colors at once
+                              generalForm.setValue("primaryColor", theme.primary, { shouldDirty: true });
+                              generalForm.setValue("secondaryColor", theme.secondary, { shouldDirty: true });
+                              generalForm.setValue("accentColor", theme.accent, { shouldDirty: true });
+                            }}
+                            disabled={saveInProgress}
+                          />
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Color Selectors */}
                             <div className="space-y-6">
+                              <div className="space-y-2">
+                                <h5 className="text-sm font-medium">Manual Color Adjustment</h5>
+                                <p className="text-xs text-muted-foreground">
+                                  Fine-tune individual colors or create custom combinations
+                                </p>
+                              </div>
+                              
                               <EnhancedColorSelector
                                 label="Primary Color"
                                 value={generalForm.watch("primaryColor")}
