@@ -6,6 +6,7 @@
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:restart": "npm run build && pm2 delete all && pm2 start pm2.config.cjs",
+    "build:start": "npm run build && pm2 start pm2.config.cjs",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "start:pm2:linux": "pm2 start pm2.config.cjs",
     "start:pm2:windows": "pm2 start dist/index.js --name skypanel --node-args \"\" --max-memory-restart 2G",
