@@ -610,6 +610,9 @@ npm run dev
 # Build for production
 npm run build
 
+# Build and restart with PM2 (includes full rebuild, PM2 cleanup, and restart)
+npm run build:restart
+
 # Start production server
 npm start
 ```
