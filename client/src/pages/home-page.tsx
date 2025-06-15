@@ -317,53 +317,6 @@ export default function HomePage() {
                       </td>
                     </tr>
 
-
-
-                    {/* DNS Domains Row */}
-                    <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{ backgroundColor: `var(--brand-accent, ${brandColors.accent.full})` }}
-                          >
-                            <Globe className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">DNS Domains</p>
-                            <p className="text-sm text-gray-500">Manage DNS records</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-right">
-                          <p className="text-lg font-semibold text-gray-900">{stats.dnsDomains}</p>
-                          <p className="text-xs text-gray-500">
-                            {stats.dnsDomains === 1 ? 'domain' : 'domains'} configured
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></div>
-                          <span className="text-sm text-gray-600">Active</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex justify-center">
-                          <Link href="/dns">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                            >
-                              Manage
-                            </Button>
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-
                     {/* Support Tickets Row */}
                     <tr className="hover:bg-gray-50 transition-colors duration-200">
                       <td className="py-4 px-6">
