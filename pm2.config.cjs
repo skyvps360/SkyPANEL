@@ -37,7 +37,7 @@ module.exports = {
       
       // Instance restart behavior
       min_uptime: "120s",          // Minimum uptime to consider app as running successfully
-      max_restarts: 10,           // Maximum number of restarts if app crashes
+      // max_restarts: 10,           // Maximum number of restarts if app crashes
       restart_delay: 4000,        // Delay between automatic restarts (ms)
       
       // Increase log capabilities
