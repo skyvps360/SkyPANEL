@@ -160,14 +160,15 @@ export default function AdminPage() {
       color: "bg-green-50 dark:bg-green-950",
       accentColor: "text-green-600 dark:text-green-400"
     },
-    {
-      title: "DNS Management",
-      icon: Globe,
-      href: "/admin/dns",
-      description: "Manage DNS plans and domain configurations",
-      color: "bg-cyan-50 dark:bg-cyan-950",
-      accentColor: "text-cyan-600 dark:text-cyan-400"
-    },
+    // TEMPORARILY HIDDEN - DNS Management section
+    // {
+    //   title: "DNS Management",
+    //   icon: Globe,
+    //   href: "/admin/dns",
+    //   description: "Manage DNS plans and domain configurations",
+    //   color: "bg-cyan-50 dark:bg-cyan-950",
+    //   accentColor: "text-cyan-600 dark:text-cyan-400"
+    // },
     {
       title: "Email Logs",
       icon: Mail,
