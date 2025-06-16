@@ -367,24 +367,24 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: "Billing & Payments",
       href: "/billing",
       icon: <CreditCard className="h-5 w-5 mr-3" />,
-    },
-    {
+    },    {
       name: `${companyName}'s Blog`,
       href: "/dashboard/blog",
       icon: <FileText className="h-5 w-5 mr-3" />,
     },
-    {
-      name: "DNS Management",
-      href: "/dns",
-      icon: <Globe className="h-5 w-5 mr-3" />,
-      children: [
-        {
-          name: "DNS Plans",
-          href: "/dns-plans",
-          icon: <CreditCard className="h-4 w-4 mr-3" />,
-        },
-      ],
-    },
+    // DNS Management - TEMPORARILY HIDDEN
+    // {
+    //   name: "DNS Management",
+    //   href: "/dns",
+    //   icon: <Globe className="h-5 w-5 mr-3" />,
+    //   children: [
+    //     {
+    //       name: "DNS Plans",
+    //       href: "/dns-plans",
+    //       icon: <CreditCard className="h-4 w-4 mr-3" />,
+    //     },
+    //   ],
+    // },
    // {
    //   name: "API Documentation",
    //   href: "/api-docs",
