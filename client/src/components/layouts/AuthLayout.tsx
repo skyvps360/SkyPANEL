@@ -85,7 +85,12 @@ export function AuthLayout({
                   style={{ backgroundColor: brandColors?.primary.full || '#2563eb' }}>
                   {branding.company_name?.charAt(0) || "V"}
                 </div>
-                <span className="text-2xl font-bold text-secondary">{branding.company_name}</span>
+                <span
+                  className="text-2xl font-bold"
+                  style={{ color: brandColors?.primary.full || '#2563eb' }}
+                >
+                  {branding.company_name}
+                </span>
               </Link>
             </div>
           </div>
