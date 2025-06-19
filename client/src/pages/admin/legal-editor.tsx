@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
 import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/layout/AdminLayout";
+import Editor from "@monaco-editor/react";
+import ReactMarkdown from "react-markdown";
 import {
   Card,
   CardContent,
@@ -20,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -36,6 +37,27 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { apiRequest } from "@/lib/queryClient";
+import { 
+  Eye, 
+  EyeOff, 
+  Save, 
+  Loader2,
+  Link as LinkIcon,
+  Image as ImageIcon,
+  Type as TypeIcon,
+  List,
+  ListOrdered,
+  Bold,
+  Italic,
+  Code,
+  FileCode,
+  Table,
+  Quote,
+  Heading1,
+  Heading2,
+  Heading3,
+  FileText
+} from "lucide-react";
 
 // Define the form schema with zod
 const legalContentSchema = z.object({
@@ -62,7 +84,12 @@ export function LegalEditorPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("tos");
-  const [previewContent, setPreviewContent] = useState<string>("");
+  const [editorContent, setEditorContent] = useState<string>("");
+  const [editorViewMode, setEditorViewMode] = useState<"write" | "preview">("write");
+  const [editorTheme, setEditorTheme] = useState<string>(
+    document.documentElement.classList.contains('dark') ? 'vs-dark' : 'light'
+  );
+  const editorRef = useRef<any>(null);
   
   // Fetch all legal content from the server
   const { data: legalContent, isLoading, error } = useQuery<LegalContent[]>({
@@ -105,7 +132,7 @@ export function LegalEditorPage() {
           content: contentForType.content,
           version: contentForType.version,
         });
-        setPreviewContent(contentForType.content);
+        setEditorContent(contentForType.content);
       } else {
         // Default values for a new legal content item
         form.reset({
@@ -114,16 +141,55 @@ export function LegalEditorPage() {
           content: "",
           version: "1.0",
         });
-        setPreviewContent("");
+        setEditorContent("");
       }
     }
   }, [activeTab, legalContent, form]);
 
-  // Handle preview update
-  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setPreviewContent(e.target.value);
-    form.setValue("content", e.target.value);
+  // Function to handle editor mounting
+  const handleEditorDidMount = (editor: any) => {
+    editorRef.current = editor;
   };
+
+  // Function to insert text at cursor position
+  const insertTextAtCursor = (textToInsert: string) => {
+    if (editorRef.current) {
+      const editor = editorRef.current;
+      const selection = editor.getSelection();
+      const id = { major: 1, minor: 1 };      
+      const op = { identifier: id, range: selection, text: textToInsert, forceMoveMarkers: true };
+      editor.executeEdits("my-source", [op]);
+      
+      // Update the form with the new editor value
+      const updatedContent = editor.getValue();
+      setEditorContent(updatedContent);
+      form.setValue("content", updatedContent, { shouldValidate: true });
+      
+      editor.focus();
+    } else {
+      // Fallback if editor ref isn't available
+      setEditorContent((prev) => prev + textToInsert);
+      form.setValue("content", editorContent + textToInsert, { shouldValidate: true });
+    }
+  };
+  
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          const isDarkMode = document.documentElement.classList.contains('dark');
+          setEditorTheme(isDarkMode ? 'vs-dark' : 'light');
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   // Save legal content mutation
   const saveMutation = useMutation({
@@ -154,6 +220,13 @@ export function LegalEditorPage() {
   // Handle form submission
   const onSubmit = (values: z.infer<typeof legalContentSchema>) => {
     saveMutation.mutate(values);
+  };
+
+  // Handle editor content change
+  const handleEditorChange = (value: string | undefined) => {
+    const content = value || "";
+    setEditorContent(content);
+    form.setValue("content", content, { shouldValidate: true });
   };
 
   return (
@@ -225,56 +298,296 @@ export function LegalEditorPage() {
                       )}
                     />
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <FormField
-                          control={form.control}
-                          name="content"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Content (HTML)</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="Enter HTML content"
-                                  className="font-mono h-[500px]"
-                                  value={field.value}
-                                  onChange={(e) => {
-                                    field.onChange(e);
-                                    handleContentChange(e);
-                                  }}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                You can use HTML tags for formatting. Use {"{company_name}"} as a placeholder for the company name.
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="preview">Preview</Label>
-                        <div
-                          id="preview"
-                          className="border rounded-md p-4 mt-2 h-[500px] overflow-auto bg-white"
-                        >
-                          <div
-                            dangerouslySetInnerHTML={{
-                              __html: previewContent.replace(/\{company_name\}/g, "Company Name"),
-                            }}
-                          />
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <Label>Content (HTML)</Label>
+                        <div className="flex items-center">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditorViewMode(editorViewMode === "write" ? "preview" : "write")}
+                            className="mr-2 flex items-center gap-1"
+                          >
+                            {editorViewMode === "write" ? (
+                              <>
+                                <Eye className="h-4 w-4" />
+                                <span>Preview</span>
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="h-4 w-4" />
+                                <span>Edit</span>
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </div>
+
+                      <div className="border rounded-md">
+                        {editorViewMode === "write" ? (
+                          <div>
+                            <div className="flex flex-wrap gap-1 py-2 border-b px-2 bg-gray-50 dark:bg-gray-800">
+                              <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="h-8 w-8 p-0" 
+                                  onClick={() => insertTextAtCursor("<h1></h1>")}
+                                  title="Heading 1"
+                                >
+                                  <Heading1 className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => insertTextAtCursor("<h2></h2>")}
+                                  title="Heading 2"
+                                >
+                                  <Heading2 className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => insertTextAtCursor("<h3></h3>")}
+                                  title="Heading 3"
+                                >
+                                  <Heading3 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              
+                              <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => insertTextAtCursor("<strong>Bold text</strong>")}
+                                  title="Bold"
+                                >
+                                  <Bold className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => insertTextAtCursor("<em>Italic text</em>")}
+                                  title="Italic"
+                                >
+                                  <Italic className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => insertTextAtCursor("<blockquote></blockquote>")}
+                                  title="Blockquote"
+                                >
+                                  <Quote className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              
+                              <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => insertTextAtCursor("<ul>\n  <li>Item 1</li>\n  <li>Item 2</li>\n</ul>")}
+                                  title="Unordered List"
+                                >
+                                  <List className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => insertTextAtCursor("<ol>\n  <li>Item 1</li>\n  <li>Item 2</li>\n</ol>")}
+                                  title="Ordered List"
+                                >
+                                  <ListOrdered className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              
+                              <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8"
+                                  onClick={() => insertTextAtCursor("<a href=\"https://example.com\">Link text</a>")}
+                                  title="Link"
+                                >
+                                  <LinkIcon className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8"
+                                  onClick={() => insertTextAtCursor("<img src=\"image.jpg\" alt=\"Image description\" />")}
+                                  title="Image"
+                                >
+                                  <ImageIcon className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8"
+                                  onClick={() => insertTextAtCursor("<code>inline code</code>")}
+                                  title="Inline Code"
+                                >
+                                  <Code className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8"
+                                  onClick={() => insertTextAtCursor("<pre><code>\nCode block\n</code></pre>")}
+                                  title="Code Block"
+                                >
+                                  <FileCode className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8"
+                                  onClick={() => insertTextAtCursor("<hr />")}
+                                  title="Horizontal Rule"
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  type="button" 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8"
+                                  onClick={() => insertTextAtCursor("<table>\n  <tr>\n    <th>Header 1</th>\n    <th>Header 2</th>\n  </tr>\n  <tr>\n    <td>Cell 1</td>\n    <td>Cell 2</td>\n  </tr>\n</table>")}
+                                  title="Table"
+                                >
+                                  <Table className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <FormField
+                              control={form.control}
+                              name="content"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <Editor
+                                      height="500px"
+                                      language="html"
+                                      value={editorContent}
+                                      onChange={handleEditorChange}
+                                      theme={editorTheme}
+                                      onMount={handleEditorDidMount}
+                                      options={{
+                                        minimap: { enabled: false },
+                                        wordWrap: "on",
+                                        fontSize: 14,
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        ) : (
+                          <div className="bg-white dark:bg-gray-900 p-4 h-[500px] overflow-auto">
+                            <div className="prose dark:prose-invert max-w-none"
+                                 dangerouslySetInnerHTML={{ __html: editorContent }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <FormDescription>
+                        You can use HTML tags for formatting. Use {"{company_name}"} as a placeholder for the company name.
+                      </FormDescription>
+                      
+                      <details className="mt-2 text-xs text-gray-500">
+                        <summary className="cursor-pointer font-medium hover:text-gray-700 dark:hover:text-gray-300">
+                          HTML Formatting Cheatsheet
+                        </summary>
+                        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
+                          <table className="w-full text-left">
+                            <thead>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <th className="pb-2 pr-4 font-medium">Element</th>
+                                <th className="pb-2 font-medium">HTML Syntax</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <td className="py-2 pr-4">Heading</td>
+                                <td className="py-2 font-mono">&lt;h1&gt;Heading 1&lt;/h1&gt;<br />&lt;h2&gt;Heading 2&lt;/h2&gt;<br />&lt;h3&gt;Heading 3&lt;/h3&gt;</td>
+                              </tr>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <td className="py-2 pr-4">Bold</td>
+                                <td className="py-2 font-mono">&lt;strong&gt;bold text&lt;/strong&gt;</td>
+                              </tr>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <td className="py-2 pr-4">Italic</td>
+                                <td className="py-2 font-mono">&lt;em&gt;italicized text&lt;/em&gt;</td>
+                              </tr>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <td className="py-2 pr-4">Paragraph</td>
+                                <td className="py-2 font-mono">&lt;p&gt;paragraph text&lt;/p&gt;</td>
+                              </tr>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <td className="py-2 pr-4">Link</td>
+                                <td className="py-2 font-mono">&lt;a href="url"&gt;link text&lt;/a&gt;</td>
+                              </tr>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <td className="py-2 pr-4">Unordered List</td>
+                                <td className="py-2 font-mono">&lt;ul&gt;<br />&nbsp;&lt;li&gt;Item 1&lt;/li&gt;<br />&nbsp;&lt;li&gt;Item 2&lt;/li&gt;<br />&lt;/ul&gt;</td>
+                              </tr>
+                              <tr className="border-b border-gray-200 dark:border-gray-700">
+                                <td className="py-2 pr-4">Ordered List</td>
+                                <td className="py-2 font-mono">&lt;ol&gt;<br />&nbsp;&lt;li&gt;Item 1&lt;/li&gt;<br />&nbsp;&lt;li&gt;Item 2&lt;/li&gt;<br />&lt;/ol&gt;</td>
+                              </tr>
+                              <tr>
+                                <td className="py-2 pr-4">Image</td>
+                                <td className="py-2 font-mono">&lt;img src="image.jpg" alt="description" /&gt;</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end pt-4">
                       <Button
                         type="submit"
+                        className="flex items-center gap-2"
                         disabled={saveMutation.isPending}
-                        className="w-32"
                       >
-                        {saveMutation.isPending ? "Saving..." : "Save"}
+                        {saveMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4" />
+                            <span>Save Changes</span>
+                          </>
+                        )}
                       </Button>
                     </div>
                   </form>
