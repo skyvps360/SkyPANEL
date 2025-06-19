@@ -1,8 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Editor from "@monaco-editor/react";
+import ReactMarkdown from "react-markdown";
+import "@/styles/markdown.css";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -113,6 +116,57 @@ export default function DocsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [docToDelete, setDocToDelete] = useState<Doc | null>(null);
   const [activeTab, setActiveTab] = useState<string>("documents");
+  const [editorContent, setEditorContent] = useState<string>("");
+  const [editorTheme, setEditorTheme] = useState<string>(
+    document.documentElement.classList.contains('dark') ? 'vs-dark' : 'light'
+  );
+  const [editorTab, setEditorTab] = useState<string>("write");
+  const editorRef = useRef<any>(null);
+  
+  // Function to handle editor mounting
+  const handleEditorDidMount = (editor: any) => {
+    editorRef.current = editor;
+  };
+  
+  // Function to insert text at cursor position
+  const insertTextAtCursor = (textToInsert: string) => {
+    if (editorRef.current) {
+      const editor = editorRef.current;
+      const selection = editor.getSelection();
+      const id = { major: 1, minor: 1 };      
+      const op = { identifier: id, range: selection, text: textToInsert, forceMoveMarkers: true };
+      editor.executeEdits("my-source", [op]);
+      
+      // Update the form with the new editor value
+      const updatedContent = editor.getValue();
+      setEditorContent(updatedContent);
+      form.setValue("content", updatedContent, { shouldValidate: true });
+      
+      editor.focus();
+    } else {
+      // Fallback if editor ref isn't available
+      setEditorContent((prev) => prev + textToInsert);
+      form.setValue("content", editorContent + textToInsert, { shouldValidate: true });
+    }
+  };
+  
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          const isDarkMode = document.documentElement.classList.contains('dark');
+          setEditorTheme(isDarkMode ? 'vs-dark' : 'light');
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
   
   // Category state
   const [selectedCategory, setSelectedCategory] = useState<DocCategory | null>(null);
@@ -200,6 +254,9 @@ export default function DocsPage() {
         published: selectedDoc.published,
       });
       
+      // Set the editor content
+      setEditorContent(selectedDoc.content);
+      
       // Set the selected category ID for the dropdown
       setSelectedCategoryId(selectedDoc.categoryId ? String(selectedDoc.categoryId) : "null");
       console.log("Setting selectedCategoryId for edit:", selectedDoc.categoryId ? String(selectedDoc.categoryId) : "null");
@@ -212,6 +269,9 @@ export default function DocsPage() {
         displayOrder: 0,
         published: false,
       });
+      
+      // Reset the editor content
+      setEditorContent("");
       
       // Reset the selected category ID
       setSelectedCategoryId("null");
@@ -977,39 +1037,326 @@ export default function DocsPage() {
                   backgroundColor: `#${brandColors.primary?.extraLight}`,
                   border: '1px solid'
                 }}>
-                <h3 className="text-sm font-semibold mb-2 flex items-center"
-                    style={{ color: `#${brandColors.primary?.hex}` }}>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  Document Content <span className="text-red-500 ml-0.5">*</span>
-                </h3>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-semibold flex items-center"
+                      style={{ color: `#${brandColors.primary?.hex}` }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Document Content <span className="text-red-500 ml-0.5">*</span>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-gray-500">
+                      {editorTab === "write" ? "Edit mode" : "Preview mode"}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setEditorTab(editorTab === "write" ? "preview" : "write")}
+                      title={editorTab === "write" ? "Switch to preview" : "Switch to edit"}
+                    >
+                      {editorTab === "write" ? "Show Preview" : "Edit Content"}
+                    </Button>
+                  </div>
+                </div>
                 <div className="space-y-1.5">
-                  <Textarea
-                    id="content"
-                    {...form.register("content")}
-                    rows={8}
-                    placeholder="Enter documentation content (supports Markdown formatting)"
-                    className="min-h-[180px] w-full border-gray-200 dark:border-gray-700 focus:ring-blue-500 font-mono text-sm"
-                  />
+                  <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={editorTab === "write" ? "default" : "outline"}
+                        size="sm"
+                        className={`h-8 text-xs ${editorTab === "write" ? "text-white" : ""}`}
+                        onClick={() => setEditorTab("write")}
+                        style={editorTab === "write" ? {
+                          backgroundColor: `#${brandColors.primary?.hex}`,
+                          borderColor: `#${brandColors.primary?.hex}`
+                        } : {}}
+                      >
+                        Write
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={editorTab === "preview" ? "default" : "outline"}
+                        size="sm"
+                        className={`h-8 text-xs ${editorTab === "preview" ? "text-white" : ""}`}
+                        onClick={() => setEditorTab("preview")}
+                        style={editorTab === "preview" ? {
+                          backgroundColor: `#${brandColors.primary?.hex}`,
+                          borderColor: `#${brandColors.primary?.hex}`
+                        } : {}}
+                      >
+                        Preview
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {editorTab === "write" && (
+                    <>
+                      <div className="flex flex-wrap gap-1 py-2 border-x border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 text-xs" 
+                          onClick={() => {
+                            const insertText = "# Heading";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Heading 1"
+                        >
+                          H1
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            const insertText = "## Heading";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Heading 2"
+                        >
+                          H2
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs font-bold"
+                          onClick={() => {
+                            const insertText = "**Bold Text**";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Bold"
+                        >
+                          B
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs italic"
+                          onClick={() => {
+                            const insertText = "*Italic Text*";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Italic"
+                        >
+                          I
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            const insertText = "> Blockquote";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Blockquote"
+                        >
+                          Quote
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            const insertText = "[Link Text](https://example.com)";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Link"
+                        >
+                          Link
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            const insertText = "![Image Alt](image.jpg)";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Image"
+                        >
+                          Image
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            const insertText = "- List item\n- Another item";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Unordered List"
+                        >
+                          • List
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            const insertText = "1. Numbered item\n2. Second item";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Ordered List"
+                        >
+                          1. List
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            const insertText = "`inline code`";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Inline Code"
+                        >
+                          `Code`
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            const insertText = "```\nCode block\n```";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Code Block"
+                        >
+                          ```Code```
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            const insertText = "---";
+                            insertTextAtCursor(insertText);
+                          }}
+                          title="Horizontal Rule"
+                        >
+                          HR
+                        </Button>
+                      </div>
+                      <div className="border border-gray-200 dark:border-gray-700 rounded-b-md overflow-hidden">
+                        <Editor
+                          height="320px"
+                          defaultLanguage="markdown"
+                          value={editorContent}
+                          onChange={(value) => {
+                            setEditorContent(value || "");
+                            form.setValue("content", value || "", { shouldValidate: true });
+                          }}
+                          theme={editorTheme}
+                          options={{
+                            minimap: { enabled: false },
+                            lineNumbers: 'on',
+                            fontSize: 14,
+                            wordWrap: 'on',
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true
+                          }}
+                          onMount={handleEditorDidMount}
+                        />
+                      </div>
+                    </>
+                  )}
+                  
+                  {editorTab === "preview" && (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-b-md overflow-hidden p-4 min-h-[320px] max-h-[600px] overflow-y-auto bg-white dark:bg-gray-900">
+                      {editorContent ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none markdown-dark dark:markdown-light">
+                          <ReactMarkdown>
+                            {editorContent}
+                          </ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div className="text-gray-400 dark:text-gray-600 italic text-center mt-12">
+                          No content to preview
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {form.formState.errors.content && (
                     <p className="text-xs text-red-500 mt-1 flex items-center">
                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5"></span>
                       {form.formState.errors.content.message}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-2 text-xs text-gray-500 pt-1">
-                    <span className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-1">
-                      # Heading
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-1">
-                      **Bold**
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-1">
-                      *Italic*
-                    </span>
-                    <span className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-1">
-                      [Link](url)
-                    </span>
-                  </div>
+                  <details className="mt-2 text-xs text-gray-500">
+                    <summary className="cursor-pointer font-medium hover:text-gray-700 dark:hover:text-gray-300">
+                      Markdown Cheatsheet
+                    </summary>
+                    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="pb-2 pr-4 font-medium">Element</th>
+                            <th className="pb-2 font-medium">Markdown Syntax</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Heading</td>
+                            <td className="py-2 font-mono"># H1<br />## H2<br />### H3</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Bold</td>
+                            <td className="py-2 font-mono">**bold text**</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Italic</td>
+                            <td className="py-2 font-mono">*italicized text*</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Blockquote</td>
+                            <td className="py-2 font-mono">&gt; blockquote</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Ordered List</td>
+                            <td className="py-2 font-mono">1. First item<br />2. Second item</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Unordered List</td>
+                            <td className="py-2 font-mono">- First item<br />- Second item</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Code</td>
+                            <td className="py-2 font-mono">`code`</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Code Block</td>
+                            <td className="py-2 font-mono">```<br />code block<br />```</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Horizontal Rule</td>
+                            <td className="py-2 font-mono">---</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Link</td>
+                            <td className="py-2 font-mono">[title](https://www.example.com)</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 pr-4">Image</td>
+                            <td className="py-2 font-mono">![alt text](image.jpg)</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
                 </div>
               </div>
               
