@@ -1052,10 +1052,10 @@ export default function DocsPage() {
                 }}>
                 <div className="flex justify-between items-center mb-2">
                   <h3 className="text-sm font-semibold flex items-center"
-                      style={{ color: `#${brandColors.primary?.hex}` }}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Document Content <span className="text-red-500 ml-0.5">*</span>
-                  </h3>
+                    style={{ color: `#${brandColors.primary?.hex}` }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Document Content <span className="text-red-500 ml-0.5">*</span>
+                </h3>
                   <div className="flex items-center gap-2">
                     <div className="text-xs text-gray-500">
                       {editorTab === "write" ? "Edit mode" : "Preview mode"}
@@ -1107,162 +1107,176 @@ export default function DocsPage() {
                   {editorTab === "write" && (
                     <>
                       <div className="flex flex-wrap gap-1 py-2 border-x border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          className="h-8 text-xs" 
-                          onClick={() => {
-                            const insertText = "# Heading";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Heading 1"
-                        >
-                          H1
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            const insertText = "## Heading";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Heading 2"
-                        >
-                          H2
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs font-bold"
-                          onClick={() => {
-                            const insertText = "**Bold Text**";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Bold"
-                        >
-                          B
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs italic"
-                          onClick={() => {
-                            const insertText = "*Italic Text*";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Italic"
-                        >
-                          I
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            const insertText = "> Blockquote";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Blockquote"
-                        >
-                          Quote
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            const insertText = "[Link Text](https://example.com)";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Link"
-                        >
-                          Link
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            const insertText = "![Image Alt](image.jpg)";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Image"
-                        >
-                          Image
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            const insertText = "- List item\n- Another item";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Unordered List"
-                        >
-                          • List
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            const insertText = "1. Numbered item\n2. Second item";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Ordered List"
-                        >
-                          1. List
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            const insertText = "`inline code`";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Inline Code"
-                        >
-                          `Code`
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            const insertText = "```\nCode block\n```";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Code Block"
-                        >
-                          ```Code```
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-xs"
-                          onClick={() => {
-                            const insertText = "---";
-                            insertTextAtCursor(insertText);
-                          }}
-                          title="Horizontal Rule"
-                        >
-                          HR
-                        </Button>
+                        <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 w-8 p-0" 
+                            onClick={() => {
+                              const insertText = "# ";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Heading 1"
+                          >
+                            H1
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              const insertText = "## ";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Heading 2"
+                          >
+                            H2
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 font-bold"
+                            onClick={() => {
+                              const insertText = "**Bold Text**";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Bold"
+                          >
+                            B
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 italic"
+                            onClick={() => {
+                              const insertText = "*Italic Text*";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Italic"
+                          >
+                            I
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              const insertText = "> ";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Blockquote"
+                          >
+                            "
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              const insertText = "- ";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Unordered List"
+                          >
+                            •
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0"
+                            onClick={() => {
+                              const insertText = "1. ";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Ordered List"
+                          >
+                            1.
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8"
+                            onClick={() => {
+                              const insertText = "[Link Text](https://example.com)";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Link"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8"
+                            onClick={() => {
+                              const insertText = "![Image Alt](image.jpg)";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Image"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8"
+                            onClick={() => {
+                              const insertText = "`inline code`";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Inline Code"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8"
+                            onClick={() => {
+                              const insertText = "```\nCode block\n```";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Code Block"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8"
+                            onClick={() => {
+                              const insertText = "---";
+                              insertTextAtCursor(insertText);
+                            }}
+                            title="Horizontal Rule"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                          </Button>
+                        </div>
                       </div>
                       <div className="border border-gray-200 dark:border-gray-700 rounded-b-md overflow-hidden">
                         <Editor
@@ -1368,7 +1382,7 @@ export default function DocsPage() {
                           </tr>
                         </tbody>
                       </table>
-                    </div>
+                  </div>
                   </details>
                 </div>
               </div>
@@ -1518,79 +1532,79 @@ export default function DocsPage() {
               <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <h3 className="text-sm font-semibold flex items-center"
-                      style={{ color: `#${brandColors.secondary?.hex}` }}>
-                    <FolderTree className="h-4 w-4 mr-1.5" />
-                    Category Details
-                  </h3>
+                    style={{ color: `#${brandColors.secondary?.hex}` }}>
+                  <FolderTree className="h-4 w-4 mr-1.5" />
+                  Category Details
+                </h3>
                 </div>
                 
                 <div className="p-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium flex items-center">
-                        Category Name <span className="text-red-500 ml-0.5">*</span>
-                      </Label>
-                      <Input
-                        id="name"
-                        {...categoryForm.register("name")}
-                        placeholder="Enter category name"
-                        className="w-full border-gray-200 dark:border-gray-700 focus:ring-blue-500"
-                      />
-                      {categoryForm.formState.errors.name && (
-                        <p className="text-xs text-red-500 mt-1 flex items-center">
-                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5"></span>
-                          {categoryForm.formState.errors.name.message}
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-500 mt-1 flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                        Choose a clear, descriptive name for this category
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-medium flex items-center">
+                      Category Name <span className="text-red-500 ml-0.5">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      {...categoryForm.register("name")}
+                      placeholder="Enter category name"
+                      className="w-full border-gray-200 dark:border-gray-700 focus:ring-blue-500"
+                    />
+                    {categoryForm.formState.errors.name && (
+                      <p className="text-xs text-red-500 mt-1 flex items-center">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5"></span>
+                        {categoryForm.formState.errors.name.message}
                       </p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                      Choose a clear, descriptive name for this category
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="categorySlug" className="text-sm font-medium flex items-center">
+                        URL Slug <span className="text-red-500 ml-0.5">*</span>
+                      </Label>
+                      {!selectedCategory && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={generateCategorySlug}
+                          className="h-7 px-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800/20"
+                          style={{ color: `#${brandColors.secondary?.hex}` }}
+                        >
+                          <span className="mr-1">Auto-generate</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/><path d="M13 17l6-6"/><path d="M22 10V4h-6"/></svg>
+                        </Button>
+                      )}
                     </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <Label htmlFor="categorySlug" className="text-sm font-medium flex items-center">
-                          URL Slug <span className="text-red-500 ml-0.5">*</span>
-                        </Label>
-                        {!selectedCategory && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={generateCategorySlug}
-                            className="h-7 px-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800/20"
-                            style={{ color: `#${brandColors.secondary?.hex}` }}
-                          >
-                            <span className="mr-1">Auto-generate</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/><path d="M13 17l6-6"/><path d="M22 10V4h-6"/></svg>
-                          </Button>
-                        )}
-                      </div>
-                      <div className="relative">
-                        <Input
-                          id="categorySlug"
-                          {...categoryForm.register("slug")}
-                          placeholder="category-slug"
-                          readOnly={!!selectedCategory}
-                          className={`w-full border-gray-200 dark:border-gray-700 focus:ring-blue-500 pl-8 ${selectedCategory ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}
-                        />
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-600">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                        </span>
-                      </div>
-                      {categoryForm.formState.errors.slug && (
-                        <p className="text-xs text-red-500 mt-1 flex items-center">
-                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5"></span>
-                          {categoryForm.formState.errors.slug.message}
-                        </p>
-                      )}
-                      {!!selectedCategory && (
-                        <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 flex items-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                          The slug cannot be changed once created
-                        </p>
-                      )}
+                    <div className="relative">
+                      <Input
+                        id="categorySlug"
+                        {...categoryForm.register("slug")}
+                        placeholder="category-slug"
+                        readOnly={!!selectedCategory}
+                        className={`w-full border-gray-200 dark:border-gray-700 focus:ring-blue-500 pl-8 ${selectedCategory ? 'bg-gray-50 dark:bg-gray-800/50' : ''}`}
+                      />
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                      </span>
+                    </div>
+                    {categoryForm.formState.errors.slug && (
+                      <p className="text-xs text-red-500 mt-1 flex items-center">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5"></span>
+                        {categoryForm.formState.errors.slug.message}
+                      </p>
+                    )}
+                    {!!selectedCategory && (
+                      <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        The slug cannot be changed once created
+                      </p>
+                    )}
                     </div>
                   </div>
                 </div>
@@ -1633,20 +1647,20 @@ export default function DocsPage() {
                         onMount={handleCategoryEditorDidMount}
                       />
                     </div>
-                    {categoryForm.formState.errors.description && (
-                      <p className="text-xs text-red-500 mt-1 flex items-center">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5"></span>
-                        {categoryForm.formState.errors.description.message}
+                      {categoryForm.formState.errors.description && (
+                        <p className="text-xs text-red-500 mt-1 flex items-center">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5"></span>
+                          {categoryForm.formState.errors.description.message}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                        A short description helps users understand what content to expect
                       </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                      A short description helps users understand what content to expect
-                    </p>
                   </div>
                 </div>
-              </div>
-              
+                    </div>
+                    
               {/* Display Order */}
               <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
@@ -1658,24 +1672,24 @@ export default function DocsPage() {
                 </div>
                 
                 <div className="p-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="categoryDisplayOrder" className="text-sm font-medium">Display Order</Label>
-                    <Input
-                      id="categoryDisplayOrder"
-                      type="number"
-                      {...categoryForm.register("displayOrder", { valueAsNumber: true })}
-                      className="w-full max-w-[150px] border-gray-200 dark:border-gray-700 focus:ring-blue-500"
-                    />
-                    {categoryForm.formState.errors.displayOrder && (
-                      <p className="text-xs text-red-500 mt-1 flex items-center">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5"></span>
-                        {categoryForm.formState.errors.displayOrder.message}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1 flex items-center">
+                    <div className="space-y-2">
+                      <Label htmlFor="categoryDisplayOrder" className="text-sm font-medium">Display Order</Label>
+                      <Input
+                        id="categoryDisplayOrder"
+                        type="number"
+                        {...categoryForm.register("displayOrder", { valueAsNumber: true })}
+                        className="w-full max-w-[150px] border-gray-200 dark:border-gray-700 focus:ring-blue-500"
+                      />
+                      {categoryForm.formState.errors.displayOrder && (
+                        <p className="text-xs text-red-500 mt-1 flex items-center">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-500 mr-1.5"></span>
+                          {categoryForm.formState.errors.displayOrder.message}
+                        </p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1 flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                      Lower numbers appear first in navigation menus
-                    </p>
+                        Lower numbers appear first in navigation menus
+                      </p>
                   </div>
                 </div>
               </div>

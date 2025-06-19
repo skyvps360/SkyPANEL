@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Editor from "@monaco-editor/react";
+import ReactMarkdown from "react-markdown";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -126,6 +128,21 @@ export default function BlogPage() {
   const [isDeleteCategoryDialogOpen, setIsDeleteCategoryDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<BlogCategory | null>(null);
   
+  // Editor state
+  const [postContentEditorValue, setPostContentEditorValue] = useState<string>("");
+  const [postSnippetEditorValue, setPostSnippetEditorValue] = useState<string>("");
+  const [editorTheme, setEditorTheme] = useState<string>(
+    document.documentElement.classList.contains('dark') ? 'vs-dark' : 'light'
+  );
+  const [contentViewMode, setContentViewMode] = useState<"write" | "preview">("write");
+  const [snippetViewMode, setSnippetViewMode] = useState<"write" | "preview">("write");
+  const contentEditorRef = useRef<any>(null);
+  const snippetEditorRef = useRef<any>(null);
+  const categoryEditorRef = useRef<any>(null);
+  
+  // Category state
+  const [categoryDescriptionEditorValue, setCategoryDescriptionEditorValue] = useState<string>("");
+  
   // Forms
   const form = useForm<BlogPostFormData>({
     resolver: zodResolver(blogPostSchema),
@@ -183,6 +200,54 @@ export default function BlogPage() {
     }
     fetchBrandColors();
   }, [queryClient]);
+  
+  // Listen for theme changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          const isDarkMode = document.documentElement.classList.contains('dark');
+          setEditorTheme(isDarkMode ? 'vs-dark' : 'light');
+        }
+      });
+    });
+    
+    observer.observe(document.documentElement, { attributes: true });
+    
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+  
+  // Handle editor mounting
+  const handleContentEditorDidMount = (editor: any) => {
+    contentEditorRef.current = editor;
+  };
+  
+  const handleSnippetEditorDidMount = (editor: any) => {
+    snippetEditorRef.current = editor;
+  };
+  
+  const handleCategoryEditorDidMount = (editor: any) => {
+    categoryEditorRef.current = editor;
+  };
+  
+  // Function to insert text at cursor in content editor
+  const insertTextAtCursor = (textToInsert: string, editorRef: React.MutableRefObject<any>, setValue: (value: string) => void) => {
+    if (editorRef.current) {
+      const editor = editorRef.current;
+      const selection = editor.getSelection();
+      const id = { major: 1, minor: 1 };      
+      const op = { identifier: id, range: selection, text: textToInsert, forceMoveMarkers: true };
+      editor.executeEdits("my-source", [op]);
+      
+      // Update the state with the new editor value
+      const updatedContent = editor.getValue();
+      setValue(updatedContent);
+      
+      editor.focus();
+    }
+  };
   
   // Mutations
   const createPostMutation = useMutation({
@@ -339,15 +404,30 @@ export default function BlogPage() {
   // Helper functions
   const handleEditPost = (post: BlogPost) => {
     setSelectedPost(post);
+    
     form.reset({
-      ...post,
+      title: post.title,
+      slug: post.slug,
+      content: post.content,
+      snippet: post.snippet,
+      excerpt: post.excerpt,
+      featuredImageUrl: post.featuredImageUrl,
+      author: post.author,
       date: new Date(post.date),
-      categoryId: post.categoryId || null,
-      featuredImageUrl: post.featuredImageUrl || null,
-      excerpt: post.excerpt || null,
-      author: post.author || null,
-      tags: post.tags || null
+      categoryId: post.categoryId,
+      tags: post.tags,
+      displayOrder: post.displayOrder,
+      published: post.published
     });
+    
+    // Set editor content values
+    setPostContentEditorValue(post.content);
+    setPostSnippetEditorValue(post.snippet);
+    
+    // Reset view modes to write
+    setContentViewMode("write");
+    setSnippetViewMode("write");
+    
     setIsFormOpen(true);
   };
   
@@ -357,13 +437,17 @@ export default function BlogPage() {
   };
   
   const onSubmit = async (data: BlogPostFormData) => {
-    console.log("Form submitted with data:", data); // Debugging
+    // Use the editor values for content and snippet
+    const submissionData = {
+      ...data,
+      content: postContentEditorValue,
+      snippet: postSnippetEditorValue
+    };
+    
     if (selectedPost) {
-      console.log("Updating post:", selectedPost.id); // Debugging
-      updatePostMutation.mutate({ id: selectedPost.id, data });
+      await updatePostMutation.mutateAsync({ id: selectedPost.id, data: submissionData });
     } else {
-      console.log("Creating new post"); // Debugging
-      createPostMutation.mutate(data);
+      await createPostMutation.mutateAsync(submissionData);
     }
   };
   
@@ -401,14 +485,32 @@ export default function BlogPage() {
   const resetForm = () => {
     setSelectedPost(null);
     form.reset({
-      title: "", slug: "", content: "", snippet: "", excerpt: null,
-      featuredImageUrl: null, author: null, date: new Date(),
-      categoryId: null, tags: null, displayOrder: 0, published: false
+      title: "",
+      slug: "",
+      content: "",
+      snippet: "",
+      excerpt: null,
+      featuredImageUrl: null,
+      author: null,
+      date: new Date(),
+      categoryId: null,
+      tags: null,
+      displayOrder: 0,
+      published: false
     });
+    
+    // Reset editor content
+    setPostContentEditorValue("");
+    setPostSnippetEditorValue("");
+    
+    // Reset view modes
+    setContentViewMode("write");
+    setSnippetViewMode("write");
   };
   
   const handleEditCategory = (category: BlogCategory) => {
     setSelectedCategory(category);
+    
     categoryForm.reset({
       name: category.name,
       slug: category.slug,
@@ -416,6 +518,10 @@ export default function BlogPage() {
       displayOrder: category.displayOrder,
       active: category.active
     });
+    
+    // Set editor content
+    setCategoryDescriptionEditorValue(category.description || "");
+    
     setIsCategoryFormOpen(true);
   };
   
@@ -426,9 +532,9 @@ export default function BlogPage() {
   
   const onCategorySubmit = async (data: CategoryFormData) => {
     if (selectedCategory) {
-      updateCategoryMutation.mutate({ id: selectedCategory.id, data });
+      await updateCategoryMutation.mutateAsync({ id: selectedCategory.id, data });
     } else {
-      createCategoryMutation.mutate(data);
+      await createCategoryMutation.mutateAsync(data);
     }
   };
   
@@ -452,8 +558,15 @@ export default function BlogPage() {
   const resetCategoryForm = () => {
     setSelectedCategory(null);
     categoryForm.reset({
-      name: "", slug: "", description: "", displayOrder: 0, active: true
+      name: "",
+      slug: "",
+      description: "",
+      displayOrder: 0,
+      active: true
     });
+    
+    // Reset editor content
+    setCategoryDescriptionEditorValue("");
   };
 
   return (
@@ -805,39 +918,425 @@ export default function BlogPage() {
                 </div>
                 
                 <div className="space-y-2">
+                  <div className="flex justify-between items-center mb-1">
                   <Label htmlFor="content">Content <span className="text-red-500">*</span></Label>
-                  <FormField
-                    control={form.control}
-                    name="content"
-                    render={({ field }) => (
-                      <Textarea
-                        {...field}
-                        placeholder="Enter the full content of your blog post"
-                        className="min-h-[200px]"
+                    <div className="text-xs text-gray-500 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="m18 7 4 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9l4-2"/><path d="M14 22v-4a2 2 0 0 0-4 0v4"/><path d="M18 22V5l-6-3-6 3v17"/><path d="M12 7v5"/><path d="M10 9h4"/></svg>
+                      Supports markdown formatting
+                    </div>
+                  </div>
+                  
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                    <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                      {/* Editor mode tabs */}
+                      <div className="flex border-b border-gray-200 dark:border-gray-700">
+                        <Button
+                          type="button"
+                          variant={contentViewMode === "write" ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => setContentViewMode("write")}
+                          className={`rounded-none border-0 ${contentViewMode === "write" ? "bg-white dark:bg-gray-900 border-b-2 border-primary" : ""}`}
+                        >
+                          Write
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={contentViewMode === "preview" ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => setContentViewMode("preview")}
+                          className={`rounded-none border-0 ${contentViewMode === "preview" ? "bg-white dark:bg-gray-900 border-b-2 border-primary" : ""}`}
+                        >
+                          Preview
+                        </Button>
+                      </div>
+                      
+                      {/* Formatting toolbar - only shown in write mode */}
+                      {contentViewMode === "write" && (
+                        <div className="p-1 flex flex-wrap gap-1 border-b border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 w-8 p-0" 
+                              onClick={() => insertTextAtCursor("# ", contentEditorRef, setPostContentEditorValue)}
+                              title="Heading 1"
+                            >
+                              H1
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={() => insertTextAtCursor("## ", contentEditorRef, setPostContentEditorValue)}
+                              title="Heading 2"
+                            >
+                              H2
+                            </Button>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 font-bold"
+                              onClick={() => insertTextAtCursor("**Bold Text**", contentEditorRef, setPostContentEditorValue)}
+                              title="Bold"
+                            >
+                              B
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0 italic"
+                              onClick={() => insertTextAtCursor("*Italic Text*", contentEditorRef, setPostContentEditorValue)}
+                              title="Italic"
+                            >
+                              I
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={() => insertTextAtCursor("> ", contentEditorRef, setPostContentEditorValue)}
+                              title="Blockquote"
+                            >
+                              "
+                            </Button>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={() => insertTextAtCursor("- ", contentEditorRef, setPostContentEditorValue)}
+                              title="Unordered List"
+                            >
+                              •
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              onClick={() => insertTextAtCursor("1. ", contentEditorRef, setPostContentEditorValue)}
+                              title="Ordered List"
+                            >
+                              1.
+                            </Button>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8"
+                              onClick={() => insertTextAtCursor("[Link Text](https://example.com)", contentEditorRef, setPostContentEditorValue)}
+                              title="Link"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8"
+                              onClick={() => insertTextAtCursor("![Image Alt](image.jpg)", contentEditorRef, setPostContentEditorValue)}
+                              title="Image"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </Button>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8"
+                              onClick={() => insertTextAtCursor("`inline code`", contentEditorRef, setPostContentEditorValue)}
+                              title="Inline Code"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8"
+                              onClick={() => insertTextAtCursor("```\nCode block\n```", contentEditorRef, setPostContentEditorValue)}
+                              title="Code Block"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8"
+                              onClick={() => insertTextAtCursor("---", contentEditorRef, setPostContentEditorValue)}
+                              title="Horizontal Rule"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {contentViewMode === "write" ? (
+                      <Editor
+                        height="350px"
+                        defaultLanguage="markdown"
+                        value={postContentEditorValue}
+                        onChange={(value) => {
+                          setPostContentEditorValue(value || "");
+                          form.setValue("content", value || "", { shouldValidate: true });
+                        }}
+                        theme={editorTheme}
+                        options={{
+                          minimap: { enabled: false },
+                          lineNumbers: 'on',
+                          fontSize: 14,
+                          wordWrap: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true
+                        }}
+                        onMount={handleContentEditorDidMount}
                       />
+                    ) : (
+                      <div className="bg-white dark:bg-gray-900 p-4 min-h-[350px] max-h-[600px] overflow-auto prose dark:prose-invert prose-sm w-full">
+                        {postContentEditorValue ? (
+                          <ReactMarkdown>{postContentEditorValue}</ReactMarkdown>
+                        ) : (
+                          <div className="text-gray-400 dark:text-gray-600 italic text-center py-12">
+                            No content to preview
+                          </div>
+                        )}
+                      </div>
                     )}
-                  />
+                  </div>
                   {form.formState.errors.content && (
-                    <p className="text-xs text-red-500">{form.formState.errors.content.message}</p>
+                    <p className="text-xs text-red-500 mt-1">{form.formState.errors.content.message}</p>
                   )}
+                  <details className="mt-2 text-xs text-gray-500">
+                    <summary className="cursor-pointer font-medium hover:text-gray-700 dark:hover:text-gray-300 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      Markdown Cheatsheet
+                    </summary>
+                    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="pb-2 pr-4 font-medium">Element</th>
+                            <th className="pb-2 font-medium">Markdown Syntax</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Heading</td>
+                            <td className="py-2 font-mono"># H1<br />## H2<br />### H3</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Bold</td>
+                            <td className="py-2 font-mono">**bold text**</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Italic</td>
+                            <td className="py-2 font-mono">*italicized text*</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Blockquote</td>
+                            <td className="py-2 font-mono">&gt; blockquote</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Ordered List</td>
+                            <td className="py-2 font-mono">1. First item<br />2. Second item</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Unordered List</td>
+                            <td className="py-2 font-mono">- First item<br />- Second item</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Code</td>
+                            <td className="py-2 font-mono">`code`</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Code Block</td>
+                            <td className="py-2 font-mono">```<br />code block<br />```</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Horizontal Rule</td>
+                            <td className="py-2 font-mono">---</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Link</td>
+                            <td className="py-2 font-mono">[title](https://www.example.com)</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 pr-4">Image</td>
+                            <td className="py-2 font-mono">![alt text](image.jpg)</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
                 </div>
                 
                 <div className="space-y-2">
+                  <div className="flex justify-between items-center mb-1">
                   <Label htmlFor="snippet">Excerpt/Snippet <span className="text-red-500">*</span></Label>
-                  <FormField
-                    control={form.control}
-                    name="snippet"
-                    render={({ field }) => (
-                      <Textarea
-                        {...field}
-                        placeholder="Enter a short excerpt or snippet for this post"
-                        className="min-h-[100px]"
+                    <div className="text-xs text-gray-500">
+                      A brief summary shown in blog listings
+                    </div>
+                  </div>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                    <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                      {/* Editor mode tabs */}
+                      <div className="flex border-b border-gray-200 dark:border-gray-700">
+                        <Button
+                          type="button"
+                          variant={snippetViewMode === "write" ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => setSnippetViewMode("write")}
+                          className={`rounded-none border-0 ${snippetViewMode === "write" ? "bg-white dark:bg-gray-900 border-b-2 border-primary" : ""}`}
+                        >
+                          Write
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={snippetViewMode === "preview" ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => setSnippetViewMode("preview")}
+                          className={`rounded-none border-0 ${snippetViewMode === "preview" ? "bg-white dark:bg-gray-900 border-b-2 border-primary" : ""}`}
+                        >
+                          Preview
+                        </Button>
+                      </div>
+                      
+                      {/* Mini toolbar for the snippet editor - simpler than the content editor */}
+                      {snippetViewMode === "write" && (
+                        <div className="p-1 flex items-center gap-1 border-b border-gray-200 dark:border-gray-700">
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm"
+                            className="h-8 w-8 p-0 font-bold"
+                            onClick={() => insertTextAtCursor("**Bold**", snippetEditorRef, setPostSnippetEditorValue)}
+                            title="Bold"
+                          >
+                            B
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 w-8 p-0 italic"
+                            onClick={() => insertTextAtCursor("*Italic*", snippetEditorRef, setPostSnippetEditorValue)}
+                            title="Italic"
+                          >
+                            I
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8"
+                            onClick={() => insertTextAtCursor("[Link](url)", snippetEditorRef, setPostSnippetEditorValue)}
+                            title="Link"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8"
+                            onClick={() => insertTextAtCursor("`code`", snippetEditorRef, setPostSnippetEditorValue)}
+                            title="Inline Code"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {snippetViewMode === "write" ? (
+                      <Editor
+                        height="150px"
+                        defaultLanguage="markdown"
+                        value={postSnippetEditorValue}
+                        onChange={(value) => {
+                          setPostSnippetEditorValue(value || "");
+                          form.setValue("snippet", value || "", { shouldValidate: true });
+                        }}
+                        theme={editorTheme}
+                        options={{
+                          minimap: { enabled: false },
+                          lineNumbers: 'off',
+                          fontSize: 14,
+                          wordWrap: 'on',
+                          scrollBeyondLastLine: false,
+                          automaticLayout: true
+                        }}
+                        onMount={handleSnippetEditorDidMount}
                       />
+                    ) : (
+                      <div className="bg-white dark:bg-gray-900 p-4 min-h-[150px] max-h-[300px] overflow-auto prose dark:prose-invert prose-sm w-full">
+                        {postSnippetEditorValue ? (
+                          <ReactMarkdown>{postSnippetEditorValue}</ReactMarkdown>
+                        ) : (
+                          <div className="text-gray-400 dark:text-gray-600 italic text-center py-8">
+                            No excerpt to preview
+                          </div>
+                        )}
+                      </div>
                     )}
-                  />
+                  </div>
                   {form.formState.errors.snippet && (
-                    <p className="text-xs text-red-500">{form.formState.errors.snippet.message}</p>
+                    <p className="text-xs text-red-500 mt-1">{form.formState.errors.snippet.message}</p>
                   )}
+                  <details className="mt-2 text-xs text-gray-500">
+                    <summary className="cursor-pointer font-medium hover:text-gray-700 dark:hover:text-gray-300 flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      Markdown Cheatsheet
+                    </summary>
+                    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="pb-2 pr-4 font-medium">Element</th>
+                            <th className="pb-2 font-medium">Markdown Syntax</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Bold</td>
+                            <td className="py-2 font-mono">**bold text**</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Italic</td>
+                            <td className="py-2 font-mono">*italicized text*</td>
+                          </tr>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <td className="py-2 pr-4">Link</td>
+                            <td className="py-2 font-mono">[title](https://www.example.com)</td>
+                          </tr>
+                          <tr>
+                            <td className="py-2 pr-4">Code</td>
+                            <td className="py-2 font-mono">`code`</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
                 </div>
 
                 <div className="space-y-2">
@@ -939,70 +1438,148 @@ export default function BlogPage() {
         
         {/* Category Form Dialog */}
         <Dialog open={isCategoryFormOpen} onOpenChange={setIsCategoryFormOpen}>
-          <DialogContent className="max-w-md p-0 overflow-auto max-h-[90vh]">
-            <DialogHeader className="px-5 pt-5 pb-3 border-b bg-gray-50 dark:bg-gray-900 sticky top-0">
+          <DialogContent className="max-w-2xl p-0 overflow-auto max-h-[90vh] bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-xl">
+            <DialogHeader className="px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 sticky top-0">
               <DialogTitle className="text-xl font-bold flex items-center">
                 <FolderTree className="h-5 w-5 mr-2" style={{ color: `#${brandColors.secondary?.hex}` }} />
                 {selectedCategory ? "Edit Category" : "Create New Category"}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {selectedCategory ? "Update category details" : "Create a new category for your blog"}
               </DialogDescription>
             </DialogHeader>
             
             <form onSubmit={categoryForm.handleSubmit(onCategorySubmit)} className="px-5 py-4">
-              <div className="grid gap-4">
+              <div className="grid gap-5">
+                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-semibold flex items-center"
+                        style={{ color: `#${brandColors.secondary?.hex}` }}>
+                      <FolderTree className="h-4 w-4 mr-1.5" />
+                      Category Details
+                    </h3>
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name <span className="text-red-500">*</span></Label>
-                  <Input {...categoryForm.register("name")} placeholder="Enter category name" />
+                        <Label htmlFor="name" className="text-sm font-medium flex items-center">
+                          Name <span className="text-red-500 ml-0.5">*</span>
+                        </Label>
+                        <Input 
+                          {...categoryForm.register("name")} 
+                          placeholder="Enter category name" 
+                          className="w-full border-gray-200 dark:border-gray-700 focus:ring-blue-500"
+                        />
                   {categoryForm.formState.errors.name && (
-                    <p className="text-xs text-red-500">{categoryForm.formState.errors.name.message}</p>
+                          <p className="text-xs text-red-500 mt-1">{categoryForm.formState.errors.name.message}</p>
                   )}
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <Label htmlFor="slug">Slug <span className="text-red-500">*</span></Label>
+                          <Label htmlFor="slug" className="text-sm font-medium flex items-center">
+                            Slug <span className="text-red-500 ml-0.5">*</span>
+                          </Label>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={generateCategorySlug}
-                      className="h-7 px-2 text-xs"
+                            className="h-7 px-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800/20"
                       style={{ color: `#${brandColors.secondary?.hex}` }}
                     >
-                      Generate from name
+                            <span className="mr-1">Generate from name</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/><path d="M13 17l6-6"/><path d="M22 10V4h-6"/></svg>
                     </Button>
                   </div>
-                  <Input {...categoryForm.register("slug")} placeholder="category-slug" />
+                        <div className="relative">
+                          <Input 
+                            {...categoryForm.register("slug")} 
+                            placeholder="category-slug" 
+                            className="w-full border-gray-200 dark:border-gray-700 focus:ring-blue-500 pl-8"
+                          />
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                          </span>
+                        </div>
                   {categoryForm.formState.errors.slug && (
-                    <p className="text-xs text-red-500">{categoryForm.formState.errors.slug.message}</p>
+                          <p className="text-xs text-red-500 mt-1">{categoryForm.formState.errors.slug.message}</p>
                   )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    {...categoryForm.register("description")}
-                    placeholder="Enter a description for this category"
-                    className="min-h-[100px]"
-                  />
+                                  <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="text-sm font-semibold flex items-center"
+                        style={{ color: `#${brandColors.secondary?.hex}` }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Description
+                    </h3>
+                    <div className="text-xs text-gray-500">
+                      Supports markdown formatting
+                    </div>
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                        <Editor
+                          height="180px"
+                          defaultLanguage="markdown"
+                          value={categoryDescriptionEditorValue}
+                          onChange={(value) => {
+                            setCategoryDescriptionEditorValue(value || "");
+                            categoryForm.setValue("description", value || "");
+                          }}
+                          theme={editorTheme}
+                          options={{
+                            minimap: { enabled: false },
+                            lineNumbers: 'off',
+                            fontSize: 14,
+                            wordWrap: 'on',
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            padding: { top: 8, bottom: 8 }
+                          }}
+                          onMount={handleCategoryEditorDidMount}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
+                <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-semibold flex items-center"
+                        style={{ color: `#${brandColors.secondary?.hex}` }}>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+                      Settings
+                    </h3>
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="displayOrder">Display Order</Label>
+                        <Label htmlFor="displayOrder" className="text-sm font-medium">Display Order</Label>
                   <Input 
                     type="number" 
                     {...categoryForm.register("displayOrder", { 
                       valueAsNumber: true,
                       value: categoryForm.getValues("displayOrder") || 0
                     })}
-                    placeholder="Enter display order (lower numbers appear first)" 
+                          className="w-full max-w-[150px] border-gray-200 dark:border-gray-700 focus:ring-blue-500"
+                          placeholder="0" 
                   />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Lower numbers appear first in navigation
+                        </p>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="active">Status</Label>
+                        <Label htmlFor="active" className="text-sm font-medium">Status</Label>
                   <div className="flex items-center space-x-2">
                     <Switch
                       checked={categoryForm.getValues("active") ?? true}
@@ -1014,21 +1591,28 @@ export default function BlogPage() {
                     <Label htmlFor="active">
                       {categoryForm.getValues("active") ? "Active" : "Inactive"}
                     </Label>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Inactive categories won't appear on the site
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <DialogFooter className="mt-6">
+              <DialogFooter className="mt-5 pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-between sm:justify-end gap-2">
                 <Button
                   type="button" 
                   variant="outline" 
                   onClick={() => setIsCategoryFormOpen(false)}
+                  className="border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
-                  className="text-white"
+                  className="text-white hover:text-white"
                   style={{ backgroundColor: `#${brandColors.secondary?.hex}` }}
                   disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
                 >
