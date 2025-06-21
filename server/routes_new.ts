@@ -1273,7 +1273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           powerAction = 'restart';
           break;
         case 'poweroff':
-          result = await virtFusionApi.poweroffServer(serverId);
+          result = await virtFusionApi.powerOffServer(serverId);
           powerAction = 'poweroff';
           break;
       }

@@ -801,7 +801,7 @@ export class VirtFusionApi {
    */
   async bootServer(serverId: number) {
     console.log(`Booting server ID: ${serverId}`);
-    return this.request("POST", `/servers/${serverId}/boot`);
+    return this.request("POST", `/servers/${serverId}/power/boot`);
   }
 
   /**
@@ -811,7 +811,7 @@ export class VirtFusionApi {
    */
   async shutdownServer(serverId: number) {
     console.log(`Shutting down server ID: ${serverId}`);
-    return this.request("POST", `/servers/${serverId}/shutdown`);
+    return this.request("POST", `/servers/${serverId}/power/shutdown`);
   }
 
   /**
@@ -821,7 +821,7 @@ export class VirtFusionApi {
    */
   async restartServer(serverId: number) {
     console.log(`Restarting server ID: ${serverId}`);
-    return this.request("POST", `/servers/${serverId}/restart`);
+    return this.request("POST", `/servers/${serverId}/power/restart`);
   }
 
   /**
@@ -831,7 +831,7 @@ export class VirtFusionApi {
    */
   async powerOffServer(serverId: number) {
     console.log(`Powering off server ID: ${serverId}`);
-    return this.request("POST", `/servers/${serverId}/power-off`);
+    return this.request("POST", `/servers/${serverId}/power/poweroff`);
   }
 
   /**
