@@ -21,16 +21,6 @@ function App() {
     intent: "capture",
   };
 
-  // Debug PayPal configuration
-  if (import.meta.env.DEV) {
-    console.log("PayPal Configuration:", {
-      sandbox: import.meta.env.VITE_PAYPAL_SANDBOX,
-      clientId: paypalOptions.clientId,
-      currency: paypalOptions.currency,
-      hasClientId: !!paypalOptions.clientId
-    });
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <PayPalScriptProvider options={paypalOptions}>
