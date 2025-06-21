@@ -673,52 +673,52 @@ export class VirtFusionApi {
     }
   }
 
-  // Get servers for a specific user by their VirtFusion ID
+  /**
+   * Get servers for a specific user by their VirtFusion ID
+   * Ensures that only servers owned by the requested user are returned, even if fallback endpoints are used.
+   * @param virtFusionUserId The VirtFusion user ID (external relation ID)
+   * @returns API response containing only the user's servers
+   */
   async getUserServers(virtFusionUserId: number) {
     try {
       console.log(`Fetching servers for VirtFusion user ID: ${virtFusionUserId}`);
-
-      // Try multiple endpoints to find the correct one for getting user servers
       let response;
-
+      // Try the standard servers endpoint with user filter
       try {
-        // First try the standard servers endpoint with user filter
         console.log(`Trying servers endpoint with user filter`);
         response = await this.request("GET", `/servers?user=${virtFusionUserId}`);
+        if (response && Array.isArray(response.data)) {
+          // Defensive: filter by owner just in case
+          response.data = response.data.filter(
+            (srv: any) => srv.owner === virtFusionUserId || (srv.owner && srv.owner.id === virtFusionUserId)
+          );
+        }
         console.log(`getUserServers response from /servers?user=${virtFusionUserId}:`, JSON.stringify(response, null, 2));
         return response;
       } catch (firstError) {
-        console.log(`First attempt failed, trying alternative endpoint`);
-
+        console.warn(`First attempt failed, trying alternative endpoint`, firstError);
         try {
           // Try the servers/user endpoint
           console.log(`Trying /servers/user/${virtFusionUserId} endpoint`);
           response = await this.request("GET", `/servers/user/${virtFusionUserId}`);
+          if (response && Array.isArray(response.data)) {
+            response.data = response.data.filter(
+              (srv: any) => srv.owner === virtFusionUserId || (srv.owner && srv.owner.id === virtFusionUserId)
+            );
+          }
           console.log(`getUserServers response from /servers/user/${virtFusionUserId}:`, JSON.stringify(response, null, 2));
           return response;
         } catch (secondError) {
-          console.log(`Second attempt failed, trying selfService endpoint without byUserExtRelationId`);
-
-          try {
-            // Try the selfService/servers endpoint
-            console.log(`Trying /selfService/servers endpoint`);
-            response = await this.request("GET", `/selfService/servers`);
-            console.log(`getUserServers response from /selfService/servers:`, JSON.stringify(response, null, 2));
-            return response;
-          } catch (thirdError) {
-            console.error(`All attempts failed. First error:`, firstError);
-            console.error(`Second error:`, secondError);
-            console.error(`Third error:`, thirdError);
-
-            // Return empty result instead of throwing error
-            console.log(`Returning empty servers list for user ${virtFusionUserId}`);
-            return { data: [] };
-          }
+          console.warn(`Second attempt failed. No safe fallback will be used to avoid leaking other users' servers.`, secondError);
+          // SECURITY: Do NOT use /selfService/servers as fallback, as it may leak all servers
+          // Instead, return an empty result and log the incident
+          console.error(`All attempts to fetch user servers failed for user ${virtFusionUserId}.`);
+          return { data: [] };
         }
       }
     } catch (error) {
       console.error(`Error in getUserServers for user ${virtFusionUserId}:`, error);
-      // Return empty result instead of throwing error
+      // Return empty result instead of throwing error to avoid leaking data
       return { data: [] };
     }
   }
