@@ -108,7 +108,7 @@ export class DiscordEmbedUtils {
         user?: User | GuildMember
     ): EmbedBuilder {
         const embed = this.createBaseEmbed(this.COLORS.PURPLE)
-            .setTitle('🤖 AI Assistant Response')
+            .setTitle('🤖 SkyAI Response')
             .setDescription(response.length > 4096 ? response.substring(0, 4093) + '...' : response)
             .addFields(
                 { name: '💭 Your Question', value: prompt.length > 1024 ? prompt.substring(0, 1021) + '...' : prompt }
@@ -293,7 +293,7 @@ export class DiscordEmbedUtils {
         
         // Create the first embed with the prompt
         const baseEmbed = this.createBaseEmbed(this.COLORS.PURPLE)
-            .setTitle('🤖 AI Assistant Response');
+            .setTitle('🤖 SkyAI Response');
             
         if (user) {
             baseEmbed.setAuthor({
