@@ -84,11 +84,8 @@ export class DiscordAIService {
                     response
                 );
 
-                // Get recent messages for "memory" display - only show user's last 3 questions
-                const memoryDisplay = await discordAIStorageService.getFormattedRecentMessages(userId, 3, 'user');
-
-                // Send the response using embed with memory
-                await this.sendAIResponse(interaction, prompt, response, memoryDisplay);
+                // Send the response using embed
+                await this.sendAIResponse(interaction, prompt, response);
             } catch (aiError: any) {
                 console.error('Error calling AI service:', aiError.message);
                 try {
@@ -182,21 +179,8 @@ export class DiscordAIService {
                     'model',
                     response                );
 
-                // Get recent messages for "memory" display - only show user's last 3 questions
-                const memoryDisplay = await discordAIStorageService.getFormattedRecentMessages(userId, 3, 'user');
-
                 // Send response using embeds (supports long responses)
                 const embeds = DiscordEmbedUtils.createLongAIResponseEmbeds(content, response, message.author);
-                  // Add memory display as a separate embed if available
-                if (memoryDisplay && memoryDisplay !== 'No previous questions found.') {
-                    const memoryEmbed = new EmbedBuilder()
-                        .setColor('#3b82f6')
-                        .setTitle('📚 Conversation Memory')
-                        .setDescription(memoryDisplay)
-                        .setTimestamp();
-                    embeds.unshift(memoryEmbed); // Add at the beginning
-                }
-                
                 await message.reply({ embeds });
             } catch (aiError: any) {
                 console.error('Error calling AI service:', aiError.message);
@@ -256,26 +240,15 @@ export class DiscordAIService {
      * @param interaction The interaction
      * @param prompt The user's prompt
      * @param response The AI response
-     * @param memoryDisplay Formatted recent conversation for display
+     * @param response The AI response
      */
     private async sendAIResponse(
         interaction: ChatInputCommandInteraction,
         prompt: string,
-        response: string,
-        memoryDisplay?: string
+        response: string
     ): Promise<void> {
         try {
             const embeds = DiscordEmbedUtils.createLongAIResponseEmbeds(prompt, response, interaction.user);
-            
-            // Add memory display as a separate embed if provided
-            if (memoryDisplay && memoryDisplay !== 'No previous conversation history.') {
-                const memoryEmbed = new EmbedBuilder()
-                    .setColor('#3b82f6')
-                    .setTitle('📚 Conversation Memory')
-                    .setDescription(memoryDisplay)
-                    .setTimestamp();
-                embeds.unshift(memoryEmbed); // Add at the beginning
-            }
             
             await interaction.editReply({ embeds });
         } catch (error: any) {

@@ -109,9 +109,9 @@ export class DiscordEmbedUtils {
     ): EmbedBuilder {
         const embed = this.createBaseEmbed(this.COLORS.PURPLE)
             .setTitle('🤖 AI Assistant Response')
+            .setDescription(response.length > 4096 ? response.substring(0, 4093) + '...' : response)
             .addFields(
-                { name: '💭 Your Question', value: prompt.length > 1024 ? prompt.substring(0, 1021) + '...' : prompt },
-                { name: '🎯 AI Response', value: response.length > 1024 ? response.substring(0, 1021) + '...' : response }
+                { name: '💭 Your Question', value: prompt.length > 1024 ? prompt.substring(0, 1021) + '...' : prompt }
             );
 
         if (user) {
@@ -308,33 +308,20 @@ export class DiscordEmbedUtils {
             : prompt;
         baseEmbed.addFields({ name: '💭 Your Question', value: truncatedPrompt });
         
-        // Handle the response
-        if (response.length <= MAX_EMBED_DESCRIPTION) {
-            // Response fits in a single embed description
-            baseEmbed.setDescription(`**🎯 AI Response:**\n${response}`);
-            embeds.push(baseEmbed);
-        } else {
-            // Response needs to be split across multiple embeds
-            baseEmbed.setDescription('**🎯 AI Response:**\n*Response continues in the following embeds...*');
-            embeds.push(baseEmbed);
-            
-            // Split the response into chunks
-            const chunks = this.splitTextIntoChunks(response, MAX_EMBED_DESCRIPTION - 50); // Leave room for formatting
-            
-            chunks.forEach((chunk, index) => {
+        // Split the response into chunks if it's too long for a single description
+        const chunks = this.splitTextIntoChunks(response, MAX_EMBED_DESCRIPTION);
+        
+        // Set the description for the first embed
+        baseEmbed.setDescription(chunks[0]);
+        embeds.push(baseEmbed);
+        
+        // Create additional embeds for the rest of the chunks
+        if (chunks.length > 1) {
+            for (let i = 1; i < chunks.length; i++) {
                 const continuationEmbed = this.createBaseEmbed(this.COLORS.PURPLE)
-                    .setTitle(`🤖 AI Response (Part ${index + 2})`)
-                    .setDescription(chunk);
-                    
-                if (user) {
-                    continuationEmbed.setAuthor({
-                        name: user instanceof GuildMember ? user.displayName : user.username,
-                        iconURL: user.displayAvatarURL()
-                    });
-                }
-                
+                    .setDescription(chunks[i]);
                 embeds.push(continuationEmbed);
-            });
+            }
         }
         
         return embeds;
