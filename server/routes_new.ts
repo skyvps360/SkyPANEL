@@ -30,8 +30,8 @@ import apiKeysRoutes from "./routes/api-keys";
 import apiOnlyRoutes from "./routes/api-only-routes";
 import chatRoutes from "./routes/chat";
 import chatDepartmentsRoutes from "./routes/chat-departments";
-import dnsRoutes from "./routes/dns";
-import adminDnsRoutes from "./routes/admin-dns";
+// import dnsRoutes from "./routes/dns"; // DNS feature disabled
+// import adminDnsRoutes from "./routes/admin-dns"; // DNS feature disabled
 import serverRoutes from "./routes/server-routes";
 import transactionRoutes from "./routes/transaction-routes";
 import userRoutes from "./routes/user-routes";
@@ -10974,10 +10974,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/chat", chatDepartmentsRoutes);
 
   // Register DNS routes
-  app.use("/api/dns", isAuthenticated, dnsRoutes);
+  // app.use("/api/dns", isAuthenticated, dnsRoutes); // DNS feature disabled
 
   // Register Admin DNS routes
-  app.use("/api/admin", isAuthenticated, isAdmin, adminDnsRoutes);
+  // app.use("/api/admin", isAuthenticated, isAdmin, adminDnsRoutes); // DNS feature disabled
 
   // Register Server routes
   app.use("/api/servers", isAuthenticated, serverRoutes);

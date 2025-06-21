@@ -312,20 +312,20 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     //   url: "/speed-test",
     //   icon: <Zap className="h-4 w-4" />
     // }, // Temporarily hidden for fixes
-    {
-      id: "dns",
-      name: "DNS Management",
-      description: "Manage your DNS domains and records",
-      url: "/dns",
-      icon: <Globe className="h-4 w-4" />
-    },
-    {
-      id: "dns-plans",
-      name: "DNS Plans",
-      description: "Purchase and manage DNS service plans",
-      url: "/dns-plans",
-      icon: <CreditCard className="h-4 w-4" />
-    },
+    // {
+    //   id: "dns",
+    //   name: "DNS Management",
+    //   description: "Manage your DNS domains and records",
+    //   url: "/dns",
+    //   icon: <Globe className="h-4 w-4" />
+    // }, // DNS disabled
+    // {
+    //   id: "dns-plans",
+    //   name: "DNS Plans",
+    //   description: "Purchase and manage DNS service plans",
+    //   url: "/dns-plans",
+    //   icon: <CreditCard className="h-4 w-4" />
+    // }, // DNS disabled
     // {
     //   id: "api-docs",
     //   name: "API Documentation",
@@ -372,18 +372,18 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       href: "/dashboard/blog",
       icon: <FileText className="h-5 w-5 mr-3" />,
     },
-    {
-      name: "DNS Management",
-      href: "/dns",
-      icon: <Globe className="h-5 w-5 mr-3" />,
-      children: [
-        {
-          name: "DNS Plans",
-          href: "/dns-plans",
-          icon: <CreditCard className="h-4 w-4 mr-3" />,
-        },
-      ],
-    },
+    // {
+    //   name: "DNS Management",
+    //   href: "/dns",
+    //   icon: <Globe className="h-5 w-5 mr-3" />,
+    //   children: [
+    //     {
+    //       name: "DNS Plans",
+    //       href: "/dns-plans",
+    //       icon: <CreditCard className="h-4 w-4 mr-3" />,
+    //     },
+    //   ],
+    // },
    // {
    //   name: "API Documentation",
    //   href: "/api-docs",

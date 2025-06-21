@@ -52,14 +52,14 @@ import AdminChatManagement from "@/pages/admin/AdminChatManagement";
 import ServerDetailPage from "@/pages/admin/server-detail-page";
 import ServersListPage from "@/pages/admin/servers-page";
 import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
-import AdminDnsPage from "@/pages/admin/dns-page";
+// import AdminDnsPage from "@/pages/admin/dns-page"; // DNS feature disabled
 import UsersPage from "@/pages/admin/users-page";
 import UserEditPage from "@/pages/admin/user-edit-page";
 import VNCConsole from "@/pages/vnc-console";
 import LiveChat from "@/pages/LiveChat";
-import DnsDomainsPage from "@/pages/dns-domains-page";
-import DnsRecordsPage from "@/pages/dns-records-page";
-import DnsPlansPage from "@/pages/dns-plans-page";
+// import DnsDomainsPage from "@/pages/dns-domains-page"; // DNS feature disabled
+// import DnsRecordsPage from "@/pages/dns-records-page"; // DNS feature disabled
+// import DnsPlansPage from "@/pages/dns-plans-page"; // DNS feature disabled
 
 import {AdminProtectedRoute, ProtectedRoute} from "@/lib/protected-route-new";
 
@@ -133,9 +133,9 @@ export function AppRouter() {
                 <Route path="/privacy" component={PrivacyPolicyPage}/>                {/* VNC Console - User access allowed */}
                 <ProtectedRoute path="/vnc-console" component={VNCConsole}/>
 
-                                <ProtectedRoute path="/dns" component={DnsDomainsPage}/>
-                <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage}/>
-                <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/>
+                                {/* <ProtectedRoute path="/dns" component={DnsDomainsPage}/> DNS disabled */}
+                {/* <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage}/> DNS disabled */}
+                {/* <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/> DNS disabled */}
 
                 {/* Admin Routes */}
                 <AdminProtectedRoute path="/admin" component={AdminDashboard}/>
@@ -168,7 +168,7 @@ export function AppRouter() {
                 <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage}/>
                 <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage}/>
                 <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage}/>
-                                <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage}/>
+                                {/* <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage}/> DNS disabled */}
                 <AdminProtectedRoute path="/admin/chat" component={AdminChatManagement}/>
 
                 {/* Catch-all route for 404 pages */}
