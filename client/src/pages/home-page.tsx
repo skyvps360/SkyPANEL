@@ -502,7 +502,7 @@ export default function HomePage() {
                   </Button>
                 </Link>
 
-                <Link href="/dns">
+              {/*  <Link href="/dns">
                   <Button
                     variant="outline"
                     className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
@@ -520,7 +520,7 @@ export default function HomePage() {
                       <span className="text-sm font-medium">DNS Management</span>
                     </div>
                   </Button>
-                </Link>
+                </Link> */}
 
                 <Link href="/dashboard/blog">
                   <Button
