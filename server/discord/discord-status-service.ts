@@ -145,13 +145,7 @@ export class DiscordStatusService {
             components.push(paginationRow);
         }
 
-        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-                .setCustomId('status:refresh')
-                .setLabel('🔄 Refresh')
-                .setStyle(ButtonStyle.Primary)
-        );
-        components.push(actionRow);
+
 
         return { embeds: [statusEmbed, servicesEmbed], components };
     }
@@ -207,71 +201,15 @@ export class DiscordStatusService {
                 currentPage++;
             } else if (action === 'prev') {
                 currentPage--;
-            } else if (action === 'refresh') {
-                // Keep the current page for refresh
             }
 
-            const createServicesEmbed = (page: number): EmbedBuilder => {
-                const startIndex = page * servicesPerPage;
-                const endIndex = Math.min(startIndex + servicesPerPage, serviceStatus.services.length);
-                const pageServices = serviceStatus.services.slice(startIndex, endIndex);
+            const companyNameMatch = interaction.message.embeds[0]?.title?.match(/🖥️ (.*) Platform Status/);
+            const companyName = companyNameMatch ? companyNameMatch[1] : 'SkyVPS360';
 
-                const servicesEmbed = new EmbedBuilder()
-                    .setTitle('🔧 Service Status Details')
-                    .setColor(statusColor)
-                    .setTimestamp();
+            const { embeds, components } = await this.buildStatusPayload(currentPage, companyName);
 
-                if (totalPages > 1) {
-                    servicesEmbed.setFooter({ text: `Page ${page + 1} of ${totalPages}` });
-                }
-
-                // Add service status fields
-                pageServices.forEach(service => {
-                    const uptimeText = `${service.uptimePercentage.toFixed(2)}% uptime`;
-                    servicesEmbed.addFields({
-                        name: `${getStatusEmoji(service.status)} ${service.name}`,
-                        value: `**${service.status.charAt(0).toUpperCase() + service.status.slice(1)}**\n${uptimeText}`,
-                        inline: true
-                    });
-                });
-
-                return servicesEmbed;
-            };
-
-            const servicesEmbed = createServicesEmbed(currentPage);
-
-            // Create pagination buttons if needed
-            const components: ActionRowBuilder<ButtonBuilder>[] = [];
-            if (totalPages > 1) {
-                const paginationRow = new ActionRowBuilder<ButtonBuilder>()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId('status:prev')
-                            .setLabel('◀️ Previous')
-                            .setStyle(ButtonStyle.Secondary)
-                            .setDisabled(currentPage === 0),
-                        new ButtonBuilder()
-                            .setCustomId('status:next')
-                            .setLabel('Next ▶️')
-                            .setStyle(ButtonStyle.Secondary)
-                            .setDisabled(currentPage === totalPages - 1)
-                    );
-                components.push(paginationRow);
-            }
-
-            // Add refresh button
-            const actionRow = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('status:refresh')
-                        .setLabel('🔄 Refresh')
-                        .setStyle(ButtonStyle.Primary)
-                );
-            components.push(actionRow);
-
-            // Update the message
             await interaction.editReply({
-                embeds: [statusEmbed, servicesEmbed],
+                embeds,
                 components
             });
         } catch (error: any) {
