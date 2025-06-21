@@ -361,15 +361,6 @@ export class DiscordStatusService {
                 components.push(paginationRow);
             }
 
-            // Add refresh button
-            const actionRow = new ActionRowBuilder<ButtonBuilder>()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId('status:refresh')
-                        .setLabel('🔄 Refresh')
-                        .setStyle(ButtonStyle.Primary)
-                );
-            components.push(actionRow);
 
             // Send the response
             const reply = interaction.deferred 
