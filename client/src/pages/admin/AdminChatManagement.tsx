@@ -877,7 +877,7 @@ export default function AdminChatManagement() {
               <CardContent>
                 <div className="text-3xl font-bold text-gray-900">{stats.totalMessages}</div>
                 <p className="text-sm text-gray-500 mt-1">
-                  Messages sent today
+                  Messages sent total
                 </p>
               </CardContent>
             </Card>
@@ -1668,7 +1668,7 @@ export default function AdminChatManagement() {
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">{stats.totalMessages}</div>
               <p className="text-sm text-gray-500 mt-1">
-                Messages sent today
+                Messages sent total
               </p>
             </CardContent>
           </Card>

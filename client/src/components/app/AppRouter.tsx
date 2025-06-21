@@ -57,7 +57,6 @@ import UsersPage from "@/pages/admin/users-page";
 import UserEditPage from "@/pages/admin/user-edit-page";
 import VNCConsole from "@/pages/vnc-console";
 import LiveChat from "@/pages/LiveChat";
-// DNS pages imports - temporarily disabled
 import DnsDomainsPage from "@/pages/dns-domains-page";
 import DnsRecordsPage from "@/pages/dns-records-page";
 import DnsPlansPage from "@/pages/dns-plans-page";
@@ -134,11 +133,9 @@ export function AppRouter() {
                 <Route path="/privacy" component={PrivacyPolicyPage}/>                {/* VNC Console - User access allowed */}
                 <ProtectedRoute path="/vnc-console" component={VNCConsole}/>
 
-                {/* DNS Management - User access allowed - TEMPORARILY HIDDEN
-                <ProtectedRoute path="/dns" component={DnsDomainsPage}/>
+                                <ProtectedRoute path="/dns" component={DnsDomainsPage}/>
                 <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage}/>
                 <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/>
-                */}
 
                 {/* Admin Routes */}
                 <AdminProtectedRoute path="/admin" component={AdminDashboard}/>
@@ -171,9 +168,7 @@ export function AppRouter() {
                 <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage}/>
                 <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage}/>
                 <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage}/>
-                {/* Admin DNS routes - TEMPORARILY HIDDEN
-                <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage}/>
-                */}
+                                <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage}/>
                 <AdminProtectedRoute path="/admin/chat" component={AdminChatManagement}/>
 
                 {/* Catch-all route for 404 pages */}
