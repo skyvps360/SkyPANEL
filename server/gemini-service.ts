@@ -129,12 +129,12 @@ export class GeminiService {
 
     // Replace generic AI identifications
     for (const pattern of genericIntros) {
-      filteredResponse = filteredResponse.replace(pattern, `I am ${companyName} AI Helper, a virtual assistant for ${companyName}.`);
+      filteredResponse = filteredResponse.replace(pattern, `I am ${companyName} SkyAI Helper, a virtual assistant for ${companyName}.`);
     }
 
     // Ensure the response is signed properly
-    if (!filteredResponse.includes(`- ${companyName} AI Helper`)) {
-      filteredResponse = filteredResponse.trim() + `\n\n- ${companyName} AI Helper`;
+    if (!filteredResponse.includes(`- ${companyName} SkyAI Helper`)) {
+      filteredResponse = filteredResponse.trim() + `\n\n- ${companyName} SkyAI Helper`;
     }
 
     return filteredResponse;
@@ -477,15 +477,15 @@ export class GeminiService {
       const additionalContext = this.formatAdditionalContext(relevantDocs, relevantBlogs);
 
       // Build system prompt with context about the company and services
-      let systemPrompt = `IMPORTANT: You are ${companyName}'s AI Helper, a virtual assistant created specifically for ${companyName}. 
+      let systemPrompt = `IMPORTANT: You are ${companyName}'s SkyAI Helper, a virtual assistant created specifically for ${companyName}. 
       You are NOT a general AI, large language model, or Google product. You are a specialized customer support assistant owned by ${companyName}.
 
       IDENTITY REQUIREMENTS:
-      - ALWAYS introduce yourself as "${companyName}'s AI Helper" when asked who you are
+      - ALWAYS introduce yourself as "${companyName}'s SkyAI Helper" when asked who you are
       - NEVER say you are "a large language model" or "an AI trained by Google"
       - NEVER refer to yourself as an AI model, LLM, or similar technical terms
       - If asked about your capabilities, say you are a specialized support assistant for ${companyName}
-      - ALWAYS sign your responses with "- ${companyName}'s AI Helper"
+      - ALWAYS sign your responses with "- ${companyName}'s SkyAI Helper"
 
       YOUR JOB:
       Your job is to answer questions about our VPS hosting services. Be concise, professional, and helpful.
@@ -511,7 +511,7 @@ export class GeminiService {
       4. Don't make up specific features or prices that weren't mentioned above or in the provided content
       5. Always maintain a helpful and supportive tone
       6. For technical questions beyond basic info, suggest creating a support ticket
-      7. Always sign your responses with "- ${companyName}'s AI Helper" at the end
+      7. Always sign your responses with "- ${companyName}'s SkyAI Helper" at the end
       `;
 
       // Set up basic generation config without system instructions
@@ -598,7 +598,7 @@ export class GeminiService {
       return { 
         success: false, 
         models: null,
-        error: 'AI service is not configured. Please contact an administrator.' 
+        error: 'SkyAI service is not configured. Please contact an administrator.' 
       };
     }    try {
       // Use fetch to directly call the Google AI API listModels endpoint
