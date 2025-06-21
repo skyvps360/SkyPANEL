@@ -21,14 +21,11 @@ diagrams
 
 # DotFiles
 .env
-.wrangler
 .idea
 .vscode
 .cursorrules
 .cursorignore
 .cursor
-.windsurf
-.windsurfignore
 .aiignore
 *.log
 

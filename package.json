@@ -16,10 +16,8 @@
     "check": "tsc",
     "db:push": "drizzle-kit push",
     "update-packages": "ncu -u",
-    "wrangler": "wrangler run",
     "verify-env": "tsx scripts/verify-env.js",
-    "deploy:vps": "chmod +x deploy-vps.sh && ./deploy-vps.sh",
-    "health-check": "curl -f http://localhost:5000/api/health || exit 1",
+    "health-check": "curl -f http://localhost:3333/api/health || exit 1",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -133,7 +131,6 @@
     "vaul": "^1.1.2",
     "vite": "^6.3.5",
     "wouter": "^3.3.5",
-    "wrangler": "^4.13.2",
     "ws": "^8.18.0",
     "zod": "^3.24.2",
     "zod-validation-error": "^3.4.0"
