@@ -16,7 +16,9 @@ logs/
 roadmap
 scripts
 tests
-docss
+docs
+diagramss
+
 # DotFiles
 .env
 .wrangler
