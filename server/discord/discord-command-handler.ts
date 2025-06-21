@@ -1,7 +1,8 @@
 import {
     ChatInputCommandInteraction,
     SlashCommandBuilder,
-    ThreadChannel
+    ThreadChannel,
+    EmbedBuilder
 } from 'discord.js';
 import {storage} from '../storage';
 import {discordBotCore} from './discord-bot-core';
@@ -119,10 +120,16 @@ export class DiscordCommandHandler {
         await discordTicketService.updateThreadStatus(ticketId, 'closed', interaction.user.username);
 
         // Reply to the command
-        await interaction.reply({
-            content: `Ticket #${ticketId} has been closed${reason ? ` with reason: ${reason}` : ''}.`,
-            ephemeral: true
-        });
+        const embed = new EmbedBuilder()
+            .setTitle('🎫 Ticket Closed')
+            .setColor(0x00ff00)
+            .addFields(
+                { name: 'Ticket ID', value: `${ticketId}`, inline: true },
+                { name: 'Closed By', value: interaction.user.username, inline: true },
+                ...(reason ? [{ name: 'Reason', value: reason, inline: false }] : [])
+            )
+            .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
     /**
@@ -140,10 +147,15 @@ export class DiscordCommandHandler {
         await discordTicketService.updateThreadStatus(ticketId, 'open', interaction.user.username);
 
         // Reply to the command
-        await interaction.reply({
-            content: `Ticket #${ticketId} has been reopened.`,
-            ephemeral: true
-        });
+        const embed = new EmbedBuilder()
+            .setTitle('🎫 Ticket Reopened')
+            .setColor(0x00ff00)
+            .addFields(
+                { name: 'Ticket ID', value: `${ticketId}`, inline: true },
+                { name: 'Reopened By', value: interaction.user.username, inline: true }
+            )
+            .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
     /**
@@ -167,21 +179,19 @@ export class DiscordCommandHandler {
         // Get the user who created the ticket
         const user = await storage.getUser(ticket.userId);
 
-        // Format the ticket information
-        const ticketInfo = [
-            `**Ticket #${ticket.id}**`,
-            `**Subject:** ${ticket.subject}`,
-            `**Status:** ${ticket.status}`,
-            `**Created By:** ${user ? user.name : 'Unknown'}`,
-            `**Created At:** ${new Date(ticket.createdAt).toLocaleString()}`,
-            `**Updated At:** ${new Date(ticket.updatedAt).toLocaleString()}`
-        ].join('\n');
-
         // Reply with the ticket information
-        await interaction.reply({
-            content: ticketInfo,
-            ephemeral: true
-        });
+        const embed = new EmbedBuilder()
+            .setTitle(`🎫 Ticket #${ticket.id} Information`)
+            .setColor(0x0099ff)
+            .addFields(
+                { name: 'Subject', value: ticket.subject || 'N/A', inline: true },
+                { name: 'Status', value: ticket.status, inline: true },
+                { name: 'Created By', value: user ? user.name : 'Unknown', inline: true },
+                { name: 'Created At', value: new Date(ticket.createdAt).toLocaleString(), inline: true },
+                { name: 'Updated At', value: new Date(ticket.updatedAt).toLocaleString(), inline: true }
+            )
+            .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
     /**
@@ -216,10 +226,16 @@ export class DiscordCommandHandler {
         await storage.updateTicket(ticketId, {assignedToUserId: adminUser.id});
 
         // Reply to the command
-        await interaction.reply({
-            content: `Ticket #${ticketId} has been assigned to ${adminUser.name}.`,
-            ephemeral: false // Make this visible to everyone in the thread
-        });
+        const embed = new EmbedBuilder()
+            .setTitle('🎫 Ticket Assigned')
+            .setColor(0x00ff00)
+            .addFields(
+                { name: 'Ticket ID', value: `${ticketId}`, inline: true },
+                { name: 'Assigned To', value: adminUser.name, inline: true },
+                { name: 'Assigned By', value: interaction.user.username, inline: true }
+            )
+            .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: false });
     }
 
     /**

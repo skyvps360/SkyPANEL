@@ -3,7 +3,10 @@ import {
     SlashCommandBuilder,
     GuildMember,
     PermissionFlagsBits,
-    User
+    User,
+    TextChannel,
+    ColorResolvable,
+    ChannelType
 } from 'discord.js';
 import {discordBotCore} from './discord-bot-core';
 import {DiscordEmbedUtils} from './discord-embed-utils';
@@ -36,7 +39,7 @@ export class DiscordModerationService {
     public isModerationCommand(commandName: string): boolean {
         const moderationCommands = [
             'kick', 'ban', 'unban', 'timeout', 'untimeout', 'clear', 'warn',
-            'userinfo', 'serverinfo'
+            'userinfo', 'serverinfo', 'embeder'
         ];
         return moderationCommands.includes(commandName);
     }
@@ -87,6 +90,9 @@ export class DiscordModerationService {
                     break;
                 case 'serverinfo':
                     await this.handleServerInfoCommand(interaction);
+                    break;
+                case 'embeder':
+                    await this.handleEmbederCommand(interaction);
                     break;
                 default:
                     await interaction.reply({
@@ -149,16 +155,12 @@ export class DiscordModerationService {
             await member.kick(reason);
 
             // Reply with success message
-            await interaction.reply({
-                content: `Successfully kicked ${user.tag} for reason: ${reason}`,
-                ephemeral: false
-            });
+            const embed = DiscordEmbedUtils.createModerationEmbed('Kick', user, interaction.user, reason);
+            await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error kicking user:', error.message);
-            await interaction.reply({
-                content: `Failed to kick user: ${error.message}`,
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Kick Failed', error.message);
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
         }
     }
 
@@ -170,10 +172,8 @@ export class DiscordModerationService {
         // Get the user to ban
         const user = interaction.options.getUser('user');
         if (!user) {
-            await interaction.reply({
-                content: 'You must specify a user to ban.',
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Invalid User', 'You must specify a user to ban.');
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             return;
         }
 
@@ -191,16 +191,13 @@ export class DiscordModerationService {
             });
 
             // Reply with success message
-            await interaction.reply({
-                content: `Successfully banned ${user.tag} for reason: ${reason}`,
-                ephemeral: false
-            });
+            const durationDesc = deleteMessageDays ? `${deleteMessageDays} days` : undefined;
+            const embed = DiscordEmbedUtils.createModerationEmbed('Ban', user, interaction.user, reason, durationDesc);
+            await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error banning user:', error.message);
-            await interaction.reply({
-                content: `Failed to ban user: ${error.message}`,
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Ban Failed', error.message);
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
         }
     }
 
@@ -212,10 +209,8 @@ export class DiscordModerationService {
         // Get the user ID to unban
         const userId = interaction.options.getString('user-id');
         if (!userId) {
-            await interaction.reply({
-                content: 'You must specify a user ID to unban.',
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Invalid User ID', 'You must specify a user ID to unban.');
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             return;
         }
 
@@ -224,16 +219,12 @@ export class DiscordModerationService {
             await interaction.guild?.members.unban(userId);
 
             // Reply with success message
-            await interaction.reply({
-                content: `Successfully unbanned user with ID ${userId}`,
-                ephemeral: false
-            });
+            const embed = DiscordEmbedUtils.createSuccessEmbed('User Unbanned', `Successfully unbanned user with ID ${userId}`);
+            await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error unbanning user:', error.message);
-            await interaction.reply({
-                content: `Failed to unban user: ${error.message}`,
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Unban Failed', error.message);
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
         }
     }
 
@@ -245,10 +236,8 @@ export class DiscordModerationService {
         // Get the user to timeout
         const user = interaction.options.getUser('user');
         if (!user) {
-            await interaction.reply({
-                content: 'You must specify a user to timeout.',
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Invalid User', 'You must specify a user to timeout.');
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             return;
         }
 
@@ -262,19 +251,15 @@ export class DiscordModerationService {
             // Get the guild member
             const member = await interaction.guild?.members.fetch(user.id);
             if (!member) {
-                await interaction.reply({
-                    content: 'User not found in this server.',
-                    ephemeral: true
-                });
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('User Not Found', 'User not found in this server.');
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
                 return;
             }
 
             // Check if the bot can timeout the user
             if (!member.moderatable) {
-                await interaction.reply({
-                    content: 'I do not have permission to timeout this user.',
-                    ephemeral: true
-                });
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('No Permission', 'I do not have permission to timeout this user.');
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
                 return;
             }
 
@@ -285,16 +270,13 @@ export class DiscordModerationService {
             await member.timeout(timeoutDuration, reason);
 
             // Reply with success message
-            await interaction.reply({
-                content: `Successfully timed out ${user.tag} for ${durationMinutes} minutes. Reason: ${reason}`,
-                ephemeral: false
-            });
+            const duration = `${durationMinutes} minutes`;
+            const embed = DiscordEmbedUtils.createModerationEmbed('Timeout', user, interaction.user, reason, duration);
+            await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error timing out user:', error.message);
-            await interaction.reply({
-                content: `Failed to timeout user: ${error.message}`,
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Timeout Failed', error.message);
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
         }
     }
 
@@ -306,10 +288,8 @@ export class DiscordModerationService {
         // Get the user to remove timeout from
         const user = interaction.options.getUser('user');
         if (!user) {
-            await interaction.reply({
-                content: 'You must specify a user to remove timeout from.',
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Invalid User', 'You must specify a user to remove timeout from.');
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             return;
         }
 
@@ -317,19 +297,15 @@ export class DiscordModerationService {
             // Get the guild member
             const member = await interaction.guild?.members.fetch(user.id);
             if (!member) {
-                await interaction.reply({
-                    content: 'User not found in this server.',
-                    ephemeral: true
-                });
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('User Not Found', 'User not found in this server.');
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
                 return;
             }
 
             // Check if the bot can modify the user
             if (!member.moderatable) {
-                await interaction.reply({
-                    content: 'I do not have permission to remove timeout from this user.',
-                    ephemeral: true
-                });
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('No Permission', 'I do not have permission to remove timeout from this user.');
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
                 return;
             }
 
@@ -337,16 +313,12 @@ export class DiscordModerationService {
             await member.timeout(null);
 
             // Reply with success message
-            await interaction.reply({
-                content: `Successfully removed timeout from ${user.tag}`,
-                ephemeral: false
-            });
+            const embed = DiscordEmbedUtils.createModerationEmbed('Remove Timeout', user, interaction.user);
+            await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error removing timeout from user:', error.message);
-            await interaction.reply({
-                content: `Failed to remove timeout: ${error.message}`,
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Remove Timeout Failed', error.message);
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
         }
     }
 
@@ -358,10 +330,8 @@ export class DiscordModerationService {
         // Get the number of messages to delete
         const amount = interaction.options.getInteger('amount');
         if (!amount || amount < 1 || amount > 100) {
-            await interaction.reply({
-                content: 'You must specify a number between 1 and 100.',
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Invalid Amount', 'You must specify a number between 1 and 100.');
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             return;
         }
 
@@ -370,20 +340,22 @@ export class DiscordModerationService {
 
         try {
             // Defer the reply as this might take some time
-            await interaction.deferReply({ephemeral: true});
+            await interaction.deferReply({ ephemeral: true });
 
             // Get the channel
             const channel = interaction.channel;
-            if (!channel) {
-                await interaction.editReply('Channel not found.');
+            if (!channel || channel.type !== ChannelType.GuildText) {
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Invalid Channel', 'You must run this command in a text channel.');
+                await interaction.editReply({ embeds: [errorEmbed] });
                 return;
             }
+            const textChannel = channel as TextChannel;
 
             // Fetch messages
-            const messages = await channel.messages.fetch({limit: 100});
+            const messages = await textChannel.messages.fetch({ limit: 100 });
 
             // Filter messages if a user is specified
-            let messagesToDelete = [...messages.values()];
+            let messagesToDelete = Array.from(messages.values());
             if (user) {
                 messagesToDelete = messagesToDelete.filter(msg => msg.author.id === user.id);
             }
@@ -393,7 +365,8 @@ export class DiscordModerationService {
 
             // Check if there are any messages to delete
             if (messagesToDelete.length === 0) {
-                await interaction.editReply('No messages found to delete.');
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('No Messages Found', 'No messages found to delete.');
+                await interaction.editReply({ embeds: [errorEmbed] });
                 return;
             }
 
@@ -409,7 +382,7 @@ export class DiscordModerationService {
                 });
 
                 if (bulkDeleteMessages.length > 0) {
-                    await channel.bulkDelete(bulkDeleteMessages);
+                    await textChannel.bulkDelete(bulkDeleteMessages);
                 }
 
                 // Delete older messages individually
@@ -428,16 +401,16 @@ export class DiscordModerationService {
             }
 
             // Reply with success message
-            await interaction.editReply(`Successfully deleted ${messagesToDelete.length} messages.`);
+            const embed = DiscordEmbedUtils.createSuccessEmbed('Messages Deleted', `Successfully deleted ${messagesToDelete.length} messages.`);
+            await interaction.editReply({ embeds: [embed] });
         } catch (error: any) {
             console.error('Error clearing messages:', error.message);
             if (interaction.deferred) {
-                await interaction.editReply(`Failed to clear messages: ${error.message}`);
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Clear Failed', error.message);
+                await interaction.editReply({ embeds: [errorEmbed] });
             } else {
-                await interaction.reply({
-                    content: `Failed to clear messages: ${error.message}`,
-                    ephemeral: true
-                });
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Clear Failed', error.message);
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             }
         }
     }
@@ -450,10 +423,8 @@ export class DiscordModerationService {
         // Get the user to warn
         const user = interaction.options.getUser('user');
         if (!user) {
-            await interaction.reply({
-                content: 'You must specify a user to warn.',
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Invalid User', 'You must specify a user to warn.');
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
             return;
         }
 
@@ -464,10 +435,8 @@ export class DiscordModerationService {
             // Get the guild member
             const member = await interaction.guild?.members.fetch(user.id);
             if (!member) {
-                await interaction.reply({
-                    content: 'User not found in this server.',
-                    ephemeral: true
-                });
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('User Not Found', 'User not found in this server.');
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
                 return;
             }
 
@@ -479,16 +448,12 @@ export class DiscordModerationService {
             }
 
             // Reply with success message
-            await interaction.reply({
-                content: `Successfully warned ${user.tag} for reason: ${reason}`,
-                ephemeral: false
-            });
+            const embed = DiscordEmbedUtils.createModerationEmbed('Warn', user, interaction.user, reason);
+            await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error warning user:', error.message);
-            await interaction.reply({
-                content: `Failed to warn user: ${error.message}`,
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Warn Failed', error.message);
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
         }
     }
 
@@ -504,10 +469,8 @@ export class DiscordModerationService {
             // Get the guild member
             const member = await interaction.guild?.members.fetch(user.id);
             if (!member) {
-                await interaction.reply({
-                    content: 'User not found in this server.',
-                    ephemeral: true
-                });
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('User Not Found', 'User not found in this server.');
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
                 return;
             }
 
@@ -527,16 +490,12 @@ export class DiscordModerationService {
             ].join('\n');
 
             // Reply with the user information
-            await interaction.reply({
-                content: userInfo,
-                ephemeral: false
-            });
+            const embed = DiscordEmbedUtils.createInfoEmbed(`User Information for ${user.tag}`, userInfo);
+            await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error getting user info:', error.message);
-            await interaction.reply({
-                content: `Failed to get user info: ${error.message}`,
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Get User Info Failed', error.message);
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
         }
     }
 
@@ -548,10 +507,8 @@ export class DiscordModerationService {
         try {
             const guild = interaction.guild;
             if (!guild) {
-                await interaction.reply({
-                    content: 'This command can only be used in a server.',
-                    ephemeral: true
-                });
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Not in a Server', 'This command can only be used in a server.');
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
                 return;
             }
 
@@ -579,16 +536,45 @@ export class DiscordModerationService {
             ].join('\n');
 
             // Reply with the server information
-            await interaction.reply({
-                content: serverInfo,
-                ephemeral: false
-            });
+            const embed = DiscordEmbedUtils.createInfoEmbed(`Server Information for ${guild?.name}`, serverInfo);
+            await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error getting server info:', error.message);
-            await interaction.reply({
-                content: `Failed to get server info: ${error.message}`,
-                ephemeral: true
-            });
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Server Info Failed', error.message);
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+        }
+    }
+
+    /**
+     * Handle the embeder command
+     * @param interaction The command interaction
+     */
+    private async handleEmbederCommand(interaction: ChatInputCommandInteraction): Promise<void> {
+        const channel = interaction.options.getChannel('channel');
+        const title = interaction.options.getString('title')!;
+        const description = interaction.options.getString('description')!;
+        const colorString = interaction.options.getString('color');
+        let color: ColorResolvable = DiscordEmbedUtils.COLORS.PRIMARY;
+        if (colorString && /^#?[0-9A-Fa-f]{6}$/.test(colorString)) {
+            color = parseInt(colorString.replace('#',''), 16) as ColorResolvable;
+        }
+        try {
+            if (!channel || channel.type !== ChannelType.GuildText) {
+                const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Invalid Channel', 'Please specify a valid text channel.');
+                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return;
+            }
+            const textChannel = channel as TextChannel;
+            const embed = DiscordEmbedUtils.createBaseEmbed(color)
+                .setTitle(title)
+                .setDescription(description);
+            await textChannel.send({ embeds: [embed] });
+            const successEmbed = DiscordEmbedUtils.createSuccessEmbed('Embed Posted', `Embed posted to ${textChannel.toString()}`);
+            await interaction.reply({ embeds: [successEmbed], ephemeral: true });
+        } catch (error: any) {
+            console.error('Error executing embeder command:', error.message);
+            const errorEmbed = DiscordEmbedUtils.createErrorEmbed('Embed Failed', error.message);
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
         }
     }
 
@@ -735,7 +721,35 @@ export class DiscordModerationService {
 
             new SlashCommandBuilder()
                 .setName('serverinfo')
-                .setDescription('Get information about the server')
+                .setDescription('Get information about the server'),
+            new SlashCommandBuilder()
+                .setName('embeder')
+                .setDescription('Post a custom embed to a specific channel')
+                .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+                .addChannelOption(option =>
+                    option
+                        .setName('channel')
+                        .setDescription('Target channel for the embed')
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName('title')
+                        .setDescription('Title of the embed')
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName('description')
+                        .setDescription('Description of the embed')
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName('color')
+                        .setDescription('Hex color code for the embed (e.g. #FF0000)')
+                        .setRequired(false)
+                )
         ];
     }
 }
