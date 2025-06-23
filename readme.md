@@ -629,7 +629,11 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
    ```bash
    docker build -t skyvps360/skypanel-app .
    ```
-
+   or for a clean build using no cache:
+   ```bash
+   docker builder prune -f
+   docker build --no-cache -t skyvps360/skypanel-app .
+   ```
 ### Pushing to Docker Hub
 
 1. Log in to Docker Hub:
