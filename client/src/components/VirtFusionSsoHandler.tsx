@@ -17,10 +17,7 @@ export function VirtFusionSsoHandler() {
       try {
         const endpoint = serverId 
           ? `/api/sso/virtfusion/server/${serverId}/token` 
-          : '/api/sso/virtfusion/token';
-        
-        console.log(`Requesting SSO token from: ${endpoint}`);
-        
+          : '/api/sso/virtfusion/token';        
         // Make the request with proper configuration
         const data = await apiRequest(endpoint, {
           method: 'POST',
@@ -35,9 +32,7 @@ export function VirtFusionSsoHandler() {
           console.error('Received HTML instead of JSON response from SSO endpoint');
           throw new Error('Server returned HTML instead of JSON. This may be due to route conflict with the API docs page.');
         }
-        
-        console.log('SSO token response data:', data);
-        
+
         // Simple validation of the response data
         if (!data || typeof data !== 'object') {
           throw new Error('Invalid response format from SSO endpoint');
@@ -51,10 +46,7 @@ export function VirtFusionSsoHandler() {
     },
     onSuccess: (data) => {
       if (data.success && data.redirectUrl && data.token) {
-        // Log redirect URL before navigation
-        console.log(`Redirecting to VirtFusion panel: ${data.redirectUrl}`);
-        console.log(`Token received (truncated): ${data.token.substring(0, 10)}...`);
-        
+        // Log redirect URL before navigation        
         // Use direct window location for redirection to VirtFusion panel
         window.location.href = data.redirectUrl;
         
@@ -128,18 +120,13 @@ export function VirtFusionSsoHandler() {
     const handleSsoEvent = (event: Event) => {
       try {
         const customEvent = event as CustomEvent;
-        console.log('VirtFusion SSO event received:', customEvent.detail);
-        
         if (customEvent.detail) {
           const { serverId } = customEvent.detail;
-          console.log('Initiating SSO request', serverId ? `for server ID ${serverId}` : 'for main panel');
           virtFusionSsoMutation.mutate(serverId);
         } else {
-          console.warn('SSO event has no detail property');
           virtFusionSsoMutation.mutate(undefined);
         }
       } catch (error) {
-        console.error('Error handling SSO event:', error);
         toast({
           title: "Error",
           description: "Failed to process SSO request",
@@ -150,7 +137,6 @@ export function VirtFusionSsoHandler() {
     
     // Handler for test events (used by buttons to check if handler is active)
     const handleTestEvent = (event: Event) => {
-      console.log('VirtFusion SSO test event received');
       // Respond to the test event to let buttons know the handler is active
       document.dispatchEvent(new CustomEvent('virtfusion-sso-test-response'));
     };
@@ -158,13 +144,11 @@ export function VirtFusionSsoHandler() {
     // Add event listeners
     document.addEventListener('virtfusion-sso', handleSsoEvent);
     document.addEventListener('virtfusion-sso-test', handleTestEvent);
-    console.log('VirtFusion SSO event listeners registered');
     
     // Clean up
     return () => {
       document.removeEventListener('virtfusion-sso', handleSsoEvent);
       document.removeEventListener('virtfusion-sso-test', handleTestEvent);
-      console.log('VirtFusion SSO event listeners removed');
     };
   }, [virtFusionSsoMutation, toast]);
 

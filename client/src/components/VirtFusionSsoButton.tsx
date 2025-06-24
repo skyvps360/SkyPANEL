@@ -88,9 +88,7 @@ export function VirtFusionSsoButton({
       const eventDetail = serverId 
         ? { serverId, timestamp: Date.now(), source: 'VirtFusionSsoButton' }
         : { timestamp: Date.now(), source: 'VirtFusionSsoButton' };
-      
-      console.log(`Dispatching VirtFusion SSO event with details:`, eventDetail);
-      
+            
       const event = new CustomEvent('virtfusion-sso', {
         detail: eventDetail
       });

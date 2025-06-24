@@ -15,7 +15,6 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
         const maintenanceBypassCookie = cookies.find(cookie => cookie.startsWith('maintenance_bypass='));
 
         if (maintenanceBypassCookie) {
-            console.log('Maintenance bypass cookie already exists');
             setBypassGranted(true);
             return;
         }
@@ -43,7 +42,6 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
                 .then(data => {
                     if (data.success) {
                         // If token is valid, grant bypass and save to localStorage
-                        console.log('Maintenance bypass granted via token validation');
                         setBypassGranted(true);
                         if (tokenToValidate) {
                             localStorage.setItem('maintenanceBypassToken', tokenToValidate);
@@ -78,19 +76,16 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
     const isPathAllowed = () => {
         // Always allow the home page (exact match only)
         if (location === '/' || location === '' || location === '/index.html') {
-            console.log('Home page access allowed during maintenance');
             return true;
         }
 
         // Always allow the maintenance page itself and any variants with query params
         if (location === '/maintenance' || location.startsWith('/maintenance')) {
-            console.log('Maintenance page access allowed');
             return true;
         }
 
         // Direct match for exact paths
         if (allowedPaths.includes(location)) {
-            console.log(`Path ${location} is explicitly allowed during maintenance`);
             return true;
         }
 
@@ -100,9 +95,7 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
             location.startsWith('/docs/');
 
         if (isAllowed) {
-            console.log(`Path ${location} is allowed during maintenance due to prefix match`);
         } else {
-            console.log(`Path ${location} is not allowed during maintenance`);
         }
 
         return isAllowed;
@@ -143,7 +136,6 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
                     // Add additional check to prevent infinite redirects
                     if (data.enabled && !isPathAllowed() && !isAdmin && !bypassGranted &&
                         location !== '/maintenance' && location !== '/auth') {
-                        console.log('Redirecting to maintenance page from:', location);
                         setLocation('/maintenance');
                     }
                 }

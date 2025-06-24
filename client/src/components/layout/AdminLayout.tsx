@@ -217,8 +217,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setTimeout(() => {
           document.body.classList.remove(`theme-refresh-${cacheKey}`);
         }, 50);
-
-        console.log('Applied brand colors to Shadcn theme in Admin with cache bust');
       });
     }
   }, [brandColorOptions, brandSettings?.primary_color, brandSettings?.company_color]);
@@ -231,9 +229,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Set up navigate for wouter - use a stable reference with real navigation
   const [, nativeNavigate] = useLocation();
   const navigate = useRef((url: string) => {
-    console.log("Navigating to:", url);
     if (url.startsWith("/admin/tickets/") && url !== "/admin/tickets") {
-      console.log("Special navigation to ticket detail page:", url);
       // Force page to reload for ticket detail pages to ensure proper rendering
       window.location.href = url;
       return;
@@ -258,11 +254,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     setIsSearching(true);
     const lowerQuery = query.toLowerCase();
-
-    // Debug logging - will show in console what we're searching with
-    console.log('Performing search with query:', query);
-    console.log('Server data available for search:', serversData);
-
     const results: SearchResult[] = [];
 
     // Search users
@@ -331,21 +322,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     // Search servers
     serversData?.forEach((server) => {
-      // For debugging - check each server being examined
-      console.log(`Checking server:`, server, `against query: ${lowerQuery}`);
-
       // Check if this server matches the search query
       const nameMatch = server.name?.toLowerCase().includes(lowerQuery);
       const uuidMatch = server.uuid?.toLowerCase().includes(lowerQuery);
       const idMatch = server.id.toString() === lowerQuery;
-
-      // Log match results
-      if (nameMatch || uuidMatch || idMatch) {
-        console.log(`MATCH FOUND! Server matches search:`,
-          nameMatch ? 'by name' : uuidMatch ? 'by UUID' : 'by ID',
-          server
-        );
-      }
 
       if (nameMatch || uuidMatch || idMatch) {
         // Determine server status for display
@@ -380,21 +360,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           icon: <Server className="h-4 w-4" />,
         };
 
-        // Log the result object being added
-        console.log('Adding server search result:', serverResult);
-
         results.push(serverResult);
       }
-    });
-
-    // Log all results found
-    console.log('ALL SEARCH RESULTS:', results);
-    console.log('Search results by type:', {
-      users: results.filter(r => r.type === "user").length,
-      tickets: results.filter(r => r.type === "ticket").length,
-      billing: results.filter(r => r.type === "billing").length,
-      servers: results.filter(r => r.type === "server").length,
-      settings: results.filter(r => r.type === "setting").length,
     });
 
     setSearchResults(results);
@@ -909,7 +876,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                     .filter(result => result.type === "server")
                                     .map((result, index) => {
                                       const overallIndex = searchResults.findIndex(r => r.id === result.id && r.type === result.type);
-                                      console.log('Rendering server result:', result);
                                       return (
                                         <button
                                           key={`${result.type}-${result.id}`}

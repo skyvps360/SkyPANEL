@@ -67,17 +67,13 @@ const SearchBar: React.FC = () => {
       }
 
       setIsSearching(true);
-      console.log("SEARCHING FOR:", query);
-
       try {
         const searchResults: SearchResult[] = [];
         const lowercaseQuery = query.toLowerCase().trim();
 
         // Search tickets
         sampleTickets.forEach(ticket => {
-          console.log(`Checking ticket: ${ticket.subject}`);
           if ((ticket.subject || "").toLowerCase().includes(lowercaseQuery)) {
-            console.log("MATCH FOUND");
             searchResults.push({
               id: ticket.id,
               type: "ticket",
@@ -123,8 +119,7 @@ const SearchBar: React.FC = () => {
             });
           }
         });
-
-        console.log("SEARCH RESULTS:", searchResults);
+        
         setResults(searchResults);
       } catch (error) {
         console.error("Search error:", error);

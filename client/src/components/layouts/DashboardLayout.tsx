@@ -131,10 +131,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     staleTime: 1000 * 60 * 5, // 5 minutes
     onError: (err) => {
       if (err instanceof Error && err.message.includes('HTML')) {
-        console.error('Received HTML response instead of JSON for /api/settings/branding:', err);
         toast({ title: "API Error", description: "Non-JSON response received for branding data.", variant: "destructive" });
       }
-    },
+    }
   });
 
   // Fetch public settings
@@ -143,34 +142,32 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     enabled: !!user,
     onError: (err) => {
       if (err instanceof Error && err.message.includes('HTML')) {
-        console.error('Received HTML response instead of JSON for /api/settings/public:', err);
         toast({ title: "API Error", description: "Non-JSON response received for public settings.", variant: "destructive" });
       }
-    },
+    }
   });
 
   // Update company name when settings are loaded
   useEffect(() => {
     if (brandingSettings?.company_name) {
       if (companyName !== brandingSettings.company_name) {
-        console.log('[DEBUG] setCompanyName called with', brandingSettings.company_name);
         setCompanyName(brandingSettings.company_name);
       }
     } else if (settings?.company_name) {
       if (companyName !== settings.company_name) {
-        console.log('[DEBUG] setCompanyName called with', settings.company_name);
         setCompanyName(settings.company_name);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandingSettings?.company_name, settings?.company_name]);
+  }, [brandingSettings?.company_name, settings?.company_name, companyName]);
 
   // Get brand colors using the new color system with appropriate fallbacks
   const brandColors = useMemo(() => getBrandColors({
     primaryColor: brandingSettings?.primary_color || brandingSettings?.company_color || '2563eb',
     secondaryColor: brandingSettings?.secondary_color || '10b981',
     accentColor: brandingSettings?.accent_color || 'f59e0b'
-  }), [
+  }),
+   [
     brandingSettings?.primary_color,
     brandingSettings?.company_color,
     brandingSettings?.secondary_color,
@@ -651,7 +648,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       // Immediately clear results when query is cleared
       setSearchResults([]);
     }
-  }, [searchQuery]); // Only depend on searchQuery
+  }, [searchQuery, performSearch]); // Include performSearch in dependencies
 
   // Enhanced keyboard navigation for search
   useEffect(() => {
@@ -659,8 +656,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       // Ctrl+K or Command+K to focus search and show popup
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        console.log('[DEBUG] setShowSearchPopup(true)');
-                    setShowSearchPopup(true);
+        setShowSearchPopup(true);
         // Wait for next tick to ensure popup is rendered before focusing
         setTimeout(() => {
           if (searchInputRef.current) {
@@ -674,8 +670,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
       if (e.key === "Escape") {
         if (showSearchPopup) {
-          console.log('[DEBUG] setShowSearchPopup(false)');
-                    setShowSearchPopup(false);
+          setShowSearchPopup(false);
           setSearchQuery('');
         } else if (searchQuery && isSearchFocused) {
           setSearchQuery(''); // Clear the search query if there's content
@@ -711,8 +706,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         } else if (e.key === "Enter" && activeResultIndex >= 0) {
           e.preventDefault();
           navigateToResult(searchResults[activeResultIndex]);
-          console.log('[DEBUG] setShowSearchPopup(false)');
-                    setShowSearchPopup(false);
+          setShowSearchPopup(false);
         }
       }
     };
@@ -724,8 +718,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   // Handle navigation to search result
   const navigateToResult = (result: SearchResult) => {
     setSearchQuery(''); // Clear search after selecting a result
-    console.log('[DEBUG] setShowSearchPopup(false)');
-                    setShowSearchPopup(false);
+    setShowSearchPopup(false);
     navigate(result.url);
   };
 
@@ -733,7 +726,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const toggleNavItem = (href: string | null) => {
     // Use a fallback identifier if href is null
     const identifier = href || "no-href";
-    console.log('[DEBUG] setExpandedNavItems called');
       setExpandedNavItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(identifier)) {
@@ -994,7 +986,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             <button
               className="md:hidden rounded-xl p-2.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none transition-colors duration-200"
               onClick={() => {
-                console.log('[DEBUG] setMobileMenuOpen called');
                 setMobileMenuOpen(!mobileMenuOpen);
               }}
             >
@@ -1013,11 +1004,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                     placeholder="Search for anything... (press Ctrl+K or ⌘K)"
                     value={searchQuery}
                     onChange={(e) => {
-                      console.log('[DEBUG] setSearchQuery called');
                       setSearchQuery(e.target.value);
                     }}
                     onFocus={() => {
-                      console.log('[DEBUG] setShowSearchPopup(true)');
                       setShowSearchPopup(true);
                     }}
                     className="h-11 w-full pl-11 pr-20 py-3 border border-gray-300 rounded-xl text-sm bg-gray-100/70 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 placeholder:text-gray-500"
@@ -1192,7 +1181,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   placeholder="Search for anything... (press ESC to close)"
                   value={searchQuery}
                   onChange={(e) => {
-                    console.log('[DEBUG] setSearchQuery called');
                     setSearchQuery(e.target.value);
                   }}
                   className="w-full py-2 pl-10 pr-4 outline-none text-base"
@@ -1201,7 +1189,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                 <button
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
                   onClick={() => {
-                    console.log('[DEBUG] setShowSearchPopup(false)');
                     setShowSearchPopup(false);
                     setSearchQuery('');
                   }}

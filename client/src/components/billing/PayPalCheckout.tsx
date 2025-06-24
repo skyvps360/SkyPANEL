@@ -175,17 +175,14 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
               try {
                 // Capture the order
                 const details = await actions.order.capture();
-                console.log("PayPal order captured:", details);
 
                 // Handle the successful payment
                 await handlePayPalSuccess(details);
               } catch (error) {
-                console.error("Error capturing PayPal order:", error);
                 handlePayPalError(error);
               }
             }}
             onError={(error) => {
-              console.error("PayPal button error:", error);
               handlePayPalError(error);
             }}
             onCancel={() => {
