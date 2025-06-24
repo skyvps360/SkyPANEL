@@ -283,16 +283,29 @@ export class DiscordBotCore {
                 const action = parts[0];
                 const ticketId = parseInt(parts[1]);
 
-                if (action === 'close') {
-                    await this.ticketService.updateThreadStatus(ticketId, 'closed', interaction.user.username);
-                } else if (action === 'reopen') {
-                    await this.ticketService.updateThreadStatus(ticketId, 'open', interaction.user.username);
-                }
+                try {
+                    // Update the ticket status in the database first
+                    const newStatus = action === 'close' ? 'closed' : 'open';
+                    await storage.updateTicket(ticketId, { status: newStatus });
+                    
+                    // Then update the Discord thread status
+                    if (action === 'close') {
+                        await this.ticketService.updateThreadStatus(ticketId, 'closed', interaction.user.username);
+                    } else if (action === 'reopen') {
+                        await this.ticketService.updateThreadStatus(ticketId, 'open', interaction.user.username);
+                    }
 
-                await interaction.reply({
-                    content: `Ticket #${ticketId} ${action === 'close' ? 'closed' : 'reopened'}`,
-                    ephemeral: true
-                });
+                    await interaction.reply({
+                        content: `Ticket #${ticketId} ${action === 'close' ? 'closed' : 'reopened'} successfully`,
+                        ephemeral: true
+                    });
+                } catch (error: any) {
+                    console.error(`Error ${action}ing ticket #${ticketId}:`, error.message);
+                    await interaction.reply({
+                        content: `Failed to ${action} ticket #${ticketId}. Please try again.`,
+                        ephemeral: true
+                    });
+                }
             }
         } catch (error: any) {
             console.error('Error handling button interaction:', error.message);
