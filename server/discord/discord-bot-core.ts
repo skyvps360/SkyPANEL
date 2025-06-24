@@ -328,6 +328,15 @@ export class DiscordBotCore {
     }
 
     /**
+     * Get the Discord role ID from settings
+     * @returns The role ID or null if not configured
+     */
+    public async getRoleId(): Promise<string | null> {
+        const setting = await storage.getSetting('discord_role_id');
+        return setting?.value || process.env.DISCORD_ROLE_ID || null;
+    }
+
+    /**
      * Get the Discord client instance
      * @returns The Discord client
      */

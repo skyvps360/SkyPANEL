@@ -74,6 +74,8 @@ export class DiscordService {
    */
   private async getRoleId(): Promise<string> {
     const setting = await storage.getSetting('discord_role_id');
+    console.log('Discord role ID setting retrieved:', setting);
+    console.log('Discord role ID value:', setting?.value);
     return setting?.value || '';
   }
 
@@ -105,6 +107,8 @@ export class DiscordService {
 
       // Create a role mention if a role ID is configured
       const roleMention = roleId ? `<@&${roleId}> ` : '';
+      console.log('Role ID for new ticket notification:', roleId);
+      console.log('Role mention for new ticket notification:', roleMention);
 
       const payload: WebhookPayload = {
         content: roleId ? `${roleMention}A new support ticket has been created.` : undefined,

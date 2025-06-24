@@ -294,8 +294,13 @@ export class DiscordTicketService {
             // Send the initial message with the embed and buttons
             await thread.send({embeds: [embed], components: [ticketButtons]});
 
-            // Send a notification that the ticket has been created
-            await thread.send(`<@&${process.env.DISCORD_ROLE_ID || ''}> A new support ticket has been created.`);
+            // Send a notification that the ticket has been created with proper role ping
+            const roleId = await discordBotCore.getRoleId();
+            if (roleId) {
+                await thread.send(`<@&${roleId}> A new support ticket has been created.`);
+            } else {
+                await thread.send('A new support ticket has been created.');
+            }
 
             console.log(`Created Discord thread for ticket #${ticketId}`);
             return {success: true, threadId: thread.id};
