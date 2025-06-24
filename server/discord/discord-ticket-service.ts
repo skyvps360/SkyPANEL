@@ -440,7 +440,7 @@ export class DiscordTicketService {
             // Send the status update
             await thread.send({embeds: [embed]});
 
-            // If closing, add a reopen button
+            // If closing, add a reopen button and archive the thread
             if (status.toLowerCase() === 'closed') {
                 const reopenButton = new ActionRowBuilder<ButtonBuilder>()
                     .addComponents(
@@ -454,9 +454,27 @@ export class DiscordTicketService {
                     content: 'This ticket has been closed. You can reopen it using the button below.',
                     components: [reopenButton]
                 });
+
+                // Archive the thread to close it
+                try {
+                    await thread.setArchived(true, 'Ticket closed');
+                    console.log(`Archived Discord thread for closed ticket #${ticketId}`);
+                } catch (archiveError: any) {
+                    console.error(`Error archiving thread for ticket #${ticketId}:`, archiveError.message);
+                }
             }
-            // If reopening, add a close button
+            // If reopening, add a close button and unarchive the thread
             else if (status.toLowerCase() === 'open') {
+                // Unarchive the thread first if it's archived
+                try {
+                    if (thread.archived) {
+                        await thread.setArchived(false, 'Ticket reopened');
+                        console.log(`Unarchived Discord thread for reopened ticket #${ticketId}`);
+                    }
+                } catch (unarchiveError: any) {
+                    console.error(`Error unarchiving thread for ticket #${ticketId}:`, unarchiveError.message);
+                }
+
                 const closeButton = new ActionRowBuilder<ButtonBuilder>()
                     .addComponents(
                         new ButtonBuilder()
