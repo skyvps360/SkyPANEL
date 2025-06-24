@@ -1,4 +1,4 @@
-import { ReactNode, useState, useRef, useEffect, useMemo } from "react";
+import { ReactNode, useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -195,33 +195,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     });
   }, [brandingSettings?.primary_color, brandingSettings?.company_color, brandingSettings?.secondary_color, brandingSettings?.accent_color]);
 
-  // Auto-expand navigation items based on current route.
-  // The previous implementation always created a new `Set`, which triggered
-  // a state update on every render and ultimately caused the
-  // "Maximum update depth exceeded" warning. We now only update state when the
-  // identifier **actually** needs to be added.
-  useEffect(() => {
-    mainNavigation.forEach(item => {
-      if (!item.children) return;
-
-      const isOnChildPage = item.children.some(child => location === child.href);
-      if (!isOnChildPage) return;
-
-      const identifier = item.href || item.name;
-
-      console.log('[DEBUG] setExpandedNavItems called');
-      setExpandedNavItems(prev => {
-        if (prev.has(identifier)) {
-          // No change → return the same reference to avoid unnecessary updates.
-          return prev;
-        }
-        const next = new Set(prev);
-        next.add(identifier);
-        return next;
-      });
-    });
-  }, [location]);
-
   const queryClient = useQueryClient();
 
   // Define searchable content categories
@@ -371,7 +344,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   ];
 
   // Main navigation items (removed Support Tickets and Live Support - they'll be under VirtFusion Panel)
-  const mainNavigation: NavigationItem[] = [
+  // Memoize to prevent infinite re-renders in useEffect
+  const mainNavigation: NavigationItem[] = useMemo(() => [
     {
       name: "Dashboard",
       href: "/dashboard",
@@ -412,13 +386,19 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
    //   href: "/api-docs",
    //   icon: <Code className="h-5 w-5 mr-3" />,
    // },
-  ];
+  ], [companyName]);
 
   // Admin navigation items - empty as admin link is in dropdown
   const adminNavigation: NavigationItem[] = [];
 
+  // Auto-expand navigation items based on current route.
+  // REMOVED: This useEffect was causing infinite re-renders and is not needed
+  // since the current navigation structure doesn't have nested children.
+  // If nested navigation is added in the future, this logic should be implemented
+  // more carefully to avoid infinite loops.
+
   // Improved search function with better organization and shortcuts
-  const performSearch = (query: string) => {
+  const performSearch = useCallback((query: string) => {
     setIsSearching(true);
     try {
       const cleanQuery = query.trim().toLowerCase();
@@ -656,7 +636,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       console.error('Search failed:', error);
       toast({ title: "Search Error", description: "An error occurred while searching. Please try again.", variant: "destructive" });
     }
-  };
+  }, [user, users, tickets, transactions, toast]);
 
   // Handle search input changes with debounce
   useEffect(() => {

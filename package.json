@@ -5,6 +5,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "dev:clean": "npm run clean && npm run dev",
+    "clean": "rimraf node_modules/.vite",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:restart": "npm run build && pm2 delete all && pm2 start pm2.config.cjs",
     "build:start": "npm run build && pm2 start pm2.config.cjs",
@@ -153,6 +155,7 @@
     "drizzle-kit": "^0.30.6",
     "husky": "^8.0.3",
     "npm-check-updates": "^16.8.0",
+    "rimraf": "^6.0.1",
     "vitest": "^3.2.3"
   },
   "optionalDependencies": {
