@@ -5,7 +5,9 @@
 			"path": "."
 		}
 	],
-	"settings": {},
+	"settings": {
+		"continue.enableConsole": true
+	},
 	"launch": {
 		"configurations": [
 			

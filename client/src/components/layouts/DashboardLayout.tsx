@@ -419,35 +419,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
   // Improved search function with better organization and shortcuts
   const performSearch = (query: string) => {
-    if (!query || !query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    console.log('[DEBUG] setIsSearching(true)');
-        setIsSearching(true);
-    const cleanQuery = query.toLowerCase().trim();
-
+    setIsSearching(true);
     try {
-      // Start with empty results
+      const cleanQuery = query.trim().toLowerCase();
       const results: SearchResult[] = [];
-
-      // Always include navigation shortcuts that match the query for all users
-      globalShortcuts.forEach(shortcut => {
-        if (shortcut.name.toLowerCase().includes(cleanQuery) ||
-            shortcut.description.toLowerCase().includes(cleanQuery)) {
-          results.push({
-            id: `shortcut-${shortcut.id}`,
-            type: "ticket", // We reuse the existing types for compatibility
-            name: shortcut.name,
-            description: shortcut.description,
-            url: shortcut.url,
-            icon: shortcut.icon,
-          });
-        }
-      });
-
-      // Admin-specific content
       if (user?.role === "admin") {
         // Add admin navigation shortcuts
         adminShortcuts.forEach(shortcut => {
@@ -670,7 +645,16 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             description: "Manage your account settings",
             url: "/profile",
             icon: <Users className="h-4 w-4" />,
-        setIsSearching(false);
+          });
+        }
+      }
+      setSearchResults(results);
+      setIsSearching(false);
+    } catch (error) {
+      setIsSearching(false);
+      // Log error for debugging and show user-friendly message
+      console.error('Search failed:', error);
+      toast({ title: "Search Error", description: "An error occurred while searching. Please try again.", variant: "destructive" });
     }
   };
 
@@ -1030,8 +1014,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             {/* Mobile Menu Button */}
             <button
               className="md:hidden rounded-xl p-2.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none transition-colors duration-200"
-              onClick={() => console.log('[DEBUG] setMobileMenuOpen called');
-              setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => {
+                console.log('[DEBUG] setMobileMenuOpen called');
+                setMobileMenuOpen(!mobileMenuOpen);
+              }}
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -1047,10 +1033,14 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                     type="text"
                     placeholder="Search for anything... (press Ctrl+K or ⌘K)"
                     value={searchQuery}
-                    onChange={(e) => console.log('[DEBUG] setSearchQuery called');
-                        setSearchQuery(e.target.value)}
-                    onFocus={() => console.log('[DEBUG] setShowSearchPopup(true)');
-                    setShowSearchPopup(true)}
+                    onChange={(e) => {
+                      console.log('[DEBUG] setSearchQuery called');
+                      setSearchQuery(e.target.value);
+                    }}
+                    onFocus={() => {
+                      console.log('[DEBUG] setShowSearchPopup(true)');
+                      setShowSearchPopup(true);
+                    }}
                     className="h-11 w-full pl-11 pr-20 py-3 border border-gray-300 rounded-xl text-sm bg-gray-100/70 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 placeholder:text-gray-500"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-4">
@@ -1222,8 +1212,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   type="text"
                   placeholder="Search for anything... (press ESC to close)"
                   value={searchQuery}
-                  onChange={(e) => console.log('[DEBUG] setSearchQuery called');
-                        setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    console.log('[DEBUG] setSearchQuery called');
+                    setSearchQuery(e.target.value);
+                  }}
                   className="w-full py-2 pl-10 pr-4 outline-none text-base"
                   autoFocus
                 />
