@@ -284,27 +284,33 @@ export class DiscordBotCore {
                 const ticketId = parseInt(parts[1]);
 
                 try {
-                    // Update the ticket status in the database first
+                    // Defer the reply to give us more time
+                    await interaction.deferReply({ ephemeral: true });
+
+                    // Update the ticket status in the database
                     const newStatus = action === 'close' ? 'closed' : 'open';
                     await storage.updateTicket(ticketId, { status: newStatus });
                     
-                    // Then update the Discord thread status
+                    // Then update the Discord thread status (this may archive the thread)
                     if (action === 'close') {
                         await this.ticketService.updateThreadStatus(ticketId, 'closed', interaction.user.username);
                     } else if (action === 'reopen') {
                         await this.ticketService.updateThreadStatus(ticketId, 'open', interaction.user.username);
                     }
 
-                    await interaction.reply({
-                        content: `Ticket #${ticketId} ${action === 'close' ? 'closed' : 'reopened'} successfully`,
-                        ephemeral: true
+                    // Send the final reply
+                    await interaction.editReply({
+                        content: `Ticket #${ticketId} ${action === 'close' ? 'closed' : 'reopened'} successfully`
                     });
                 } catch (error: any) {
                     console.error(`Error ${action}ing ticket #${ticketId}:`, error.message);
-                    await interaction.reply({
-                        content: `Failed to ${action} ticket #${ticketId}. Please try again.`,
-                        ephemeral: true
-                    });
+                    try {
+                        await interaction.editReply({
+                            content: `Failed to ${action} ticket #${ticketId}. Please try again.`
+                        });
+                    } catch (editError) {
+                        console.error('Failed to edit deferred reply:', editError);
+                    }
                 }
             }
         } catch (error: any) {

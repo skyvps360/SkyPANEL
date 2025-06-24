@@ -440,7 +440,7 @@ export class DiscordTicketService {
             // Send the status update
             await thread.send({embeds: [embed]});
 
-            // If closing, add a reopen button and archive the thread
+            // If closing, send final message with reopen button, then archive the thread
             if (status.toLowerCase() === 'closed') {
                 const reopenButton = new ActionRowBuilder<ButtonBuilder>()
                     .addComponents(
@@ -455,7 +455,7 @@ export class DiscordTicketService {
                     components: [reopenButton]
                 });
 
-                // Archive the thread to close it
+                // Archive the thread to close it - do this LAST
                 try {
                     await thread.setArchived(true, 'Ticket closed');
                     console.log(`Archived Discord thread for closed ticket #${ticketId}`);
