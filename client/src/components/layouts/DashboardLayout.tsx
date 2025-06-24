@@ -126,32 +126,44 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const searchResultsRef = useRef<HTMLDivElement>(null);
 
   // Fetch branding settings to get company name and brand colors
-  const { data: brandingSettings } = useQuery<{
-    company_name: string,
-    company_color?: string,  // Keep for backward compatibility
-    primary_color?: string,
-    secondary_color?: string,
-    accent_color?: string,
-
-  }>({
+  const { data: brandingSettings, isLoading: brandingLoading, error: brandingError, isError: brandingIsError } = useQuery({
     queryKey: ["/api/settings/branding"],
     enabled: !!user,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    onError: (err) => {
+      if (err instanceof Error && err.message.includes('HTML')) {
+        console.error('Received HTML response instead of JSON for /api/settings/branding:', err);
+        toast({ title: "API Error", description: "Non-JSON response received for branding data.", variant: "destructive" });
+      }
+    },
   });
 
   // Fetch public settings
-  const { data: settings = {} } = useQuery<Record<string, string>>({
+  const { data: settings = {}, isLoading: settingsLoading, error: settingsError, isError: settingsIsError } = useQuery({
     queryKey: ["/api/settings/public"],
     enabled: !!user,
+    onError: (err) => {
+      if (err instanceof Error && err.message.includes('HTML')) {
+        console.error('Received HTML response instead of JSON for /api/settings/public:', err);
+        toast({ title: "API Error", description: "Non-JSON response received for public settings.", variant: "destructive" });
+      }
+    },
   });
 
   // Update company name when settings are loaded
   useEffect(() => {
     if (brandingSettings?.company_name) {
-      setCompanyName(brandingSettings.company_name);
+      if (companyName !== brandingSettings.company_name) {
+        console.log('[DEBUG] setCompanyName called with', brandingSettings.company_name);
+        setCompanyName(brandingSettings.company_name);
+      }
     } else if (settings?.company_name) {
-      setCompanyName(settings.company_name);
+      if (companyName !== settings.company_name) {
+        console.log('[DEBUG] setCompanyName called with', settings.company_name);
+        setCompanyName(settings.company_name);
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandingSettings?.company_name, settings?.company_name]);
 
   // Get brand colors using the new color system with appropriate fallbacks
@@ -180,22 +192,33 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         secondaryColor: brandingSettings?.secondary_color || '10b981',
         accentColor: brandingSettings?.accent_color || 'f59e0b'
       });
-      console.log('Applied brand colors to Shadcn theme in Dashboard');
     });
   }, [brandingSettings?.primary_color, brandingSettings?.company_color, brandingSettings?.secondary_color, brandingSettings?.accent_color]);
 
-  // Auto-expand navigation items based on current route
+  // Auto-expand navigation items based on current route.
+  // The previous implementation always created a new `Set`, which triggered
+  // a state update on every render and ultimately caused the
+  // "Maximum update depth exceeded" warning. We now only update state when the
+  // identifier **actually** needs to be added.
   useEffect(() => {
-    // Check if we're on a submenu page and auto-expand the parent
     mainNavigation.forEach(item => {
-      if (item.children) {
-        const isOnChildPage = item.children.some(child => location === child.href);
-        if (isOnChildPage) {
-          // Use item.name as fallback if href is null
-          const identifier = item.href || item.name;
-          setExpandedNavItems(prev => new Set(prev).add(identifier));
+      if (!item.children) return;
+
+      const isOnChildPage = item.children.some(child => location === child.href);
+      if (!isOnChildPage) return;
+
+      const identifier = item.href || item.name;
+
+      console.log('[DEBUG] setExpandedNavItems called');
+      setExpandedNavItems(prev => {
+        if (prev.has(identifier)) {
+          // No change → return the same reference to avoid unnecessary updates.
+          return prev;
         }
-      }
+        const next = new Set(prev);
+        next.add(identifier);
+        return next;
+      });
     });
   }, [location]);
 
@@ -401,7 +424,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       return;
     }
 
-    setIsSearching(true);
+    console.log('[DEBUG] setIsSearching(true)');
+        setIsSearching(true);
     const cleanQuery = query.toLowerCase().trim();
 
     try {
@@ -646,18 +670,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             description: "Manage your account settings",
             url: "/profile",
             icon: <Users className="h-4 w-4" />,
-          });
-        }
-      }
-
-      // Reset index when results change
-      setActiveResultIndex(-1);
-      setSearchResults(results);
-    } catch (error) {
-      console.error("Search error:", error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
+        setIsSearching(false);
     }
   };
 
@@ -683,7 +696,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       // Ctrl+K or Command+K to focus search and show popup
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        setShowSearchPopup(true);
+        console.log('[DEBUG] setShowSearchPopup(true)');
+                    setShowSearchPopup(true);
         // Wait for next tick to ensure popup is rendered before focusing
         setTimeout(() => {
           if (searchInputRef.current) {
@@ -697,7 +711,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
       if (e.key === "Escape") {
         if (showSearchPopup) {
-          setShowSearchPopup(false);
+          console.log('[DEBUG] setShowSearchPopup(false)');
+                    setShowSearchPopup(false);
           setSearchQuery('');
         } else if (searchQuery && isSearchFocused) {
           setSearchQuery(''); // Clear the search query if there's content
@@ -733,7 +748,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         } else if (e.key === "Enter" && activeResultIndex >= 0) {
           e.preventDefault();
           navigateToResult(searchResults[activeResultIndex]);
-          setShowSearchPopup(false);
+          console.log('[DEBUG] setShowSearchPopup(false)');
+                    setShowSearchPopup(false);
         }
       }
     };
@@ -745,7 +761,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   // Handle navigation to search result
   const navigateToResult = (result: SearchResult) => {
     setSearchQuery(''); // Clear search after selecting a result
-    setShowSearchPopup(false);
+    console.log('[DEBUG] setShowSearchPopup(false)');
+                    setShowSearchPopup(false);
     navigate(result.url);
   };
 
@@ -753,7 +770,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const toggleNavItem = (href: string | null) => {
     // Use a fallback identifier if href is null
     const identifier = href || "no-href";
-    setExpandedNavItems(prev => {
+    console.log('[DEBUG] setExpandedNavItems called');
+      setExpandedNavItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(identifier)) {
         newSet.delete(identifier);
@@ -1012,7 +1030,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             {/* Mobile Menu Button */}
             <button
               className="md:hidden rounded-xl p-2.5 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:outline-none transition-colors duration-200"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              onClick={() => console.log('[DEBUG] setMobileMenuOpen called');
+              setMobileMenuOpen(!mobileMenuOpen)}
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -1028,8 +1047,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                     type="text"
                     placeholder="Search for anything... (press Ctrl+K or ⌘K)"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onFocus={() => setShowSearchPopup(true)}
+                    onChange={(e) => console.log('[DEBUG] setSearchQuery called');
+                        setSearchQuery(e.target.value)}
+                    onFocus={() => console.log('[DEBUG] setShowSearchPopup(true)');
+                    setShowSearchPopup(true)}
                     className="h-11 w-full pl-11 pr-20 py-3 border border-gray-300 rounded-xl text-sm bg-gray-100/70 focus:bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 placeholder:text-gray-500"
                   />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-4">
@@ -1179,7 +1200,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
               </div>
               <div className="text-center md:text-right">
                 <span className="text-gray-500 text-sm font-medium">
-                  © {new Date().getFullYear()} {companyName}. All rights reserved.
+                  &copy; {new Date().getFullYear()} {companyName}. All rights reserved.
                 </span>
               </div>
             </div>
@@ -1201,13 +1222,15 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   type="text"
                   placeholder="Search for anything... (press ESC to close)"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => console.log('[DEBUG] setSearchQuery called');
+                        setSearchQuery(e.target.value)}
                   className="w-full py-2 pl-10 pr-4 outline-none text-base"
                   autoFocus
                 />
                 <button
                   className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
                   onClick={() => {
+                    console.log('[DEBUG] setShowSearchPopup(false)');
                     setShowSearchPopup(false);
                     setSearchQuery('');
                   }}

@@ -19,6 +19,13 @@ logs/
 .cursor
 .aiignore
 *.log
+.vscode-test
+.github
+.continue
+.migration 
+# was migrations
+
 
 #Ignore vscode AI rules
 .github\copilot-instructions.md
+.config/

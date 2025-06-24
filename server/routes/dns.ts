@@ -41,7 +41,6 @@ async function replaceNameservers(domainId: number, domainName: string): Promise
       if (record.type === 'NS' && INTERSERVER_NAMESERVERS.includes(record.content)) {
         try {
           await interServerApi.deleteDnsRecord(domainId, parseInt(record.id));
-          console.log(`Deleted InterServer NS record: ${record.content}`);
         } catch (error) {
           console.error(`Failed to delete NS record ${record.content}:`, error);
         }
@@ -61,7 +60,6 @@ async function replaceNameservers(domainId: number, domainName: string): Promise
           ordername: '',
           auth: '1'
         });
-        console.log(`Added white-labeled NS record: ${nameserver}`);
       } catch (error) {
         console.error(`Failed to add NS record ${nameserver}:`, error);
       }
@@ -89,7 +87,6 @@ async function replaceNameservers(domainId: number, domainName: string): Promise
             ordername: soaRecord.ordername || '',
             auth: soaRecord.auth || '1'
           });
-          console.log(`Updated SOA record for ${domainName}`);
         }
       } catch (error) {
         console.error(`Failed to update SOA record:`, error);
@@ -126,70 +123,128 @@ router.use(requireInterServerConfig);
 
 /**
  * @route GET /api/dns/domains
- * @desc Get all DNS domains for the authenticated user
+ * @desc Get all DNS domains for the authenticated user with InterServer sync status
+ * @returns {Array} List of domains with sync status and record usage
  */
 router.get('/domains', async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.id;
+  const startTime = Date.now();
+  const userId = req.user!.id;
+  let interServerDomains: any[] = [];
+  let warning: string | null = null;
 
-    // Get domains from local database
+  try {
+    // Get domains from local database first - this is our source of truth
     const localDomains = await db
       .select()
       .from(dnsDomains)
       .where(eq(dnsDomains.userId, userId));
 
-    // Sync with InterServer API
-    try {
-      const interServerDomains = await interServerApi.getDnsList();
-
-      console.log('InterServer domains found:', interServerDomains.length);
-      console.log('Local domains to match:', localDomains.map(d => ({ id: d.id, name: d.name, interserverId: d.interserverId })));
-
-      // Return combined data with InterServer status and record usage
-      const domainsWithStatus = await Promise.all(
-        localDomains.map(async (domain) => {
-          const interServerDomain = interServerDomains.find(
-            isd => parseInt(isd.id) === domain.interserverId
-          );
-
-          console.log(`Matching domain ${domain.name}: local interserverId=${domain.interserverId}, found=${!!interServerDomain}`);
-          if (interServerDomain) {
-            console.log(`  -> Matched with InterServer domain ID ${interServerDomain.id}`);
-          }
-
-          // Get record usage for this domain
-          let recordUsage = { total: 0, userCreated: 0, default: 0 };
-          if (domain.interserverId) {
-            try {
-              const records = await interServerApi.getDnsDomain(domain.interserverId);
-              const { getDnsRecordUsageStats } = await import('../../shared/dns-record-utils');
-              recordUsage = getDnsRecordUsageStats(records, domain.name);
-            } catch (recordError) {
-              console.warn(`Could not fetch record usage for domain ${domain.name}:`, recordError);
-            }
-          }
-
-          return {
-            ...domain,
-            interServerStatus: interServerDomain ? 'active' : 'not_found',
-            interServerData: interServerDomain || null,
-            recordUsage
-          };
-        })
-      );
-
-      res.json({ domains: domainsWithStatus });
-    } catch (interServerError) {
-      console.error('InterServer API error:', interServerError);
-      // Return local data even if InterServer API fails
-      res.json({
-        domains: localDomains,
-        warning: `Could not sync with InterServer API: ${interServerError.message}`
-      });
+    if (localDomains.length === 0) {
+      return res.json({ domains: [] });
     }
+
+    // Try to fetch domains from InterServer with a timeout
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for getDnsList
+      
+      interServerDomains = await Promise.race([
+        interServerApi.getDnsList(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('InterServer API timeout')), 15000)
+        )
+      ]) as any[];
+      
+      clearTimeout(timeoutId);
+    } catch (error) {
+      console.warn(`[DNS] Warning: Could not fetch domain list from InterServer:`, error.message);
+      warning = 'Could not sync with InterServer API. Showing cached domain data.';
+    }
+
+    // Process domains in parallel with individual timeouts
+    const domainPromises = localDomains.map(async (domain) => {
+      const domainStartTime = Date.now();
+      const domainLogPrefix = `[DNS:${domain.name}]`;
+      
+      try {
+        // Find matching domain in InterServer
+        const interServerDomain = interServerDomains.find(
+          isd => isd && parseInt(isd.id) === domain.interserverId
+        );
+
+        // Initialize default response
+        const domainResult: any = {
+          ...domain,
+          interServerStatus: interServerDomain ? 'active' : 'not_found',
+          interServerData: interServerDomain || null,
+          recordUsage: { total: 0, userCreated: 0, default: 0 }
+        };
+
+        // Only try to fetch records if we found the domain in InterServer
+        if (interServerDomain && domain.interserverId) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per domain
+            
+            const records = await Promise.race([
+              interServerApi.getDnsDomain(domain.interserverId),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Domain records fetch timeout')), 10000)
+              )
+            ]);
+            
+            clearTimeout(timeoutId);
+            
+            // Only calculate usage if we got valid records
+            if (Array.isArray(records)) {
+              const { getDnsRecordUsageStats } = await import('../../shared/dns-record-utils');
+              domainResult.recordUsage = getDnsRecordUsageStats(records, domain.name);
+            }
+          } catch (recordError) {
+            console.warn(`${domainLogPrefix} Could not fetch record usage:`, recordError.message);
+            // Continue with default record usage values
+          }
+        }
+
+        return domainResult;
+      } catch (error) {
+        console.error(`${domainLogPrefix} Error processing domain:`, error);
+        // Return partial data with error status
+        return {
+          ...domain,
+          interServerStatus: 'error',
+          error: 'Failed to process domain',
+          recordUsage: { total: 0, userCreated: 0, default: 0 }
+        };
+      }
+    });
+
+    // Wait for all domains to process with a reasonable timeout
+    const domainsWithStatus = await Promise.allSettled(domainPromises);
+    
+    // Process results
+    const successfulDomains = domainsWithStatus
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+      .map(result => result.value);
+
+    const failedCount = domainsWithStatus.length - successfulDomains.length;
+    if (failedCount > 0) {
+      console.warn(`[DNS] Failed to process ${failedCount} domains`);
+      if (!warning) warning = 'Some domains could not be fully processed';
+    }
+    
+    // Return successful domains with any warnings
+    res.json({
+      domains: successfulDomains,
+      ...(warning && { warning })
+    });
+
   } catch (error) {
-    console.error('Error fetching DNS domains:', error);
-    res.status(500).json({ error: 'Failed to fetch DNS domains' });
+    console.error('[DNS] Critical error in domains endpoint:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch DNS domains',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -290,12 +345,10 @@ router.post('/domains', async (req: Request, res: Response) => {
     const interserverId = interServerResult?.id || null;
 
     if (interserverId) {
-      console.log(`Successfully created domain ${name} in InterServer with ID: ${interserverId}`);
 
       // Replace InterServer nameservers with white-labeled ones
       try {
         await replaceNameservers(interserverId, name);
-        console.log(`Successfully replaced nameservers for domain ${name}`);
       } catch (nsError) {
         console.error(`Failed to replace nameservers for domain ${name}:`, nsError);
         // Continue anyway - domain was created successfully
@@ -545,15 +598,12 @@ router.post('/domains/:id/records', async (req: Request, res: Response) => {
 
       currentRecordCount = usageStats.userCreated;
 
-      console.log(`Domain ${domain.name}: Total records: ${usageStats.total}, System records: ${usageStats.default}, User-created records: ${usageStats.userCreated}`);
-
       // Log filtered system records for debugging (only in development)
       if (process.env.NODE_ENV === 'development' && usageStats.default > 0) {
         const systemRecords = existingRecords.filter(record => {
           const { isDefaultInterServerRecord } = require('../../shared/dns-record-utils');
           return isDefaultInterServerRecord(record, domain.name);
         });
-        console.log(`System records filtered out:`, systemRecords.map(r => `${r.type}:${r.name}`));
       }
     } catch (recordCountError) {
       console.warn('Could not fetch current record count, proceeding with limit check based on plan only:', recordCountError);
@@ -584,8 +634,6 @@ router.post('/domains/:id/records', async (req: Request, res: Response) => {
         ordername: '',
         auth: '1'
       });
-
-      console.log('InterServer add record result:', interServerResult);
 
       res.status(201).json({
         message: 'DNS record added successfully to InterServer',
@@ -679,8 +727,6 @@ router.put('/domains/:domainId/records/:recordId', async (req: Request, res: Res
         }
       );
 
-      console.log('InterServer update record result:', updateResult);
-
       res.json({
         message: 'DNS record updated successfully in InterServer',
         interServerResult: updateResult
@@ -745,8 +791,6 @@ router.delete('/domains/:domainId/records/:recordId', async (req: Request, res: 
         domain.interserverId,
         recordId // Use the InterServer record ID directly
       );
-
-      console.log(`Successfully deleted DNS record ${recordId} from InterServer domain ${domain.interserverId}`);
 
       res.json({
         message: 'DNS record deleted successfully from InterServer',
