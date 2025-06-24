@@ -55,18 +55,11 @@ export function VirtFusionSsoHandler() {
           description: "Connecting to VirtFusion panel...",
           variant: "default"
         });
-      } else {
-        // Detailed logging for debugging
-        console.error('Invalid SSO response format:', data);
-        console.error('Response keys:', Object.keys(data));
-        
+      } else {        
         let missingFields = [];
         if (!data.success) missingFields.push('success');
         if (!data.redirectUrl) missingFields.push('redirectUrl');
-        if (!data.token) missingFields.push('token');
-        
-        console.error(`Missing fields in response: ${missingFields.join(', ')}`);
-        
+        if (!data.token) missingFields.push('token');        
         toast({
           title: "Connection Error",
           description: "Failed to generate VirtFusion access token. Missing: " + missingFields.join(', '),
@@ -75,7 +68,6 @@ export function VirtFusionSsoHandler() {
       }
     },
     onError: (error: any) => {
-      console.error("VirtFusion SSO error:", error);
       let errorMessage = "Failed to connect to VirtFusion panel";
       
       try {

@@ -1,16 +1,16 @@
-node_modules
-dist
+node_modules/
+dist/
 .DS_Store
-server/public
+server/public/
 vite.config.ts.*
 *.tar.gz
-attached_assets
+attached_assets/
 package-lock.json
 dnsmasq.conf
 vitest.config.ts
 logs/
 SkyPANEL.code-workspace
-migrations
+migrations/
 
 # DotFiles
 .env
