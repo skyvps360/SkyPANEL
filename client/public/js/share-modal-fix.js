@@ -31,12 +31,9 @@ document.addEventListener('DOMContentLoaded', function() {
       shareButtons.forEach(btn => {
         safeAddEventListener(btn, 'click', function(e) {
           e.preventDefault();
-          console.log('Share button clicked - using fixed handler');
           // Handle share functionality safely
         });
       });
     }
-    
-    console.log('Share modal fix applied');
   }, 500); // Small delay to ensure DOM is fully loaded
 });

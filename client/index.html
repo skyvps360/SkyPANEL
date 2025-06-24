@@ -20,12 +20,10 @@
             const adminTheme = localStorage.getItem('admin-theme') || 'dark';
             document.documentElement.classList.remove('light', 'dark');
             document.documentElement.classList.add(adminTheme);
-            console.log('Pre-React admin theme initialization:', adminTheme);
           } else {
             // For frontend, always use light theme (no dark mode for frontend)
             document.documentElement.classList.remove('light', 'dark');
             document.documentElement.classList.add('light');
-            console.log('Pre-React frontend theme initialization: light');
           }
         } catch (e) {
           console.error('Theme initialization error:', e);

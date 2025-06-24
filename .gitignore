@@ -22,10 +22,11 @@ logs/
 .vscode-test
 .github
 .continue
-.migration 
-# was migrations
-
+migrations
 
 #Ignore vscode AI rules
 .github\copilot-instructions.md
 .config/
+
+#Ignore windsurf AI rules
+.windsurfrules

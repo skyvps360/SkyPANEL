@@ -4,16 +4,10 @@
 (function() {
   'use strict';
 
-  console.log('Loading RealVNC client...');
 
   class RealVNCClient extends EventTarget {
     constructor(target, url, options = {}) {
       super();
-
-      console.log('RealVNC: Creating client');
-      console.log('RealVNC: URL:', url);
-      console.log('RealVNC: Options:', options);
-
       this.target = target;
       this.url = url;
       this.options = options;
@@ -45,10 +39,6 @@
       this.host = urlParams.get('host');
       this.port = urlParams.get('port');
       this.password = this.options.credentials?.password || '';
-
-      console.log('RealVNC: Connecting to:', this.host + ':' + this.port);
-      console.log('RealVNC: Password provided:', !!this.password);
-
       this.setupVNC();
     }
 
@@ -374,14 +364,12 @@
         this.hasFocus = true;
         this.canvas.style.borderColor = '#3b82f6';
         this.canvas.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.3)';
-        console.log('VNC: Canvas focused - input capture active');
       });
 
       this.canvas.addEventListener('blur', () => {
         this.hasFocus = false;
         this.canvas.style.borderColor = 'transparent';
         this.canvas.style.boxShadow = 'none';
-        console.log('VNC: Canvas blurred - input capture inactive');
       });
 
       // Prevent losing focus when clicking on toolbar
@@ -416,13 +404,10 @@
       try {
         this.canvas.focus({ preventScroll: true });
         this.hasFocus = true;
-        console.log('VNC: Canvas manually focused');
-
         // Force focus if it didn't work
         setTimeout(() => {
           if (!this.hasFocus) {
             this.canvas.focus();
-            console.log('VNC: Force-focused canvas after delay');
           }
         }, 100);
       } catch (error) {
@@ -431,16 +416,11 @@
     }
 
     connectToRealVNC() {
-      console.log('RealVNC: Connecting to real VNC server');
-
       // Construct WebSocket URL for VNC proxy
       // In development, Vite will proxy to the backend server
       // In production, frontend and backend are on the same server
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/vnc-proxy?host=${encodeURIComponent(this.host)}&port=${this.port}`;
-
-      console.log('RealVNC: WebSocket URL:', wsUrl);
-      console.log('RealVNC: Current host:', window.location.host);
 
       try {
         // Create WebSocket connection to VNC proxy
@@ -448,17 +428,14 @@
         this.ws.binaryType = 'arraybuffer';
 
         this.ws.onopen = () => {
-          console.log('RealVNC: WebSocket connected to proxy');
           this.updateStatus('Connected to VNC proxy, starting VNC handshake...');
         };
 
         this.ws.onmessage = (event) => {
-          console.log('RealVNC: Received data from VNC server:', event.data.byteLength, 'bytes');
           this.handleVNCData(new Uint8Array(event.data));
         };
 
         this.ws.onclose = (event) => {
-          console.log('RealVNC: WebSocket closed:', event);
           this.updateStatus('VNC connection closed');
         };
 
@@ -474,8 +451,6 @@
     }
 
     handleVNCData(data) {
-      console.log('RealVNC: Processing VNC data:', data.length, 'bytes');
-
       // Initialize VNC protocol state if needed
       if (!this.vncState) {
         this.vncState = {
@@ -502,8 +477,6 @@
       if (this.vncState.stage === 'version' && buffer.length >= 12) {
         // VNC version handshake
         const version = new TextDecoder().decode(buffer.slice(0, 12));
-        console.log('RealVNC: Server version:', version);
-
         // Send client version
         const clientVersion = 'RFB 003.008\n';
         this.ws.send(new TextEncoder().encode(clientVersion));
@@ -516,7 +489,6 @@
 
       if (this.vncState.stage === 'security' && buffer.length >= 1) {
         const securityTypes = buffer[0];
-        console.log('RealVNC: Security types count:', securityTypes);
 
         if (securityTypes === 0) {
           console.error('RealVNC: Server rejected connection');
@@ -525,15 +497,12 @@
 
         if (buffer.length >= 1 + securityTypes) {
           const types = Array.from(buffer.slice(1, 1 + securityTypes));
-          console.log('RealVNC: Available security types:', types);
 
           // Choose VNC authentication (type 2) if available
           if (types.includes(2)) {
-            console.log('RealVNC: Selecting VNC authentication');
             this.ws.send(new Uint8Array([2]));
             this.vncState.stage = 'auth_challenge';
           } else if (types.includes(1)) {
-            console.log('RealVNC: Selecting no authentication');
             this.ws.send(new Uint8Array([1]));
             this.vncState.stage = 'auth_result';
           }
@@ -545,12 +514,9 @@
       }
 
       if (this.vncState.stage === 'auth_challenge' && buffer.length >= 16) {
-        console.log('RealVNC: Received auth challenge');
 
         // Get the 16-byte challenge
         const challenge = buffer.slice(0, 16);
-        console.log('RealVNC: Challenge bytes:', Array.from(challenge).map(b => b.toString(16).padStart(2, '0')).join(' '));
-
         // Store challenge for later encryption
         this.vncState.challenge = challenge;
         this.vncState.buffer = buffer.slice(16);
@@ -562,10 +528,8 @@
 
       if (this.vncState.stage === 'auth_result' && buffer.length >= 4) {
         const result = new DataView(buffer.buffer, buffer.byteOffset, 4).getUint32(0);
-        console.log('RealVNC: Auth result:', result);
 
         if (result === 0) {
-          console.log('RealVNC: Authentication successful');
           this.vncState.authenticated = true;
 
           // Send ClientInit
@@ -601,22 +565,17 @@
           blueShift: view.getUint8(16)
         };
 
-        console.log('RealVNC: Server init - Size:', this.vncState.width + 'x' + this.vncState.height);
-        console.log('RealVNC: Pixel format:', this.vncState.pixelFormat);
-
         // Get desktop name length
         const nameLength = view.getUint32(20);
         const totalLength = 24 + nameLength;
 
         if (buffer.length < totalLength) {
-          console.log('RealVNC: Waiting for complete ServerInit message');
           return;
         }
 
         // Get desktop name
         const nameBytes = buffer.slice(24, 24 + nameLength);
         const desktopName = new TextDecoder().decode(nameBytes);
-        console.log('RealVNC: Desktop name:', desktopName);
 
         // Update canvas size
         this.canvas.width = this.vncState.width;
@@ -631,7 +590,6 @@
         if (!this.connected) {
           this.connected = true;
           this.dispatchEvent(new CustomEvent('connect'));
-          console.log('RealVNC: VNC connection fully established');
 
           // Set up input handlers now that we're connected
           this.setupInputHandlers();
@@ -647,7 +605,6 @@
         this.vncState.buffer = buffer.slice(totalLength);
 
         // Request initial framebuffer update
-        console.log('RealVNC: Requesting initial framebuffer update');
         this.requestFramebufferUpdate();
         this.vncState.updateRequested = true;
 
@@ -656,11 +613,9 @@
 
       // Handle normal VNC messages
       if (this.vncState.stage === 'normal') {
-        console.log('RealVNC: Received normal VNC message, length:', buffer.length);
 
         // Request framebuffer updates if we haven't yet
         if (!this.vncState.updateRequested) {
-          console.log('RealVNC: Requesting initial framebuffer update');
           this.requestFramebufferUpdate();
           this.vncState.updateRequested = true;
         }
@@ -698,8 +653,6 @@
     }
 
     requestFramebufferUpdate() {
-      console.log('RealVNC: Requesting framebuffer update');
-
       // VNC FramebufferUpdateRequest message
       // Message type: 3 (FramebufferUpdateRequest)
       // Incremental: 0 (full update)
@@ -726,7 +679,6 @@
       message[8] = (height >> 8) & 0xFF;
       message[9] = height & 0xFF;
 
-      console.log('RealVNC: Sending FramebufferUpdateRequest:', Array.from(message).map(b => b.toString(16).padStart(2, '0')).join(' '));
       this.ws.send(message);
     }
 
@@ -734,28 +686,21 @@
       const buffer = this.vncState.buffer;
       if (buffer.length === 0) return;
 
-      console.log('RealVNC: Processing VNC message, buffer length:', buffer.length);
-
       // Check message type
       const messageType = buffer[0];
-      console.log('RealVNC: Message type:', messageType);
 
       switch (messageType) {
         case 0: // FramebufferUpdate
           this.handleFramebufferUpdate();
           break;
         case 1: // SetColourMapEntries
-          console.log('RealVNC: SetColourMapEntries message');
           break;
         case 2: // Bell
-          console.log('RealVNC: Bell message');
           this.vncState.buffer = buffer.slice(1);
           break;
         case 3: // ServerCutText
-          console.log('RealVNC: ServerCutText message');
           break;
         default:
-          console.log('RealVNC: Unknown message type:', messageType);
           // Skip unknown message
           this.vncState.buffer = buffer.slice(1);
           break;
@@ -764,10 +709,8 @@
 
     handleFramebufferUpdate() {
       const buffer = this.vncState.buffer;
-      console.log('RealVNC: Handling FramebufferUpdate, buffer length:', buffer.length);
 
       if (buffer.length < 4) {
-        console.log('RealVNC: Insufficient data for FramebufferUpdate header');
         return;
       }
 
@@ -776,13 +719,11 @@
       // byte 1: padding
       // bytes 2-3: number of rectangles (big-endian)
       const numRectangles = (buffer[2] << 8) | buffer[3];
-      console.log('RealVNC: FramebufferUpdate with', numRectangles, 'rectangles');
 
       let offset = 4; // Skip header
 
       for (let i = 0; i < numRectangles; i++) {
         if (buffer.length < offset + 12) {
-          console.log('RealVNC: Insufficient data for rectangle', i);
           return;
         }
 
@@ -793,8 +734,6 @@
         const height = (buffer[offset + 6] << 8) | buffer[offset + 7];
         const encoding = (buffer[offset + 8] << 24) | (buffer[offset + 9] << 16) | (buffer[offset + 10] << 8) | buffer[offset + 11];
 
-        console.log(`RealVNC: Rectangle ${i}: ${x},${y} ${width}x${height} encoding=${encoding}`);
-
         offset += 12;
 
         // Handle different encodings
@@ -804,10 +743,8 @@
           const bytesPerPixel = Math.ceil(pixelFormat.bitsPerPixel / 8);
           const expectedBytes = width * height * bytesPerPixel;
 
-          console.log(`RealVNC: Raw encoding - ${bytesPerPixel} bytes per pixel, expecting ${expectedBytes} bytes`);
 
           if (buffer.length < offset + expectedBytes) {
-            console.log('RealVNC: Insufficient pixel data for rectangle', i, 'need:', expectedBytes, 'have:', buffer.length - offset);
             return;
           }
 
@@ -846,13 +783,11 @@
 
           // Draw to canvas
           this.ctx.putImageData(imageData, x, y);
-          console.log(`RealVNC: Drew rectangle ${i} at ${x},${y} with ${width}x${height} pixels`);
 
           offset += expectedBytes;
         } else if (encoding === 1) {
           // CopyRect encoding
           if (buffer.length < offset + 4) {
-            console.log('RealVNC: Insufficient data for CopyRect');
             return;
           }
 
@@ -863,10 +798,8 @@
           const imageData = this.ctx.getImageData(srcX, srcY, width, height);
           this.ctx.putImageData(imageData, x, y);
 
-          console.log(`RealVNC: CopyRect from ${srcX},${srcY} to ${x},${y}`);
           offset += 4;
         } else {
-          console.log('RealVNC: Unsupported encoding:', encoding);
           // Skip this rectangle - we don't know how much data it contains
           // This is a limitation - we should implement more encodings
           break;
@@ -884,16 +817,13 @@
 
     ensureCryptoJSAndEncrypt() {
       if (window.CryptoJS) {
-        console.log('RealVNC: crypto-js already loaded, encrypting now');
         this.performDESEncryption();
       } else {
-        console.log('RealVNC: Loading crypto-js for DES encryption...');
         this.updateStatus('Loading encryption library...');
 
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js';
         script.onload = () => {
-          console.log('RealVNC: crypto-js loaded successfully');
           this.performDESEncryption();
         };
         script.onerror = () => {
@@ -905,12 +835,9 @@
     }
 
     performDESEncryption() {
-      console.log('RealVNC: Performing DES encryption with crypto-js');
 
       const challenge = this.vncState.challenge;
       const response = this.encryptVNCPassword(this.password, challenge);
-
-      console.log('RealVNC: Sending encrypted response:', Array.from(response).map(b => b.toString(16).padStart(2, '0')).join(' '));
 
       // Verify response is not all zeros
       const isAllZeros = response.every(byte => byte === 0);
@@ -926,12 +853,9 @@
     }
 
     performFallbackEncryption() {
-      console.log('RealVNC: Using fallback encryption method');
 
       const challenge = this.vncState.challenge;
       const response = this.fallbackVNCEncryption(this.password, challenge);
-
-      console.log('RealVNC: Sending fallback encrypted response:', Array.from(response).map(b => b.toString(16).padStart(2, '0')).join(' '));
 
       this.ws.send(response);
       this.vncState.stage = 'auth_result';
@@ -940,8 +864,6 @@
 
     fallbackVNCEncryption(password, challenge) {
       // Simple but working VNC-style encryption
-      console.log('RealVNC: Fallback encryption for password:', password);
-
       // Prepare password key (8 bytes, padded with nulls)
       const key = new Uint8Array(8);
       const passwordBytes = new TextEncoder().encode(password);
@@ -964,10 +886,6 @@
     }
 
     encryptVNCPassword(password, challenge) {
-      console.log('RealVNC: Encrypting password with DES');
-      console.log('RealVNC: Password:', password);
-      console.log('RealVNC: Challenge length:', challenge.length);
-
       // Prepare password key (8 bytes, padded with nulls)
       const key = new Uint8Array(8);
       const passwordBytes = new TextEncoder().encode(password);
@@ -979,8 +897,6 @@
       for (let i = 0; i < 8; i++) {
         key[i] = this.reverseBits(key[i]);
       }
-
-      console.log('RealVNC: DES key (bit-reversed):', Array.from(key).map(b => b.toString(16).padStart(2, '0')).join(' '));
 
       // Encrypt the challenge using DES
       const response = new Uint8Array(16);
@@ -1007,30 +923,18 @@
     desEncrypt(data, key) {
       // Simple DES implementation for VNC
       // This is a basic implementation - VNC uses standard DES
-      console.log('RealVNC: DES encrypting 8 bytes');
-
       // For now, use a working DES implementation
       // This is the critical part that makes VNC auth work
       return this.simpleDES(data, key);
     }
 
     simpleDES(plaintext, key) {
-      console.log('RealVNC: DES encrypting 8 bytes with VNC-compatible method');
-      console.log('RealVNC: Plaintext:', Array.from(plaintext).map(b => b.toString(16).padStart(2, '0')).join(' '));
-      console.log('RealVNC: Key:', Array.from(key).map(b => b.toString(16).padStart(2, '0')).join(' '));
-
       try {
         if (window.CryptoJS) {
           // Use crypto-js with correct VNC DES parameters
-          console.log('RealVNC: Using crypto-js for DES encryption');
-
           // Create proper WordArrays for crypto-js
           const keyHex = Array.from(key).map(b => b.toString(16).padStart(2, '0')).join('');
           const dataHex = Array.from(plaintext).map(b => b.toString(16).padStart(2, '0')).join('');
-
-          console.log('RealVNC: Key hex:', keyHex);
-          console.log('RealVNC: Data hex:', dataHex);
-
           const keyWords = CryptoJS.enc.Hex.parse(keyHex);
           const dataWords = CryptoJS.enc.Hex.parse(dataHex);
 
@@ -1042,17 +946,12 @@
 
           // Convert ciphertext back to bytes
           const encryptedHex = encrypted.ciphertext.toString(CryptoJS.enc.Hex);
-          console.log('RealVNC: Encrypted hex:', encryptedHex);
-
           const result = new Uint8Array(8);
           for (let i = 0; i < 8; i++) {
             result[i] = parseInt(encryptedHex.substr(i * 2, 2), 16);
           }
-
-          console.log('RealVNC: DES result:', Array.from(result).map(b => b.toString(16).padStart(2, '0')).join(' '));
           return result;
         } else {
-          console.log('RealVNC: crypto-js not available, using native DES');
           return this.nativeDES(plaintext, key);
         }
       } catch (error) {
@@ -1063,8 +962,6 @@
 
     nativeDES(plaintext, key) {
       // Implement basic DES for VNC authentication
-      console.log('RealVNC: Using native DES implementation');
-
       // This is a simplified DES implementation for VNC
       // VNC DES is standard DES with bit-reversed keys
 
@@ -1094,15 +991,11 @@
         result[i] = encrypted & 0xFF;
         encrypted = encrypted >>> 8;
       }
-
-      console.log('RealVNC: Native DES result:', Array.from(result).map(b => b.toString(16).padStart(2, '0')).join(' '));
       return result;
     }
 
     fallbackDES(plaintext, key) {
       // Fallback: Use Web Crypto API or simple encryption
-      console.log('RealVNC: Using fallback DES implementation');
-
       // Simple bit manipulation as fallback
       const result = new Uint8Array(8);
       for (let i = 0; i < 8; i++) {
@@ -1162,8 +1055,6 @@
 
       this.connected = true;
       this.dispatchEvent(new CustomEvent('connect'));
-
-      console.log('RealVNC: Connection established');
     }
 
     showStatus(message) {
@@ -1202,8 +1093,6 @@
 
     // Enhanced input handlers with comprehensive VNC support
     setupInputHandlers() {
-      console.log('RealVNC: Setting up enhanced input handlers');
-
       // Mouse event handlers with improved reliability
       this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e), { passive: false });
       this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e), { passive: false });
@@ -1222,15 +1111,12 @@
       // Ensure canvas is focusable and focused
       this.canvas.tabIndex = 0;
       this.focusCanvas();
-
-      console.log('RealVNC: Enhanced input handlers set up successfully');
     }
 
     onCanvasFocus() {
       this.hasFocus = true;
       this.canvas.style.borderColor = '#3b82f6';
       this.canvas.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.3)';
-      console.log('VNC: Canvas focused - input capture active');
     }
 
     onCanvasBlur() {
@@ -1239,12 +1125,10 @@
       this.canvas.style.boxShadow = 'none';
       // Reset all modifier states when losing focus
       this.resetModifierStates();
-      console.log('VNC: Canvas blurred - input capture inactive');
     }
 
     handleMouseDown(e) {
       if (!this.connected || !this.ws) {
-        console.log('VNC: Ignoring mousedown - not connected');
         return;
       }
 
@@ -1259,8 +1143,6 @@
       if (e.button === 0) buttonMask = 1; // Left button
       if (e.button === 1) buttonMask = 2; // Middle button
       if (e.button === 2) buttonMask = 4; // Right button
-
-      console.log('VNC: Mouse down at', x, y, 'button:', e.button, 'mask:', buttonMask);
       this.sendPointerEvent(x, y, buttonMask);
       e.preventDefault();
       e.stopPropagation();
@@ -1268,16 +1150,13 @@
 
     handleMouseUp(e) {
       if (!this.connected || !this.ws) {
-        console.log('VNC: Ignoring mouseup - not connected');
         return;
       }
 
       const rect = this.canvas.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) * (this.canvas.width / rect.width));
       const y = Math.floor((e.clientY - rect.top) * (this.canvas.height / rect.height));
-
       // Send mouse up (button mask = 0)
-      console.log('VNC: Mouse up at', x, y, 'button:', e.button);
       this.sendPointerEvent(x, y, 0);
       e.preventDefault();
       e.stopPropagation();
@@ -1312,24 +1191,12 @@
 
     handleKeyDown(e) {
       if (!this.connected || !this.ws) {
-        console.log('VNC: Ignoring keydown - not connected');
         return;
       }
 
       if (!this.hasFocus) {
-        console.log('VNC: Ignoring keydown - canvas not focused');
         return;
       }
-
-      console.log('VNC: Key down:', {
-        key: e.key,
-        code: e.code,
-        keyCode: e.keyCode,
-        ctrlKey: e.ctrlKey,
-        altKey: e.altKey,
-        shiftKey: e.shiftKey,
-        metaKey: e.metaKey
-      });
 
       e.preventDefault();
       e.stopPropagation();
@@ -1339,7 +1206,6 @@
 
       const keysym = this.getKeysym(e);
       if (keysym) {
-        console.log('VNC: Sending key down:', keysym.toString(16));
         this.sendKeyEvent(keysym, true);
       } else {
         console.warn('VNC: No keysym found for key:', e.key);
@@ -1348,20 +1214,12 @@
 
     handleKeyUp(e) {
       if (!this.connected || !this.ws) {
-        console.log('VNC: Ignoring keyup - not connected');
         return;
       }
 
       if (!this.hasFocus) {
-        console.log('VNC: Ignoring keyup - canvas not focused');
         return;
       }
-
-      console.log('VNC: Key up:', {
-        key: e.key,
-        code: e.code,
-        keyCode: e.keyCode
-      });
 
       e.preventDefault();
       e.stopPropagation();
@@ -1371,7 +1229,6 @@
 
       const keysym = this.getKeysym(e);
       if (keysym) {
-        console.log('VNC: Sending key up:', keysym.toString(16));
         this.sendKeyEvent(keysym, false);
       }
     }
@@ -1391,7 +1248,6 @@
       if (modifierKey) {
         this.modifierState[modifierKey] = isDown;
         this.updateModifierIndicator(modifierKey, isDown);
-        console.log('VNC: Modifier state updated:', modifierKey, isDown);
       }
     }
 
@@ -1483,7 +1339,6 @@
     // Critical VNC Control Functions
 
     sendCtrlAltDel() {
-      console.log('VNC: Sending Ctrl+Alt+Del sequence');
       this.showToast('Sending Ctrl+Alt+Del...', 'info');
 
       // Send key sequence with proper timing
@@ -1519,8 +1374,6 @@
 
     sendClipboardText(text) {
       if (!this.connected || !this.ws) return;
-
-      console.log('VNC: Sending clipboard text as keystrokes:', text.substring(0, 50) + (text.length > 50 ? '...' : ''));
 
       // Send text as individual keystrokes with proper timing
       let delay = 0;
@@ -1600,14 +1453,12 @@
         message.set(textBytes, 8);
 
         this.ws.send(message);
-        console.log('VNC: Also sent as VNC clipboard message');
       } catch (error) {
         console.error('VNC: Error sending VNC clipboard message:', error);
       }
     }
 
     sendVirtualTerminal(terminalNumber) {
-      console.log(`VNC: Switching to virtual terminal F${terminalNumber}`);
       this.showToast(`Switching to VT${terminalNumber}...`, 'info');
 
       // Send Ctrl+Alt+F[n] sequence
@@ -1622,7 +1473,6 @@
     }
 
     sendAltTab() {
-      console.log('VNC: Sending Alt+Tab');
       this.showToast('Alt+Tab sent', 'info');
 
       setTimeout(() => this.sendKeyEvent(0xFFE9, true), 0);   // Alt down
@@ -1632,7 +1482,6 @@
     }
 
     sendWindowsKey() {
-      console.log('VNC: Sending Windows/Super key');
       this.showToast('Windows key sent', 'info');
 
       this.sendKeyEvent(0xFFEB, true);  // Meta/Super down
@@ -1640,7 +1489,6 @@
     }
 
     sendAltF4() {
-      console.log('VNC: Sending Alt+F4');
       this.showToast('Alt+F4 sent', 'info');
 
       setTimeout(() => this.sendKeyEvent(0xFFE9, true), 0);   // Alt down
@@ -1833,7 +1681,6 @@
 
     // Compatibility methods
     sendCredentials(creds) {
-      console.log('RealVNC: Credentials provided');
     }
 
     sendKey(keysym, down) {
@@ -1875,7 +1722,6 @@
   `;
   document.head.appendChild(style);
 
-  console.log('RealVNC client loaded with comprehensive VNC features');
   window.dispatchEvent(new CustomEvent('novnc-ready', {
     detail: { RFB: RealVNCClient }
   }));
