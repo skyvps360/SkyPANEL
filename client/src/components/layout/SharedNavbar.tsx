@@ -93,6 +93,7 @@ export function SharedNavbar() {
     { name: "Blog", path: "/blog" },
     { name: "Documentation", path: "/docs" },
     { name: "Status", path: "/status" },
+    { name: "PartnerBot", path: "https://partnerbot.skyvps360.xyz", external: true },
     // { name: "Speed Test", path: "/speed-test" }, // Temporarily hidden for fixes
   ];
 
@@ -220,7 +221,18 @@ export function SharedNavbar() {
           {/* Desktop menu */}
           <div className="hidden md:flex md:items-center md:space-x-4">
             {navItems.map((item) =>
-              item.path.includes("#") ? (
+              item.external ? (
+                <a
+                  key={item.path}
+                  href={item.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <NavButton active={false}>
+                    {item.name}
+                  </NavButton>
+                </a>
+              ) : item.path.includes("#") ? (
                 <a
                   key={item.path}
                   href={item.path}
@@ -304,7 +316,18 @@ export function SharedNavbar() {
       <div className={`md:hidden ${isOpen ? "block" : "hidden"}`}>
         <div className="pt-2 pb-3 space-y-1 px-4">
           {navItems.map((item) =>
-            item.path.includes("#") ? (
+            item.external ? (
+              <a
+                key={item.path}
+                href={item.path}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <MobileNavItem active={false}>
+                  {item.name}
+                </MobileNavItem>
+              </a>
+            ) : item.path.includes("#") ? (
               <a
                 key={item.path}
                 href={item.path}
