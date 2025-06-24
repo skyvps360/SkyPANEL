@@ -133,14 +133,14 @@ export default function HomePage() {
 
   const servers = serversResponse?.data || [];
 
-  // Fetch DNS domains
-  const { data: dnsDomainsResponse } = useQuery<{ domains: any[] }>({
-    queryKey: ["/api/dns/domains"],
-    staleTime: 60 * 1000, // 60 seconds
-    refetchOnWindowFocus: false, // Prevent refetch on window focus
-  });
+  // Fetch DNS domains - DISABLED: DNS functionality has been removed
+  // const { data: dnsDomainsResponse } = useQuery<{ domains: any[] }>({
+  //   queryKey: ["/api/dns/domains"],
+  //   staleTime: 60 * 1000, // 60 seconds
+  //   refetchOnWindowFocus: false, // Prevent refetch on window focus
+  // });
 
-  const dnsDomains = dnsDomainsResponse?.domains || [];
+  const dnsDomains: any[] = []; // Empty array since DNS is disabled
 
   // Calculate stats
   useEffect(() => {
@@ -158,12 +158,13 @@ export default function HomePage() {
       }));
     }
 
-    if (dnsDomains) {
-      setStats(prevStats => ({
-        ...prevStats,
-        dnsDomains: dnsDomains.length,
-      }));
-    }
+    // DNS domains stats removed since DNS functionality is disabled
+    // if (dnsDomains) {
+    //   setStats(prevStats => ({
+    //     ...prevStats,
+    //     dnsDomains: dnsDomains.length,
+    //   }));
+    // }
 
     if (balanceData) {
       setStats(prevStats => ({
@@ -183,7 +184,7 @@ export default function HomePage() {
         virtFusionCredits: tokens / 100 // Convert tokens to dollars (100 tokens = $1.00)
       }));
     }
-  }, [tickets, servers, dnsDomains, balanceData, usageData, user]);
+  }, [tickets, servers, balanceData, usageData, user]);
 
   // Always prioritize VirtFusion balance for display - including negative balances
   const hasVirtFusion = stats.virtFusionTokens !== 0 || stats.virtFusionCredits !== 0; // Show VirtFusion data for any non-zero amount

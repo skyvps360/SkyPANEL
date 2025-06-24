@@ -6,7 +6,8 @@
 		}
 	],
 	"settings": {
-		"continue.enableConsole": true
+		"continue.enableConsole": true,
+		"codium.codeCompletion.enable": true
 	},
 	"launch": {
 		"configurations": [
