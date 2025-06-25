@@ -1504,6 +1504,40 @@ SkyPANEL implements enterprise-grade security measures throughout the platform.
 
 ---
 
+## 🛡️ Compliance & Data Protection (GDPR/CCPA)
+
+SkyPANEL is designed with privacy and regulatory compliance as a core principle. The platform implements features and workflows to meet the requirements of major data protection regulations, including the General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA).
+
+### ✅ Proof of Compliance Features
+
+- **User Consent Management**: All users must explicitly accept the Privacy Policy and Terms of Service during registration and when policies are updated. (TODO: Actually Add
+- **Data Privacy**: Users can request deletion of their personal data via support ticket, with admin workflows to fulfill requests in accordance with GDPR/CCPA timelines.
+- **Data Deletion**: Users can request deletion of their personal data via support ticket, with admin workflows to fulfill requests in accordance with GDPR/CCPA timelines.
+- **Privacy Policy**: A dedicated Privacy Policy page details what data is collected, how it is used, and users' rights.
+- **Data Export & Deletion**: Users can request export or permanent deletion of their personal data via support ticket, with admin workflows to fulfill requests in accordance with GDPR/CCPA timelines.
+- **Right to be Forgotten**: Full account deletion and data erasure supported upon verified user request.
+- **Audit Logging**: All access to personal data, administrative actions, and sensitive operations are logged for accountability and auditability.
+- **Access Controls**: Role-based access control (RBAC) and scoped API keys restrict access to personal data to only authorized staff.
+- **Data Minimization**: Only essential data is collected and retained, following the principle of least privilege.
+- **Data Portability**: Users can request a machine-readable export of their data (JSON or CSV).
+- **Data Security**: All personal data is encrypted in transit (TLS) and at rest. Access is strictly limited and monitored.
+- **Cookie Consent**: Cookie usage is disclosed and consent is obtained where required.
+- **Incident Response**: Data breach procedures and user notification workflows are in place.
+- **Compliance Documentation**: Records of consent, deletion/export requests, and audit logs are maintained for regulatory review.
+
+### 🔎 Where to Find Compliance Features in SkyPANEL
+
+- **Privacy Policy**: `/privacy` page in the client portal
+- **Terms of Service**: `/tos` page in the client portal
+- **Data Export/Deletion**: Request via support ticket or contact admin
+- **Audit Logs**: Maintained in the admin dashboard (not user-facing)
+- **Access Controls**: Enforced in backend and admin UI
+- **Cookie Consent**: Banner on first visit and in account settings
+
+SkyPANEL is committed to ongoing compliance and regularly reviews its policies and technical measures to meet evolving regulatory standards.
+
+---
+
 ## 🔧 Troubleshooting
 
 Common issues and their solutions for SkyPANEL deployment and operation.
