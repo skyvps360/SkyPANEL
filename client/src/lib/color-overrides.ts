@@ -41,6 +41,15 @@ export function applyBrandColorOverrides(options?: BrandColorsOptions): void {
     
     // Add !important overrides for specific components that resist theming
     const styleTag = document.createElement('style');
+    // SECURITY: Validate color value to prevent XSS via innerHTML
+    function isSafeCssColor(value: string): boolean {
+      // Accepts only valid hex colors (e.g., #fff, #ffffff, #ffffffff)
+      return /^#[0-9a-fA-F]{3,8}$/.test(value);
+    }
+    if (!isSafeCssColor(primaryColor)) {
+      console.error('Unsafe color value detected for style overrides:', primaryColor);
+      throw new Error('Unsafe color value for style overrides');
+    }
     styleTag.innerHTML = `
       .tabs-trigger[data-state="active"] {
         background-color: ${primaryColor} !important;

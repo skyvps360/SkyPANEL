@@ -121,8 +121,17 @@ export default function AuthPage() {
         
         const focusStyle = document.createElement('style');
         focusStyle.id = 'brand-focus-style';
+        // SECURITY: Validate color value to prevent XSS via innerHTML
+        function isSafeCssColor(value: string): boolean {
+          // Accepts only valid hex colors (e.g., #fff, #ffffff, #ffffffff)
+          return /^#[0-9a-fA-F]{3,8}$/.test(value);
+        }
+        if (!isSafeCssColor(colors.primary.full)) {
+          console.error('Unsafe color value detected for focus ring:', colors.primary.full);
+          throw new Error('Unsafe color value for focus ring');
+        }
         focusStyle.innerHTML = `
-          input:focus-visible, 
+          input:focus-visible,
           input:focus,
           textarea:focus,
           select:focus,
@@ -133,7 +142,7 @@ export default function AuthPage() {
             --ring-color: ${colors.primary.full} !important;
             box-shadow: 0 0 0 1px ${colors.primary.full} !important;
           }
-          
+
           input::selection {
             background-color: ${colors.primary.full}30 !important;
           }

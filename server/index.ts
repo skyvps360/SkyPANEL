@@ -88,7 +88,19 @@ app.use((req, res, next) => {
 
   // Serve static JS files with correct MIME type
   app.get('/js/:filename', (req, res) => {
-    const filePath = path.resolve(process.cwd(), 'public', 'js', req.params.filename);
+    // SECURITY: Validate filename to prevent path traversal
+    const filename = req.params.filename;
+    if (!/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
+      console.warn('Blocked request for invalid JS filename:', filename);
+      return res.status(400).send('Invalid filename');
+    }
+    const jsDir = path.resolve(process.cwd(), 'public', 'js');
+    const filePath = path.resolve(jsDir, filename);
+    // Ensure the resolved path is within the intended directory
+    if (!filePath.startsWith(jsDir)) {
+      console.warn('Blocked path traversal attempt:', filePath);
+      return res.status(400).send('Invalid path');
+    }
     console.log(`Serving JS file: ${filePath}`);
     res.setHeader('Content-Type', 'application/javascript');
     res.sendFile(filePath, (err) => {
