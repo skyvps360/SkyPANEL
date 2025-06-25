@@ -34,7 +34,7 @@ export function TermsOfServicePage() {
       <>
         <Helmet>
           <title>Terms of Service - {companyName}</title>
-          <meta name="description" content={`Terms of Service for ${companyName} - Cheap Large Storage VPS Hosting.`} />
+          <meta name="description" content={`Terms of Service for ${companyName} - VPS Management Platform.`} />
         </Helmet>
 
         <PublicLayout>
@@ -69,7 +69,7 @@ export function TermsOfServicePage() {
     <>
       <Helmet>
         <title>Terms of Service - {companyName}</title>
-        <meta name="description" content={`Terms of Service for ${companyName} - Cheap Large Storage VPS Hosting.`} />
+        <meta name="description" content={`Terms of Service for ${companyName} - VPS Management Platform.`} />
       </Helmet>
 
       <PublicLayout>
@@ -86,14 +86,15 @@ export function TermsOfServicePage() {
               <p>You must be at least 18 years old and capable of entering into a binding contract to use the Services. You agree to provide accurate, current, and complete information during registration and billing (managed through our client portal) and to keep this information updated. You are solely responsible for maintaining the confidentiality of your account credentials (username, password) and for all activities that occur under your account. You must notify us immediately of any unauthorized use of your account.</p>
 
               <h3 className="text-xl font-semibold mt-6 mb-3 pb-2 border-b border-gray-300 text-gray-900">3. Service Description</h3>
-              <p><span>{companyName}</span> provides KVM-based VPS hosting services, including storage-focused plans. Key features may include:</p>
+              <p><span>{companyName}</span> provides VPS hosting services through our SkyPANEL management platform. Key features include:</p>
               <ul className="list-disc ml-6 mb-4">
-                <li><strong>Virtualization:</strong> KVM technology.</li>
-                <li><strong>Control Panel:</strong> VirtFusion for server management (boot, reboot, reinstall, console, etc.).</li>
-                <li><strong>IP Addressing:</strong> Typically includes NAT IPv4 (shared public IP with a specified number of forwarded ports) and a public IPv6 subnet (e.g., /80). The specifics of IP addressing, including port limitations and the non-standard nature of IPv6 requiring manual/DHCPv6 configuration, are detailed in the service offering description and must be understood by the Client.</li>
-                <li><strong>Storage:</strong> NVMe Storage (unless otherwise specified).</li>
-                <li><strong>Infrastructure:</strong> Services are hosted on infrastructure provided by third parties, primarily InterServer VIA 365 Datacenters in their TEB-2 & TEB-8 datacenter (New Jersey, USA).</li>
-                <li><strong>Billing & Management:</strong> Client accounts, billing, and support ticketing are managed via our proprietary client portal system.</li>
+                <li><strong>Management Platform:</strong> SkyPANEL - our comprehensive VPS management and client portal system.</li>
+                <li><strong>Virtualization:</strong> KVM technology for reliable virtual private servers.</li>
+                <li><strong>Server Management:</strong> Full server control including boot, reboot, reinstall, console access, and monitoring through SkyPANEL.</li>
+                <li><strong>IP Addressing:</strong> Typically includes NAT IPv4 (shared public IP with specified forwarded ports) and public IPv6 subnet (e.g., /80). IP addressing specifics, including port limitations and IPv6 configuration requirements, are detailed in service descriptions.</li>
+                <li><strong>Storage:</strong> High-performance NVMe storage solutions (unless otherwise specified).</li>
+                <li><strong>Infrastructure:</strong> Services hosted on enterprise-grade infrastructure provided by trusted datacenter partners, primarily InterServer VIA 365 Datacenters in their TEB-2 & TEB-8 facilities (New Jersey, USA).</li>
+                <li><strong>Client Portal:</strong> Integrated billing, support ticketing, and account management through our SkyPANEL platform.</li>
               </ul>
 
               <h3 className="text-xl font-semibold mt-6 mb-3 pb-2 border-b border-gray-300 text-gray-900">4. Service Provision and Service Level Agreement (SLA)</h3>

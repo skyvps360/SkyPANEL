@@ -34,7 +34,7 @@ export function PrivacyPolicyPage() {
       <>
         <Helmet>
           <title>Privacy Policy - {companyName}</title>
-          <meta name="description" content={`Privacy Policy for ${companyName} - Cheap Large Storage VPS Hosting.`} />
+          <meta name="description" content={`Privacy Policy for ${companyName} - VPS Management Platform.`} />
         </Helmet>
 
         <PublicLayout>
@@ -63,7 +63,7 @@ export function PrivacyPolicyPage() {
     <>
       <Helmet>
         <title>Privacy Policy - {companyName}</title>
-        <meta name="description" content={`Privacy Policy for ${companyName} - Cheap Large Storage VPS Hosting.`} />
+        <meta name="description" content={`Privacy Policy for ${companyName} - VPS Management Platform.`} />
       </Helmet>
 
       <PublicLayout>
@@ -74,7 +74,7 @@ export function PrivacyPolicyPage() {
               <p className="text-center text-sm text-gray-500 mb-6">Last Updated: April 18, 2025</p>
 
               <h3 className="text-xl font-semibold mt-6 mb-3 pb-2 border-b border-gray-300 text-gray-900">1. Introduction & Scope</h3>
-              <p>{companyName} ("we," "us," "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our services, including our website, VPS hosting, client portal, and related services (collectively, "Services").</p>
+              <p>{companyName} ("we," "us," "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our services, including our website, SkyPANEL management platform, VPS hosting, client portal, and related services (collectively, "Services").</p>
               <p>By accessing or using our Services, you consent to the collection, use, disclosure, and storage of your information as described in this Privacy Policy. If you do not agree with our policies and practices, please do not use our Services.</p>
 
               <h3 className="text-xl font-semibold mt-6 mb-3 pb-2 border-b border-gray-300 text-gray-900">2. Information We Collect</h3>
@@ -104,8 +104,8 @@ export function PrivacyPolicyPage() {
                   <strong>User Content:</strong>
                   <ul className="list-circle ml-6 my-2">
                     <li>Information you provide in support tickets, or other interactive areas</li>
-                    <li>Server configurations and customizations</li>
-                    <li>Service-related preferences and settings</li>
+                    <li>Server configurations and customizations through SkyPANEL</li>
+                    <li>Service-related preferences and settings within our platform</li>
                   </ul>
                 </li>
                 <li>

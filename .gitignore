@@ -16,19 +16,17 @@ migrations/
 .env
 .idea
 .vscode
-.cursorrules
-.cursorignore
-.cursor
+.cursorrules/
+.cursorignore/
+.cursor/
 .aiignore
 *.log
-.vscode-test
-.github
-.continue
-.codacy
+.vscode-test/
+.continue/
+.qodo/
 
 #Ignore vscode AI rules
-.github\copilot-instructions.md
+.github/copilot-instructions.md
 .config/
 
 #Ignore windsurf AI rules
-.windsurfrules
