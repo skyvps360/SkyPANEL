@@ -91,8 +91,8 @@ export function TermsOfServicePage() {
                 <li><strong>Virtualization:</strong> KVM technology.</li>
                 <li><strong>Control Panel:</strong> VirtFusion for server management (boot, reboot, reinstall, console, etc.).</li>
                 <li><strong>IP Addressing:</strong> Typically includes NAT IPv4 (shared public IP with a specified number of forwarded ports) and a public IPv6 subnet (e.g., /80). The specifics of IP addressing, including port limitations and the non-standard nature of IPv6 requiring manual/DHCPv6 configuration, are detailed in the service offering description and must be understood by the Client.</li>
-                <li><strong>Storage:</strong> Network-attached SATA storage (unless otherwise specified).</li>
-                <li><strong>Infrastructure:</strong> Services are hosted on infrastructure provided by third parties, primarily InterServer in their TEB-2 datacenter (New Jersey, USA).</li>
+                <li><strong>Storage:</strong> NVMe Storage (unless otherwise specified).</li>
+                <li><strong>Infrastructure:</strong> Services are hosted on infrastructure provided by third parties, primarily InterServer VIA 365 Datacenters in their TEB-2 & TEB-8 datacenter (New Jersey, USA).</li>
                 <li><strong>Billing & Management:</strong> Client accounts, billing, and support ticketing are managed via our proprietary client portal system.</li>
               </ul>
 

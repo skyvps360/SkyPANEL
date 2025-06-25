@@ -749,6 +749,9 @@ export default function AuthPage() {
                       "Create Account"
                     )}
                   </Button>
+                  <center>By creating an account, you agree to our <a href="/tos" className="text-sm text-center mt-4" target="_blank">
+                    <u>Terms of Service.</u>
+                  </a></center>
                 </form>
               </TabsContent>
 
