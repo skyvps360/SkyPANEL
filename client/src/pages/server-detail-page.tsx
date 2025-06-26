@@ -55,7 +55,9 @@ import {
   ChevronDown,
   FileText,
   Key,
-  ScrollText
+  ScrollText,
+  Eye,
+  EyeOff
 } from "lucide-react";
 
 // OS Icon Components with actual OS logos
@@ -762,7 +764,10 @@ export default function ServerDetailPage() {
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
-  
+
+  // State for password visibility toggle
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
   // Add state for rate limiting the refresh button
   const [refreshClicks, setRefreshClicks] = useState<number[]>([]);
   const [isRateLimited, setIsRateLimited] = useState(false);
@@ -2387,14 +2392,27 @@ export default function ServerDetailPage() {
                               {generatedPassword ? (
                                 <>
                                   <code className="px-2 py-1 rounded text-xs font-mono text-slate-700" style={{ backgroundColor: brandColors.secondary.extraLight }}>
-                                    {generatedPassword}
+                                    {isPasswordVisible ? generatedPassword : '•'.repeat(generatedPassword.length)}
                                   </code>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                                    className="h-6 w-6 p-0 transition-colors"
+                                    title={isPasswordVisible ? "Hide password" : "Show password"}
+                                    aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = brandColors.secondary.extraLight}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                  >
+                                    {isPasswordVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                  </Button>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => copyToClipboard(generatedPassword, 'password')}
                                     className="h-6 w-6 p-0 transition-colors"
                                     title="Copy to clipboard"
+                                    aria-label="Copy password to clipboard"
                                     onMouseEnter={(e) => e.currentTarget.style.backgroundColor = brandColors.secondary.extraLight}
                                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                   >
