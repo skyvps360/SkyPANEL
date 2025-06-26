@@ -7,7 +7,19 @@
 	],
 	"settings": {
 		"continue.enableConsole": true,
-		"codium.codeCompletion.enable": true
+		"codium.codeCompletion.enable": true,
+		"yaml.schemas": {
+			"c:\\Users\\moran\\.windsurf\\extensions\\continue.continue-1.0.14-win32-x64\\config-yaml-schema.json": [
+				".continue/**/*.yaml"
+			],
+			"c:\\Users\\moran\\.windsurf\\extensions\\continue.continue-1.1.49-win32-x64\\config-yaml-schema.json": [
+				".continue/**/*.yaml"
+			],
+			"c:\\Users\\moran\\.void-editor\\extensions\\continue.continue-1.0.15-win32-x64\\config-yaml-schema.json": [
+				".continue/**/*.yaml"
+			],
+			"c:/Users/moran/.windsurf/extensions/continue.continue-1.0.14-win32-x64/config-yaml-schema.json": "file:///c%3A/Users/moran/.continue/config.yaml"
+		}
 	},
 	"launch": {
 		"configurations": [
@@ -62,6 +74,18 @@
 					"Open Edge DevTools"
 				]
 			}
+		]
+	},
+	"extensions": {
+		"recommendations": [
+			"google.geminicodeassist",
+			"codacy-app.codacy",
+			"ms-azuretools.vscode-containers",
+			"davidanson.vscode-markdownlint",
+			"christian-kohler.npm-intellisense",
+			"ms-python.python",
+			"esbenp.prettier-vscode",
+			"dbaeumer.vscode-eslint"
 		]
 	}
 }
