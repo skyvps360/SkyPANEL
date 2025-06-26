@@ -47,6 +47,7 @@ If you find my work helpful, consider supporting me:
 - [API Key Management](#-api-key-management)
 - [Maintenance Mode](#-maintenance-mode)
 - [Security Features](#-security-features)
+- [DNS Management](#-dns-management)
 - [GitHub Copilot Integration](#-github-copilot-integration)
 - [Troubleshooting](#-troubleshooting)
 - [Recent Updates](#-recent-updates)
@@ -532,6 +533,72 @@ All API endpoints return consistent error responses:
   }
 }
 ```
+
+---
+
+## 🌐 DNS Management
+
+SkyPANEL provides a comprehensive, white-labeled DNS management system integrated with InterServer's DNS API. It supports a wide range of DNS record types and offers a user-friendly interface with intelligent `@` symbol notation.
+
+### Key Features
+
+- **InterServer API Integration**: Seamless management of DNS domains and records through InterServer's API.
+- **@ Symbol Notation**: User-friendly input for root domains (`@`) and subdomains (`subdomain.@` or `subdomain@`), automatically converted for API compatibility.
+- **White-labeled Nameservers**: Optional configuration for custom nameserver branding (e.g., `cdns.ns1.skyvps360.xyz`).
+- **60+ DNS Record Types**: Full support for A, AAAA, CNAME, MX, TXT, SPF, DKIM, DMARC, SRV, and more.
+- **Real-time Management**: All DNS changes are immediately reflected in InterServer's system.
+- **Secure Access**: User-specific domain management with robust authentication and ownership verification.
+
+### Technical Implementation Highlights
+
+- **Backend API**: Dedicated routes for domain and record CRUD operations (`/api/dns/domains`, `/api/dns/domains/:id/records`).
+- **Frontend Components**: Intuitive UI for managing domains and records, including `AddRecordDialog` and `EditRecordDialog` with `@` symbol conversion.
+- **Shared Validation**: Comprehensive client-side and server-side validation for record names, types, and content.
+- **Database Schema**: Local `dns_domains` and `dns_records` tables for reference, with InterServer API as the authoritative source.
+
+### Configuration
+
+To enable DNS management, configure the following environment variables:
+
+```bash
+# Required: InterServer API Key
+INTERSERVER_API_KEY=your_interserver_api_key_here
+
+# Optional: Custom InterServer API URL (defaults to https://my.interserver.net/apiv2)
+INTERSERVER_API_URL=https://my.interserver.net/apiv2
+
+# Optional: White-labeled Nameserver Configuration
+DNS_NS1=cdns.ns1.your-domain.com
+DNS_NS2=cdns.ns2.your-domain.com
+DNS_NS3=cdns.ns3.your-domain.com
+```
+
+For detailed setup and troubleshooting, refer to `md-docs/dns-management-system.md`.
+
+---
+
+## 🤝 GitHub Copilot Integration
+
+SkyPANEL is fully integrated with GitHub Copilot to enhance developer productivity and maintain coding standards.
+
+### Key Benefits
+
+- **Accelerated Development**: Intelligent code suggestions based on SkyPANEL's codebase patterns.
+- **Consistent Code Style**: Copilot suggestions adhere to project coding standards.
+- **Reduced Boilerplate**: Automation of repetitive code patterns.
+- **Contextual Help**: Suggestions for API usage and component implementation based on the current context.
+
+### Usage Guidelines
+
+When using GitHub Copilot for contributions:
+
+1.  **Review Suggestions**: Always review and understand suggestions before accepting them.
+2.  **Security Best Practices**: Ensure generated code follows SkyPANEL's security guidelines.
+3.  **Error Handling**: Add proper error handling to all generated code.
+4.  **TypeScript Types**: Verify correct implementation of TypeScript types.
+5.  **Documentation**: Include comprehensive documentation for new code.
+
+For more detailed information and configuration, refer to `md-docs/github-copilot-integration.md` and `COPILOT.md` in the project root.
 
 ---
 
