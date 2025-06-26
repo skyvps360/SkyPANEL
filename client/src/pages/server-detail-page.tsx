@@ -444,6 +444,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ServerLogsModal } from "@/components/server/ServerLogsModal";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 
 // VNC Tab Component
 const VNCTab = ({ serverId }: { serverId: number }) => {
@@ -1932,6 +1933,13 @@ export default function ServerDetailPage() {
   return (
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Breadcrumb Navigation */}
+        <Breadcrumb className="mb-4">
+          <Breadcrumb.Item href="/servers">Servers</Breadcrumb.Item>
+          <Breadcrumb.Item>{
+            isLoading ? "Loading..." : error ? "Error" : server?.name || "Server Details"
+          }</Breadcrumb.Item>
+        </Breadcrumb>
         {/* Modern Hero Header */}
         <div className="rounded-2xl bg-card border border-border shadow-md">
           <div className="p-8 md:p-12">
@@ -1942,18 +1950,7 @@ export default function ServerDetailPage() {
                     <Server className="h-6 w-6" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-4 mb-2">
-                      <Link href="/servers">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <ArrowLeft className="h-4 w-4" />
-                          Back to Servers
-                        </Button>
-                      </Link>
-                    </div>
+                    {/* Removed Back to Servers button, replaced by breadcrumb above */}
                     <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
                       {isLoading ? (
                         <Skeleton className="h-10 w-64" />
