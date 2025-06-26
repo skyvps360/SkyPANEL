@@ -72,6 +72,9 @@ export default function ServersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Add state for rate limiting
+  const [refreshClicks, setRefreshClicks] = useState<number[]>([]);
+  const [isRateLimited, setIsRateLimited] = useState(false);
 
   // Get brand colors for consistent theming
   const brandColors = getBrandColors();
@@ -129,10 +132,31 @@ export default function ServersPage() {
   }, [searchQuery, statusFilter]);
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
+    const now = Date.now();
+    setRefreshClicks(prevClicks => {
+      const recentClicks = prevClicks.filter(ts => now - ts < 60000);
+      if (recentClicks.length >= 2) {
+        setIsRateLimited(true);
+        return recentClicks;
+      }
+      // Allow refresh, update state, and trigger refresh
+      setIsRefreshing(true);
+      refetch().finally(() => setIsRefreshing(false));
+      return [...recentClicks, now];
+    });
   };
+
+  // Effect to re-enable button after 60s if rate limited
+  useEffect(() => {
+    if (!isRateLimited) return;
+    const now = Date.now();
+    const timeout = setTimeout(() => {
+      setIsRateLimited(false);
+      // Remove old timestamps
+      setRefreshClicks(clicks => clicks.filter(ts => now - ts < 60000));
+    }, 60000 - (now - (refreshClicks[0] || now)));
+    return () => clearTimeout(timeout);
+  }, [isRateLimited, refreshClicks]);
 
   if (isError) {
     return (
@@ -212,12 +236,12 @@ export default function ServersPage() {
                 />
                 <Button
                   onClick={handleRefresh}
-                  disabled={isRefreshing}
+                  disabled={isRefreshing || isRateLimited}
                   variant="outline"
                   className="transition-all duration-200"
                 >
                   <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                  {isRefreshing ? 'Refreshing...' : isRateLimited ? 'Rate limit: wait 1 min' : 'Refresh'}
                 </Button>
               </div>
             </div>

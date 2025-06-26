@@ -762,6 +762,11 @@ export default function ServerDetailPage() {
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
+  
+  // Add state for rate limiting the refresh button
+  const [refreshClicks, setRefreshClicks] = useState<number[]>([]);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Ensure activeTab is valid (redirect console to overview since we removed it)
   useEffect(() => {
@@ -769,6 +774,18 @@ export default function ServerDetailPage() {
       setActiveTab("overview");
     }
   }, [activeTab]);
+
+  // Effect to re-enable refresh button after 60s if rate limited
+  useEffect(() => {
+    if (!isRateLimited) return;
+    const now = Date.now();
+    const timeout = setTimeout(() => {
+      setIsRateLimited(false);
+      // Remove old timestamps
+      setRefreshClicks(clicks => clicks.filter(ts => now - ts < 60000));
+    }, 60000 - (now - (refreshClicks[0] || now)));
+    return () => clearTimeout(timeout);
+  }, [isRateLimited, refreshClicks]);
 
   // Fetch branding settings for brand colors
   const { data: brandingData } = useQuery<{
@@ -1950,18 +1967,36 @@ export default function ServerDetailPage() {
                   </Button>
                   <Button
                     onClick={() => {
-                      refetch();
-                      refetchVNC();
-                      toast({
-                        title: "Data Refreshed",
-                        description: "Server data has been updated.",
+                      const now = Date.now();
+                      setRefreshClicks(prevClicks => {
+                        const recentClicks = prevClicks.filter(ts => now - ts < 60000);
+                        if (recentClicks.length >= 2) {
+                          setIsRateLimited(true);
+                          toast({
+                            title: "Rate Limited",
+                            description: "Please wait before refreshing again. You can only refresh 2 times per minute.",
+                            variant: "destructive",
+                          });
+                          return recentClicks;
+                        }
+                        // Allow refresh, update state, and trigger refresh
+                        setIsRefreshing(true);
+                        Promise.all([refetch(), refetchVNC()]).finally(() => {
+                          setIsRefreshing(false);
+                          toast({
+                            title: "Data Refreshed",
+                            description: "Server data has been updated.",
+                          });
+                        });
+                        return [...recentClicks, now];
                       });
                     }}
+                    disabled={isRefreshing || isRateLimited}
                     variant="outline"
                     className="transition-all duration-200"
                   >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Refresh
+                    <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    {isRefreshing ? 'Refreshing...' : isRateLimited ? 'Rate limit: wait 1 min' : 'Refresh'}
                   </Button>
                 </div>
               )}
