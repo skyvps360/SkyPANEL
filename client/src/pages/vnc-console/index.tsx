@@ -44,19 +44,10 @@ const VNCConsole: React.FC = () => {
     accentColor: brandingData?.accent_color || '',
   });
 
-  // Debug: Log connection parameters
-  console.log('VNC Console - Connection parameters:', {
-    host,
-    port,
-    password: password ? '***' : null,
-    serverId,
-    fullUrl: window.location.href
-  });
 
   // Load NoVNC and initialize when parameters are available
   useEffect(() => {
     if (host && port && password) {
-      console.log('All VNC parameters available, loading NoVNC...');
       loadNoVNCAndInitialize();
     } else {
       console.error('Missing VNC connection parameters:', { host, port, password: !!password });
@@ -66,7 +57,6 @@ const VNCConsole: React.FC = () => {
     return () => {
       // Cleanup on unmount
       if (rfbRef.current) {
-        console.log('Cleaning up VNC connection...');
         try {
           rfbRef.current.disconnect();
         } catch (error) {
@@ -80,16 +70,12 @@ const VNCConsole: React.FC = () => {
     try {
       // Check if NoVNC is already loaded
       if ((window as any).RFB) {
-        console.log('NoVNC already loaded');
         waitForCanvasAndInitialize();
         return;
       }
 
-      console.log('Loading NoVNC library from local files...');
-
       // Set up event listeners first
       const handleNoVNCReady = () => {
-        console.log('NoVNC RFB module loaded successfully:', typeof (window as any).RFB);
         window.removeEventListener('novnc-ready', handleNoVNCReady);
         window.removeEventListener('novnc-error', handleNoVNCError);
         waitForCanvasAndInitialize();
@@ -132,13 +118,10 @@ const VNCConsole: React.FC = () => {
 
     const checkCanvas = () => {
       attempts++;
-      console.log(`Checking for canvas element (attempt ${attempts}/${maxAttempts}):`, canvasRef.current);
 
       if (canvasRef.current) {
-        console.log('Canvas is ready, initializing VNC...');
         initializeVNC();
       } else if (attempts < maxAttempts) {
-        console.log('Canvas not ready yet, retrying...');
         setTimeout(checkCanvas, 100);
       } else {
         console.error('Canvas element not found after maximum attempts');
@@ -151,9 +134,6 @@ const VNCConsole: React.FC = () => {
   };
 
   const initializeVNC = () => {
-    console.log('initializeVNC called');
-    console.log('Canvas ref current:', canvasRef.current);
-    console.log('Canvas ref element:', document.getElementById('vnc-canvas-container'));
 
     if (!canvasRef.current) {
       console.error('Canvas ref not available');
@@ -168,8 +148,6 @@ const VNCConsole: React.FC = () => {
     }
 
     try {
-      console.log('Initializing VNC connection...');
-      console.log('RFB class available:', typeof (window as any).RFB, (window as any).RFB);
       setIsConnecting(true);
       setConnectionError(null);
 
@@ -179,27 +157,10 @@ const VNCConsole: React.FC = () => {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/vnc-proxy?host=${encodeURIComponent(host!)}&port=${port}`;
 
-      console.log('WebSocket URL construction:', {
-        windowProtocol: window.location.protocol,
-        windowHost: window.location.host,
-        protocol,
-        finalUrl: wsUrl,
-        isDevelopment: import.meta.env.DEV
-      });
 
-      console.log('VNC Connection Details:', {
-        protocol,
-        host: window.location.host,
-        vncHost: host,
-        vncPort: port,
-        wsUrl,
-        hasPassword: !!password,
-        canvasElement: canvasRef.current
-      });
 
       // Create the RFB connection directly (no test connection)
       try {
-        console.log('Creating RFB connection...');
         rfbRef.current = new (window as any).RFB(canvasRef.current, wsUrl, {
           credentials: { password: password },
           repeaterID: '',
@@ -213,7 +174,6 @@ const VNCConsole: React.FC = () => {
         rfbRef.current.addEventListener('credentialsrequired', handleCredentialsRequired);
         rfbRef.current.addEventListener('securityfailure', handleSecurityFailure);
 
-        console.log('RFB connection created successfully');
       } catch (rfbError) {
         console.error('Error creating RFB connection:', rfbError);
         setConnectionError('Failed to create VNC connection: ' + (rfbError as Error).message);
@@ -228,7 +188,6 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleConnect = () => {
-    console.log('VNC connected');
     setIsConnected(true);
     setIsConnecting(false);
     setConnectionError(null);
@@ -240,7 +199,6 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleDisconnect = (e: any) => {
-    console.log('VNC disconnected:', e.detail);
     setIsConnected(false);
     setIsConnecting(false);
 
@@ -260,19 +218,16 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleCredentialsRequired = () => {
-    console.log('VNC credentials required');
     setConnectionError('Authentication failed - invalid password');
     setIsConnecting(false);
   };
 
   const handleSecurityFailure = (e: any) => {
-    console.log('VNC security failure:', e.detail);
     setConnectionError('Security failure: ' + e.detail.reason);
     setIsConnecting(false);
   };
 
   const reconnect = () => {
-    console.log('Reconnect button clicked - forcing NoVNC library reload');
     setConnectionError(null);
     setIsConnecting(true);
     setIsConnected(false);
@@ -282,14 +237,12 @@ const VNCConsole: React.FC = () => {
       try {
         rfbRef.current.disconnect();
       } catch (error) {
-        console.log('Error disconnecting:', error);
       }
       rfbRef.current = null;
     }
 
     // Force reload NoVNC library by removing any existing scripts
     const existingScripts = document.querySelectorAll('script[src*="novnc-loader"], script[type="module"]');
-    console.log('Removing existing NoVNC scripts:', existingScripts.length);
     existingScripts.forEach(script => {
       if (script.getAttribute('src')?.includes('novnc-loader') ||
           script.innerHTML.includes('novnc') ||
@@ -304,7 +257,6 @@ const VNCConsole: React.FC = () => {
       (window as any).rfb = undefined;
       (window as any).NoVNC = undefined;
     } catch (error) {
-      console.log('Error clearing window objects:', error);
     }
 
     // Restart the connection process after a short delay

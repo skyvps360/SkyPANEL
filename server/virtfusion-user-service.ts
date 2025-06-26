@@ -61,7 +61,7 @@ export class VirtFusionUserService {
         };
       }
       
-      console.log(`Creating user in VirtFusion with extRelationId=${user.id}`);
+      // Creating user in VirtFusion with extRelationId
       
       // First, ensure API connection is working
       await virtFusionApi.updateSettings();
@@ -82,10 +82,10 @@ export class VirtFusionUserService {
         sendMail: false // Don't send email notification
       };
       
-      console.log(`VirtFusion user data:`, virtFusionUserData);
+      // VirtFusion user data prepared
       
       const virtFusionResponse = await virtFusionApi.createUser(virtFusionUserData);
-      console.log(`VirtFusion user created successfully:`, virtFusionResponse);
+      // VirtFusion user created successfully
       
       // Extract the user data from the response based on VirtFusion API format
       const virtFusionUser = virtFusionResponse && virtFusionResponse.data ? virtFusionResponse.data : virtFusionResponse;
@@ -95,19 +95,20 @@ export class VirtFusionUserService {
         await storage.updateUser(user.id, { 
           virtFusionId: virtFusionUser.id 
         });
-        console.log(`Updated local user with VirtFusion ID ${virtFusionUser.id}`);
+        // Updated local user with VirtFusion ID
         
         // Assign default resource pack to the new user (based on settings)
         try {
           const resourcePackId = settings.defaultResourcePack;
-          console.log(`Assigning default resource pack (ID=${resourcePackId}) to new user with extRelationId=${user.id}`);
+          // Assigning default resource pack to new user
           
           // Use the addDefaultResourcePackToUser method
           const resourcePackResponse = await virtFusionApi.addDefaultResourcePackToUser(user.id);
           
-          console.log(`Resource pack assignment successful:`, resourcePackResponse);
+          // Resource pack assignment successful
+          // Resource pack assignment successful
         } catch (resourcePackError) {
-          console.error(`Failed to assign default resource pack to user:`, resourcePackError);
+          // Failed to assign default resource pack to user
         }
         
         return { 
@@ -116,7 +117,7 @@ export class VirtFusionUserService {
           virtFusionId: virtFusionUser.id 
         };
       } else if (virtFusionResponse) {
-        console.warn('VirtFusion user created but no ID was returned in expected format', virtFusionResponse);
+        // VirtFusion user created but no ID was returned in expected format
         
         // Try to retrieve the user using the extRelationId
         try {
@@ -127,7 +128,8 @@ export class VirtFusionUserService {
             await storage.updateUser(user.id, { 
               virtFusionId: userData.id 
             });
-            console.log(`Retrieved and updated local user with VirtFusion ID ${userData.id}`);
+            // Retrieved and updated local user with VirtFusion ID
+            // Retrieved and updated local user with VirtFusion ID
             
             return { 
               success: true, 
@@ -136,7 +138,7 @@ export class VirtFusionUserService {
             };
           }
         } catch (lookupError) {
-          console.error('Failed to lookup user by extRelationId:', lookupError);
+          // Failed to lookup user by extRelationId
         }
         
         return { 
@@ -144,14 +146,14 @@ export class VirtFusionUserService {
           message: 'VirtFusion user created but failed to retrieve ID' 
         };
       } else {
-        console.error('VirtFusion API response is empty or invalid', virtFusionResponse);
+        // VirtFusion API response is empty or invalid
         return { 
           success: false, 
           message: 'Failed to create VirtFusion account' 
         };
       }
     } catch (error) {
-      console.error('Error creating user in VirtFusion:', error);
+      // Error creating user in VirtFusion
       return { 
         success: false, 
         message: 'An error occurred while creating VirtFusion account' 

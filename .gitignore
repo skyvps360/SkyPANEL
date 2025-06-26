@@ -12,6 +12,7 @@ logs/
 SkyPANEL.code-workspace
 migrations/
 
+
 # DotFiles
 .env
 .idea
@@ -24,9 +25,11 @@ migrations/
 .vscode-test/
 .continue/
 .qodo/
+.codacy-cli-v2/
 
 #Ignore vscode AI rules
 .github/copilot-instructions.md
 .config/
 
-#Ignore windsurf AI rules
+#Ignore cursor AI rules
+.cursor\rules\codacy.mdc

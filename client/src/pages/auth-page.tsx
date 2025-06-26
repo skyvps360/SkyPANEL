@@ -244,11 +244,7 @@ export default function AuthPage() {
     
     // Only show verification needed if the registration succeeded and email verification is required
     if (response && response.id && !response.isVerified) {
-      console.log("Setting verification mode for new user:", { 
-        email, 
-        userId: response.id, 
-        emailSent: response.emailVerificationSent === true
-      });
+      // Setting verification mode for new user logged
       
       // Set verification mode instead of redirecting
       setVerificationNeeded(true);
@@ -286,7 +282,7 @@ export default function AuthPage() {
       const { confirmPassword, ...registrationData } = data;
       const response = await registerMutation.mutateAsync(registrationData);
       
-      console.log("Registration response:", response);
+      // Registration response logged
       
       // Trigger confetti celebration for successful registration
       triggerConfettiCelebration();
@@ -411,11 +407,10 @@ export default function AuthPage() {
     if (!loginVerificationData) return;
     
     const { error } = loginVerificationData;
-    console.log("Processing login error:", error);
+    
     
     // Check for verification error in the format provided by our updated queryClient
     if (error?.response?.status === 403 && error?.response?.data?.needsVerification) {
-      console.log("Verification needed detected:", error.response.data);
       setVerificationNeeded(true);
       setVerificationEmail(error.response.data.email);
       setUserId(error.response.data.userId);

@@ -216,7 +216,6 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
                           [];
 
     if (!monthlyTraffic || Object.keys(monthlyTraffic).length === 0) {
-      console.log("No monthly traffic data found", trafficData);
       return [];
     }
 
@@ -254,9 +253,6 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
 
   const chartData = getChartData();
 
-  // Debug info
-  console.log("Traffic data structure:", trafficData);
-  console.log("Chart data:", chartData);
 
   // Current month data for the progress bar - get the first element regardless of format
   const currentMonthData = chartData.length > 0 ? chartData[0] : null;
@@ -720,8 +716,6 @@ const PowerStatusBadge = ({ server }: { server: any }) => {
     accentColor: brandingData?.accent_color,
   });
 
-  // For debugging
-  console.log("Power Status Debug:", server.remoteState);
 
   return (
     <UIBadge
@@ -802,7 +796,6 @@ export default function ServerDetailPage() {
         // Check if the saved password is for the correct server
         if (parsedData.serverId == id) {
           setGeneratedPassword(parsedData.password);
-          console.log('Loaded saved password from localStorage');
         }
       }
     } catch (e) {
@@ -899,10 +892,6 @@ export default function ServerDetailPage() {
   // Extract the server data from the response
   const server = serverResponse?.data;
 
-  // Debug server data structure
-  console.log('DEBUG: Full server response:', serverResponse);
-  console.log('DEBUG: Server data:', server);
-
   // Fetch OS templates to get OS information
   const { data: osTemplates } = useQuery({
     queryKey: ['/api/admin/all-templates'],
@@ -914,7 +903,6 @@ export default function ServerDetailPage() {
           throw new Error('Failed to fetch OS templates');
         }
         const data = await response.json();
-        console.log('DEBUG: Fetched OS templates:', data);
         return data?.data || [];
       } catch (error) {
         console.error('Error fetching OS templates from all-templates:', error);
@@ -926,7 +914,6 @@ export default function ServerDetailPage() {
             throw new Error('Failed to fetch OS templates from fallback');
           }
           const fallbackData = await fallbackResponse.json();
-          console.log('DEBUG: Fetched OS templates from fallback:', fallbackData);
           return fallbackData?.data || [];
         } catch (fallbackError) {
           console.error('Error fetching OS templates from fallback:', fallbackError);
@@ -945,14 +932,12 @@ export default function ServerDetailPage() {
     queryFn: async () => {
       if (!osTemplateId) return null;
 
-      console.log(`DEBUG: Fetching specific template ID ${osTemplateId}`);
       try {
         const response = await fetch(`/api/admin/templates/${osTemplateId}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch template ${osTemplateId}`);
         }
         const data = await response.json();
-        console.log(`DEBUG: Fetched specific template ${osTemplateId}:`, data);
         return data?.data || null;
       } catch (error) {
         console.error(`Error fetching specific template ${osTemplateId}:`, error);
@@ -966,16 +951,10 @@ export default function ServerDetailPage() {
 
   // Get OS information for the server
   function getOSInfo(osTemplateInstallId: number | null | undefined) {
-    console.log('DEBUG getOSInfo called with:', { osTemplateInstallId, osTemplatesCount: osTemplates?.length, hasSpecificTemplate: !!specificTemplate });
-    console.log('DEBUG osTemplates data:', osTemplates);
-    console.log('DEBUG specificTemplate data:', specificTemplate);
-    console.log('DEBUG server data structure:', server);
 
     // PRIORITY 1: Use OS information from qemu agent (most accurate)
     const qemuAgentOS = server?.qemuAgent?.os || server?.remoteState?.agent?.osinfo;
     if (qemuAgentOS) {
-      console.log('DEBUG using qemu agent OS data:', qemuAgentOS);
-
       // Use pretty-name if available, otherwise name, otherwise construct from name + version
       let osName = qemuAgentOS['pretty-name'] || qemuAgentOS.name;
       if (!osName && qemuAgentOS.name && qemuAgentOS.version) {
@@ -986,7 +965,6 @@ export default function ServerDetailPage() {
 
       if (osName) {
         const { icon } = getOSIconAndColor(osName);
-        console.log('DEBUG returning qemu agent OS data:', { osName });
         return {
           name: osName,
           icon
@@ -1000,7 +978,6 @@ export default function ServerDetailPage() {
 
     // PRIORITY 2: Use specific template data if fetched
     if (specificTemplate && (specificTemplate.id === osTemplateInstallId || specificTemplate.id === String(osTemplateInstallId) || Number(specificTemplate.id) === osTemplateInstallId)) {
-      console.log('DEBUG using specific template data:', specificTemplate);
       const displayName = `${specificTemplate.name}${specificTemplate.version ? ` ${specificTemplate.version}` : ''}${specificTemplate.architecture ? ` (${specificTemplate.architecture})` : specificTemplate.variant ? ` (${specificTemplate.variant})` : ''}`;
       const { icon } = getOSIconAndColor(specificTemplate.name);
 
@@ -1011,24 +988,20 @@ export default function ServerDetailPage() {
     }
 
     if (!osTemplates || osTemplates.length === 0) {
-      console.log('DEBUG: No OS templates available yet');
       return { name: `Template ${osTemplateInstallId}`, icon: UnknownOSIcon };
     }
 
     // PRIORITY 3: Find the template in the all-templates data
     const availableTemplates = osTemplates.map((t: any) => ({ id: t.id, name: t.name, type: t.type }));
-    console.log('DEBUG searching for template ID', osTemplateInstallId, 'in available templates:', availableTemplates);
 
     // Try both exact match and string/number conversion
     const template = osTemplates?.find((t: any) => t.id === osTemplateInstallId || t.id === String(osTemplateInstallId) || Number(t.id) === osTemplateInstallId);
-    console.log('DEBUG found template for ID', osTemplateInstallId, ':', template);
 
     if (template) {
       // Build the display name from template data
       const displayName = `${template.name}${template.version ? ` ${template.version}` : ''}${template.architecture ? ` (${template.architecture})` : template.variant ? ` (${template.variant})` : ''}`;
       const { icon } = getOSIconAndColor(template.name);
 
-      console.log('DEBUG returning template data:', { displayName, templateName: template.name });
       return {
         name: displayName,
         icon
@@ -1036,10 +1009,8 @@ export default function ServerDetailPage() {
     }
 
     // PRIORITY 4: Fallback to OS name from server data
-    console.log('DEBUG template not found, checking for OS name in server data');
     const serverOsName = server?.os?.name || server?.operatingSystem;
     if (serverOsName && typeof serverOsName === 'string') {
-      console.log('DEBUG using OS name from server data as fallback:', serverOsName);
       const { icon } = getOSIconAndColor(serverOsName);
       return {
         name: serverOsName,
@@ -1047,22 +1018,12 @@ export default function ServerDetailPage() {
       };
     }
 
-    console.log('DEBUG no OS name found, returning template ID fallback for ID:', osTemplateInstallId);
     return { name: `Template ${osTemplateInstallId}`, icon: UnknownOSIcon };
   }
 
   // Helper function to extract OS template ID from server data
   function extractOSTemplateId(serverData: any): number | null {
-    console.log('DEBUG extractOSTemplateId called with server data:', serverData);
-    console.log('DEBUG server OS data:', {
-      osName: serverData?.os?.name,
-      operatingSystem: serverData?.operatingSystem,
-      osTemplateInstallId: serverData?.settings?.osTemplateInstallId,
-      osId: serverData?.os?.id,
-      qemuAgentOS: serverData?.qemuAgent?.os,
-      remoteStateAgentOS: serverData?.remoteState?.agent?.osinfo
-    });
-
+ 
     // Try multiple possible locations for OS template ID
     const possiblePaths = [
       serverData?.settings?.osTemplateInstallId,
@@ -1076,12 +1037,10 @@ export default function ServerDetailPage() {
 
     for (const path of possiblePaths) {
       if (path && typeof path === 'number') {
-        console.log('DEBUG found OS template ID:', path);
         return path;
       }
     }
 
-    console.log('DEBUG no OS template ID found in server data');
     return null;
   }
 
@@ -1096,7 +1055,6 @@ export default function ServerDetailPage() {
     // Fallback to OS name from server data if available
     const osName = serverData?.os?.name || serverData?.operatingSystem;
     if (osName && typeof osName === 'string') {
-      console.log('DEBUG using OS name from server data:', osName);
       const { icon } = getOSIconAndColor(osName);
       return {
         name: osName,
@@ -1105,7 +1063,6 @@ export default function ServerDetailPage() {
     }
 
     // Final fallback
-    console.log('DEBUG no OS information found, using unknown');
     return { name: "Unknown OS", icon: UnknownOSIcon };
   }
 
@@ -1222,19 +1179,6 @@ export default function ServerDetailPage() {
     }
   };
 
-  console.log("DEBUG - Server state:", {
-    rawState: server?.state,
-    powerStatus: server?.powerStatus?.powerState,
-    remoteState: server?.remoteState?.state,
-    remoteRunning: server?.remoteState?.running,
-    isServerRunning: isServerRunning,
-    isServerStopped: isServerStopped,
-    bootShouldBeEnabled: isServerStopped,
-    shutdownShouldBeEnabled: isServerRunning
-  });
-
-
-
   // We're now using the formatDate function defined at the top of the file
 
   // Server power actions mutations
@@ -1285,7 +1229,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -1377,7 +1320,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -1469,7 +1411,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -1561,7 +1502,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -1654,7 +1594,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -1733,7 +1672,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -1796,15 +1734,12 @@ export default function ServerDetailPage() {
       // For successful responses
       try {
         const data = await response.json();
-        console.log('Password reset response:', data);
         return data;
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
     onSuccess: (data) => {
-      console.log('Password reset success data:', data);
 
       // Extract the generated password from the response
       // The password could be in different places based on the API response structure
@@ -1824,7 +1759,6 @@ export default function ServerDetailPage() {
       }
 
       if (password) {
-        console.log('Found generated password, setting state');
         setGeneratedPassword(password);
 
         // Save the password to localStorage with an expiry (encrypted in production)
@@ -1844,7 +1778,6 @@ export default function ServerDetailPage() {
           description: "The server password has been reset. You can view it in the overview tab.",
         });
       } else {
-        console.log('No password found in response', data);
         toast({
           title: "Password Reset Successful",
           description: "The server password has been reset, but no password was returned by the API.",
@@ -3445,8 +3378,6 @@ export default function ServerDetailPage() {
                   {/* Filesystem Information */}
                   {(() => {
                     // Debug logging for server storage data
-                    console.log("Server filesystem info:", server?.remoteState?.agent?.fsinfo);
-                    console.log("Complete server data:", server);
                     return null;
                   })()}
                   {server?.remoteState?.agent?.fsinfo && server.remoteState.agent.fsinfo.length > 0 ? (

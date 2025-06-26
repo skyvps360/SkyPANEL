@@ -159,8 +159,6 @@ export default function StatusPage() {
 
   // Calculate service statuses - use BetterStack data if available, otherwise use default
   const getServiceStatuses = (): ServiceStatus[] => {
-    // Debug what the API returned
-    console.log("Service status data from API:", serviceStatusData);
     
     // Check if we have service status data from the API
     if (serviceStatusData) {
@@ -170,7 +168,6 @@ export default function StatusPage() {
           'services' in serviceStatusData.services && 
           Array.isArray(serviceStatusData.services.services)) {
         
-        console.log("Found doubly-nested structure, extracting services.services array");
         return serviceStatusData.services.services.map(service => ({
           name: service.name,
           status: service.status,
@@ -187,7 +184,6 @@ export default function StatusPage() {
           Array.isArray(serviceStatusData.services.services) && 
           serviceStatusData.services.services.length > 0) {
         
-        console.log("Using nested service status data", serviceStatusData.services.services);
         return serviceStatusData.services.services.map(service => ({
           name: service.name,
           status: service.status,
@@ -202,7 +198,6 @@ export default function StatusPage() {
                Array.isArray(serviceStatusData.services) && 
                serviceStatusData.services.length > 0) {
         
-        console.log("Using flat service status data", serviceStatusData.services);
         return serviceStatusData.services.map(service => ({
           name: service.name,
           status: service.status,
@@ -219,7 +214,6 @@ export default function StatusPage() {
     // Set default uptime values since they're not in the API response
     const defaultUptime = 99.99;
 
-    console.log("Using fallback service status data");
     return [
       {
         name: 'API Services',

@@ -90,13 +90,11 @@ export default function FaqManagementPage() {
   const updateMutation = useMutation({
     mutationFn: (data: FormData) => {
       if (!editingFaq) return Promise.reject("No FAQ selected for editing");
-      console.log('[FAQ][FRONTEND] Sending PATCH request to:', `/api/admin/faqs/${editingFaq.id}`);
       return apiRequest(`/api/admin/faqs/${editingFaq.id}`, {
         method: 'PATCH',
         body: data
       })
       .then(response => {
-        console.log('[FAQ][FRONTEND] PATCH response:', response);
         return response;
       })
       .catch(err => {

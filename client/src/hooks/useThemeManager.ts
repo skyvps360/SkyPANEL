@@ -32,9 +32,9 @@ export const useThemeManager = () => {
       lastAppliedTheme.current = themeKey;
 
       if (isAdminArea) {
-        console.log('Theme manager: Applied admin theme:', targetTheme);
+        // Theme manager: Applied admin theme
       } else {
-        console.log('Theme manager: Applied frontend light theme');
+        // Theme manager: Applied frontend light theme
       }
 
       // Force repaint only when theme actually changes

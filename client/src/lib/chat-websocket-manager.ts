@@ -44,7 +44,7 @@ class ChatWebSocketManager {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const url = `${protocol}//${host}/chat-ws`;
-    console.log('Generated WebSocket URL:', url);
+    // Generated WebSocket URL
     return url;
   }
 
@@ -104,11 +104,10 @@ class ChatWebSocketManager {
     this.currentUser = user;
     this.forceClientMode = forceClientMode;
     this.isConnecting = true;
-    console.log('Starting WebSocket connection...');
+    // Starting WebSocket connection
 
     // Clean up any existing connection
     if (this.ws) {
-      console.log('Cleaning up existing WebSocket before creating new connection');
       this.ws.close();
       this.ws = null;
     }
@@ -155,8 +154,7 @@ class ChatWebSocketManager {
       this.ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          console.log('Chat WebSocket message received:', message);
-          
+         
           // Notify all message handlers
           this.messageHandlers.forEach(handler => handler(message));
         } catch (error) {
@@ -248,7 +246,7 @@ class ChatWebSocketManager {
           isAdmin
         }
       }));
-      console.log('Authentication message sent - isAdmin:', isAdmin, 'forceClientMode:', this.forceClientMode);
+      
     } catch (error) {
       console.error('Failed to send authentication:', error);
     }
@@ -370,7 +368,6 @@ class ChatWebSocketManager {
   // Enhanced debugging methods
   private logDebug(message: string, data?: any): void {
     if (this.debugMode) {
-      console.log(`[ChatWebSocket] ${message}`, data || '');
     }
   }
 

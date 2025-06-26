@@ -209,11 +209,6 @@ export default function DatacenterLocationsPage() {
         features: Array.isArray(data.features) ? data.features : [],
       };
       
-      console.log("Creating datacenter location:", submissionData);
-      return await apiRequest('/api/admin/datacenter-locations', {
-        method: 'POST',
-        data: submissionData,
-      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/datacenter-locations'] });
@@ -251,11 +246,6 @@ export default function DatacenterLocationsPage() {
         features: Array.isArray(updateData.features) ? updateData.features : [],
       };
       
-      console.log("Updating datacenter location:", id, submissionData);
-      return await apiRequest(`/api/admin/datacenter-locations/${id}`, {
-        method: 'PUT',
-        data: submissionData,
-      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/datacenter-locations'] });

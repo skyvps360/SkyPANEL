@@ -438,10 +438,6 @@ export function applyToShadcnTheme(colors: BrandColorsResult) {
   const backgroundHSL = isDarkMode ? "222 47% 11%" : "0 0% 100%";
   const foregroundHSL = isDarkMode ? "210 40% 98%" : "222.2 84% 4.9%";
 
-  console.log(
-    `Applying branding (${isDarkMode ? 'dark' : 'light'} mode): primary=${primaryHSL}, secondary=${secondaryHSL}`,
-  );
-
   // Apply all shadcn theme variables
 
   // Base colors - DON'T set background/foreground to preserve dark mode

@@ -128,7 +128,7 @@ export default function BillingPage() {
   // Log usage data when it changes - use useCallback to prevent re-renders
   const logUsageData = React.useCallback(() => {
     if (usageData) {
-      console.log("VirtFusion usage data:", usageData);
+      // VirtFusion usage data logged
     }
     if (usageError) {
       console.error("VirtFusion usage API error:", usageErrorData);

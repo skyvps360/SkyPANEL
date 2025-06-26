@@ -418,7 +418,6 @@ export default function AdminChatManagement() {
           }
         }
 
-        console.log(`Real-time session status update: Session ${sessionId} → ${status}`);
       }
     },
     onConnectionChange: (connected) => {
@@ -627,7 +626,6 @@ export default function AdminChatManagement() {
 
   useEffect(() => {
     if (currentStatusData?.status) {
-      console.log('Setting admin status from fetched data:', currentStatusData.status);
 
       // Set the values directly from the fetched data
       const newStatus = currentStatusData.status.status || 'offline';
@@ -640,12 +638,6 @@ export default function AdminChatManagement() {
       setMaxConcurrentChats(newMaxConcurrentChats);
       setAutoAssign(newAutoAssign);
 
-      console.log('Form state updated:', {
-        status: newStatus,
-        statusMessage: newStatusMessage,
-        maxConcurrentChats: newMaxConcurrentChats,
-        autoAssign: newAutoAssign
-      });
     }
   }, [currentStatusData]);
 
@@ -733,8 +725,6 @@ export default function AdminChatManagement() {
         maxConcurrentChats: maxConcurrentChats || 5,
         autoAssign: autoAssign !== false
       };
-
-      console.log('Updating status with validated values:', formData);
 
       // Update via API
       await updateStatusMutation.mutateAsync(formData);
@@ -1457,7 +1447,6 @@ export default function AdminChatManagement() {
                         key={`status-${adminStatus}`}
                         value={adminStatus}
                         onValueChange={(value) => {
-                          console.log('Status changed to:', value);
                           setAdminStatus(value);
                         }}
                       >
@@ -1496,7 +1485,6 @@ export default function AdminChatManagement() {
                         value={maxConcurrentChats}
                         onChange={(e) => {
                           const value = parseInt(e.target.value) || 1;
-                          console.log('Max concurrent chats changed to:', value);
                           setMaxConcurrentChats(value);
                         }}
                         className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
@@ -1515,7 +1503,6 @@ export default function AdminChatManagement() {
                       id="statusMessage"
                       value={statusMessage}
                       onChange={(e) => {
-                        console.log('Status message changed to:', e.target.value);
                         setStatusMessage(e.target.value);
                       }}
                       placeholder="Optional status message for customers"
@@ -1533,7 +1520,6 @@ export default function AdminChatManagement() {
                         id="autoAssign"
                         checked={autoAssign}
                         onChange={(e) => {
-                          console.log('Auto assign changed to:', e.target.checked);
                           setAutoAssign(e.target.checked);
                         }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -2248,7 +2234,6 @@ export default function AdminChatManagement() {
                       key={`status-${adminStatus}`}
                       value={adminStatus}
                       onValueChange={(value) => {
-                        console.log('Status dropdown changed to:', value);
                         setAdminStatus(value);
                       }}
                     >
@@ -2299,7 +2284,6 @@ export default function AdminChatManagement() {
                     id="statusMessage"
                     value={statusMessage}
                     onChange={(e) => {
-                      console.log('Status message changed to:', e.target.value);
                       setStatusMessage(e.target.value);
                     }}
                     placeholder="Optional status message for customers"
@@ -2317,7 +2301,6 @@ export default function AdminChatManagement() {
                       id="autoAssign"
                       checked={autoAssign}
                       onChange={(e) => {
-                        console.log('Auto assign changed to:', e.target.checked);
                         setAutoAssign(e.target.checked);
                       }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"

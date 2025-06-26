@@ -119,14 +119,6 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
   const [selectedServer, setSelectedServer] = useState<VpsServer | null>(null);
   const totalSteps = 3; // 1: Department/VPS, 2: Subject/Priority, 3: Message
 
-  // Debug logging
-  console.log('TicketForm: Component rendered', {
-    defaultValues,
-    isLoading,
-    currentStep,
-    selectedDepartment: selectedDepartment?.name
-  });
-
   // Fetch departments with proper error handling and data validation
   const { data: departmentsData, isLoading: isLoadingDepartments, error: departmentsError } = useQuery({
     queryKey: ['/api/ticket-departments'],
@@ -136,12 +128,10 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
   // Ensure departments is always an array with proper validation
   const departments = useMemo(() => {
     if (!departmentsData) {
-      console.log('TicketForm: No departments data received');
       return [];
     }
 
     if (Array.isArray(departmentsData)) {
-      console.log('TicketForm: Departments loaded successfully:', departmentsData.length);
       return departmentsData;
     }
 
@@ -150,13 +140,10 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
       // Use type assertion to tell TypeScript this object might have a data property
       const dataObj = departmentsData as { data?: unknown };
       if (Array.isArray(dataObj.data)) {
-        console.log('TicketForm: Departments loaded from data property:', dataObj.data.length);
         return dataObj.data;
       }
     }
 
-    // Log unexpected data structure
-    console.error('TicketForm: Unexpected departments data structure:', departmentsData);
     return [];
   }, [departmentsData]);
 
@@ -186,19 +173,9 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
       }
     }
 
-    console.error('TicketForm: Unexpected servers data structure:', serversData);
     return [];
   }, [serversData]);
 
-  // Log errors for debugging
-  useEffect(() => {
-    if (departmentsError) {
-      console.error('TicketForm: Error loading departments:', departmentsError);
-    }
-    if (serversError) {
-      console.error('TicketForm: Error loading servers:', serversError);
-    }
-  }, [departmentsError, serversError]);
 
   // Initialize form with default values
   const form = useForm<TicketFormData>({

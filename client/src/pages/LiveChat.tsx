@@ -232,7 +232,7 @@ export default function LiveChat() {
         }
       } else if (data.type === 'admin_status_update') {
         // Handle real-time admin availability updates
-        console.log('Received admin status update:', data.data);
+        // Received admin status update
         setAdminStatus(data.data);
       } else if (data.type === 'session_converted_to_ticket') {
         // Handle chat-to-ticket conversion
@@ -275,7 +275,7 @@ export default function LiveChat() {
         // Auto-scroll to show the conversion message
         setTimeout(scrollToBottom, 100);
 
-        console.log(`Chat session converted to ticket #${ticketId}: ${ticketSubject}`);
+        // Chat session converted to ticket logged
       }
     }
   });
@@ -303,7 +303,7 @@ export default function LiveChat() {
         if (response.ok) {
           const data = await response.json();
           setAdminStatus(data);
-          console.log('Fetched admin status:', data);
+          // Fetched admin status logged
         }
       } catch (error) {
         console.error('Failed to fetch admin status:', error);
@@ -336,11 +336,7 @@ export default function LiveChat() {
       // Use selected department or default
       const departmentToUse = selectedDepartment || departments.find(d => d.isDefault)?.id;
 
-      console.log('Starting chat session with:', {
-        selectedDepartment,
-        departmentToUse,
-        subject: chatSubject || 'General Support'
-      });
+      // Starting chat session with parameters logged
 
       await startSession({
         subject: chatSubject || 'General Support',

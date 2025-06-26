@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,10 +14,7 @@ export default function NotFound() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Debug: Log when NotFound component is rendered
-  useEffect(() => {
-    console.log('NotFound component rendered for path:', location);
-  }, [location]);
+  // NotFound component rendered for path
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-r from-blue-50 to-indigo-50 p-4">

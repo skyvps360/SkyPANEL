@@ -102,7 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           throw new Error(data.error || `${res.status}: ${res.statusText}`);
         }
         
-        console.log("Registration response:", data);
         return data;
       } catch (error) {
         console.error("Registration error:", error);
@@ -113,13 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store the user data
       if (response.id) {
         queryClient.setQueryData(["/api/user"], response);
-        
-        // Log verification status
-        console.log("User registered, verification status:", { 
-          emailSent: response.emailVerificationSent, 
-          isVerified: response.isVerified,
-          message: response.message
-        });
         
         // Show toast with verification instructions if email was sent
         if (response.emailVerificationSent) {

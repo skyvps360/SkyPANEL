@@ -142,7 +142,7 @@ export function PageLoadingProvider({
 
     // Prevent showing loading screen if already loading or already completed an animation
     if (isEnabled && !isLoading && !animationComplete) {
-      console.log("Showing loading screen...");
+      // Showing loading screen
       setIsLoading(true);
     }
   }, [loadingSettings.loading_screen_enabled, isLoading, animationComplete]);

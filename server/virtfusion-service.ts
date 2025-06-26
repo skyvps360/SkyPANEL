@@ -175,6 +175,48 @@ export class VirtFusionService {
       };
     }
   }
+
+  /**
+   * Get OS templates available for a specific server
+   * @param serverId The server ID to get templates for
+   * @returns Array of templates or empty array if error
+   */
+  public async getServerTemplates(serverId: number): Promise<any[]> {
+    try {
+      if (!this.isEnabled()) {
+        await this.initialize();
+        if (!this.isEnabled()) {
+          console.warn('VirtFusion integration is not enabled');
+          return [];
+        }
+      }
+
+      // Validate input
+      if (!serverId || isNaN(serverId)) {
+        console.error('Invalid server ID provided:', serverId);
+        return [];
+      }
+
+      // Use the VirtFusion API to get templates for the specific server
+      const response = await virtFusionApi.request("GET", `/servers/${serverId}/templates`);
+      
+      // Handle different response formats
+      let templates;
+      if (Array.isArray(response)) {
+        templates = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        templates = response.data;
+      } else {
+        console.error('Unexpected response format from VirtFusion getServerTemplates:', response);
+        return [];
+      }
+      
+      return templates;
+    } catch (error) {
+      console.error(`Error getting server templates for server ${serverId}:`, error);
+      return [];
+    }
+  }
 }
 
 export const virtFusionService = VirtFusionService.getInstance();

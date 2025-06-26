@@ -17,7 +17,9 @@ export function TermsOfServicePage() {
     queryKey: ["/api/legal/tos"],
     retry: 1,
     // If there's an error fetching (e.g., the content doesn't exist yet), we'll just show the default content
-    onError: () => console.log("Could not fetch terms of service from database, using default content")
+    onError: () => {
+      // Could not fetch terms of service from database, using default content
+    }
   });
 
   // Update branding information when data is available

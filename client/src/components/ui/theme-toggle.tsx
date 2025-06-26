@@ -27,10 +27,10 @@ export const ThemeToggle: React.FC = () => {
 
       if (adminTheme === "dark") {
         root.classList.add("dark");
-        console.log("Applied dark theme class to admin");
+        // Applied dark theme class to admin
       } else {
         root.classList.add("light");
-        console.log("Applied light theme class to admin");
+        // Applied light theme class to admin
       }
 
       // Multiple methods to force immediate visual update
@@ -63,7 +63,7 @@ export const ThemeToggle: React.FC = () => {
       // Force light theme for frontend areas
       root.classList.remove("light", "dark");
       root.classList.add("light");
-      console.log("Applied light theme to frontend");
+      // Applied light theme to frontend
 
       // Multiple methods to force immediate visual update
       root.style.display = 'none';
@@ -90,13 +90,13 @@ export const ThemeToggle: React.FC = () => {
       // Force apply the theme immediately
       root.classList.remove("light", "dark");
       root.classList.add(storedTheme);
-      console.log("Initialized admin theme:", storedTheme);
+      // Initialized admin theme
     } else {
       // If we're not in admin area, ensure frontend uses light theme
       const root = window.document.documentElement;
       root.classList.remove("light", "dark");
       root.classList.add("light");
-      console.log("Initialized frontend theme: light");
+      // Initialized frontend theme: light
     }
   }, [isAdminArea]);
 
@@ -145,7 +145,7 @@ export const ThemeToggle: React.FC = () => {
 
       // Update state after DOM changes
       setAdminTheme(newTheme);
-      console.log("Toggled admin theme to:", newTheme);
+      // Toggled admin theme
     }
     // Frontend areas always stay light, so no toggle needed
   };

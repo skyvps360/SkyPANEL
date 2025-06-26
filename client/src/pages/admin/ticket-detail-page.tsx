@@ -224,7 +224,6 @@ export default function AdminTicketDetailPage() {
   // Set AI status manually on component mount and when status data changes
   useEffect(() => {
     if (aiStatusData) {
-      console.log("AI status received:", aiStatusData);
     }
     // Force enable AI regardless of server response since we know the API key is available
     setAiStatus({ 

@@ -118,7 +118,6 @@ export default function ServersListPage() {
           mappings[user.virtFusionId.toString()] = user.id;
         }
       });
-      console.log('VirtFusion ID to User ID mappings:', mappings);
       setUserMappings(mappings);
     }
   }, [users]);
@@ -138,7 +137,6 @@ export default function ServersListPage() {
         }
 
         const data = await response.json();
-        console.log('Server API response:', data);
 
         // Check if the response is in the expected format with pagination data
         if (data && typeof data === 'object' && 'data' in data) {
@@ -184,7 +182,6 @@ export default function ServersListPage() {
     if (!autoRefreshEnabled) return;
 
     const interval = setInterval(() => {
-      console.log('Auto-refreshing server list...');
       refetch();
       setLastRefreshed(new Date());
     }, 60 * 1000); // Refresh every 60 seconds
@@ -425,7 +422,6 @@ export default function ServersListPage() {
                         let localUserId = 'Unknown';
                         if (virtFusionUserId && userMappings[virtFusionUserId.toString()]) {
                           localUserId = userMappings[virtFusionUserId.toString()].toString();
-                          console.log(`Mapped VirtFusion ID ${virtFusionUserId} to local user ID ${localUserId}`);
                         }
 
                         // Format the owner display - show username when available

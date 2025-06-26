@@ -36,11 +36,7 @@ export class VirtFusionApi {
   // Update API settings from environment variables
   async updateSettings() {
     try {
-      console.log("VirtFusion API Settings - Current values:", {
-        apiUrl: this.apiUrl,
-        apiToken: this.apiToken ? "***" : "not set",
-        sslVerify: this.sslVerify,
-      });
+      // VirtFusion API Settings - Current values logged
 
       // Try to get settings from database
       const apiUrlSetting = await storage.getSetting("virtfusion_api_url");
@@ -65,11 +61,7 @@ export class VirtFusionApi {
       }
 
       // Log updated settings
-      console.log("VirtFusion API Settings - Updated values:", {
-        apiUrl: this.apiUrl,
-        apiToken: this.apiToken ? "***" : "not set",
-        sslVerify: this.sslVerify,
-      });
+      // VirtFusion API Settings - Updated values logged
 
       return true;
     } catch (error) {
@@ -116,9 +108,7 @@ export class VirtFusionApi {
       let normalizedEndpoint = endpoint;
       if (hasApiV1 && endpoint.startsWith("/api/v1")) {
         normalizedEndpoint = endpoint.substring(7); // Remove /api/v1 prefix
-        console.log(
-          `Removed duplicate /api/v1 from endpoint. Original: ${endpoint}, New: ${normalizedEndpoint}`,
-        );
+        // Removed duplicate /api/v1 from endpoint
       }
 
       const fullUrl = `${apiBase}${normalizedEndpoint.startsWith("/") ? normalizedEndpoint : "/" + normalizedEndpoint}`;
@@ -128,17 +118,17 @@ export class VirtFusionApi {
         this.apiToken.length > 8
           ? `${this.apiToken.substring(0, 4)}...${this.apiToken.substring(this.apiToken.length - 4)}`
           : "********";
-      console.log(`Making ${method} request to ${fullUrl}`);
-      console.log(`Using token: ${maskedToken}`);
-      console.log(`SSL verification: ${this.sslVerify}`);
+      // Making request to VirtFusion API
+      // Using token for authentication
+      // SSL verification status
 
       // Log if this is a dry run request
       if (fullUrl.includes('dryRun=true')) {
-        console.log("🔥 DRY RUN REQUEST DETECTED - This should NOT create a real server!");
+        // DRY RUN REQUEST DETECTED - This should NOT create a real server!
       }
 
       if (data) {
-        console.log(`Request data: ${JSON.stringify(data, null, 2)}`);
+        // Request data logged
       }
 
       try {
@@ -158,7 +148,7 @@ export class VirtFusionApi {
         });
 
         // Log response status
-        console.log(`VirtFusion API Response status: ${response.status}`);
+        // VirtFusion API Response status logged
 
         // Check if response contains data
         if (!response.data) {
@@ -175,11 +165,11 @@ export class VirtFusionApi {
           responseStr.length > 500
             ? responseStr.substring(0, 500) + "..."
             : responseStr;
-        console.log(`Response data (may be truncated): ${truncatedResponse}`);
+        // Response data (may be truncated) logged
 
         // Check and log the response content type
         const contentType = response.headers["content-type"];
-        console.log(`Response content type: ${contentType || "not specified"}`);
+        // Response content type logged
 
         // Ensure we got JSON data
         if (contentType && !contentType.includes("application/json")) {
@@ -205,9 +195,7 @@ export class VirtFusionApi {
           typeof response.data === "object" &&
           "data" in response.data
         ) {
-          console.log(
-            "Found data property in response, returning the full response object",
-          );
+          // Found data property in response, returning the full response object
           return response.data;
         }
 
@@ -303,21 +291,19 @@ export class VirtFusionApi {
    */
   async generateAuthToken(extRelationId: number) {
     // Using the correct endpoint format from the VirtFusion API documentation
-    console.log(`Generating auth token for extRelationId ${extRelationId}`);
+    // Generating auth token for extRelationId
     try {
       // Attempt to get user info first to verify the user exists in VirtFusion
-      console.log(
-        `Checking if user with extRelationId ${extRelationId} exists in VirtFusion`,
-      );
+      // Checking if user with extRelationId exists in VirtFusion
       await this.request("GET", `/users/${extRelationId}/byExtRelation`);
 
       // Now generate the auth token using the correct endpoint format from the VirtFusion API documentation
-      console.log(`User exists in VirtFusion, generating auth token`);
+      // User exists in VirtFusion, generating auth token
       const result = await this.request(
         "POST",
         `/users/${extRelationId}/authenticationTokens`,
       );
-      console.log(`Auth token generated:`, result);
+      // Auth token generated
 
       // Process authentication token response based on VirtFusion API documentation structure
       if (
@@ -352,14 +338,7 @@ export class VirtFusionApi {
           redirectUrl: fullRedirectUrl, // Complete URL with tokens and domain
         };
 
-        console.log(`Processed auth token for response compatibility:`, {
-          ...processedResult,
-          token: processedResult.token
-            ? `${processedResult.token.substring(0, 10)}...`
-            : undefined,
-          redirectUrl: processedResult.redirectUrl,
-        });
-
+        // Processed auth token for response compatibility logged
         return processedResult;
       }
 
@@ -372,10 +351,6 @@ export class VirtFusionApi {
       throw error;
     }
   }
-
-
-
-
 
   async deleteUserByExtRelationId(extRelationId: number) {
     // Using format from VirtFusion API docs for DELETE /users/{extRelationId}/byExtRelation
@@ -390,11 +365,11 @@ export class VirtFusionApi {
       // DELETE /users/{extRelationId}/byExtRelation
       const fullUrl = `${apiBase}/users/${extRelationId}/byExtRelation`;
 
-      console.log(`Making DELETE request to ${fullUrl} to delete user by extRelationId`);
+      // Making DELETE request to delete user by extRelationId
       const maskedToken = this.apiToken.length > 8
         ? `${this.apiToken.substring(0, 4)}...${this.apiToken.substring(this.apiToken.length - 4)}`
         : "********";
-      console.log(`Using token: ${maskedToken}`);
+      // Using token for authentication
 
       // Make direct axios request to properly handle 204 No Content response
       // Using proper 'Accept' header as per API documentation
@@ -414,11 +389,11 @@ export class VirtFusionApi {
         }
       });
 
-      console.log(`VirtFusion API Response status for user deletion: ${response.status}`);
+      // VirtFusion API Response status for user deletion logged
 
-      // For 204 No Content, return a successful response (this is expected per API docs)
+      // For 204 No Content response, return success
       if (response.status === 204) {
-        console.log(`Successfully deleted user with extRelationId ${extRelationId} (204 No Content response)`);
+        // Successfully deleted user with extRelationId (204 No Content response)
         return { success: true, message: "User deleted successfully" };
       }
 
@@ -478,7 +453,7 @@ export class VirtFusionApi {
     // Use the correct endpoint format for external relation ID with resetPassword
     // according to VirtFusion API docs
     // VirtFusion API will generate a password and return it in the response
-    console.log(`Calling VirtFusion resetPassword API with extRelationId: ${extRelationId}`);
+    // Calling VirtFusion resetPassword API with extRelationId
 
     try {
       // Ensure API settings are up to date
@@ -506,7 +481,7 @@ export class VirtFusionApi {
   // Add the default resource pack to a user
   async addDefaultResourcePackToUser(extRelationId: number) {
     // Add a resource pack to a user by their extRelationId
-    console.log(`Assigning default resource pack (ID=1) to new user with extRelationId=${extRelationId}`);
+    // Assigning default resource pack to new user with extRelationId
     return this.request(
       "POST",
       `/selfService/resourcePack/byUserExtRelationId/${extRelationId}`,
@@ -528,7 +503,7 @@ export class VirtFusionApi {
     reference_1?: number;
     reference_2?: string;
   }) {
-    console.log(`Adding ${tokenData.tokens} tokens to user with extRelationId ${extRelationId}`);
+    // Adding tokens to user with extRelationId
     return this.request(
       "POST",
       `/selfService/credit/byUserExtRelationId/${extRelationId}`,
@@ -548,7 +523,7 @@ export class VirtFusionApi {
     reference_1?: number;
     reference_2?: string;
   }) {
-    console.log(`Removing ${tokenData.tokens} tokens from user with extRelationId ${extRelationId} (using negative credit)`);
+    // Removing tokens from user with extRelationId (using negative credit)
 
     // VirtFusion v6.0.0+ requires POST with negative tokens instead of DELETE
     const negativeTokenData = {
@@ -556,7 +531,7 @@ export class VirtFusionApi {
       tokens: -Math.abs(tokenData.tokens) // Ensure tokens are negative
     };
 
-    console.log(`Sending negative credit data:`, negativeTokenData);
+    // Sending negative credit data
 
     return this.request(
       "POST",
@@ -571,7 +546,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async removeCreditFromUser(creditId: number) {
-    console.log(`Removing credit with ID ${creditId}`);
+    // Removing credit with ID
     return this.request("DELETE", `/selfService/credit/${creditId}`);
   }
 
@@ -585,37 +560,58 @@ export class VirtFusionApi {
   // Get all operating system templates
   async getOsTemplates() {
     try {
-      // First try getting OS templates from the dedicated endpoint
-      return await this.request("GET", "/templates/os");
-    } catch (error) {
-      console.error("Error fetching OS templates from /templates/os:", error);
-
+      // VirtFusion API doesn't have a general templates endpoint
+      // We need to use a specific server ID or package ID
+      // First, try to get a list of servers and use the first one for templates
+      
       try {
-        // Fallback to alternate endpoint
-        return await this.request("GET", "/compute/templates");
-      } catch (secondError) {
-        console.error(
-          "Error fetching OS templates from fallback endpoint:",
-          secondError,
-        );
-
-        // If no templates can be retrieved, return empty array
-        return { data: [] };
+        // Try to get a list of servers first
+        const serversResponse = await this.request("GET", "/servers?results=1");
+        if (serversResponse && serversResponse.data && Array.isArray(serversResponse.data) && serversResponse.data.length > 0) {
+          const firstServerId = serversResponse.data[0].id;
+          console.log(`Using server ID ${firstServerId} to fetch templates`);
+          return await this.request("GET", `/servers/${firstServerId}/templates`);
+        }
+      } catch (serversError) {
+        console.error("Error fetching servers list for templates:", serversError);
       }
+      
+      // If no servers available, try with a default server ID
+      try {
+        console.log("No servers found, trying with default server ID 1");
+        return await this.request("GET", "/servers/1/templates");
+      } catch (serverError) {
+        console.error("Error fetching OS templates from /servers/1/templates:", serverError);
+        
+        // If that fails, try with a package ID (package ID 1 as fallback)
+        try {
+          console.log("Server templates failed, trying with package ID 1");
+          return await this.request("GET", "/media/templates/fromServerPackageSpec/1");
+        } catch (packageError) {
+          console.error("Error fetching OS templates from /media/templates/fromServerPackageSpec/1:", packageError);
+          
+          // If both fail, return empty array
+          console.warn("No valid template endpoints available, returning empty templates array");
+          return { data: [] };
+        }
+      }
+    } catch (error) {
+      console.error("Error in getOsTemplates:", error);
+      return { data: [] };
     }
   }
 
   // Get OS templates available for a specific package
   async getOsTemplatesForPackage(packageId: number) {
     try {
-      console.log(`Fetching OS templates for package ID: ${packageId}`);
+      // Fetching OS templates for package ID
       return await this.request("GET", `/media/templates/fromServerPackageSpec/${packageId}`);
     } catch (error) {
       console.error(`Error fetching OS templates for package ${packageId}:`, error);
 
       try {
         // Fallback to generic OS templates
-        console.log(`Falling back to generic OS templates for package ${packageId}`);
+        // Falling back to generic OS templates for package
         return await this.getOsTemplates();
       } catch (secondError) {
         console.error("Error fetching generic OS templates as fallback:", secondError);
@@ -644,13 +640,13 @@ export class VirtFusionApi {
   // Check if user has any active servers (for deletion prevention)
   async checkUserHasServers(virtFusionUserId: number): Promise<{ hasServers: boolean; serverCount: number }> {
     try {
-      console.log(`Checking if user has servers. VirtFusion User ID: ${virtFusionUserId}`);
+      // Checking if user has servers. VirtFusion User ID
 
       // Use the SAME approach that works in the user servers page
       // This uses the proven selfService endpoint that we know works
       const response = await this.getUserServers(virtFusionUserId);
 
-      console.log(`checkUserHasServers response:`, JSON.stringify(response, null, 2));
+      // checkUserHasServers response logged
 
       let hasServers = false;
       let serverCount = 0;
@@ -665,7 +661,7 @@ export class VirtFusionApi {
         }
       }
 
-      console.log(`User ${virtFusionUserId} has ${serverCount} servers (hasServers: ${hasServers})`);
+      // User has servers count logged
       return { hasServers, serverCount };
     } catch (error) {
       console.error(`Error checking if user has servers for virtFusionUserId ${virtFusionUserId}:`, error);
@@ -681,11 +677,11 @@ export class VirtFusionApi {
    */
   async getUserServers(virtFusionUserId: number) {
     try {
-      console.log(`Fetching servers for VirtFusion user ID: ${virtFusionUserId}`);
+      // Fetching servers for VirtFusion user ID
       let response;
       // Try the standard servers endpoint with user filter
       try {
-        console.log(`Trying servers endpoint with user filter`);
+        // Trying servers endpoint with user filter
         response = await this.request("GET", `/servers?user=${virtFusionUserId}`);
         if (response && Array.isArray(response.data)) {
           // Defensive: filter by owner just in case
@@ -693,20 +689,20 @@ export class VirtFusionApi {
             (srv: any) => srv.owner === virtFusionUserId || (srv.owner && srv.owner.id === virtFusionUserId)
           );
         }
-        console.log(`getUserServers response from /servers?user=${virtFusionUserId}:`, JSON.stringify(response, null, 2));
+        // getUserServers response from /servers?user logged
         return response;
       } catch (firstError) {
         console.warn(`First attempt failed, trying alternative endpoint`, firstError);
         try {
           // Try the servers/user endpoint
-          console.log(`Trying /servers/user/${virtFusionUserId} endpoint`);
+          // Trying /servers/user endpoint
           response = await this.request("GET", `/servers/user/${virtFusionUserId}`);
           if (response && Array.isArray(response.data)) {
             response.data = response.data.filter(
               (srv: any) => srv.owner === virtFusionUserId || (srv.owner && srv.owner.id === virtFusionUserId)
             );
           }
-          console.log(`getUserServers response from /servers/user/${virtFusionUserId}:`, JSON.stringify(response, null, 2));
+          // getUserServers response from /servers/user logged
           return response;
         } catch (secondError) {
           console.warn(`Second attempt failed. No safe fallback will be used to avoid leaking other users' servers.`, secondError);
@@ -736,13 +732,13 @@ export class VirtFusionApi {
   // Get a server by ID with optional detailed information
   async getServer(serverId: number, detailed: boolean = false) {
     try {
-      console.log(`Fetching server ${serverId} details (detailed: ${detailed})`);
+      // Fetching server details (detailed parameter)
 
       // Use the same endpoint as getServerById but with optional detailed parameter
       const endpoint = detailed ? `/servers/${serverId}?detailed=true` : `/servers/${serverId}`;
       const response = await this.request("GET", endpoint);
 
-      console.log(`getServer response for server ${serverId}:`, JSON.stringify(response, null, 2));
+      // getServer response for server logged
       return response;
     } catch (error) {
       console.error(`Error in getServer for server ${serverId}:`, error);
@@ -777,7 +773,7 @@ export class VirtFusionApi {
    * @returns API response with created server data
    */
   async createServer(serverData: any) {
-    console.log(`Creating server with data:`, JSON.stringify(serverData, null, 2));
+    // Creating server with data
     return this.request("POST", "/servers", serverData);
   }
 
@@ -788,7 +784,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async buildServer(serverId: number, buildData: any) {
-    console.log(`Building server ID: ${serverId} with data:`, JSON.stringify(buildData, null, 2));
+    // Building server ID with data
     return this.request("POST", `/servers/${serverId}/build`, buildData);
   }
 
@@ -800,7 +796,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async bootServer(serverId: number) {
-    console.log(`Booting server ID: ${serverId}`);
+    // Booting server ID
     return this.request("POST", `/servers/${serverId}/power/boot`);
   }
 
@@ -810,7 +806,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async shutdownServer(serverId: number) {
-    console.log(`Shutting down server ID: ${serverId}`);
+    // Shutting down server ID
     return this.request("POST", `/servers/${serverId}/power/shutdown`);
   }
 
@@ -820,7 +816,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async restartServer(serverId: number) {
-    console.log(`Restarting server ID: ${serverId}`);
+    // Restarting server ID
     return this.request("POST", `/servers/${serverId}/power/restart`);
   }
 
@@ -830,7 +826,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async powerOffServer(serverId: number) {
-    console.log(`Powering off server ID: ${serverId}`);
+    // Powering off server ID
     return this.request("POST", `/servers/${serverId}/power/poweroff`);
   }
 
@@ -840,7 +836,7 @@ export class VirtFusionApi {
    * @returns Queue item data
    */
   async getQueueItem(queueId: number) {
-    console.log(`Fetching queue item ID: ${queueId}`);
+    // Fetching queue item ID
     return this.request("GET", `/queue/${queueId}`);
   }
 
@@ -850,7 +846,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async suspendServer(serverId: number) {
-    console.log(`Suspending server ID: ${serverId}`);
+    // Suspending server ID
     return this.request("POST", `/servers/${serverId}/suspend`);
   }
 
@@ -882,20 +878,20 @@ export class VirtFusionApi {
       sendMail: sendMail
     };
 
-    console.log(`Resetting password for server ${serverId}, user ${normalizedUser}, sendMail: ${sendMail}`);
-    console.log(`Request body:`, JSON.stringify(requestBody, null, 2));
+    // Resetting password for server, user, sendMail
+    // Request body logged
 
     try {
       // Make the request through our standard request method which handles auth and API URLs
       const response = await this.request('POST', `/servers/${serverId}/resetPassword`, requestBody);
 
-      console.log(`Password reset response:`, JSON.stringify(response, null, 2));
+      // Password reset response logged
 
       // Make sure we handle the expected format
       if (response && response.data && response.data.expectedPassword) {
-        console.log(`Generated password: ${response.data.expectedPassword}`);
+        // Generated password logged
       } else {
-        console.log('No expected password in response');
+        // No expected password in response
       }
 
       return response;
@@ -912,7 +908,7 @@ export class VirtFusionApi {
   }
 
   async unsuspendServer(serverId: number) {
-    console.log(`Unsuspending server ID: ${serverId}`);
+    // Unsuspending server ID
     return this.request("POST", `/servers/${serverId}/unsuspend`);
   }
 
@@ -923,7 +919,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async deleteServer(serverId: number, scheduleAt?: string) {
-    console.log(`Deleting server ID: ${serverId}${scheduleAt ? ` scheduled at ${scheduleAt}` : ''}`);
+    // Deleting server ID
     const endpoint = `/servers/${serverId}`;
     const data = scheduleAt ? { scheduleAt } : undefined;
     return this.request("DELETE", endpoint, data);
@@ -935,7 +931,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async enableVncForServer(serverId: number) {
-    console.log(`Enabling VNC for server ID: ${serverId}`);
+    // Enabling VNC for server ID
     return this.request("POST", `/servers/${serverId}/vnc/enable`);
   }
 
@@ -945,7 +941,7 @@ export class VirtFusionApi {
    * @returns API response
    */
   async disableVncForServer(serverId: number) {
-    console.log(`Disabling VNC for server ID: ${serverId}`);
+    // Disabling VNC for server ID
     return this.request("POST", `/servers/${serverId}/vnc/disable`);
   }
 
@@ -955,7 +951,7 @@ export class VirtFusionApi {
    * @returns API response with VNC status
    */
   async getVncStatus(serverId: number) {
-    console.log(`Getting VNC status for server ID: ${serverId}`);
+    // Getting VNC status for server ID
     return this.request("GET", `/servers/${serverId}/vnc`);
   }
 
@@ -965,7 +961,7 @@ export class VirtFusionApi {
    * @returns API response with VNC status
    */
   async toggleVnc(serverId: number) {
-    console.log(`Toggling VNC for server ID: ${serverId}`);
+    // Toggling VNC for server ID
     return this.request("POST", `/servers/${serverId}/vnc`);
   }
 
@@ -1010,25 +1006,27 @@ export class VirtFusionApi {
 
       console.log(`Fetching hourly stats for extRelationId ${extRelationId}, period: ${period}, range: ${range}`);
 
+      // Fetching hourly stats for extRelationId, period, range
+
       // Try multiple possible endpoints for hourly stats
       let response;
 
       try {
         // First try the hourlyStats endpoint
         const endpoint = `/selfService/hourlyStats/byUserExtRelationId/${extRelationId}?period[]=${period}&range=${range}`;
-        console.log(`Trying hourlyStats endpoint: ${endpoint}`);
+        // Trying hourlyStats endpoint
         response = await this.request("GET", endpoint);
-        console.log(`HourlyStats response:`, response);
+        // HourlyStats response logged
         return response;
       } catch (firstError) {
-        console.log(`HourlyStats endpoint failed, trying usage endpoint`);
+        // HourlyStats endpoint failed, trying usage endpoint
 
         try {
           // Fallback to usage endpoint
           const usageEndpoint = `/selfService/usage/byUserExtRelationId/${extRelationId}?period[]=${period}&range=${range}`;
-          console.log(`Trying usage endpoint: ${usageEndpoint}`);
+          // Trying usage endpoint
           response = await this.request("GET", usageEndpoint);
-          console.log(`Usage endpoint response:`, response);
+          // Usage endpoint response logged
           return response;
         } catch (secondError) {
           console.error(`Both hourlyStats and usage endpoints failed`);

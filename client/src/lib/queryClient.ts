@@ -160,7 +160,6 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    console.log("Making query request:", { queryKey });
     const url = queryKey[0] as string;
     
     try {
@@ -169,7 +168,6 @@ export const getQueryFn: <T>(options: {
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.log("Unauthorized access (401), returning null as configured", { url });
         return null;
       }
 
@@ -186,11 +184,9 @@ export const getQueryFn: <T>(options: {
                               
       if (isBinaryResponse) {
         const blob = await res.blob();
-        console.log("Query request successful (binary data):", { url, type: blob.type, size: blob.size });
         return blob as unknown as any;
       } else if (contentType && contentType.includes('application/json')) {
         const data = await res.json();
-        console.log("Query request successful:", { url, data: (typeof data === 'object' ? Object.keys(data) : typeof data) });
         return data as any;
       } else if (contentType && contentType.includes('text/html')) {
         // Handle HTML responses - convert to a more usable format
@@ -222,10 +218,8 @@ export const getQueryFn: <T>(options: {
         const text = await res.text();
         try {
           const data = JSON.parse(text);
-          console.log("Query request successful (parsed from text):", { url, data: (typeof data === 'object' ? Object.keys(data) : typeof data) });
           return data as any;
         } catch (e) {
-          console.log("Query request successful (text data):", { url, textLength: text.length });
           return text as unknown as any;
         }
       }

@@ -46,7 +46,8 @@ export function useChatWebSocket(options: ChatWebSocketOptions = {}) {
 
   const connect = useCallback((forceClientMode = false) => {
     if (!user) {
-      console.log('No user available for WebSocket connection');
+      // No user available for WebSocket connection
+      // No user available for WebSocket connection
       return;
     }
 
@@ -54,17 +55,19 @@ export function useChatWebSocket(options: ChatWebSocketOptions = {}) {
     const { isConnected: managerConnected, isConnecting } = chatWebSocketManager.getConnectionState();
 
     if (isConnecting || managerConnected) {
-      console.log('WebSocket already connecting/connected via manager');
+      // WebSocket already connecting/connected via manager
+      // WebSocket already connecting/connected via manager
       setIsConnected(managerConnected);
       return;
     }
 
-    console.log('Connecting via WebSocket manager with forceClientMode:', forceClientMode);
+          // Connecting via WebSocket manager with forceClientMode
+    // Connecting via WebSocket manager with forceClientMode
     chatWebSocketManager.connect(user, forceClientMode);
   }, [user]);
 
   const disconnect = useCallback(() => {
-    console.log('Disconnecting via WebSocket manager');
+    // Disconnecting via WebSocket manager
     chatWebSocketManager.disconnect();
     setIsConnected(false);
   }, []);
@@ -148,7 +151,7 @@ export function useChatWebSocket(options: ChatWebSocketOptions = {}) {
     if (user) {
       const { isConnected: managerConnected } = chatWebSocketManager.getConnectionState();
       if (!managerConnected) {
-        console.log('Auto-connecting to chat WebSocket');
+        // Auto-connecting to chat WebSocket
         // Check if we're on the live chat page to force client mode (but only for non-admin users)
         const isLiveChatPage = window.location.pathname === '/live-chat';
         const shouldForceClientMode = isLiveChatPage && user.role !== 'admin';

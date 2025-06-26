@@ -213,7 +213,7 @@ export default function PlansPage() {
       return Number(((pkg as any).tokens / 100).toFixed(2));
     }
     
-    console.log(`No pricing found for package ${pkg.id} / ${pkg.name}. Available pricing:`, packagePrices);
+    // No pricing found for package, available pricing logged
     
     // Default price if no match using our pricing matrix
     const pricingMatrix: Record<number, number> = {

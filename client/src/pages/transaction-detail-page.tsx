@@ -101,11 +101,6 @@ export default function TransactionDetailPage() {
   const [, setLocation] = useLocation();
   const transactionId = params?.id && !isNaN(parseInt(params.id, 10)) ? parseInt(params.id, 10) : null;
 
-  // Log params for debugging
-  console.log("Transaction ID from URL:", params?.id);
-  console.log("Parsed Transaction ID:", transactionId);
-
-
 
   // Fetch transaction details with improved debugging
   const { data: transaction, isLoading, error } = useQuery<Transaction>({
@@ -115,7 +110,6 @@ export default function TransactionDetailPage() {
       console.error("Error fetching transaction details:", error);
     },
     onSuccess: (data) => {
-      console.log("Transaction data received:", data);
     },
     retry: 1,
   });
@@ -128,15 +122,12 @@ export default function TransactionDetailPage() {
       return;
     }
     
-    console.log('Starting transaction download for ID:', transaction.id);
-    
+   
     try {
       // Use the special download URL that bypasses Vite's interception
       const downloadUrl = `/special-download/transactions/${transaction.id}/pdf`;
-      console.log('Using special download URL:', downloadUrl);
       
       const response = await fetch(downloadUrl);
-      console.log('Download response status:', response.status, response.statusText);
       
       if (!response.ok) {
         throw new Error(`Failed to download transaction: ${response.statusText}`);
@@ -144,7 +135,6 @@ export default function TransactionDetailPage() {
       
       // Get filename from the Content-Disposition header if available
       const contentDisposition = response.headers.get('Content-Disposition');
-      console.log('Content-Disposition header:', contentDisposition);
       
       // Default to PDF extension since we're generating a PDF
       let filename = `transaction-${transaction.id}.pdf`;
@@ -156,10 +146,8 @@ export default function TransactionDetailPage() {
         }
       }
       
-      console.log('Using filename:', filename);
       
       const blob = await response.blob();
-      console.log('Downloaded blob size:', blob.size, 'bytes, type:', blob.type);
       
       const url = window.URL.createObjectURL(blob);
       
@@ -173,7 +161,6 @@ export default function TransactionDetailPage() {
       // Clean up
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
-      console.log('Download complete');
     } catch (error) {
       console.error('Error downloading transaction:', error);
       alert('Failed to download transaction. Please try again later.');

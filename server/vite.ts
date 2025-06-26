@@ -16,7 +16,7 @@ export function log(message: string, source = "express") {
     hour12: true,
   });
 
-  console.log(`${formattedTime} [${source}] ${message}`);
+  // Log message removed
 }
 
 export async function setupVite(app: Express, server: Server) {
@@ -33,7 +33,7 @@ export async function setupVite(app: Express, server: Server) {
       error: (msg, options) => {
         viteLogger.error(msg, options);
         // Don't exit on error, just log it
-        console.error(msg);
+        // Error logging removed
       },
     },
     server: serverOptions,

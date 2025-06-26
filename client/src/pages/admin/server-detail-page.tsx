@@ -90,7 +90,6 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
                           [];
 
     if (!monthlyTraffic || Object.keys(monthlyTraffic).length === 0) {
-      console.log("No monthly traffic data found", trafficData);
       return [];
     }
 
@@ -128,9 +127,6 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
 
   const chartData = getChartData();
 
-  // Debug info
-  console.log("Traffic data structure:", trafficData);
-  console.log("Chart data:", chartData);
 
   // Current month data for the progress bar - get the first element regardless of format
   const currentMonthData = chartData.length > 0 ? chartData[0] : null;
@@ -561,8 +557,6 @@ const PowerStatusBadge = ({ server }: { server: any }) => {
   const powerState = server?.remoteState?.state || server.state;
   const isRunning = server?.remoteState?.running || powerState === "running";
 
-  // For debugging
-  console.log("Power Status Debug:", server.remoteState);
 
   return (
     <UIBadge
@@ -609,7 +603,6 @@ export default function ServerDetailPage() {
         // Check if the saved password is for the correct server
         if (parsedData.serverId == id) {
           setGeneratedPassword(parsedData.password);
-          console.log('Loaded saved password from localStorage');
         }
       }
     } catch (e) {
@@ -699,20 +692,6 @@ export default function ServerDetailPage() {
   // Extract the server data from the response
   const server = serverResponse?.data;
 
-  // Debug the structure - remove this in production
-  console.log("Server data structure:", JSON.stringify(server, null, 2));
-
-  // Log specific properties for power status debugging
-  if (server) {
-    console.log("Power Status Debug:", {
-      state: server.state,
-      remoteState: server.remoteState,
-      powerStatus: server.powerStatus,
-      status: server.status,
-      domainState: server.domainState
-    });
-  }
-
   // We're now using the formatDate function defined at the top of the file
 
   // Server power actions mutations
@@ -763,7 +742,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -841,7 +819,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -919,7 +896,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -997,7 +973,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -1076,7 +1051,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -1155,7 +1129,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -1222,15 +1195,12 @@ export default function ServerDetailPage() {
       // For successful responses
       try {
         const data = await response.json();
-        console.log('Password reset response:', data);
         return data;
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
     onSuccess: (data) => {
-      console.log('Password reset success data:', data);
 
       // Extract the generated password from the response
       // The password could be in different places based on the API response structure
@@ -1250,7 +1220,6 @@ export default function ServerDetailPage() {
       }
 
       if (password) {
-        console.log('Found generated password, setting state');
         setGeneratedPassword(password);
 
         // Save the password to localStorage with an expiry (encrypted in production)
@@ -1270,7 +1239,6 @@ export default function ServerDetailPage() {
           description: "The server password has been reset. You can view it in the overview tab.",
         });
       } else {
-        console.log('No password found in response', data);
         toast({
           title: "Password Reset Successful",
           description: "The server password has been reset, but no password was returned by the API.",
@@ -1363,10 +1331,8 @@ export default function ServerDetailPage() {
   useEffect(() => {
     // CPU throttle is stored in server.cpu.throttle according to the API data
     if (server?.cpu?.throttle !== undefined) {
-      console.log("Setting CPU throttle value from API:", server.cpu.throttle);
       setCpuThrottleValue(Number(server.cpu.throttle));
     } else {
-      console.log("CPU throttle not found in server data:", server?.cpu);
     }
   }, [server]);
 
@@ -1422,7 +1388,6 @@ export default function ServerDetailPage() {
       try {
         return await response.json();
       } catch (jsonError) {
-        console.log('Response was not JSON but operation may have succeeded', response.status);
         return { success: true };
       }
     },
@@ -2751,9 +2716,6 @@ export default function ServerDetailPage() {
 
                   {/* Filesystem Information */}
                   {(() => {
-                    // Debug logging for server storage data
-                    console.log("Server filesystem info:", server?.remoteState?.agent?.fsinfo);
-                    console.log("Complete server data:", server);
                     return null;
                   })()}
                   {server?.remoteState?.agent?.fsinfo && server.remoteState.agent.fsinfo.length > 0 ? (

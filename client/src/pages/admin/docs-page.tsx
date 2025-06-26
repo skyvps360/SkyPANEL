@@ -266,7 +266,6 @@ export default function DocsPage() {
       
       // Set the selected category ID for the dropdown
       setSelectedCategoryId(selectedDoc.categoryId ? String(selectedDoc.categoryId) : "null");
-      console.log("Setting selectedCategoryId for edit:", selectedDoc.categoryId ? String(selectedDoc.categoryId) : "null");
     } else {
       form.reset({
         title: "",
@@ -282,7 +281,6 @@ export default function DocsPage() {
       
       // Reset the selected category ID
       setSelectedCategoryId("null");
-      console.log("Resetting selectedCategoryId to null");
     }
   }, [selectedDoc, form]);
   
@@ -441,9 +439,7 @@ export default function DocsPage() {
       ...data,
       categoryId // Explicit assignment to make sure it's included
     };
-    
-    console.log("Submitting with data:", submissionData);
-    console.log("Category ID being sent:", categoryId);
+
     
     try {
       if (selectedDoc) {
@@ -989,7 +985,6 @@ export default function DocsPage() {
                     <Select
                       value={selectedCategoryId || "null"}
                       onValueChange={(value) => {
-                        console.log("Selected category:", value);
                         setSelectedCategoryId(value);
                         // Update the form field too
                         form.setValue("categoryId", value === "null" ? null : parseInt(value));

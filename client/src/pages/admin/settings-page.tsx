@@ -491,7 +491,6 @@ export default function SettingsPage() {
         description: "Successfully connected to VirtFusion API",
         variant: "default",
       });
-      console.log("VirtFusion API connection test result:", data);
     },
     onError: (error: any) => {
       toast({

@@ -252,7 +252,6 @@ export default function BlogPage() {
   // Mutations
   const createPostMutation = useMutation({
     mutationFn: async (data: BlogPostFormData) => {
-      console.log("Creating blog post with data:", data); // Debugging
       return apiRequest("/api/admin/blog", { method: "POST", data });
     },
     onSuccess: () => {

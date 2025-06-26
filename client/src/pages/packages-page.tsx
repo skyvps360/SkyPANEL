@@ -100,7 +100,7 @@ export default function PackagesPage() {
   // Log successful data fetching
   React.useEffect(() => {
     if (data) {
-      console.log("Packages loaded successfully:", data);
+      // Packages loaded successfully
     }
   }, [data]);
 
@@ -183,7 +183,7 @@ export default function PackagesPage() {
       return pricing[stringId];
     }
 
-    console.log(`No pricing found for package ${pkg.id} / ${pkg.name}. Available pricing:`, pricing);
+    // No pricing found for package, available pricing logged
 
     // Default fallback (no price found)
     return 0;

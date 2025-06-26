@@ -10,7 +10,7 @@ export function formatTicketPdf(
   creditsInfo: any = null
 ) {
   // Debug ticket data
-  console.log(`Generating PDF for ticket ID: ${ticket.id}`);
+  // Generating PDF for ticket ID
   
   // Add logo if available
   if (companyLogo) {
