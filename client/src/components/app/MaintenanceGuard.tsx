@@ -66,6 +66,7 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
         '/',                    // Landing page should be accessible
         '/tos',                 // Terms of Service page
         '/privacy',             // Privacy Policy page
+        '/sla',                 // Service Level Agreement page
         '/api/maintenance',     // API endpoints for maintenance
         '/blog',                // Public blog listing
         '/docs',                // Public documentation

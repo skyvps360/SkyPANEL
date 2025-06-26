@@ -23,6 +23,7 @@ import ProfilePage from "@/pages/profile-page";
 import {MaintenancePage} from "@/pages/maintenance-page";
 import TermsOfServicePage from "@/pages/tos-page";
 import PrivacyPolicyPage from "@/pages/privacy-page";
+import SLAPage from "@/pages/sla-page";
 
 // Import standalone blog and docs pages
 import BlogListPage from "@/pages/blog/index";
@@ -130,7 +131,8 @@ export function AppRouter() {
                 <Route path="/plans" component={PlansPage}/>
                 <Route path="/team" component={TeamsPage}/>
                 <Route path="/tos" component={TermsOfServicePage}/>
-                <Route path="/privacy" component={PrivacyPolicyPage}/>                {/* VNC Console - User access allowed */}
+                <Route path="/privacy" component={PrivacyPolicyPage}/>
+                <Route path="/sla" component={SLAPage}/>                {/* VNC Console - User access allowed */}
                 <ProtectedRoute path="/vnc-console" component={VNCConsole}/>
 
                                 {/* <ProtectedRoute path="/dns" component={DnsDomainsPage}/> DNS disabled */}

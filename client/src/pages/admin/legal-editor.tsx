@@ -121,7 +121,7 @@ export function LegalEditorPage() {
   // Update form values when the active tab changes
   useEffect(() => {
     if (legalContent && Array.isArray(legalContent)) {
-      // Find content of the current type (tos or privacy)
+      // Find content of the current type (tos, privacy, or sla)
       const contentForType = legalContent.find((item: LegalContent) => item.type === activeTab);
       
       if (contentForType) {
@@ -135,9 +135,15 @@ export function LegalEditorPage() {
         setEditorContent(contentForType.content);
       } else {
         // Default values for a new legal content item
+        const defaultTitles = {
+          tos: "Terms of Service",
+          privacy: "Privacy Policy",
+          sla: "Service Level Agreement"
+        };
+        
         form.reset({
           type: activeTab,
-          title: activeTab === "tos" ? "Terms of Service" : "Privacy Policy",
+          title: defaultTitles[activeTab as keyof typeof defaultTitles] || "Legal Document",
           content: "",
           version: "1.0",
         });
@@ -250,15 +256,16 @@ export function LegalEditorPage() {
             <TabsList className="mb-6">
               <TabsTrigger value="tos">Terms of Service</TabsTrigger>
               <TabsTrigger value="privacy">Privacy Policy</TabsTrigger>
+              <TabsTrigger value="sla">Service Level Agreement</TabsTrigger>
             </TabsList>
 
             <Card>
               <CardHeader>
                 <CardTitle>
-                  {activeTab === "tos" ? "Terms of Service" : "Privacy Policy"} Editor
+                  {activeTab === "tos" ? "Terms of Service" : activeTab === "privacy" ? "Privacy Policy" : "Service Level Agreement"} Editor
                 </CardTitle>
                 <CardDescription>
-                  Manage your {activeTab === "tos" ? "Terms of Service" : "Privacy Policy"} content here. Use the HTML editor to create rich content with formatting.
+                  Manage your {activeTab === "tos" ? "Terms of Service" : activeTab === "privacy" ? "Privacy Policy" : "Service Level Agreement"} content here. Use the HTML editor to create rich content with formatting.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -334,7 +341,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm"
                                   className="h-8 w-8 p-0" 
-                                  onClick={() => insertTextAtCursor("<h1></h1>")}
+                                  onClick={() => insertTextAtCursor('<h1 class="text-4xl font-bold mb-6 text-center text-gray-900">Heading 1</h1>')}
                                   title="Heading 1"
                                 >
                                   <Heading1 className="h-4 w-4" />
@@ -344,7 +351,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8 w-8 p-0"
-                                  onClick={() => insertTextAtCursor("<h2></h2>")}
+                                  onClick={() => insertTextAtCursor('<h2 class="text-3xl font-bold mb-4 text-gray-900">Heading 2</h2>')}
                                   title="Heading 2"
                                 >
                                   <Heading2 className="h-4 w-4" />
@@ -354,7 +361,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8 w-8 p-0"
-                                  onClick={() => insertTextAtCursor("<h3></h3>")}
+                                  onClick={() => insertTextAtCursor('<h3 class="text-xl font-semibold mt-6 mb-3 pb-2 border-b border-gray-300 text-gray-900">Heading 3</h3>')}
                                   title="Heading 3"
                                 >
                                   <Heading3 className="h-4 w-4" />
@@ -380,14 +387,14 @@ export function LegalEditorPage() {
                                   onClick={() => insertTextAtCursor("<em>Italic text</em>")}
                                   title="Italic"
                                 >
-                                  <Italic className="h-4 w-4" />
+                                <Italic className="h-4 w-4" />
                                 </Button>
                                 <Button 
                                   type="button" 
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8 w-8 p-0"
-                                  onClick={() => insertTextAtCursor("<blockquote></blockquote>")}
+                                  onClick={() => insertTextAtCursor('<blockquote class="border-l-4 border-gray-300 pl-4 py-2 my-4 italic text-gray-700">Quote text here</blockquote>')}
                                   title="Blockquote"
                                 >
                                   <Quote className="h-4 w-4" />
@@ -400,7 +407,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8 w-8 p-0"
-                                  onClick={() => insertTextAtCursor("<ul>\n  <li>Item 1</li>\n  <li>Item 2</li>\n</ul>")}
+                                  onClick={() => insertTextAtCursor('<ul class="list-disc ml-6 mb-4">\n  <li>Item 1</li>\n  <li>Item 2</li>\n</ul>')}
                                   title="Unordered List"
                                 >
                                   <List className="h-4 w-4" />
@@ -410,7 +417,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8 w-8 p-0"
-                                  onClick={() => insertTextAtCursor("<ol>\n  <li>Item 1</li>\n  <li>Item 2</li>\n</ol>")}
+                                  onClick={() => insertTextAtCursor('<ol class="list-decimal ml-6 mb-4">\n  <li>Item 1</li>\n  <li>Item 2</li>\n</ol>')}
                                   title="Ordered List"
                                 >
                                   <ListOrdered className="h-4 w-4" />
@@ -423,7 +430,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8"
-                                  onClick={() => insertTextAtCursor("<a href=\"https://example.com\">Link text</a>")}
+                                  onClick={() => insertTextAtCursor('<a href="https://example.com" class="text-blue-600 hover:underline">Link text</a>')}
                                   title="Link"
                                 >
                                   <LinkIcon className="h-4 w-4" />
@@ -433,7 +440,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8"
-                                  onClick={() => insertTextAtCursor("<img src=\"image.jpg\" alt=\"Image description\" />")}
+                                  onClick={() => insertTextAtCursor('<img src="image.jpg" alt="Image description" class="max-w-full h-auto rounded-lg shadow-sm my-4" />')}
                                   title="Image"
                                 >
                                   <ImageIcon className="h-4 w-4" />
@@ -446,7 +453,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8"
-                                  onClick={() => insertTextAtCursor("<code>inline code</code>")}
+                                  onClick={() => insertTextAtCursor('<code class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-mono">inline code</code>')}
                                   title="Inline Code"
                                 >
                                   <Code className="h-4 w-4" />
@@ -456,7 +463,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8"
-                                  onClick={() => insertTextAtCursor("<pre><code>\nCode block\n</code></pre>")}
+                                  onClick={() => insertTextAtCursor('<pre class="bg-gray-100 border border-gray-200 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-sm font-mono text-gray-800">\nCode block\n</code></pre>')}
                                   title="Code Block"
                                 >
                                   <FileCode className="h-4 w-4" />
@@ -466,7 +473,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8"
-                                  onClick={() => insertTextAtCursor("<hr />")}
+                                  onClick={() => insertTextAtCursor('<hr class="border-t border-gray-300 my-6" />')}
                                   title="Horizontal Rule"
                                 >
                                   <FileText className="h-4 w-4" />
@@ -476,7 +483,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8"
-                                  onClick={() => insertTextAtCursor("<table>\n  <tr>\n    <th>Header 1</th>\n    <th>Header 2</th>\n  </tr>\n  <tr>\n    <td>Cell 1</td>\n    <td>Cell 2</td>\n  </tr>\n</table>")}
+                                  onClick={() => insertTextAtCursor('<table class="w-full border-collapse border border-gray-300 my-4">\n  <tr class="bg-gray-50">\n    <th class="border border-gray-300 px-4 py-2 text-left font-semibold">Header 1</th>\n    <th class="border border-gray-300 px-4 py-2 text-left font-semibold">Header 2</th>\n  </tr>\n  <tr>\n    <td class="border border-gray-300 px-4 py-2">Cell 1</td>\n    <td class="border border-gray-300 px-4 py-2">Cell 2</td>\n  </tr>\n</table>')}
                                   title="Table"
                                 >
                                   <Table className="h-4 w-4" />
@@ -535,7 +542,7 @@ export function LegalEditorPage() {
                             <tbody>
                               <tr className="border-b border-gray-200 dark:border-gray-700">
                                 <td className="py-2 pr-4">Heading</td>
-                                <td className="py-2 font-mono">&lt;h1&gt;Heading 1&lt;/h1&gt;<br />&lt;h2&gt;Heading 2&lt;/h2&gt;<br />&lt;h3&gt;Heading 3&lt;/h3&gt;</td>
+                                <td className="py-2 font-mono">&lt;h1 class="text-4xl font-bold mb-6 text-center text-gray-900"&gt;Heading 1&lt;/h1&gt;<br />&lt;h2 class="text-3xl font-bold mb-4 text-gray-900"&gt;Heading 2&lt;/h2&gt;<br />&lt;h3 class="text-xl font-semibold mt-6 mb-3 pb-2 border-b border-gray-300 text-gray-900"&gt;Heading 3&lt;/h3&gt;</td>
                               </tr>
                               <tr className="border-b border-gray-200 dark:border-gray-700">
                                 <td className="py-2 pr-4">Bold</td>

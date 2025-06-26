@@ -352,6 +352,16 @@ export function SharedFooter() {
                   Privacy Policy
                 </span>
               </Link>
+              <Link href="/sla">
+                <span 
+                  className="text-gray-500 text-sm transition-colors duration-200 hover:text-gray-900"
+                  style={{ color: `inherit` }}
+                  onMouseOver={(e) => (e.currentTarget.style.color = brandColors.primary.full)}
+                  onMouseOut={(e) => (e.currentTarget.style.color = "inherit")}
+                >
+                  Service Level Agreement
+                </span>
+              </Link>
             </div>
           </div>
         </div>
