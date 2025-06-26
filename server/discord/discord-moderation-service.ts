@@ -489,8 +489,9 @@ export class DiscordModerationService {
                 `**Roles:** ${roles}`
             ].join('\n');
 
-            // Reply with the user information
-            const embed = DiscordEmbedUtils.createInfoEmbed(`User Information for ${user.tag}`, userInfo);
+            // Reply with the user information and avatar
+            const embed = DiscordEmbedUtils.createInfoEmbed(`User Information for ${user.tag}`, userInfo)
+                .setThumbnail(user.displayAvatarURL());
             await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error getting user info:', error.message);
@@ -535,8 +536,9 @@ export class DiscordModerationService {
                 `**Boost Level:** ${guild.premiumTier}`
             ].join('\n');
 
-            // Reply with the server information
-            const embed = DiscordEmbedUtils.createInfoEmbed(`Server Information for ${guild?.name}`, serverInfo);
+            // Reply with the server information and icon
+            const embed = DiscordEmbedUtils.createInfoEmbed(`Server Information for ${guild?.name}`, serverInfo)
+                .setThumbnail(guild.iconURL() ?? null);
             await interaction.reply({ embeds: [embed], ephemeral: false });
         } catch (error: any) {
             console.error('Error getting server info:', error.message);
