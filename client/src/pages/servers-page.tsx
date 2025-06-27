@@ -76,8 +76,22 @@ export default function ServersPage() {
   const [refreshClicks, setRefreshClicks] = useState<number[]>([]);
   const [isRateLimited, setIsRateLimited] = useState(false);
 
-  // Get brand colors for consistent theming
-  const brandColors = getBrandColors();
+  // Fetch branding data
+  const { data: brandingData } = useQuery<{
+    company_name: string;
+    primary_color: string;
+    secondary_color: string;
+    accent_color: string;
+  }>({
+    queryKey: ['/api/settings/branding'],
+  });
+
+  // Get brand colors using the newer structure
+  const brandColors = getBrandColors({
+    primaryColor: brandingData?.primary_color,
+    secondaryColor: brandingData?.secondary_color,
+    accentColor: brandingData?.accent_color
+  });
 
   // Fetch servers from API
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
