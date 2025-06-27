@@ -347,7 +347,7 @@ export default function ServersPage() {
                 return (
                   <Card
                     key={server.id}
-                    className="group shadow-md hover:shadow-xl hover:border-primary transition-all duration-300 ease-in-out"
+                    className="group shadow-xl hover:shadow-xl hover:border-primary transition-all duration-300 ease-in-out"
                   >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                       <div className="flex items-center space-x-3">

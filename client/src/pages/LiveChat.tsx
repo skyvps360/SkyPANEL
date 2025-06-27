@@ -523,69 +523,74 @@ export default function LiveChat() {
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Modern Hero Header */}
-        <div className="rounded-2xl bg-card border border-border shadow-md">
-          <div className="p-8 md:p-12">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div
-                    className="flex items-center justify-center h-12 w-12 rounded-xl text-white shadow-lg"
-                    style={{ backgroundColor: brandColors.primary.full }}
-                  >
-                    <MessageCircle className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                      Live Support Chat
-                    </h1>
-                    <p className="text-muted-foreground text-lg mt-1">
-                      Get instant help from our support team
-                    </p>
-                  </div>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
+          <div className="p-8 md:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between relative z-10">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-4">
+                <div
+                  className="flex items-center justify-center h-12 w-12 rounded-xl text-white shadow-lg"
+                  style={{ backgroundColor: brandColors.primary.full }}
+                >
+                  <MessageCircle className="h-6 w-6" />
                 </div>
-
-                {/* Chat Stats Summary */}
-                <div className="flex flex-wrap gap-6 mt-6">
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: isConnected ? brandColors.primary.full : brandColors.secondary.full }}
-                    />
-                    <span className="text-sm font-medium text-foreground">
-                      {isConnected ? 'Connected' : 'Connecting...'}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: adminStatus.available ? brandColors.accent.full : '#6b7280' }}
-                    />
-                    <span className="text-sm font-medium text-foreground">
-                      {adminStatus.available ? `${adminStatus.adminCount} Admin${adminStatus.adminCount !== 1 ? 's' : ''} Available` : 'No Admins Available'}
-                    </span>
-                  </div>
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                    Live Support Chat
+                  </h1>
+                  <p className="text-muted-foreground text-lg mt-1">
+                    Get instant help from our support team
+                  </p>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/docs')}
-                  className="border-primary text-primary hover:bg-primary/10"
-                >
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Docs
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/tickets')}
-                  className="border-primary text-primary hover:bg-primary/10"
-                >
-                  <TicketIcon className="h-4 w-4 mr-2" />
-                  Tickets
-                </Button>
+              {/* Chat Stats Summary */}
+              <div className="flex flex-wrap gap-6 mt-6">
+                <div className="flex items-center space-x-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: isConnected ? brandColors.primary.full : brandColors.secondary.full }}
+                  />
+                  <span className="text-sm font-medium text-foreground">
+                    {isConnected ? 'Connected' : 'Connecting...'}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: adminStatus.available ? brandColors.accent.full : '#6b7280' }}
+                  />
+                  <span className="text-sm font-medium text-foreground">
+                    {adminStatus.available ? `${adminStatus.adminCount} Admin${adminStatus.adminCount !== 1 ? 's' : ''} Available` : 'No Admins Available'}
+                  </span>
+                </div>
               </div>
             </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/docs')}
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Docs
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/tickets')}
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              >
+                <TicketIcon className="h-4 w-4 mr-2" />
+                Tickets
+              </Button>
+            </div>
+          </div>
+          {/* Abstract background shapes */}
+          <div className="absolute top-0 left-0 w-full h-full z-0">
+            <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
+                 style={{ backgroundColor: brandColors.primary.full }}></div>
+            <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
+                 style={{ backgroundColor: brandColors.secondary.full }}></div>
           </div>
         </div>
 

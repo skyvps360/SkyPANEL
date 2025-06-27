@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, MessageSquare, ExternalLink, ChevronLeft, ChevronRight, BookOpen, TicketIcon, AlertCircle } from "lucide-react";
+import { getBrandColors } from "@/lib/brand-theme";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -43,6 +44,9 @@ export default function TicketsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(5); // Set to 5 tickets per page
   const [statusFilter, setStatusFilter] = useState<string>("open"); // "all", "open", "closed"
+
+  // Get brand colors for consistent theming
+  const brandColors = getBrandColors();
 
   // Reset page when filter changes
   const handleStatusFilterChange = (value: string) => {
@@ -223,65 +227,70 @@ export default function TicketsPage() {
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Modern Hero Header */}
-        <div className="rounded-2xl bg-card border border-border shadow-md">
-          <div className="p-8 md:p-12">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
-                    <TicketIcon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                      Support Tickets
-                    </h1>
-                    <p className="text-muted-foreground text-lg mt-1">
-                      Get help from our support team
-                    </p>
-                  </div>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
+          <div className="p-8 md:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between relative z-10">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
+                  <TicketIcon className="h-6 w-6" />
                 </div>
-
-                {/* Ticket Stats Summary */}
-                <div className="flex flex-wrap gap-6 mt-6">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                    <span className="text-sm font-medium text-foreground">
-                      {tickets.filter(t => t.status.toLowerCase() === 'open').length} Open Tickets
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-secondary" />
-                    <span className="text-sm font-medium text-foreground">
-                      {tickets.filter(t => t.status.toLowerCase() === 'in-progress').length} In Progress
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">
-                      {tickets.filter(t => t.status.toLowerCase() === 'closed').length} Closed
-                    </span>
-                  </div>
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                    Support Tickets
+                  </h1>
+                  <p className="text-muted-foreground text-lg mt-1">
+                    Get help from our support team
+                  </p>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/docs')}
-                  className="border-primary text-primary hover:bg-primary/10"
-                >
-                  <BookOpen className="h-4 w-4 mr-2" />
-                  Docs
-                </Button>
-                <Button
-                  onClick={() => setCreateDialogOpen(true)}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Ticket
-                </Button>
+              {/* Ticket Stats Summary */}
+              <div className="flex flex-wrap gap-6 mt-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    {tickets.filter(t => t.status.toLowerCase() === 'open').length} Open Tickets
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-secondary" />
+                  <span className="text-sm font-medium text-foreground">
+                    {tickets.filter(t => t.status.toLowerCase() === 'in-progress').length} In Progress
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {tickets.filter(t => t.status.toLowerCase() === 'closed').length} Closed
+                  </span>
+                </div>
               </div>
             </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/docs')}
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                Docs
+              </Button>
+              <Button
+                onClick={() => setCreateDialogOpen(true)}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Ticket
+              </Button>
+            </div>
+          </div>
+          {/* Abstract background shapes */}
+          <div className="absolute top-0 left-0 w-full h-full z-0">
+            <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
+                 style={{ backgroundColor: brandColors.primary.full }}></div>
+            <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
+                 style={{ backgroundColor: brandColors.secondary.full }}></div>
           </div>
         </div>
 
