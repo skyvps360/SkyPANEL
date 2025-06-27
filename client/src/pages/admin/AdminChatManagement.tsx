@@ -785,9 +785,9 @@ export default function AdminChatManagement() {
   // Fullscreen layout - ENTIRE admin chat management interface
   if (isFullscreen) {
     return (
-      <div className="fixed inset-0 z-50 bg-white flex flex-col">
+      <div className="fixed inset-0 z-50 bg-background flex flex-col">
         {/* Fullscreen Header */}
-        <div className="flex-shrink-0 border-b border-gray-200 bg-white px-6 py-4">
+        <div className="flex-shrink-0 border-b border-border bg-background px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div
@@ -797,10 +797,10 @@ export default function AdminChatManagement() {
                 <MessageSquare className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   Live Chat Management - Fullscreen
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   Complete support team monitoring interface
                 </p>
               </div>
@@ -817,7 +817,7 @@ export default function AdminChatManagement() {
                 variant="ghost"
                 size="sm"
                 onClick={toggleFullscreen}
-                className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900"
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                 title="Exit Fullscreen (ESC)"
               >
                 <Minimize2 className="h-4 w-4" />
@@ -832,10 +832,10 @@ export default function AdminChatManagement() {
 
           {/* Fullscreen Tabs */}
           <Tabs defaultValue="sessions" className="flex-1 flex flex-col">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+            <TabsList className="grid w-full grid-cols-2 bg-muted">
               <TabsTrigger
                 value="sessions"
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Chat Sessions
@@ -843,7 +843,7 @@ export default function AdminChatManagement() {
               {/* Departments tab hidden in fullscreen mode - we use the unified departments system in settings */}
               <TabsTrigger
                 value="settings"
-                className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
@@ -852,18 +852,18 @@ export default function AdminChatManagement() {
 
             <TabsContent value="sessions" className="flex-1 mt-6">
               {/* Fullscreen Sidebar Layout Chat Interface */}
-              <div className="flex h-[calc(100vh-300px)] bg-gray-50 rounded-lg overflow-hidden chat-container">
+              <div className="flex h-[calc(100vh-300px)] bg-muted rounded-lg overflow-hidden chat-container">
                 {/* Sidebar - Available Sessions */}
                 <div className={cn(
-                  "flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
+                  "flex flex-col bg-background border-r border-border transition-all duration-300",
                   showSessionsList ? "w-80" : "w-16"
                 )}>
                   {/* Sidebar Header */}
-                  <div className="flex-shrink-0 p-4 border-b border-gray-100 bg-white">
+                  <div className="flex-shrink-0 p-4 border-b border-border bg-background">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-2">
                         {showSessionsList && (
-                          <h3 className="text-sm font-semibold text-gray-900">Available Sessions</h3>
+                          <h3 className="text-sm font-semibold text-foreground">Available Sessions</h3>
                         )}
                         <Badge variant="secondary" className="text-xs">
                           {availableSessions.filter(session =>
@@ -877,7 +877,7 @@ export default function AdminChatManagement() {
                           variant="ghost"
                           size="sm"
                           onClick={() => setShowSessionsList(false)}
-                          className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                           title="Collapse sidebar"
                         >
                           <ChevronLeft className="h-3 w-3" />
@@ -895,14 +895,14 @@ export default function AdminChatManagement() {
                           >
                             <SelectTrigger className={cn(
                               "h-8 text-xs",
-                              selectedDepartmentFilter && "border-blue-300 bg-blue-50"
+                              selectedDepartmentFilter && "border-blue-300"
                             )}>
                               <SelectValue placeholder="All Departments" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">
                                 <div className="flex items-center space-x-2">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400" />
+                                  <div className="w-2 h-2 rounded-full bg-muted-foreground" />
                                   <span>All Departments</span>
                                 </div>
                               </SelectItem>
@@ -920,14 +920,14 @@ export default function AdminChatManagement() {
                             </SelectContent>
                           </Select>
                           {selectedDepartmentFilter && (
-                            <div className="flex items-center justify-between mt-1">
-                              <span className="text-xs text-blue-600">
+                            <div className="flex items-center justify-between mt-2 p-2 rounded-md border border-border bg-muted">
+                              <span className="text-xs font-medium text-foreground">
                                 Filtering by: {departments.find(d => d.id === selectedDepartmentFilter)?.name}
                               </span>
                               <Button
-                                variant="ghost"
+                                variant="secondary"
                                 size="sm"
-                                className="h-4 w-4 p-0 text-blue-600 hover:text-blue-800"
+                                className="h-5 w-5 p-0 text-foreground hover:bg-red-500 hover:text-white"
                                 onClick={() => setSelectedDepartmentFilter(null)}
                               >
                                 <X className="h-3 w-3" />
@@ -950,11 +950,11 @@ export default function AdminChatManagement() {
                           <div className="text-center py-8">
                             {showSessionsList ? (
                               <>
-                                <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                                <p className="text-gray-500 text-xs">No available sessions</p>
+                                <MessageCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                <p className="text-muted-foreground text-xs">No available sessions</p>
                               </>
                             ) : (
-                              <MessageCircle className="h-6 w-6 text-gray-300 mx-auto" />
+                              <MessageCircle className="h-6 w-6 text-muted-foreground mx-auto" />
                             )}
                           </div>
                         ) : (
@@ -970,7 +970,7 @@ export default function AdminChatManagement() {
                                 <div
                                   key={session.id}
                                   className={cn(
-                                    "p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50 bg-white border border-gray-100",
+                                    "p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted bg-background border border-border",
                                     !showSessionsList && "p-2"
                                   )}
                                   onClick={() => openTab(session)}
@@ -978,8 +978,8 @@ export default function AdminChatManagement() {
                                   <div className="flex items-start space-x-3">
                                     {/* Avatar */}
                                     <div className="flex-shrink-0">
-                                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                        <User className="h-4 w-4 text-gray-600" />
+                                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                        <User className="h-4 w-4 text-muted-foreground" />
                                       </div>
                                     </div>
 
@@ -987,19 +987,19 @@ export default function AdminChatManagement() {
                                       <div className="flex-1 min-w-0">
                                         {/* Header */}
                                         <div className="flex items-center justify-between mb-1">
-                                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                                          <h4 className="text-sm font-medium text-foreground truncate">
                                             {session.user?.fullName || 'Anonymous'}
                                           </h4>
                                           <div className="flex items-center space-x-1">
                                             <div className={cn("w-2 h-2 rounded-full", getStatusColor(session.status))} />
-                                            <span className="text-xs text-gray-500">
+                                            <span className="text-xs text-muted-foreground">
                                               {new Date(session.startedAt).toLocaleTimeString()}
                                             </span>
                                           </div>
                                         </div>
 
                                         {/* Subject */}
-                                        <p className="text-xs text-gray-600 truncate mb-2">
+                                        <p className="text-xs text-muted-foreground truncate mb-2">
                                           {session.subject || 'General Support'}
                                         </p>
 
@@ -1024,7 +1024,7 @@ export default function AdminChatManagement() {
                                               </Badge>
                                             )}
                                           </div>
-                                          <span className="text-xs text-gray-400">#{session.id}</span>
+                                          <span className="text-xs text-muted-foreground">#{session.id}</span>
                                         </div>
                                       </div>
                                     )}
@@ -1039,14 +1039,14 @@ export default function AdminChatManagement() {
                 </div>
 
                 {/* Main Chat Area */}
-                <div className="flex-1 flex flex-col bg-white min-w-0 overflow-hidden">
+                <div className="flex-1 flex flex-col bg-background min-w-0 overflow-hidden">
                   {/* Tab Headers */}
                   {activeTabs.length > 0 && (
-                    <div className="border-b border-gray-200">
+                    <div className="border-b border-border">
                       <div className="flex items-center justify-between px-6 py-3">
                         <div className="flex items-center space-x-2">
                           <MessageSquare className="h-5 w-5" style={{ color: brandColors.secondary.full }} />
-                          <span className="font-semibold text-gray-900">Active Chats</span>
+                          <span className="font-semibold text-foreground">Active Chats</span>
                           <Badge variant="secondary" className="text-xs">
                             {activeTabs.length}/{MAX_TABS}
                           </Badge>
@@ -1068,8 +1068,8 @@ export default function AdminChatManagement() {
                                 className={cn(
                                   "flex items-center space-x-2 px-4 py-3 border-b-2 cursor-pointer transition-all duration-200 min-w-[200px] max-w-[250px]",
                                   activeTabId === tab.sessionId
-                                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                                    : "border-transparent hover:bg-gray-50 text-gray-600"
+                                    ? "border-primary bg-primary/10 text-primary"
+                                    : "border-transparent hover:bg-muted text-muted-foreground"
                                 )}
                                 onClick={() => switchTab(tab.sessionId)}
                               >
@@ -1085,7 +1085,7 @@ export default function AdminChatManagement() {
                                       </Badge>
                                     )}
                                   </div>
-                                  <div className="flex items-center space-x-2 text-xs text-gray-500 truncate">
+                                  <div className="flex items-center space-x-2 text-xs text-muted-foreground truncate">
                                     <span>#{tab.sessionId}</span>
                                     <span>•</span>
                                     <span>{tab.session.priority}</span>
@@ -1121,7 +1121,7 @@ export default function AdminChatManagement() {
 
                         {/* Tab Overflow Controls */}
                         {activeTabs.length > 4 && (
-                          <div className="flex items-center border-l border-gray-200 px-2">
+                          <div className="flex items-center border-l border-border px-2">
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1157,17 +1157,17 @@ export default function AdminChatManagement() {
                     {activeTab && activeTabState ? (
                       <>
                         {/* Chat Header */}
-                        <div className="border-b border-gray-100 px-6 py-4">
+                        <div className="border-b border-border px-6 py-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
-                              <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                <User className="h-5 w-5 text-gray-600" />
+                              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                                <User className="h-5 w-5 text-muted-foreground" />
                               </div>
                               <div>
-                                <h3 className="font-semibold text-gray-900">
+                                <h3 className="font-semibold text-foreground">
                                   {activeTab.session.user?.fullName || 'Anonymous User'}
                                 </h3>
-                                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                                   <span>{activeTab.session.user?.email}</span>
                                   <span>•</span>
                                   <span>#{activeTab.session.id}</span>
@@ -1226,7 +1226,7 @@ export default function AdminChatManagement() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleConvertToTicket(activeTab.sessionId)}
-                                  className="text-xs px-3 py-1 h-7 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                                  className="text-xs px-3 py-1 h-7 border-blue-200 text-blue-600 hover:bg-blue-900 hover:border-blue-700 hover:text-blue-300"
                                   disabled={convertToTicketMutation.isPending}
                                 >
                                   <Ticket className="h-3 w-3 mr-1" />
@@ -1243,9 +1243,9 @@ export default function AdminChatManagement() {
                             <div className="p-6 space-y-4 w-full min-h-0">
                               {activeTabState.messages.length === 0 ? (
                                 <div className="text-center py-12">
-                                  <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                                  <h3 className="text-lg font-medium text-gray-900 mb-2">Start the conversation</h3>
-                                  <p className="text-gray-500">
+                                  <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                  <h3 className="text-lg font-medium text-foreground mb-2">Start the conversation</h3>
+                                  <p className="text-muted-foreground">
                                     Send a message to begin chatting with {activeTab.session.user?.fullName || 'the customer'}
                                   </p>
                                 </div>
@@ -1262,8 +1262,8 @@ export default function AdminChatManagement() {
                                       className={cn(
                                         "chat-message-bubble rounded-2xl px-4 py-3 text-sm shadow-sm",
                                         msg.isFromAdmin
-                                          ? "bg-blue-600 text-white rounded-br-md"
-                                          : "bg-gray-100 text-gray-900 rounded-bl-md"
+                                          ? "bg-primary text-primary-foreground rounded-br-md"
+                                          : "bg-muted text-foreground rounded-bl-md"
                                       )}
                                     >
                                       <div className="flex items-center space-x-2 mb-1 flex-wrap">
@@ -1290,7 +1290,7 @@ export default function AdminChatManagement() {
                         </div>
 
                         {/* Input Area */}
-                        <div className="border-t border-gray-100 p-6">
+                        <div className="border-t border-border p-6">
                           <div className="flex space-x-3">
                             <Input
                               value={activeTabState.messageInput || ''}
@@ -1302,7 +1302,7 @@ export default function AdminChatManagement() {
                                 }
                               }}
                               placeholder="Type your message..."
-                              className="flex-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                              className="flex-1 border-input focus:border-primary focus:ring-primary"
                               disabled={!isConnected}
                             />
                             <Button
@@ -1317,14 +1317,14 @@ export default function AdminChatManagement() {
 
                           {/* Connection Status */}
                           <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center space-x-2 text-xs text-gray-500">
+                            <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                               <div className={cn(
                                 "w-2 h-2 rounded-full",
                                 isConnected ? "bg-green-500" : "bg-red-500"
                               )} />
                               <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
                             </div>
-                            <div className="text-xs text-gray-400">
+                            <div className="text-xs text-muted-foreground">
                               Press Enter to send
                             </div>
                           </div>
@@ -1334,9 +1334,9 @@ export default function AdminChatManagement() {
                       /* No Session Selected */
                       <div className="flex-1 flex items-center justify-center">
                         <div className="text-center">
-                          <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Chat</h3>
-                          <p className="text-gray-500 max-w-sm">
+                          <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-foreground mb-2">Select a Chat</h3>
+                          <p className="text-muted-foreground max-w-sm">
                             Choose a chat session from the sidebar to start messaging with customers
                           </p>
                           {!showSessionsList && (
@@ -1363,20 +1363,20 @@ export default function AdminChatManagement() {
             </TabsContent>
 
             <TabsContent value="settings" className="flex-1 mt-6">
-              <Card className="border-0 shadow-lg bg-white">
+              <Card className="border-0 shadow-lg bg-card">
                 <CardHeader className="pb-6">
-                  <CardTitle className="text-xl font-semibold text-gray-900 flex items-center">
+                  <CardTitle className="text-xl font-semibold text-foreground flex items-center">
                     <Settings className="h-5 w-5 mr-2" style={{ color: brandColors.accent.full }} />
                     Admin Chat Settings
                   </CardTitle>
-                  <p className="text-gray-600 mt-2">
+                  <p className="text-muted-foreground mt-2">
                     Configure your chat availability and preferences
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                      <Label htmlFor="status" className="text-sm font-medium text-gray-700">
+                      <Label htmlFor="status" className="text-sm font-medium text-foreground">
                         Availability Status
                       </Label>
                       <Select
@@ -1386,7 +1386,7 @@ export default function AdminChatManagement() {
                           setAdminStatus(value);
                         }}
                       >
-                        <SelectTrigger className="border-gray-200 focus:border-blue-500 focus:ring-blue-500">
+                        <SelectTrigger className="border-input focus:border-primary focus:ring-primary">
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1404,13 +1404,13 @@ export default function AdminChatManagement() {
                           </SelectItem>
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Your availability status for new chat requests
                       </p>
                     </div>
 
                     <div className="space-y-3">
-                      <Label htmlFor="maxChats" className="text-sm font-medium text-gray-700">
+                      <Label htmlFor="maxChats" className="text-sm font-medium text-foreground">
                         Max Concurrent Chats
                       </Label>
                       <Input
@@ -1423,16 +1423,16 @@ export default function AdminChatManagement() {
                           const value = parseInt(e.target.value) || 1;
                           setMaxConcurrentChats(value);
                         }}
-                        className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        className="border-input focus:border-primary focus:ring-primary"
                       />
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Maximum number of simultaneous chat sessions
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <Label htmlFor="statusMessage" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="statusMessage" className="text-sm font-medium text-foreground">
                       Status Message
                     </Label>
                     <Input
@@ -1442,9 +1442,9 @@ export default function AdminChatManagement() {
                         setStatusMessage(e.target.value);
                       }}
                       placeholder="Optional status message for customers"
-                      className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                      className="border-input focus:border-primary focus:ring-primary"
                     />
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       This message will be visible to customers when they start a chat
                     </p>
                   </div>
@@ -1460,16 +1460,16 @@ export default function AdminChatManagement() {
                         }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <Label htmlFor="autoAssign" className="text-sm font-medium text-gray-700">
+                      <Label htmlFor="autoAssign" className="text-sm font-medium text-foreground">
                         Auto-assign new chats
                       </Label>
                     </div>
-                    <p className="text-xs text-gray-500 ml-6">
+                    <p className="text-xs text-muted-foreground ml-6">
                       Automatically assign new chat sessions to available admins
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-100">
+                  <div className="pt-4 border-t border-border">
                     <Button
                       onClick={handleUpdateStatus}
                       disabled={updateStatusMutation.isPending}
@@ -1503,12 +1503,9 @@ export default function AdminChatManagement() {
       <div className="space-y-8">
         {/* Modern Header with Glassmorphism */}
         <div
-          className="relative overflow-hidden rounded-2xl border border-white/20 bg-white/80 backdrop-blur-sm shadow-xl"
-          style={{
-            background: `linear-gradient(135deg, ${brandColors.primary.extraLight}, ${brandColors.secondary.extraLight})`
-          }}
+          className="relative overflow-hidden rounded-2xl border border-border bg-card backdrop-blur-sm shadow-xl"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-white/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-transparent" />
           <div className="relative px-8 py-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
@@ -1520,10 +1517,10 @@ export default function AdminChatManagement() {
                     <MessageSquare className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">
                       Live Chat Management
                     </h1>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Manage real-time support sessions and respond to customer inquiries
                     </p>
                   </div>
@@ -1531,17 +1528,17 @@ export default function AdminChatManagement() {
               </div>
               <div className="flex items-center space-x-4">
                 <Badge
-                  variant={isConnected ? 'default' : 'destructive'}
-                  className="px-3 py-1 text-sm font-medium"
+                  variant="outline"
+                  className={cn("px-3 py-1 text-sm font-medium", isConnected ? "border-green-500 text-green-500" : "border-red-500 text-red-500")}
                 >
-                  <div className={cn("mr-2 h-2 w-2 rounded-full", isConnected ? "bg-green-400" : "bg-red-400")} />
+                  <div className={cn("mr-2 h-2 w-2 rounded-full", isConnected ? "bg-green-500" : "bg-red-500")} />
                   {isConnected ? 'Connected' : 'Disconnected'}
                 </Badge>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={toggleFullscreen}
-                  className="h-8 w-8 p-0 text-gray-600 hover:text-gray-900"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                   title="Enter Fullscreen Mode"
                 >
                   <Maximize2 className="h-4 w-4" />
@@ -1553,9 +1550,9 @@ export default function AdminChatManagement() {
 
         {/* Modern Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
+          <Card className="border shadow-lg bg-card hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">Active Sessions</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Active Sessions</CardTitle>
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-lg"
                 style={{ backgroundColor: brandColors.primary.extraLight }}
@@ -1567,16 +1564,16 @@ export default function AdminChatManagement() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{stats.activeSessions}</div>
-              <p className="text-sm text-gray-500 mt-1">
+              <div className="text-3xl font-bold text-foreground">{stats.activeSessions}</div>
+              <p className="text-sm text-muted-foreground mt-1">
                 Currently active chat sessions
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
+          <Card className="border shadow-lg bg-card hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">Total Messages</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Messages</CardTitle>
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-lg"
                 style={{ backgroundColor: brandColors.secondary.extraLight }}
@@ -1588,8 +1585,8 @@ export default function AdminChatManagement() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{stats.totalMessages}</div>
-              <p className="text-sm text-gray-500 mt-1">
+              <div className="text-3xl font-bold text-foreground">{stats.totalMessages}</div>
+              <p className="text-sm text-muted-foreground mt-1">
                 Messages sent total
               </p>
             </CardContent>
@@ -1597,10 +1594,10 @@ export default function AdminChatManagement() {
         </div>
 
         <Tabs defaultValue="sessions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+          <TabsList className="grid w-full grid-cols-2 bg-muted">
             <TabsTrigger
               value="sessions"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+              className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Chat Sessions
@@ -1608,7 +1605,7 @@ export default function AdminChatManagement() {
             {/* Departments tab hidden - we use the unified departments system in settings */}
             <TabsTrigger
               value="settings"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm"
+              className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
             >
               <Settings className="h-4 w-4 mr-2" />
               Settings
@@ -1617,18 +1614,18 @@ export default function AdminChatManagement() {
 
           <TabsContent value="sessions" className="space-y-6">
             {/* Sidebar Layout Chat Interface */}
-            <div className="flex h-[calc(100vh-200px)] bg-gray-50 rounded-lg overflow-hidden chat-container">
+            <div className="flex h-[calc(100vh-200px)] bg-muted rounded-lg overflow-hidden chat-container">
               {/* Sidebar - Available Sessions */}
               <div className={cn(
-                "flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
+                "flex flex-col bg-background border-r border-border transition-all duration-300",
                 showSessionsList ? "w-80" : "w-16"
               )}>
                 {/* Sidebar Header */}
-                <div className="flex-shrink-0 p-4 border-b border-gray-100 bg-white">
+                <div className="flex-shrink-0 p-4 border-b border-border bg-background">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
                       {showSessionsList && (
-                        <h3 className="text-sm font-semibold text-gray-900">Available Sessions</h3>
+                        <h3 className="text-sm font-semibold text-foreground">Available Sessions</h3>
                       )}
                       <Badge variant="secondary" className="text-xs">
                         {availableSessions.filter(session =>
@@ -1642,7 +1639,7 @@ export default function AdminChatManagement() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowSessionsList(false)}
-                        className="h-6 w-6 p-0 text-gray-500 hover:text-gray-700"
+                        className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                         title="Collapse sidebar"
                       >
                         <ChevronLeft className="h-3 w-3" />
@@ -1660,14 +1657,14 @@ export default function AdminChatManagement() {
                         >
                           <SelectTrigger className={cn(
                             "h-8 text-xs",
-                            selectedDepartmentFilter && "border-blue-300 bg-blue-50"
+                            selectedDepartmentFilter && "border-blue-300"
                           )}>
                             <SelectValue placeholder="All Departments" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">
                               <div className="flex items-center space-x-2">
-                                <div className="w-2 h-2 rounded-full bg-gray-400" />
+                                <div className="w-2 h-2 rounded-full bg-muted-foreground" />
                                 <span>All Departments</span>
                               </div>
                             </SelectItem>
@@ -1685,14 +1682,14 @@ export default function AdminChatManagement() {
                           </SelectContent>
                         </Select>
                         {selectedDepartmentFilter && (
-                          <div className="flex items-center justify-between mt-1">
-                            <span className="text-xs text-blue-600">
+                          <div className="flex items-center justify-between mt-2 p-2 rounded-md border border-border bg-muted">
+                            <span className="text-xs font-medium text-foreground">
                               Filtering by: {departments.find(d => d.id === selectedDepartmentFilter)?.name}
                             </span>
                             <Button
-                              variant="ghost"
+                              variant="secondary"
                               size="sm"
-                              className="h-4 w-4 p-0 text-blue-600 hover:text-blue-800"
+                              className="h-5 w-5 p-0 text-foreground hover:bg-red-500 hover:text-white"
                               onClick={() => setSelectedDepartmentFilter(null)}
                             >
                               <X className="h-3 w-3" />
@@ -1715,11 +1712,11 @@ export default function AdminChatManagement() {
                         <div className="text-center py-8">
                           {showSessionsList ? (
                             <>
-                              <MessageCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                              <p className="text-gray-500 text-xs">No available sessions</p>
+                              <MessageCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-muted-foreground text-xs">No available sessions</p>
                             </>
                           ) : (
-                            <MessageCircle className="h-6 w-6 text-gray-300 mx-auto" />
+                            <MessageCircle className="h-6 w-6 text-muted-foreground mx-auto" />
                           )}
                         </div>
                       ) : (
@@ -1735,7 +1732,7 @@ export default function AdminChatManagement() {
                               <div
                                 key={session.id}
                                 className={cn(
-                                  "p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-gray-50 bg-white border border-gray-100",
+                                  "p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted bg-background border border-border",
                                   !showSessionsList && "p-2"
                                 )}
                                 onClick={() => openTab(session)}
@@ -1743,8 +1740,8 @@ export default function AdminChatManagement() {
                                 <div className="flex items-start space-x-3">
                                   {/* Avatar */}
                                   <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                      <User className="h-4 w-4 text-gray-600" />
+                                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                      <User className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                   </div>
 
@@ -1752,19 +1749,19 @@ export default function AdminChatManagement() {
                                     <div className="flex-1 min-w-0">
                                       {/* Header */}
                                       <div className="flex items-center justify-between mb-1">
-                                        <h4 className="text-sm font-medium text-gray-900 truncate">
+                                        <h4 className="text-sm font-medium text-foreground truncate">
                                           {session.user?.fullName || 'Anonymous'}
                                         </h4>
                                         <div className="flex items-center space-x-1">
                                           <div className={cn("w-2 h-2 rounded-full", getStatusColor(session.status))} />
-                                          <span className="text-xs text-gray-500">
+                                          <span className="text-xs text-muted-foreground">
                                             {new Date(session.startedAt).toLocaleTimeString()}
                                           </span>
                                         </div>
                                       </div>
 
                                       {/* Subject */}
-                                      <p className="text-xs text-gray-600 truncate mb-2">
+                                      <p className="text-xs text-muted-foreground truncate mb-2">
                                         {session.subject || 'General Support'}
                                       </p>
 
@@ -1790,7 +1787,7 @@ export default function AdminChatManagement() {
                                           )}
 
                                         </div>
-                                        <span className="text-xs text-gray-400">#{session.id}</span>
+                                        <span className="text-xs text-muted-foreground">#{session.id}</span>
                                       </div>
                                     </div>
                                   )}
@@ -1805,14 +1802,14 @@ export default function AdminChatManagement() {
               </div>
 
               {/* Main Chat Area */}
-              <div className="flex-1 flex flex-col bg-white min-w-0 overflow-hidden">
+              <div className="flex-1 flex flex-col bg-background min-w-0 overflow-hidden">
                 {/* Tab Headers */}
                 {activeTabs.length > 0 && (
-                  <div className="border-b border-gray-200">
+                  <div className="border-b border-border">
                     <div className="flex items-center justify-between px-6 py-3">
                       <div className="flex items-center space-x-2">
                         <MessageSquare className="h-5 w-5" style={{ color: brandColors.secondary.full }} />
-                        <span className="font-semibold text-gray-900">Active Chats</span>
+                        <span className="font-semibold text-foreground">Active Chats</span>
                         <Badge variant="secondary" className="text-xs">
                           {activeTabs.length}/{MAX_TABS}
                         </Badge>
@@ -1834,8 +1831,8 @@ export default function AdminChatManagement() {
                               className={cn(
                                 "flex items-center space-x-2 px-4 py-3 border-b-2 cursor-pointer transition-all duration-200 min-w-[200px] max-w-[250px]",
                                 activeTabId === tab.sessionId
-                                  ? "border-blue-500 bg-blue-50 text-blue-700"
-                                  : "border-transparent hover:bg-gray-50 text-gray-600"
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-transparent hover:bg-muted text-muted-foreground"
                               )}
                               onClick={() => switchTab(tab.sessionId)}
                             >
@@ -1851,7 +1848,7 @@ export default function AdminChatManagement() {
                                     </Badge>
                                   )}
                                 </div>
-                                <div className="flex items-center space-x-2 text-xs text-gray-500 truncate">
+                                <div className="flex items-center space-x-2 text-xs text-muted-foreground truncate">
                                   <span>#{tab.sessionId}</span>
                                   <span>•</span>
                                   <span>{tab.session.priority}</span>
@@ -1887,7 +1884,7 @@ export default function AdminChatManagement() {
 
                       {/* Tab Overflow Controls */}
                       {activeTabs.length > 4 && (
-                        <div className="flex items-center border-l border-gray-200 px-2">
+                        <div className="flex items-center border-l border-border px-2">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1923,17 +1920,17 @@ export default function AdminChatManagement() {
                   {activeTab && activeTabState ? (
                     <>
                       {/* Chat Header */}
-                      <div className="border-b border-gray-100 px-6 py-4">
+                      <div className="border-b border-border px-6 py-4">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                              <User className="h-5 w-5 text-gray-600" />
+                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                              <User className="h-5 w-5 text-muted-foreground" />
                             </div>
                             <div>
-                              <h3 className="font-semibold text-gray-900">
+                              <h3 className="font-semibold text-foreground">
                                 {activeTab.session.user?.fullName || 'Anonymous User'}
                               </h3>
-                              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                                 <span>{activeTab.session.user?.email}</span>
                                 <span>•</span>
                                 <span>#{activeTab.session.id}</span>
@@ -1992,7 +1989,7 @@ export default function AdminChatManagement() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleConvertToTicket(activeTab.sessionId)}
-                                className="text-xs px-3 py-1 h-7 border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                                className="text-xs px-3 py-1 h-7 border-blue-200 text-blue-600 hover:bg-blue-900 hover:border-blue-700 hover:text-blue-300"
                                 disabled={convertToTicketMutation.isPending}
                               >
                                 <Ticket className="h-3 w-3 mr-1" />
@@ -2009,9 +2006,9 @@ export default function AdminChatManagement() {
                           <div className="p-6 space-y-4 w-full">
                             {activeTabState.messages.length === 0 ? (
                               <div className="text-center py-12">
-                                <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900 mb-2">Start the conversation</h3>
-                                <p className="text-gray-500">
+                                <MessageCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                                <h3 className="text-lg font-medium text-foreground mb-2">Start the conversation</h3>
+                                <p className="text-muted-foreground">
                                   Send a message to begin chatting with {activeTab.session.user?.fullName || 'the customer'}
                                 </p>
                               </div>
@@ -2028,8 +2025,8 @@ export default function AdminChatManagement() {
                                     className={cn(
                                       "chat-message-bubble rounded-2xl px-4 py-3 text-sm shadow-sm",
                                       msg.isFromAdmin
-                                        ? "bg-blue-600 text-white rounded-br-md"
-                                        : "bg-gray-100 text-gray-900 rounded-bl-md"
+                                        ? "bg-primary text-primary-foreground rounded-br-md"
+                                        : "bg-muted text-foreground rounded-bl-md"
                                     )}
                                   >
                                     <div className="flex items-center space-x-2 mb-1 flex-wrap">
@@ -2056,7 +2053,7 @@ export default function AdminChatManagement() {
                       </div>
 
                       {/* Input Area */}
-                      <div className="border-t border-gray-100 p-6">
+                      <div className="border-t border-border p-6">
                         <div className="flex space-x-3">
                           <Input
                             value={activeTabState.messageInput || ''}
@@ -2068,7 +2065,7 @@ export default function AdminChatManagement() {
                               }
                             }}
                             placeholder="Type your message..."
-                            className="flex-1 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                            className="flex-1 border-input focus:border-primary focus:ring-primary"
                             disabled={!isConnected}
                           />
                           <Button
@@ -2083,14 +2080,14 @@ export default function AdminChatManagement() {
 
                         {/* Connection Status */}
                         <div className="flex items-center justify-between mt-2">
-                          <div className="flex items-center space-x-2 text-xs text-gray-500">
+                          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                             <div className={cn(
                               "w-2 h-2 rounded-full",
                               isConnected ? "bg-green-500" : "bg-red-500"
                             )} />
                             <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-muted-foreground">
                             Press Enter to send
                           </div>
                         </div>
@@ -2098,25 +2095,25 @@ export default function AdminChatManagement() {
                     </>
                   ) : (
                     /* No Session Selected */
-                    <div className="flex-1 flex items-center justify-center">
-                      <div className="text-center">
-                        <MessageSquare className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Chat</h3>
-                        <p className="text-gray-500 max-w-sm">
-                          Choose a chat session from the sidebar to start messaging with customers
-                        </p>
-                        {!showSessionsList && (
-                          <Button
-                            onClick={() => setShowSessionsList(true)}
-                            className="flex items-center justify-center space-x-2 mx-auto mt-4"
-                            style={{ backgroundColor: brandColors.primary.full }}
-                          >
-                            <Users className="h-4 w-4" />
-                            <span>Show Available Sessions</span>
-                          </Button>
-                        )}
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="text-center">
+                          <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-foreground mb-2">Select a Chat</h3>
+                          <p className="text-muted-foreground max-w-sm">
+                            Choose a chat session from the sidebar to start messaging with customers
+                          </p>
+                          {!showSessionsList && (
+                            <Button
+                              onClick={() => setShowSessionsList(true)}
+                              className="mt-4"
+                              variant="outline"
+                            >
+                              <Users className="h-4 w-4 mr-2" />
+                              Show Sessions
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
                   )}
                 </div>
               </div>
@@ -2129,20 +2126,20 @@ export default function AdminChatManagement() {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
-            <Card className="border-0 shadow-lg bg-white">
+            <Card className="border-0 shadow-lg bg-card">
               <CardHeader className="pb-6">
-                <CardTitle className="text-xl font-semibold text-gray-900 flex items-center">
+                <CardTitle className="text-xl font-semibold text-foreground flex items-center">
                   <Settings className="h-5 w-5 mr-2" style={{ color: brandColors.accent.full }} />
                   Admin Chat Settings
                 </CardTitle>
-                <p className="text-gray-600 mt-2">
+                <p className="text-muted-foreground mt-2">
                   Configure your chat availability and preferences
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
-                    <Label htmlFor="status" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="status" className="text-sm font-medium text-foreground">
                       Availability Status
                     </Label>
                     <Select
@@ -2152,7 +2149,7 @@ export default function AdminChatManagement() {
                         setAdminStatus(value);
                       }}
                     >
-                      <SelectTrigger className="border-gray-200 focus:border-blue-500 focus:ring-blue-500">
+                      <SelectTrigger className="border-input focus:border-primary focus:ring-primary">
                         <SelectValue placeholder="Select availability status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -2173,7 +2170,7 @@ export default function AdminChatManagement() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label htmlFor="maxChats" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="maxChats" className="text-sm font-medium text-foreground">
                       Max Concurrent Chats
                     </Label>
                     <Input
@@ -2183,16 +2180,16 @@ export default function AdminChatManagement() {
                       onChange={(e) => setMaxConcurrentChats(parseInt(e.target.value) || 5)}
                       min="1"
                       max="20"
-                      className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                      className="border-input focus:border-primary focus:ring-primary"
                     />
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       Maximum number of simultaneous chat sessions
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <Label htmlFor="statusMessage" className="text-sm font-medium text-gray-700">
+                  <Label htmlFor="statusMessage" className="text-sm font-medium text-foreground">
                     Status Message
                   </Label>
                   <Input
@@ -2202,9 +2199,9 @@ export default function AdminChatManagement() {
                       setStatusMessage(e.target.value);
                     }}
                     placeholder="Optional status message for customers"
-                    className="border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                    className="border-input focus:border-primary focus:ring-primary"
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     This message will be visible to customers when they start a chat
                   </p>
                 </div>
@@ -2220,16 +2217,16 @@ export default function AdminChatManagement() {
                       }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <Label htmlFor="autoAssign" className="text-sm font-medium text-gray-700">
+                    <Label htmlFor="autoAssign" className="text-sm font-medium text-foreground">
                       Auto-assign new chats
                     </Label>
                   </div>
-                  <p className="text-xs text-gray-500 ml-6">
+                  <p className="text-xs text-muted-foreground ml-6">
                     Automatically assign new chat sessions to available admins
                   </p>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100">
+                <div className="pt-4 border-t border-border">
                   <Button
                     onClick={handleUpdateStatus}
                     disabled={updateStatusMutation.isPending}
@@ -2270,7 +2267,7 @@ export default function AdminChatManagement() {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="ticket-subject">Ticket Subject *</Label>
+              <Label htmlFor="ticket-subject" className="text-foreground">Ticket Subject *</Label>
               <Input
                 id="ticket-subject"
                 value={convertSubject}
@@ -2278,14 +2275,14 @@ export default function AdminChatManagement() {
                 placeholder="Enter a descriptive subject for the ticket"
                 className="w-full"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 This will be the main subject line for the support ticket
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="ticket-priority">Priority</Label>
+                <Label htmlFor="ticket-priority" className="text-foreground">Priority</Label>
                 <Select value={convertPriority} onValueChange={(value: 'low' | 'medium' | 'high') => setConvertPriority(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select priority" />
@@ -2314,7 +2311,7 @@ export default function AdminChatManagement() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ticket-department">Department</Label>
+                <Label htmlFor="ticket-department" className="text-foreground">Department</Label>
                 <Select
                   value={convertDepartmentId?.toString() || 'none'}
                   onValueChange={(value) => setConvertDepartmentId(value === 'none' ? null : parseInt(value))}
@@ -2324,7 +2321,7 @@ export default function AdminChatManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">
-                      <span className="text-gray-500">No department</span>
+                      <span className="text-muted-foreground">No department</span>
                     </SelectItem>
                     {departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id.toString()}>
