@@ -185,19 +185,7 @@ export default function AdminBillingPage() {
                   Completed
                 </Badge>
               );
-            case "pending":
-              return (
-                <Badge
-                  variant="outline"
-                  className="border-accent text-accent"
-                  style={{
-                    borderColor: `var(--brand-accent, ${brandColors.accent.full})`,
-                    color: `var(--brand-accent, ${brandColors.accent.full})`
-                  }}
-                >
-                  Pending
-                </Badge>
-              );
+            
             case "failed":
               return <Badge variant="destructive">Failed</Badge>;
             default:
@@ -251,7 +239,7 @@ export default function AdminBillingPage() {
     })
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const pendingTransactions = transactions.filter(t => t.status === 'pending').length;
+  
 
   const totalTransactions = transactions.length;
 
@@ -291,15 +279,7 @@ export default function AdminBillingPage() {
                       ${totalRevenue.toFixed(2)} Total Revenue
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: `var(--brand-accent, ${brandColors.accent.full})` }}
-                    />
-                    <span className="text-sm font-medium text-foreground">
-                      {pendingTransactions} Pending
-                    </span>
-                  </div>
+                  
                   <div className="flex items-center space-x-2">
                     <div
                       className="w-3 h-3 rounded-full"
@@ -316,7 +296,7 @@ export default function AdminBillingPage() {
         </div>
 
         {/* Enhanced Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Total Revenue Card */}
           <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border">
@@ -342,30 +322,7 @@ export default function AdminBillingPage() {
             </CardContent>
           </Card>
 
-          {/* Pending Transactions Card */}
-          <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
-            <div className="px-6 py-4 flex items-center justify-between border-b border-border">
-              <CardTitle className="text-base font-medium text-foreground">Pending Payments</CardTitle>
-              <div
-                className="h-10 w-10 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
-              >
-                <CreditCard
-                  className="h-5 w-5"
-                  style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
-                />
-              </div>
-            </div>
-            <CardContent className="px-6 py-5">
-              <div className="flex items-center gap-1">
-                <span className="text-3xl font-bold text-foreground">{pendingTransactions}</span>
-                <span className="text-sm text-muted-foreground self-end mb-1">transactions</span>
-              </div>
-              <p className="mt-3 text-sm text-muted-foreground">
-                Awaiting payment processing
-              </p>
-            </CardContent>
-          </Card>
+          
 
           {/* Total Transactions Card */}
           <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
