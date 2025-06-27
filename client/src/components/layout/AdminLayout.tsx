@@ -469,7 +469,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               >
                 A
               </span>
-              <span className={cn("font-bold", isSidebarCollapsed && "sr-only")}>{companyName} Admin</span>
+              {!isSidebarCollapsed && <span className={cn("font-bold")}>{companyName} Admin</span>}
             </Link>
             <Button
               variant="ghost"
@@ -715,6 +715,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Header with Search */}
         <header className="bg-background border-b border-border shadow-sm">
           <div className="flex items-center justify-between px-4 py-3">
+            {isSidebarCollapsed && (
+              <div className="flex items-center">
+                <Link
+                  href="/admin"
+                  className="ml-2 flex items-center gap-2 font-semibold"
+                >
+                  <span className="font-bold">{companyName} Admin</span>
+                </Link>
+              </div>
+            )}
             {/* Mobile logo - already shown in sidebar toggle */}
             <div className="flex-1 hidden lg:block" />
 
