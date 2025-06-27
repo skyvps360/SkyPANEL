@@ -197,33 +197,33 @@ export default function HomePage() {
         <div className="space-y-8 animate-in fade-in duration-500">
           {/* Modern Hero Header */}
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
-            <div className="p-8 md:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between relative z-10">
+            <div className="p-6 md:p-10 flex flex-col lg:flex-row lg:items-center lg:justify-between relative z-10">
               <div className="flex-1">
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center shadow-lg"
                        style={{ backgroundColor: brandColors.primary.full, color: 'white' }}>
-                    <span className="text-3xl font-bold">
+                    <span className="text-2xl font-bold">
                       {user?.fullName?.charAt(0) || 'U'}
                     </span>
                   </div>
                   <div>
-                    <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+                    <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
                       Welcome back, {user?.fullName?.split(' ')[0] || 'User'}!
                     </h1>
-                    <p className="text-gray-600 mt-2 text-lg md:text-xl">
+                    <p className="text-gray-600 mt-1 text-base md:text-lg">
                       Here's a quick overview of your account.
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="mt-8 lg:mt-0 flex flex-wrap gap-4 justify-center lg:justify-end">
+              <div className="mt-6 lg:mt-0 flex flex-wrap gap-3 justify-center lg:justify-end">
                 <VirtFusionSsoButton />
                 <Link href="/packages">
                   <Button
-                    size="lg"
+                    size="default"
                     className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg transition-all duration-300 transform hover:-translate-y-1"
                   >
-                    <Plus className="mr-2 h-5 w-5" /> New Server
+                    <Plus className="mr-2 h-4 w-4" /> New Server
                   </Button>
                 </Link>
               </div>
@@ -238,14 +238,14 @@ export default function HomePage() {
           </div>
 
           {/* Account Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* VirtFusion Credits Card */}
-            <Card className="shadow-xl border border-gray-300/60 flex flex-col justify-between p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">VirtFusion Balance</h3>
-                <DollarSign className="h-6 w-6 text-muted-foreground" />
+            <Card className="shadow-xl border border-gray-300/60 flex flex-col justify-between p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-gray-900">VirtFusion Balance</h3>
+                <DollarSign className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div className="text-4xl font-extrabold mb-2">
+              <div className="text-3xl font-extrabold mb-1">
                 <span className={`${displayCredits < 0 ? 'text-red-600' : 'text-gray-900'}`}>
                   ${displayCredits.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
@@ -254,7 +254,7 @@ export default function HomePage() {
                 </span>
               </div>
               {hasVirtFusion && (
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-xs text-gray-500 mb-3">
                   {stats.virtFusionTokens >= 0
                     ? `${stats.virtFusionTokens.toLocaleString()} tokens`
                     : `${Math.abs(stats.virtFusionTokens).toLocaleString()} tokens overdrawn`
@@ -272,15 +272,15 @@ export default function HomePage() {
             </Card>
 
             {/* Support Tickets Card */}
-            <Card className="shadow-xl border border-gray-300/60 flex flex-col justify-between p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Support Tickets</h3>
-                <Ticket className="h-6 w-6 text-muted-foreground" />
+            <Card className="shadow-xl border border-gray-300/60 flex flex-col justify-between p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-gray-900">Support Tickets</h3>
+                <Ticket className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div className="text-4xl font-extrabold mb-2 text-gray-900">
+              <div className="text-3xl font-extrabold mb-1 text-gray-900">
                 {stats.openTickets}
               </div>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-xs text-gray-500 mb-3">
                 {stats.openTickets > 0 ? 'awaiting response' : 'all resolved'}
               </p>
               <Link href="/tickets">
@@ -294,15 +294,15 @@ export default function HomePage() {
             </Card>
 
             {/* Active Servers Card */}
-            <Card className="shadow-xl border border-gray-300/60 flex flex-col justify-between p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Active Servers</h3>
-                <Server className="h-6 w-6 text-muted-foreground" />
+            <Card className="shadow-xl border border-gray-300/60 flex flex-col justify-between p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-gray-900">Active Servers</h3>
+                <Server className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div className="text-4xl font-extrabold mb-2 text-gray-900">
+              <div className="text-3xl font-extrabold mb-1 text-gray-900">
                 {stats.totalServers}
               </div>
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-xs text-gray-500 mb-3">
                 {generateServerDescription(servers)}
               </p>
               <Link href="/servers">
@@ -317,19 +317,19 @@ export default function HomePage() {
           </div>
 
           {/* Quick Actions Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="shadow-xl border border-gray-300/60">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold text-gray-900">Quick Actions</CardTitle>
+                <CardTitle className="text-xl font-bold text-gray-900">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <Link href="/packages">
                     <Button
                       variant="outline"
-                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                      className="w-full h-20 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
                     >
-                      <Plus className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
+                      <Plus className="h-6 w-6 mb-1 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">New Server</span>
                     </Button>
                   </Link>
@@ -337,9 +337,9 @@ export default function HomePage() {
                   <Link href="/tickets">
                     <Button
                       variant="outline"
-                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                      className="w-full h-20 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
                     >
-                      <MessageSquare className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
+                      <MessageSquare className="h-6 w-6 mb-1 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">Get Support</span>
                     </Button>
                   </Link>
@@ -347,9 +347,9 @@ export default function HomePage() {
                   <Link href="/billing">
                     <Button
                       variant="outline"
-                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                      className="w-full h-20 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
                     >
-                      <Coins className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
+                      <Coins className="h-6 w-6 mb-1 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">Add Funds</span>
                     </Button>
                   </Link>
@@ -357,9 +357,9 @@ export default function HomePage() {
                   <Link href="/live-chat">
                     <Button
                       variant="outline"
-                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                      className="w-full h-20 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
                     >
-                      <MessageSquare className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
+                      <MessageSquare className="h-6 w-6 mb-1 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">Live Chat</span>
                     </Button>
                   </Link>
@@ -367,9 +367,9 @@ export default function HomePage() {
                   <Link href="/dashboard/blog">
                     <Button
                       variant="outline"
-                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                      className="w-full h-20 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
                     >
-                      <Activity className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
+                      <Activity className="h-6 w-6 mb-1 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">Latest News</span>
                     </Button>
                   </Link>
@@ -379,32 +379,32 @@ export default function HomePage() {
 
             <Card className="shadow-xl border border-gray-300/60">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold text-gray-900">Account Overview</CardTitle>
+                <CardTitle className="text-xl font-bold text-gray-900">Account Overview</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm">
-                    <div className="flex items-center space-x-3">
-                      <Activity className="h-6 w-6 text-primary" />
-                      <span className="text-base font-medium text-gray-700">Account Status</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <Activity className="h-5 w-5 text-primary" />
+                      <span className="text-sm font-medium text-gray-700">Account Status</span>
                     </div>
-                    <span className="text-base font-semibold text-green-600">Active</span>
+                    <span className="text-sm font-semibold text-green-600">Active</span>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm">
-                    <div className="flex items-center space-x-3">
-                      <Server className="h-6 w-6 text-primary" />
-                      <span className="text-base font-medium text-gray-700">Active Servers</span>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <Server className="h-5 w-5 text-primary" />
+                      <span className="text-sm font-medium text-gray-700">Active Servers</span>
                     </div>
-                    <span className="text-base font-semibold text-gray-900">{stats.totalServers}</span>
+                    <span className="text-sm font-semibold text-gray-900">{stats.totalServers}</span>
                   </div>
 
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm">
-                    <div className="flex items-center space-x-3">
-                      <HelpCircle className="h-6 w-6 text-primary" />
-                      <span className="text-base font-medium text-gray-700">Open Tickets</span>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <HelpCircle className="h-5 w-5 text-primary" />
+                      <span className="text-sm font-medium text-gray-700">Open Tickets</span>
                     </div>
-                    <span className="text-base font-semibold text-gray-900">{stats.openTickets}</span>
+                    <span className="text-sm font-semibold text-gray-900">{stats.openTickets}</span>
                   </div>
                 </div>
               </CardContent>
