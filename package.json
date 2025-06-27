@@ -1,8 +1,9 @@
 {
-  "name": "rest-express",
-  "version": "1.0.0",
+  "name": "skypanel",
+  "version": "14.0.0",
   "type": "module",
   "license": "MIT",
+  "description": "SkyPANEL - A modern web panel for managing your servers and applications.",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "dev:clean": "npm run clean && npm run dev",
