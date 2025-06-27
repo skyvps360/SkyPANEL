@@ -79,7 +79,8 @@
 			"ms-python.python",
 			"esbenp.prettier-vscode",
 			"dbaeumer.vscode-eslint",
-			"kilocode.kilo-code"
+			"kilocode.kilo-code",
+			"codeium.codeium"
 		]
 	}
 }
