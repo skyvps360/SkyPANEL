@@ -30,6 +30,7 @@ import {
   MessageSquare,
   Globe,
 } from "lucide-react";
+import { UseQueryOptions } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -109,6 +110,18 @@ interface SearchResult {
   }>;
 }
 
+interface BrandingData {
+  company_name?: string;
+  company_color?: string;
+  primary_color?: string;
+  secondary_color?: string;
+  accent_color?: string;
+}
+
+interface PublicSettings {
+  company_name?: string;
+}
+
 function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const [location, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
@@ -125,27 +138,23 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const searchResultsRef = useRef<HTMLDivElement>(null);
 
   // Fetch branding settings to get company name and brand colors
-  const { data: brandingSettings, isLoading: brandingLoading, error: brandingError, isError: brandingIsError } = useQuery({
-    queryKey: ["/api/settings/branding"],
-    enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    onError: (err) => {
-      if (err instanceof Error && err.message.includes('HTML')) {
-        toast({ title: "API Error", description: "Non-JSON response received for branding data.", variant: "destructive" });
-      }
+  const { data: brandingSettings, isLoading: brandingLoading, error: brandingError, isError: brandingIsError } = useQuery<BrandingData, Error, BrandingData, string[]>(
+    {
+      queryKey: ["/api/settings/branding"],
+      enabled: !!user,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      
     }
-  });
+  );
 
   // Fetch public settings
-  const { data: settings = {}, isLoading: settingsLoading, error: settingsError, isError: settingsIsError } = useQuery({
-    queryKey: ["/api/settings/public"],
-    enabled: !!user,
-    onError: (err) => {
-      if (err instanceof Error && err.message.includes('HTML')) {
-        toast({ title: "API Error", description: "Non-JSON response received for public settings.", variant: "destructive" });
-      }
+  const { data: settings, isLoading: settingsLoading, error: settingsError, isError: settingsIsError } = useQuery<PublicSettings, Error, PublicSettings, string[]>(
+    {
+      queryKey: ["/api/settings/public"],
+      enabled: !!user,
+      
     }
-  });
+  );
 
   // Update company name when settings are loaded
   useEffect(() => {
