@@ -1,3 +1,4 @@
+import Cookies from "js-cookie";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -32,6 +33,7 @@ import { CacheClearButton } from "@/components/ui/cache-clear-button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getBrandColors } from "@/lib/brand-theme";
 
@@ -117,6 +119,14 @@ interface ServerType {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const cookie = Cookies.get("sidebar-collapsed");
+    return cookie === "true";
+  });
+
+  useEffect(() => {
+    Cookies.set("sidebar-collapsed", isSidebarCollapsed.toString(), { expires: 365 });
+  }, [isSidebarCollapsed]);
   const { logoutMutation, user } = useAuth();
   const { toast } = useToast();
 
@@ -444,7 +454,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, [searchResults, activeResultIndex, showSearchPopup, navigateToResult]);
 
   return (
-    <div className="grid min-h-screen w-full overflow-hidden lg:grid-cols-[280px_1fr]">
+    <div className={cn("grid min-h-screen w-full overflow-hidden", isSidebarCollapsed ? "lg:grid-cols-[80px_1fr]" : "lg:grid-cols-[280px_1fr]")}>
       {/* Sidebar for larger screens */}
       <div className="hidden border-r bg-background lg:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
@@ -459,26 +469,48 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               >
                 A
               </span>
-              <span className="font-bold">{companyName} Admin</span>
+              <span className={cn("font-bold", isSidebarCollapsed && "sr-only")}>{companyName} Admin</span>
             </Link>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-auto h-8 w-8"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
           </div>
           <div className="flex-1 py-2 overflow-y-auto">
             <nav className="grid items-start px-2 text-sm font-medium space-y-1">
-              <Button
-                variant="ghost"
-                className="justify-start font-medium rounded-lg hover:bg-opacity-80 hover:text-opacity-100 hover:bg-[var(--hover-bg)]"
-                style={{
-                  color: brandColors.primary?.full,
-                  "--hover-bg": brandColors.primary?.full,
-                  "--hover-color": "white"
-                } as React.CSSProperties}
-                asChild
-              >
-                <Link href="/dashboard" className="group w-full">
-                  <Home className="mr-2 h-4 w-4 text-primary group-hover:text-[var(--hover-color)]" />
-                  <span className="group-hover:text-[var(--hover-color)]">Return to Dashboard</span>
-                </Link>
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "justify-start font-medium rounded-lg hover:bg-opacity-80 hover:text-opacity-100 hover:bg-[var(--hover-bg)]",
+                        isSidebarCollapsed && "w-full justify-center"
+                      )}
+                      style={{
+                        color: brandColors.primary?.full,
+                        "--hover-bg": brandColors.primary?.full,
+                        "--hover-color": "white"
+                      } as React.CSSProperties}
+                      asChild
+                    >
+                      <Link href="/dashboard" className="group w-full">
+                        <Home className={cn("h-4 w-4 text-primary group-hover:text-[var(--hover-color)]", !isSidebarCollapsed && "mr-2")} />
+                        <span className={cn("group-hover:text-[var(--hover-color)]", isSidebarCollapsed && "sr-only")}>Return to Dashboard</span>
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  {isSidebarCollapsed && (
+                    <TooltipContent side="right">
+                      Return to Dashboard
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
 
               <Separator className="my-2" />
 
@@ -487,49 +519,78 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 const isActive = location === item.href;
 
                 return (
-                  <Button
-                    key={item.href}
-                    variant={isActive ? "secondary" : "ghost"}
-                    className={cn(
-                      "justify-start font-medium rounded-lg",
-                      !isActive && "hover:bg-opacity-80 hover:text-opacity-100"
-                    )}
-                    style={{
-                      ...(isActive
-                        ? {
-                            backgroundColor: brandColors.primary?.lighter,
-                            color: brandColors.primary?.full
-                          }
-                        : {}),
-                      "--hover-bg": brandColors.primary?.full,
-                      "--hover-color": "white"
-                    } as React.CSSProperties}
-                    asChild
-                  >
-                    <Link href={item.href} className={!isActive ? "group w-full" : "w-full"}>
-                      <Icon className={cn(
-                        "mr-2 h-4 w-4",
-                        !isActive && "group-hover:text-[var(--hover-color)]"
+                  <TooltipProvider key={item.href}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={isActive ? "secondary" : "ghost"}
+                          className={cn(
+                            "justify-start font-medium rounded-lg",
+                            !isActive && "hover:bg-opacity-80 hover:text-opacity-100",
+                            isSidebarCollapsed && "w-full justify-center"
+                          )}
+                          style={{
+                            ...(isActive
+                              ? {
+                                  backgroundColor: brandColors.primary?.lighter,
+                                  color: brandColors.primary?.full
+                                }
+                              : {}),
+                            "--hover-bg": brandColors.primary?.full,
+                            "--hover-color": "white"
+                          } as React.CSSProperties}
+                          asChild
+                        >
+                          <Link href={item.href} className={!isActive ? "group w-full" : "w-full"}>
+                            <Icon className={cn(
+                              "h-4 w-4",
+                              !isSidebarCollapsed && "mr-2",
+                              !isActive && "group-hover:text-[var(--hover-color)]"
+                            )}
+                            style={isActive ? { color: brandColors.primary?.full } : undefined} />
+                            <span className={cn(
+                              !isActive ? "group-hover:text-[var(--hover-color)]" : "",
+                              isSidebarCollapsed && "sr-only"
+                            )}>
+                              {item.label}
+                            </span>
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      {isSidebarCollapsed && (
+                        <TooltipContent side="right">
+                          {item.label}
+                        </TooltipContent>
                       )}
-                      style={isActive ? { color: brandColors.primary?.full } : undefined} />
-                      <span className={!isActive ? "group-hover:text-[var(--hover-color)]" : ""}>
-                        {item.label}
-                      </span>
-                    </Link>
-                  </Button>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })}
 
               <Separator className="my-2" />
 
-              <Button
-                variant="ghost"
-                className="justify-start font-medium rounded-lg text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "justify-start font-medium rounded-lg text-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30",
+                        isSidebarCollapsed && "w-full justify-center"
+                      )}
+                      onClick={handleLogout}
+                    >
+                      <LogOut className={cn("h-4 w-4", !isSidebarCollapsed && "mr-2")} />
+                      <span className={cn(isSidebarCollapsed && "sr-only")}>Logout</span>
+                    </Button>
+                  </TooltipTrigger>
+                  {isSidebarCollapsed && (
+                    <TooltipContent side="right">
+                      Logout
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </nav>
           </div>
         </div>
@@ -560,7 +621,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 >
                   A
                 </span>
-                <span className="font-bold">{companyName} Admin</span>
+                <span className={cn("font-bold", isSidebarCollapsed && "sr-only")}>{companyName} Admin</span>
               </Link>
             </div>
             <div className="flex-1 py-2 overflow-y-auto">
