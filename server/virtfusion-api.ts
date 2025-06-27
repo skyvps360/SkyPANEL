@@ -831,6 +831,17 @@ export class VirtFusionApi {
   }
 
   /**
+   * Throttle a server's CPU
+   * @param serverId The server ID
+   * @param throttleData Object containing throttle percentage
+   * @returns API response
+   */
+  async throttleServerCpu(serverId: number, throttleData: { percent: number }) {
+    // Throttling server CPU
+    return this.request("PUT", `/servers/${serverId}/modify/cpuThrottle`, throttleData);
+  }
+
+  /**
    * Get queue item status
    * @param queueId The queue ID
    * @returns Queue item data

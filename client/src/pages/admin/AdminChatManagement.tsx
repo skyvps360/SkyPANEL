@@ -1614,7 +1614,7 @@ export default function AdminChatManagement() {
 
           <TabsContent value="sessions" className="space-y-6">
             {/* Sidebar Layout Chat Interface */}
-            <div className="flex h-[calc(100vh-200px)] bg-muted rounded-lg overflow-hidden chat-container">
+            <div className="flex h-[calc(100vh-200px)] bg-muted rounded-lg overflow-hidden chat-container border border-border">
               {/* Sidebar - Available Sessions */}
               <div className={cn(
                 "flex flex-col bg-background border-r border-border transition-all duration-300",

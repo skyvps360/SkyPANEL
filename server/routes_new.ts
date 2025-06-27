@@ -7319,8 +7319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const throttleData = {
         percent: req.body.percent
       };
-
-      const result = await virtFusionApi.modifyServerCpuThrottle(serverId, throttleData);
+      const result = await virtFusionApi.throttleServerCpu(serverId, throttleData);
       res.json({
         success: true,
         message: `CPU throttled to ${req.body.percent}%`,
