@@ -828,50 +828,7 @@ export default function AdminChatManagement() {
 
         {/* Fullscreen Content - Copy the entire normal layout content here */}
         <div className="flex-1 overflow-hidden p-6 space-y-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">Active Sessions</CardTitle>
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: brandColors.primary.extraLight }}
-                >
-                  <MessageCircle
-                    className="h-5 w-5"
-                    style={{ color: brandColors.primary.full }}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900">{stats.activeSessions}</div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Currently active chat sessions
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">Total Messages</CardTitle>
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: brandColors.secondary.extraLight }}
-                >
-                  <Activity
-                    className="h-5 w-5"
-                    style={{ color: brandColors.secondary.full }}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900">{stats.totalMessages}</div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Messages sent total
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Stats Cards - Hidden in Fullscreen */}
 
           {/* Fullscreen Tabs */}
           <Tabs defaultValue="sessions" className="flex-1 flex flex-col">
