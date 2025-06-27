@@ -85,7 +85,8 @@
 			"christian-kohler.npm-intellisense",
 			"ms-python.python",
 			"esbenp.prettier-vscode",
-			"dbaeumer.vscode-eslint"
+			"dbaeumer.vscode-eslint",
+			"kilocode.kilo-code"
 		]
 	}
 }

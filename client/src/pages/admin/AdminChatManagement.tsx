@@ -829,7 +829,7 @@ export default function AdminChatManagement() {
         {/* Fullscreen Content - Copy the entire normal layout content here */}
         <div className="flex-1 overflow-hidden p-6 space-y-6">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-700">Active Sessions</CardTitle>
@@ -868,27 +868,6 @@ export default function AdminChatManagement() {
                 <div className="text-3xl font-bold text-gray-900">{stats.totalMessages}</div>
                 <p className="text-sm text-gray-500 mt-1">
                   Messages sent total
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">Avg Response Time</CardTitle>
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: brandColors.accent.extraLight }}
-                >
-                  <Timer
-                    className="h-5 w-5"
-                    style={{ color: brandColors.accent.full }}
-                  />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900">{stats.averageResponseTime}s</div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Average response time
                 </p>
               </CardContent>
             </Card>
@@ -1616,7 +1595,7 @@ export default function AdminChatManagement() {
         </div>
 
         {/* Modern Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">Active Sessions</CardTitle>
@@ -1655,27 +1634,6 @@ export default function AdminChatManagement() {
               <div className="text-3xl font-bold text-gray-900">{stats.totalMessages}</div>
               <p className="text-sm text-gray-500 mt-1">
                 Messages sent total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 shadow-lg bg-white hover:shadow-xl transition-all duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">Avg Response Time</CardTitle>
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-lg"
-                style={{ backgroundColor: brandColors.accent.extraLight }}
-              >
-                <Timer
-                  className="h-5 w-5"
-                  style={{ color: brandColors.accent.full }}
-                />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{stats.averageResponseTime}s</div>
-              <p className="text-sm text-gray-500 mt-1">
-                Average response time
               </p>
             </CardContent>
           </Card>
@@ -2071,7 +2029,7 @@ export default function AdminChatManagement() {
                               {activeTab.session.status}
                             </Badge>
 
-                            {/* Convert to Ticket Button (ENHANCED: Chat-to-ticket conversion feature) */}
+                            {/* Convert to Ticket Button */}
                             {activeTab.session.status === 'active' && (
                               <Button
                                 variant="outline"
