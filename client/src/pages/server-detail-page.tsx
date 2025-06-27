@@ -1896,8 +1896,8 @@ export default function ServerDetailPage() {
           }</Breadcrumb.Item>
         </Breadcrumb>
         {/* Modern Hero Header */}
-        <div className="rounded-2xl bg-card border border-border shadow-md">
-          <div className="p-8 md:p-12">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
+          <div className="p-8 md:p-12 relative z-10">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-4">
@@ -2006,6 +2006,13 @@ export default function ServerDetailPage() {
                 </div>
               )}
             </div>
+          </div>
+          {/* Bubble background shapes */}
+          <div className="absolute top-0 left-0 w-full h-full z-0">
+            <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
+                 style={{ backgroundColor: brandColors.primary.full }}></div>
+            <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
+                 style={{ backgroundColor: brandColors.secondary.full }}></div>
           </div>
         </div>
 
