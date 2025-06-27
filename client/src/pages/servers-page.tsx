@@ -224,19 +224,19 @@ export default function ServersPage() {
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-primary" />
                   <span className="text-sm font-medium text-foreground">
-                    {filteredServers.filter(s => getServerStatus(s) === 'RUNNING').length} Running
+                    {filteredServers.filter((s: any) => getServerStatus(s) === 'RUNNING').length} Running
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-muted-foreground" />
                   <span className="text-sm font-medium text-foreground">
-                    {filteredServers.filter(s => getServerStatus(s) === 'STOPPED').length} Stopped
+                    {filteredServers.filter((s: any) => getServerStatus(s) === 'STOPPED').length} Stopped
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-destructive" />
                   <span className="text-sm font-medium text-foreground">
-                    {filteredServers.filter(s => getServerStatus(s) === 'SUSPENDED').length} Suspended
+                    {filteredServers.filter((s: any) => getServerStatus(s) === 'SUSPENDED').length} Suspended
                   </span>
                 </div>
               </div>
@@ -406,28 +406,39 @@ export default function ServersPage() {
                         </div>
                       )}
 
-                      {(server.cpu?.cores || server.memory || server.storage?.length > 0) && (
-                        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
-                          {server.cpu?.cores && (
-                            <div className="flex flex-col items-center text-center">
-                              <Cpu className="h-5 w-5 text-gray-600 mb-1" />
-                              <span className="text-xs font-medium text-foreground">{server.cpu.cores} Cores</span>
-                            </div>
-                          )}
-                          {server.memory && (
-                            <div className="flex flex-col items-center text-center">
-                              <MemoryStick className="h-5 w-5 text-gray-600 mb-1" />
-                              <span className="text-xs font-medium text-foreground">{server.memory} MB RAM</span>
-                            </div>
-                          )}
-                          {server.storage?.length > 0 && (
-                            <div className="flex flex-col items-center text-center">
-                              <HardDrive className="h-5 w-5 text-gray-600 mb-1" />
-                              <span className="text-xs font-medium text-foreground">{server.storage[0]?.capacity || 'N/A'} Storage</span>
-                            </div>
-                          )}
+                      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+                        <div className="flex flex-col items-center text-center">
+                          <Cpu className="h-5 w-5 text-gray-600 mb-1" />
+                          <span className="text-xs font-medium text-foreground">
+                            {server.cpu?.cores !== undefined && server.cpu?.cores !== null ? `${server.cpu.cores} Cores` : 'N/A'}
+                          </span>
                         </div>
-                      )}
+                        <div className="flex flex-col items-center text-center">
+                          <MemoryStick className="h-5 w-5 text-gray-600 mb-1" />
+                          <span className="text-xs font-medium text-foreground">
+                            {/* Prefer VirtFusion API: server.settings.resources.memory (MB), fallback to server.memory */}
+                            {(() => {
+                              const memoryMb = server?.settings?.resources?.memory;
+                              const legacyMemory = server.memory;
+                              if (typeof memoryMb === 'number' && !isNaN(memoryMb)) {
+                                return `${(memoryMb / 1024).toFixed(1).replace('.0', '')} GB RAM`;
+                              } else if (legacyMemory && !isNaN(parseInt(legacyMemory, 10))) {
+                                return `${(parseInt(legacyMemory, 10) / 1024).toFixed(1).replace('.0', '')} GB RAM`;
+                              } else {
+                                return 'N/A';
+                              }
+                            })()}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center text-center">
+                          <HardDrive className="h-5 w-5 text-gray-600 mb-1" />
+                          <span className="text-xs font-medium text-foreground">
+                            {server.storage?.length > 0 && server.storage[0]?.capacity !== undefined && server.storage[0]?.capacity !== null
+                              ? `${server.storage[0].capacity} GB Storage`
+                              : 'N/A'}
+                          </span>
+                        </div>
+                      </div>
 
                       <Link href={`/servers/${server.id}`}>
                         <Button
