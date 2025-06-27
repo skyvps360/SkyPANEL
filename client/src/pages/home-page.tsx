@@ -19,6 +19,7 @@ import {
   Globe,
   BarChart3
 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Helper function to generate category-aware server description
 function generateServerDescription(servers: any[]): string {
@@ -195,414 +196,219 @@ export default function HomePage() {
       {/* Dashboard Content */}
         <div className="space-y-8 animate-in fade-in duration-500">
           {/* Modern Hero Header */}
-          <div className="rounded-2xl bg-white border border-gray-300/60 shadow-md">
-            <div className="p-8 md:p-12">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-primary text-primary-foreground">
-                      <div className="text-xl font-bold">
-                        {user?.fullName?.charAt(0) || 'U'}
-                      </div>
-                    </div>
-                    <div>
-                      <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-                        Welcome back, {user?.fullName?.split(' ')[0] || 'User'}
-                      </h1>
-                      <p className="text-gray-600 mt-1 text-lg">
-                        Here's what's happening with your account today
-                      </p>
-                    </div>
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
+            <div className="p-8 md:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between relative z-10">
+              <div className="flex-1">
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
+                       style={{ backgroundColor: brandColors.primary.full, color: 'white' }}>
+                    <span className="text-3xl font-bold">
+                      {user?.fullName?.charAt(0) || 'U'}
+                    </span>
+                  </div>
+                  <div>
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+                      Welcome back, {user?.fullName?.split(' ')[0] || 'User'}!
+                    </h1>
+                    <p className="text-gray-600 mt-2 text-lg md:text-xl">
+                      Here's a quick overview of your account.
+                    </p>
                   </div>
                 </div>
-                <div className="mt-6 lg:mt-0 flex flex-wrap gap-3">
-                  <VirtFusionSsoButton />
-                  <Link href="/packages">
-                    <Button
-                      variant="outline"
-                      className="bg-white/80 backdrop-blur-sm border-gray-200 hover:bg-primary hover:text-primary-foreground hover:shadow-md transition-all duration-200"
-                    >
-                      Browse Packages
-                    </Button>
-                  </Link>
-                </div>
               </div>
+              <div className="mt-8 lg:mt-0 flex flex-wrap gap-4 justify-center lg:justify-end">
+                <VirtFusionSsoButton />
+                <Link href="/packages">
+                  <Button
+                    size="lg"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg transition-all duration-300 transform hover:-translate-y-1"
+                  >
+                    <Plus className="mr-2 h-5 w-5" /> New Server
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            {/* Abstract background shapes */}
+            <div className="absolute top-0 left-0 w-full h-full z-0">
+              <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
+                   style={{ backgroundColor: brandColors.primary.full }}></div>
+              <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
+                   style={{ backgroundColor: brandColors.secondary.full }}></div>
             </div>
           </div>
 
-          {/* Account Overview Table */}
-          <div className="rounded-2xl bg-white border border-gray-300/60 shadow-md">
-            <div className="p-6">
-              <div className="flex items-center space-x-3 mb-6">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                  style={{ backgroundColor: brandColors.primary.lighter }}
+          {/* Account Overview Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* VirtFusion Credits Card */}
+            <Card className="shadow-xl border border-gray-300/60 flex flex-col justify-between p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">VirtFusion Balance</h3>
+                <DollarSign className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div className="text-4xl font-extrabold mb-2">
+                <span className={`${displayCredits < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                  ${displayCredits.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })}
+                </span>
+              </div>
+              {hasVirtFusion && (
+                <p className="text-sm text-gray-500 mb-4">
+                  {stats.virtFusionTokens >= 0
+                    ? `${stats.virtFusionTokens.toLocaleString()} tokens`
+                    : `${Math.abs(stats.virtFusionTokens).toLocaleString()} tokens overdrawn`
+                  }
+                </p>
+              )}
+              <Link href="/billing">
+                <Button
+                  variant="outline"
+                  className="w-full hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200"
                 >
-                  <BarChart3
-                    className="h-5 w-5"
-                    style={{ color: brandColors.primary.full }}
-                  />
-                </div>
-                <h2 className="text-xl font-semibold text-gray-900">Account Overview</h2>
+                  Manage Balance
+                </Button>
+              </Link>
+            </Card>
+
+            {/* Support Tickets Card */}
+            <Card className="shadow-xl border border-gray-300/60 flex flex-col justify-between p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Support Tickets</h3>
+                <Ticket className="h-6 w-6 text-muted-foreground" />
               </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full table-fixed">
-                  <colgroup>
-                    <col className="w-2/5" />
-                    <col className="w-1/4" />
-                    <col className="w-1/6" />
-                    <col className="w-1/6" />
-                  </colgroup>
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-6 font-medium text-gray-600">Service</th>
-                      <th className="text-right py-3 px-6 font-medium text-gray-600">Current Value</th>
-                      <th className="text-center py-3 px-6 font-medium text-gray-600">Status</th>
-                      <th className="text-center py-3 px-6 font-medium text-gray-600">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {/* VirtFusion Credits Row */}
-                    <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{ backgroundColor: brandColors.primary.full }}
-                          >
-                            <DollarSign className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">VirtFusion Balance</p>
-                            <p className="text-sm text-gray-500">VPS hosting credits</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-right">
-                          <p className={`text-lg font-semibold ${displayCredits < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                            ${displayCredits.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2
-                            })}
-                          </p>
-                          {hasVirtFusion && (
-                            <p className="text-xs text-gray-500">
-                              {stats.virtFusionTokens >= 0
-                                ? `${stats.virtFusionTokens.toLocaleString()} tokens`
-                                : `${Math.abs(stats.virtFusionTokens).toLocaleString()} tokens overdrawn`
-                              }
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-                          <span className="text-sm text-gray-600">Active</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex justify-center">
-                          <Link href="/billing">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                            >
-                              Manage
-                            </Button>
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Support Tickets Row */}
-                    <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{ backgroundColor: `var(--brand-secondary, ${brandColors.secondary.full})` }}
-                          >
-                            <Ticket className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">Support Tickets</p>
-                            <p className="text-sm text-gray-500">Get help & support</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-right">
-                          <p className="text-lg font-semibold text-gray-900">{stats.openTickets}</p>
-                          <p className="text-xs text-gray-500">
-                            {stats.openTickets > 0 ? 'awaiting response' : 'all resolved'}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${stats.openTickets > 0 ? 'bg-red-400 animate-pulse' : 'bg-green-400'}`}></div>
-                          <span className="text-sm text-gray-600">
-                            {stats.openTickets > 0 ? 'Pending' : 'Good'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex justify-center">
-                          <Link href="/tickets">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                            >
-                              View
-                            </Button>
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Active Servers Row */}
-                    <tr className="hover:bg-gray-50 transition-colors duration-200">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
-                            style={{ backgroundColor: brandColors.accent.full }}
-                          >
-                            <Server className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">Active Servers</p>
-                            <p className="text-sm text-gray-500">KVM hosting services</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-right">
-                          <p className="text-lg font-semibold text-gray-900">{stats.totalServers}</p>
-                          <p className="text-xs text-gray-500">
-                            {generateServerDescription(servers)}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${stats.totalServers > 0 ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
-                          <span className="text-sm text-gray-600">
-                            {stats.totalServers > 0 ? 'Running' : 'None'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex justify-center">
-                          <Link href="/servers">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                            >
-                              View
-                            </Button>
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div className="text-4xl font-extrabold mb-2 text-gray-900">
+                {stats.openTickets}
               </div>
-            </div>
+              <p className="text-sm text-gray-500 mb-4">
+                {stats.openTickets > 0 ? 'awaiting response' : 'all resolved'}
+              </p>
+              <Link href="/tickets">
+                <Button
+                  variant="outline"
+                  className="w-full hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200"
+                >
+                  View Tickets
+                </Button>
+              </Link>
+            </Card>
+
+            {/* Active Servers Card */}
+            <Card className="shadow-xl border border-gray-300/60 flex flex-col justify-between p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Active Servers</h3>
+                <Server className="h-6 w-6 text-muted-foreground" />
+              </div>
+              <div className="text-4xl font-extrabold mb-2 text-gray-900">
+                {stats.totalServers}
+              </div>
+              <p className="text-sm text-gray-500 mb-4">
+                {generateServerDescription(servers)}
+              </p>
+              <Link href="/servers">
+                <Button
+                  variant="outline"
+                  className="w-full hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all duration-200"
+                >
+                  View Servers
+                </Button>
+              </Link>
+            </Card>
           </div>
 
           {/* Quick Actions Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Quick Actions Card */}
-            <div className="bg-white rounded-xl border border-gray-300/60 shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Link href="/packages">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
-                        style={{ backgroundColor: brandColors.primary.lighter }}
-                      >
-                        <Plus
-                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
-                          style={{ color: brandColors.primary.full }}
-                        />
-                      </div>
+            <Card className="shadow-xl border border-gray-300/60">
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold text-gray-900">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Link href="/packages">
+                    <Button
+                      variant="outline"
+                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                    >
+                      <Plus className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">New Server</span>
-                    </div>
-                  </Button>
-                </Link>
+                    </Button>
+                  </Link>
 
-                <Link href="/tickets">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
-                        style={{ backgroundColor: brandColors.primary.lighter }}
-                      >
-                        <MessageSquare
-                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
-                          style={{ color: brandColors.primary.full }}
-                        />
-                      </div>
+                  <Link href="/tickets">
+                    <Button
+                      variant="outline"
+                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                    >
+                      <MessageSquare className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">Get Support</span>
-                    </div>
-                  </Button>
-                </Link>
+                    </Button>
+                  </Link>
 
-                <Link href="/billing">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
-                        style={{ backgroundColor: brandColors.primary.lighter }}
-                      >
-                        <Coins
-                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
-                          style={{ color: brandColors.primary.full }}
-                        />
-                      </div>
+                  <Link href="/billing">
+                    <Button
+                      variant="outline"
+                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                    >
+                      <Coins className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">Add Funds</span>
-                    </div>
-                  </Button>
-                </Link>
+                    </Button>
+                  </Link>
 
-                <Link href="/live-chat">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
-                        style={{ backgroundColor: brandColors.primary.lighter }}
-                      >
-                        <MessageSquare
-                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
-                          style={{ color: brandColors.primary.full }}
-                        />
-                      </div>
+                  <Link href="/live-chat">
+                    <Button
+                      variant="outline"
+                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                    >
+                      <MessageSquare className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">Live Chat</span>
-                    </div>
-                  </Button>
-                </Link>
+                    </Button>
+                  </Link>
 
-              {/*  <Link href="/dns">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
-                        style={{ backgroundColor: brandColors.primary.lighter }}
-                      >
-                        <Globe
-                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
-                          style={{ color: brandColors.primary.full }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium">DNS Management</span>
-                    </div>
-                  </Button>
-                </Link> */}
-
-                <Link href="/dashboard/blog">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start h-auto p-4 hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 group-hover:bg-secondary"
-                        style={{ backgroundColor: brandColors.primary.lighter }}
-                      >
-                        <Activity
-                          className="w-4 h-4 transition-colors duration-200 group-hover:!text-white"
-                          style={{ color: brandColors.primary.full }}
-                        />
-                      </div>
+                  <Link href="/dashboard/blog">
+                    <Button
+                      variant="outline"
+                      className="w-full h-24 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                    >
+                      <Activity className="h-8 w-8 mb-2 text-primary group-hover:text-primary-foreground" />
                       <span className="text-sm font-medium">Latest News</span>
-                    </div>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            {/* Account Overview Card */}
-            <div className="bg-white rounded-xl border border-gray-300/60 shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Overview</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
-                    >
-                      <Activity
-                        className="w-4 h-4"
-                        style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">Account Status</span>
-                  </div>
-                  <span
-                    className="text-sm font-semibold"
-                    style={{ color: `var(--brand-secondary, ${brandColors.secondary.full})` }}
-                  >
-                    Active
-                  </span>
+                    </Button>
+                  </Link>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `var(--brand-secondary-lighter, ${brandColors.secondary.lighter})` }}
-                    >
-                      <Server
-                        className="w-4 h-4"
-                        style={{ color: `var(--brand-secondary, ${brandColors.secondary.full})` }}
-                      />
+            <Card className="shadow-xl border border-gray-300/60">
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold text-gray-900">Account Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <Activity className="h-6 w-6 text-primary" />
+                      <span className="text-base font-medium text-gray-700">Account Status</span>
                     </div>
-                    <span className="text-sm font-medium text-gray-700">Active Servers</span>
+                    <span className="text-base font-semibold text-green-600">Active</span>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900">{stats.totalServers}</span>
-                </div>
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `var(--brand-accent-lighter, ${brandColors.accent.lighter})` }}
-                    >
-                      <HelpCircle
-                        className="w-4 h-4"
-                        style={{ color: `var(--brand-accent, ${brandColors.accent.full})` }}
-                      />
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <Server className="h-6 w-6 text-primary" />
+                      <span className="text-base font-medium text-gray-700">Active Servers</span>
                     </div>
-                    <span className="text-sm font-medium text-gray-700">Open Tickets</span>
+                    <span className="text-base font-semibold text-gray-900">{stats.totalServers}</span>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900">{stats.openTickets}</span>
+
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg shadow-sm">
+                    <div className="flex items-center space-x-3">
+                      <HelpCircle className="h-6 w-6 text-primary" />
+                      <span className="text-base font-medium text-gray-700">Open Tickets</span>
+                    </div>
+                    <span className="text-base font-semibold text-gray-900">{stats.openTickets}</span>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
         </div>

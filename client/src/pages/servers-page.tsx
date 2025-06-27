@@ -188,69 +188,74 @@ export default function ServersPage() {
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Modern Hero Header */}
-        <div className="rounded-2xl bg-card border border-border shadow-md">
-          <div className="p-8 md:p-12">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
-                    <Server className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                      My Servers
-                    </h1>
-                    <p className="text-muted-foreground text-lg mt-1">
-                      Manage and monitor your virtual servers
-                    </p>
-                  </div>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
+          <div className="p-8 md:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between relative z-10">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
+                  <Server className="h-6 w-6" />
                 </div>
-
-                {/* Server Stats Summary */}
-                <div className="flex flex-wrap gap-6 mt-6">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                    <span className="text-sm font-medium text-foreground">
-                      {filteredServers.filter(s => getServerStatus(s) === 'RUNNING').length} Running
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">
-                      {filteredServers.filter(s => getServerStatus(s) === 'STOPPED').length} Stopped
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-destructive" />
-                    <span className="text-sm font-medium text-foreground">
-                      {filteredServers.filter(s => getServerStatus(s) === 'SUSPENDED').length} Suspended
-                    </span>
-                  </div>
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                    My Servers
+                  </h1>
+                  <p className="text-muted-foreground text-lg mt-1">
+                    Manage and monitor your virtual servers
+                  </p>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
-                <VirtFusionSsoButton
-                  text="Create Server"
-                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
-                />
-                <Button
-                  onClick={handleRefresh}
-                  disabled={isRefreshing || isRateLimited}
-                  variant="outline"
-                  className="transition-all duration-200"
-                >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                  {isRefreshing ? 'Refreshing...' : isRateLimited ? 'Rate limit: wait 1 min' : 'Refresh'}
-                </Button>
+              {/* Server Stats Summary */}
+              <div className="flex flex-wrap gap-6 mt-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    {filteredServers.filter(s => getServerStatus(s) === 'RUNNING').length} Running
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {filteredServers.filter(s => getServerStatus(s) === 'STOPPED').length} Stopped
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-destructive" />
+                  <span className="text-sm font-medium text-foreground">
+                    {filteredServers.filter(s => getServerStatus(s) === 'SUSPENDED').length} Suspended
+                  </span>
+                </div>
               </div>
             </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
+              <VirtFusionSsoButton
+                text="Create Server"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+              />
+              <Button
+                onClick={handleRefresh}
+                disabled={isRefreshing || isRateLimited}
+                variant="outline"
+                className="transition-all duration-200"
+              >
+                <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : isRateLimited ? 'Rate limit: wait 1 min' : 'Refresh'}
+              </Button>
+            </div>
+          </div>
+          {/* Abstract background shapes */}
+          <div className="absolute top-0 left-0 w-full h-full z-0">
+            <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
+                 style={{ backgroundColor: brandColors.primary.full }}></div>
+            <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
+                 style={{ backgroundColor: brandColors.secondary.full }}></div>
           </div>
         </div>
 
         {/* Enhanced Filters Section */}
-        <div className="rounded-xl bg-card border border-border shadow-md">
-          <div className="p-6">
+        <Card className="shadow-xl border border-gray-300/60">
+          <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex-1 max-w-md">
                 <label className="block text-sm font-medium text-foreground mb-2">
@@ -293,8 +298,8 @@ export default function ServersPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Enhanced Loading State */}
         {isLoading ? (
@@ -340,101 +345,86 @@ export default function ServersPage() {
                 const isSuspended = status === 'SUSPENDED';
 
                 return (
-                  <div
+                  <Card
                     key={server.id}
-                    className="group rounded-xl bg-card border border-border shadow-md hover:shadow-xl hover:border-border/80 transition-all duration-300"
+                    className="group shadow-md hover:shadow-xl hover:border-primary transition-all duration-300 ease-in-out"
                   >
-                    <div className="p-6">
-                      {/* Header with Status */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`flex items-center justify-center h-10 w-10 rounded-lg text-white shadow-sm transition-all duration-200 ${
-                              isRunning ? 'bg-primary shadow-lg' : isSuspended ? 'bg-destructive' : 'bg-muted-foreground'
-                            }`}
-                          >
-                            <Server className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-foreground group-hover:text-muted-foreground transition-colors">
-                              {server.name}
-                            </h3>
-                            <p className="text-sm text-muted-foreground font-mono">
-                              ID: {server.id}
-                            </p>
-                          </div>
-                        </div>
-
-                        <Badge
-                          variant={getStatusBadgeVariant(status)}
-                          className={`${
-                            isRunning
-                              ? 'bg-primary/10 text-primary border-primary/20'
-                              : isSuspended
-                              ? 'bg-destructive/10 text-destructive border-destructive/20'
-                              : 'bg-muted text-muted-foreground border-border'
-                          } font-medium`}
-                        >
-                          <div className={`w-2 h-2 rounded-full mr-1.5 ${
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`flex items-center justify-center h-10 w-10 rounded-full text-white shadow-lg transition-all duration-200 ${
                             isRunning ? 'bg-primary' : isSuspended ? 'bg-destructive' : 'bg-muted-foreground'
-                          }`} />
-                          {status}
-                        </Badge>
+                          }`}
+                        >
+                          <Server className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                            {server.name}
+                          </CardTitle>
+                          <p className="text-sm text-muted-foreground font-mono">ID: {server.id}</p>
+                        </div>
                       </div>
+                      <Badge
+                        variant={getStatusBadgeVariant(status)}
+                        className={`text-xs font-medium px-2 py-1 rounded-full ${
+                          isRunning
+                            ? 'bg-green-100 text-green-800'
+                            : isSuspended
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {status}
+                      </Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {server.hypervisor?.name && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 text-gray-500" />
+                          <span>Location: {server.hypervisor.name}</span>
+                        </div>
+                      )}
+                      {server.created && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4 text-gray-500" />
+                          <span>Created: {new Date(server.created).toLocaleDateString()}</span>
+                        </div>
+                      )}
 
-                      {/* Server Details */}
-                      <div className="space-y-3 mb-6">
-                        {server.hypervisor?.name && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin className="h-4 w-4 text-muted-foreground/60" />
-                            <span>{server.hypervisor.name}</span>
-                          </div>
-                        )}
-                        {server.created && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="h-4 w-4 text-muted-foreground/60" />
-                            <span>Created {new Date(server.created).toLocaleDateString()}</span>
-                          </div>
-                        )}
+                      {(server.cpu?.cores || server.memory || server.storage?.length > 0) && (
+                        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+                          {server.cpu?.cores && (
+                            <div className="flex flex-col items-center text-center">
+                              <Cpu className="h-5 w-5 text-gray-600 mb-1" />
+                              <span className="text-xs font-medium text-foreground">{server.cpu.cores} Cores</span>
+                            </div>
+                          )}
+                          {server.memory && (
+                            <div className="flex flex-col items-center text-center">
+                              <MemoryStick className="h-5 w-5 text-gray-600 mb-1" />
+                              <span className="text-xs font-medium text-foreground">{server.memory} MB RAM</span>
+                            </div>
+                          )}
+                          {server.storage?.length > 0 && (
+                            <div className="flex flex-col items-center text-center">
+                              <HardDrive className="h-5 w-5 text-gray-600 mb-1" />
+                              <span className="text-xs font-medium text-foreground">{server.storage[0]?.capacity || 'N/A'} Storage</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-                        {/* Resource Info (if available) */}
-                        {(server.cpu?.cores || server.memory || server.storage?.length > 0) && (
-                          <div className="flex items-center gap-4 pt-2 border-t border-border">
-                            {server.cpu?.cores && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Cpu className="h-3 w-3" />
-                                <span>{server.cpu.cores} CPU</span>
-                              </div>
-                            )}
-                            {server.memory && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <MemoryStick className="h-3 w-3" />
-                                <span>{server.memory}MB</span>
-                              </div>
-                            )}
-                            {server.storage?.length > 0 && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <HardDrive className="h-3 w-3" />
-                                <span>{server.storage[0]?.capacity || 'Storage'}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action Button */}
                       <Link href={`/servers/${server.id}`}>
                         <Button
-                          className="w-full hover:bg-primary hover:text-primary-foreground transition-all duration-200 group-hover:shadow-md"
-                          variant="outline"
+                          className="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg transition-all duration-300 ease-in-out group-hover:scale-[1.02]"
                         >
-                          <Settings className="mr-2 h-4 w-4" />
                           Manage Server
-                          <ArrowRight className="ml-auto h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
+                          <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
                         </Button>
                       </Link>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 );
               })}
             </div>
@@ -442,13 +432,13 @@ export default function ServersPage() {
             {/* Enhanced Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-8">
-                <div className="flex items-center gap-2 bg-card rounded-xl border border-border shadow-sm p-2">
+                <div className="flex items-center gap-2 bg-card rounded-full border border-border shadow-sm p-1">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={() => setPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage <= 1}
-                    className="disabled:opacity-50"
+                    className="rounded-full disabled:opacity-50"
                   >
                     Previous
                   </Button>
@@ -460,13 +450,14 @@ export default function ServersPage() {
                         return (
                           <Button
                             key={pageNum}
-                            variant={pageNum === currentPage ? "default" : "outline"}
+                            variant={pageNum === currentPage ? "default" : "ghost"}
                             size="sm"
                             onClick={() => setPage(pageNum)}
-                            className={pageNum === currentPage
-                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                              : ""
-                            }
+                            className={`rounded-full ${
+                              pageNum === currentPage
+                                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                                : ""
+                            }`}
                           >
                             {pageNum}
                           </Button>
@@ -477,11 +468,11 @@ export default function ServersPage() {
                   </div>
 
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
                     onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage >= totalPages}
-                    className="disabled:opacity-50"
+                    className="rounded-full disabled:opacity-50"
                   >
                     Next
                   </Button>
@@ -491,20 +482,20 @@ export default function ServersPage() {
           </>
         ) : (
           /* Enhanced Empty State */
-          <div className="rounded-xl bg-card border border-border shadow-md">
-            <div className="text-center py-16 px-8">
-              <div className="mx-auto h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center mb-6 shadow-lg">
-                <Server className="h-8 w-8 text-primary" />
+          <Card className="shadow-xl border border-gray-300/60">
+            <CardContent className="text-center py-16 px-8">
+              <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 shadow-lg">
+                <Server className="h-10 w-10 text-primary" />
               </div>
 
-              <h3 className="text-xl font-semibold text-foreground mb-3">
+              <h3 className="text-2xl font-bold text-foreground mb-3">
                 {searchQuery || statusFilter !== 'all' ? 'No servers found' : 'No servers yet'}
               </h3>
 
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                 {searchQuery || statusFilter !== 'all'
                   ? 'No servers match your current search criteria. Try adjusting your filters or search terms.'
-                  : 'You don\'t have any servers yet. Create your first server to get started with your virtual infrastructure.'}
+                  : `You don't have any servers yet. Create your first server to get started with your virtual infrastructure.`}
               </p>
 
               {searchQuery || statusFilter !== 'all' ? (
@@ -529,8 +520,8 @@ export default function ServersPage() {
                   className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                 />
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </DashboardLayout>
