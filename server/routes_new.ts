@@ -2569,54 +2569,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tokenData = await tokenResponse.json();
       const accessToken = tokenData.access_token;
 
-      // Verify the order
-      const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}`, {
-        method: 'GET',
+      // Capture the payment from the order
+      const captureResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}/capture`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        console.error("PayPal order verification error:", errorData);
-        throw new Error(`Failed to verify PayPal order: ${errorData.message || 'Unknown error'}`);
+      if (!captureResponse.ok) {
+        const errorData = await captureResponse.json();
+        console.error("PayPal payment capture error:", errorData);
+        throw new Error(`Failed to capture PayPal payment: ${errorData.details?.[0]?.description || errorData.message || 'Unknown error'}`);
       }
 
-      const orderData = await orderResponse.json();
-      console.log("PayPal order verification successful:", {
-        id: orderData.id,
-        status: orderData.status,
-        intent: orderData.intent
+      const captureData = await captureResponse.json();
+      console.log("PayPal payment capture successful:", {
+        id: captureData.id,
+        status: captureData.status,
       });
 
-      // Verify order status is APPROVED or COMPLETED
-      if (orderData.status !== 'APPROVED' && orderData.status !== 'COMPLETED') {
-        console.error(`Invalid PayPal order status: ${orderData.status}`);
+      // Verify that the payment status is COMPLETED
+      if (captureData.status !== 'COMPLETED') {
+        console.error(`PayPal payment not completed. Status: ${captureData.status}`);
         return res.status(400).json({
-          error: `PayPal payment is not approved (status: ${orderData.status})`
+          error: `PayPal payment could not be completed (status: ${captureData.status}). Please try again or contact support.`,
         });
       }
 
-      // Extract payment amount
-      if (!orderData.purchase_units || orderData.purchase_units.length === 0) {
-        throw new Error("Invalid order data: missing purchase units");
+      // Extract payment amount from the captured data
+      if (!captureData.purchase_units || captureData.purchase_units.length === 0) {
+        throw new Error("Invalid capture data: missing purchase units");
       }
 
-      const purchaseUnit = orderData.purchase_units[0];
-      const amount = parseFloat(purchaseUnit.amount.value);
-      const currency = purchaseUnit.amount.currency_code;
+      const purchaseUnit = captureData.purchase_units[0];
+      const capture = purchaseUnit.payments?.captures?.[0];
 
-      console.log(`Verified payment: ${amount} ${currency}, Order ID: ${orderId}`);
+      if (!capture) {
+        throw new Error("Invalid capture data: missing payment capture information");
+      }
+
+      const amount = parseFloat(capture.amount.value);
+      const currency = capture.amount.currency_code;
+
+      console.log(`Captured payment: ${amount} ${currency}, Order ID: ${orderId}`);
 
       // Return payment verification result
       return res.json({
         verified: true,
-        orderId: orderData.id,
-        status: orderData.status,
+        orderId: captureData.id,
+        status: captureData.status,
         amount,
-        currency
+        currency,
       });
     } catch (error: any) {
       console.error("Error verifying PayPal order:", error);
@@ -8690,30 +8695,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tokenData = await tokenResponse.json();
       console.log("PayPal token obtained");
 
-      // Now verify the order
-      console.log(`Getting order details for ${orderId}...`);
-      const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}`, {
-        method: 'GET',
+      // Capture the payment from the order
+      console.log(`Capturing payment for order ${orderId}...`);
+      const captureResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${orderId}/capture`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${tokenData.access_token}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
-      if (!orderResponse.ok) {
-        const orderError = await orderResponse.json();
-        console.error("PayPal order error:", orderError);
+      if (!captureResponse.ok) {
+        const captureError = await captureResponse.json();
+        console.error("PayPal capture error:", captureError);
         return res.status(500).json({
-          error: "Failed to get PayPal order details",
-          details: orderError
+          error: "Failed to capture PayPal payment",
+          details: captureError,
         });
       }
 
-      const orderData = await orderResponse.json();
-      console.log("PayPal order details:", {
-        id: orderData.id,
-        status: orderData.status,
-        intent: orderData.intent
+      const captureData = await captureResponse.json();
+      console.log("PayPal capture successful:", {
+        id: captureData.id,
+        status: captureData.status,
       });
 
       // Return the full response for analysis
@@ -8721,8 +8725,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         paypal: {
           sandbox: isSandbox,
-          order: orderData
-        }
+          order: captureData, // Return captured data instead of original order
+        },
       });
     } catch (error) {
       console.error("Error testing PayPal verification:", error);

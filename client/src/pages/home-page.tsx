@@ -334,6 +334,16 @@ export default function HomePage() {
                     </Button>
                   </Link>
 
+                  <Link href="/servers">
+                    <Button
+                      variant="outline"
+                      className="w-full h-20 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
+                    >
+                      <Server className="h-6 w-6 mb-1 text-primary group-hover:text-primary-foreground" />
+                      <span className="text-sm font-medium">My Servers</span>
+                    </Button>
+                  </Link>
+
                   <Link href="/tickets">
                     <Button
                       variant="outline"
