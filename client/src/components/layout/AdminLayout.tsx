@@ -496,12 +496,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         "--hover-bg": brandColors.primary?.full,
                         "--hover-color": "white"
                       } as React.CSSProperties}
-                      asChild
+                      onClick={() => { window.location.href = '/dashboard'; }}
                     >
-                      <Link href="/dashboard" className="group w-full">
-                        <Home className={cn("h-4 w-4 text-primary group-hover:text-[var(--hover-color)]", !isSidebarCollapsed && "mr-2")} />
-                        <span className={cn("group-hover:text-[var(--hover-color)]", isSidebarCollapsed && "sr-only")}>Return to Dashboard</span>
-                      </Link>
+                      <Home className={cn("h-4 w-4 text-primary group-hover:text-[var(--hover-color)]", !isSidebarCollapsed && "mr-2")} />
+                      <span className={cn("group-hover:text-[var(--hover-color)]", isSidebarCollapsed && "sr-only")}>Return to Dashboard</span>
                     </Button>
                   </TooltipTrigger>
                   {isSidebarCollapsed && (
