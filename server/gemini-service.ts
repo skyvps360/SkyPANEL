@@ -647,7 +647,7 @@ export class GeminiService {
     
     if (!modelsList.success || !modelsList.models) {
       console.warn('Could not fetch models list, falling back to gemini-1.5-flash');
-      return 'gemini-1.5-flash';
+      return 'gemini-2.5-flash';
     }    // Priority order for models (newest/best first, based on actual availability)
     const preferredModels = [
       'models/gemini-2.0-flash',
@@ -690,6 +690,86 @@ export class GeminiService {
     // Last resort
     console.warn('No suitable models found, falling back to gemini-1.5-flash');
     return 'gemini-1.5-flash';
+  }
+
+  /**
+   * Test function to list and display available models
+   * Call this to see what models are available in your API
+   */
+  /**
+   * Generate legal content using Gemini AI.
+   * @param prompt The text prompt for legal content generation.
+   * @param req Express request object for rate limiting.
+   * @param res Express response object for rate limiting.
+   * @returns Generated legal content or error message.
+   */
+  public async generateLegalContent(
+    prompt: string,
+    req: Request,
+    res: Response
+  ): Promise<{ success: boolean; response: string }> {
+    if (!this.isReady()) {
+      return {
+        success: false,
+        response: 'Gemini AI service is not configured. Please add GOOGLE_AI_API_KEY to your environment variables.'
+      };
+    }
+
+    // Apply rate limiting
+    const rateCheck = geminiRateLimiter.checkUserAllowed(req, res);
+    if (!rateCheck.allowed) {
+      console.log('[gemini-service.ts] Rate limit exceeded for legal content generation.');
+      return {
+        success: false,
+        response: rateCheck.message || 'Rate limit exceeded. Please try again later.'
+      };
+    }
+
+    try {
+      console.log('[gemini-service.ts] generateLegalContent received prompt:', prompt);
+      const modelName = await this.getBestAvailableModel();
+      console.log(`[gemini-service.ts] Using model for legal content generation: ${modelName}`);
+
+      const model = this.genAI!.getGenerativeModel(
+        {
+          model: modelName,
+          safetySettings: [
+            {
+              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+          ],
+        },
+        { apiVersion: "v1" }
+      );
+
+      // Construct the prompt for legal content generation
+      const legalPrompt = `You are an AI assistant specializing in legal content generation. Your task is to generate or refine legal text based on the user's prompt. Ensure the content is clear, concise, and legally sound. If the request is ambiguous, ask for clarification.
+
+User's prompt: "${prompt}"
+
+Generated legal content:`;
+
+      const result = await model.generateContent(legalPrompt);
+      const geminiRawResponse = result.response.text();
+      console.log('[gemini-service.ts] Raw Gemini API response:', geminiRawResponse);
+
+      // Track this request for rate limiting
+      geminiRateLimiter.trackUsageForRequest(req);
+
+      console.log('[gemini-service.ts] Returning success with response:', geminiRawResponse);
+      return { success: true, response: geminiRawResponse };
+    } catch (error: any) {
+      console.error('[gemini-service.ts] Error generating legal content:', error);
+      return {
+        success: false,
+        response: `Failed to generate legal content: ${error.message || 'Unknown error'}`
+      };
+    }
   }
 
   /**

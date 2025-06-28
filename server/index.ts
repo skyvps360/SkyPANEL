@@ -1,6 +1,7 @@
 import 'dotenv/config';  // Import dotenv at the very top to load environment variables first
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes_new";
+import adminLegalRoutes from './routes/admin-legal';
 import { setupVite, serveStatic, log } from "./vite";
 import { discordBotService } from "./discord-bot-service";
 import { emailService } from "./email";
@@ -81,6 +82,7 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  app.use(adminLegalRoutes);
 
   // Routes for Terms of Service and Privacy Policy pages
   // These are now handled by React components through client-side routing

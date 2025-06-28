@@ -75,10 +75,12 @@ async function testModels(): Promise<void> {
             'models/gemini-1.5-flash',
             'models/gemini-1.5-flash-002',
             'models/gemini-1.5-flash-8b',
-            'models/gemini-1.5-flash-8b-001'
+            'models/gemini-1.5-flash-8b-001',
+            'models/gemini-2.5-flash',
+            'models/gemini-2.5-flash-lite'
         ];
         
-        let bestModel = 'gemini-1.5-flash'; // fallback
+        let bestModel = 'gemini-2.5-flash'; // fallback
         
         // Find the highest priority model that's available
         for (const priorityModel of modelPriority) {

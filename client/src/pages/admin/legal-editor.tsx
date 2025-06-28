@@ -37,10 +37,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  Eye, 
-  EyeOff, 
-  Save, 
+import {
+  Eye,
+  EyeOff,
+  Save,
   Loader2,
   Link as LinkIcon,
   Image as ImageIcon,
@@ -56,7 +56,8 @@ import {
   Heading1,
   Heading2,
   Heading3,
-  FileText
+  FileText,
+  Sparkles
 } from "lucide-react";
 
 // Define the form schema with zod
@@ -223,6 +224,45 @@ export function LegalEditorPage() {
     },
   });
 
+  // Gemini AI assistance mutation
+  const geminiAssistMutation = useMutation({
+    mutationFn: async (prompt: string) => {
+      return await apiRequest("/api/admin/legal/gemini-assist", {
+        method: "POST",
+        data: { prompt },
+      });
+    },
+    onSuccess: (data) => {
+      if (data && data.response) {
+        insertTextAtCursor(data.response);
+        toast({
+          title: "AI Assistance",
+          description: "AI-generated content inserted successfully.",
+        });
+      } else {
+        toast({
+          title: "AI Assistance Error",
+          description: "No content received from AI.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "AI Assistance Error",
+        description: error.message || "Failed to get AI assistance.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleGeminiAssist = () => {
+    // Get the current content of the editor
+    const currentContent = editorRef.current ? editorRef.current.getValue() : "";
+    // Use the current content as a prompt for the AI
+    geminiAssistMutation.mutate(currentContent);
+  };
+
   // Handle form submission
   const onSubmit = (values: z.infer<typeof legalContentSchema>) => {
     saveMutation.mutate(values);
@@ -313,8 +353,28 @@ export function LegalEditorPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => setEditorViewMode(editorViewMode === "write" ? "preview" : "write")}
+                            onClick={handleGeminiAssist}
                             className="mr-2 flex items-center gap-1"
+                            disabled={geminiAssistMutation.isPending || editorViewMode === "preview"}
+                          >
+                            {geminiAssistMutation.isPending ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>AI Thinking...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4" />
+                                <span>AI Assist</span>
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditorViewMode(editorViewMode === "write" ? "preview" : "write")}
+                            className="flex items-center gap-1"
                           >
                             {editorViewMode === "write" ? (
                               <>
