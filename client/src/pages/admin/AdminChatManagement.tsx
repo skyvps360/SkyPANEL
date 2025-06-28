@@ -852,7 +852,7 @@ export default function AdminChatManagement() {
 
             <TabsContent value="sessions" className="flex-1 mt-6">
               {/* Fullscreen Sidebar Layout Chat Interface */}
-              <div className="flex h-[calc(100vh-300px)] bg-muted rounded-lg overflow-hidden chat-container">
+              <div className="flex h-[calc(100vh-300px)] bg-white border border-gray-200 rounded-2xl shadow-lg overflow-hidden chat-container">
                 {/* Sidebar - Available Sessions */}
                 <div className={cn(
                   "flex flex-col bg-background border-r border-border transition-all duration-300",
@@ -1363,7 +1363,7 @@ export default function AdminChatManagement() {
             </TabsContent>
 
             <TabsContent value="settings" className="flex-1 mt-6">
-              <Card className="border-0 shadow-lg bg-card">
+              <Card className="rounded-lg border shadow-lg bg-card">
                 <CardHeader className="pb-6">
                   <CardTitle className="text-xl font-semibold text-foreground flex items-center">
                     <Settings className="h-5 w-5 mr-2" style={{ color: brandColors.accent.full }} />
@@ -2095,11 +2095,12 @@ export default function AdminChatManagement() {
                     </>
                   ) : (
                     /* No Session Selected */
-                      <div className="flex-1 flex items-center justify-center">
-                        <div className="text-center">
+                    <div className="flex-1 flex items-center justify-center">
+                      <Card className="rounded-lg border shadow-lg bg-background w-full max-w-md mx-auto">
+                        <CardContent className="text-center py-16">
                           <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                           <h3 className="text-lg font-medium text-foreground mb-2">Select a Chat</h3>
-                          <p className="text-muted-foreground max-w-sm">
+                          <p className="text-muted-foreground max-w-sm mx-auto">
                             Choose a chat session from the sidebar to start messaging with customers
                           </p>
                           {!showSessionsList && (
@@ -2112,8 +2113,9 @@ export default function AdminChatManagement() {
                               Show Sessions
                             </Button>
                           )}
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   )}
                 </div>
               </div>
@@ -2125,8 +2127,8 @@ export default function AdminChatManagement() {
             <DepartmentManagement />
           </TabsContent>
 
-          <TabsContent value="settings" className="space-y-6">
-            <Card className="border-0 shadow-lg bg-card">
+          <TabsContent value="settings" className="flex-1 mt-6">
+            <Card className="rounded-lg border shadow-lg bg-card">
               <CardHeader className="pb-6">
                 <CardTitle className="text-xl font-semibold text-foreground flex items-center">
                   <Settings className="h-5 w-5 mr-2" style={{ color: brandColors.accent.full }} />
