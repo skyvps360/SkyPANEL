@@ -534,12 +534,14 @@ export default function PlansPage() {
                         <td className="p-4 text-center">{formatNetworkSpeed(pkg.primaryNetworkSpeedIn)}</td>
                         <td className="p-4 text-center">
                           {(pkg.sla || pkg.sla_plan) ? (
-                            <div className="flex flex-col items-center">
-                              <span className="text-sm font-medium">{(pkg.sla || pkg.sla_plan)?.name || 'SLA'}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime
-                              </span>
-                            </div>
+                            <Link href={`/dashboard/sla?sla=${encodeURIComponent((pkg.sla || pkg.sla_plan)?.name || '')}`}>
+                              <div className="flex flex-col items-center cursor-pointer hover:bg-gray-100 p-2 rounded transition-colors">
+                                <span className="text-sm font-medium text-blue-600 hover:underline">{(pkg.sla || pkg.sla_plan)?.name || 'SLA'}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime
+                                </span>
+                              </div>
+                            </Link>
                           ) : (
                             <span className="text-xs text-muted-foreground">No SLA</span>
                           )}
@@ -625,9 +627,11 @@ export default function PlansPage() {
                       <div className="py-1">
                         <span className="text-gray-500">SLA:</span>
                         {(pkg.sla || pkg.sla_plan) ? (
-                          <span className="ml-1">
-                            {(pkg.sla || pkg.sla_plan)?.name} ({(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime)
-                          </span>
+                          <Link href={`/dashboard/sla?sla=${encodeURIComponent((pkg.sla || pkg.sla_plan)?.name || '')}`}>
+                            <span className="ml-1 text-blue-600 hover:underline cursor-pointer">
+                              {(pkg.sla || pkg.sla_plan)?.name} ({(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime)
+                            </span>
+                          </Link>
                         ) : (
                           <span className="ml-1">No SLA</span>
                         )}

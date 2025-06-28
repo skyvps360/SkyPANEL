@@ -11,6 +11,7 @@ import { getBrandColors } from "@/lib/brand-theme";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Link } from "wouter";
 
 // Define interfaces for package categories (ENHANCED: Added category support)
 interface PackageCategory {
@@ -425,12 +426,14 @@ export default function PackagesPage() {
                         </TableCell>
                         <TableCell>
                           {(pkg.sla || pkg.sla_plan) ? (
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-foreground">{(pkg.sla || pkg.sla_plan)?.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                {(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime
-                              </span>
-                            </div>
+                            <Link href={`/dashboard/sla?sla=${encodeURIComponent((pkg.sla || pkg.sla_plan)?.name || '')}`}>
+                              <div className="flex flex-col cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors">
+                                <span className="text-sm font-medium text-primary hover:underline">{(pkg.sla || pkg.sla_plan)?.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime
+                                </span>
+                              </div>
+                            </Link>
                           ) : (
                             <span className="text-sm text-muted-foreground">No SLA</span>
                           )}

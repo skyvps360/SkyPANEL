@@ -24,6 +24,7 @@ import {MaintenancePage} from "@/pages/maintenance-page";
 import TermsOfServicePage from "@/pages/tos-page";
 import PrivacyPolicyPage from "@/pages/privacy-page";
 import SLAPage from "@/pages/sla-page";
+import DashboardSLAPage from "@/pages/dashboard-sla-page";
 
 // Import standalone blog and docs pages
 import BlogListPage from "@/pages/blog/index";
@@ -96,6 +97,7 @@ export function AppRouter() {
                 <Route path="/maintenance" component={MaintenancePage}/>
                 <ProtectedRoute path="/dashboard" component={HomePage}/>
                 <ProtectedRoute path="/dashboard/blog" component={DashboardBlogPage}/>
+                <ProtectedRoute path="/dashboard/sla" component={DashboardSLAPage}/>
                 <Route path="/auth" component={AuthPage}/>
                 <Route path="/auth/verify" component={VerifyPage}/>
                 <Route path="/auth/forgot-username" component={ForgotUsernamePage}/>
