@@ -488,18 +488,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     <Button
                       variant="ghost"
                       className={cn(
-                        "justify-start font-medium rounded-lg hover:bg-opacity-80 hover:text-opacity-100 hover:bg-[var(--hover-bg)]",
+                        "justify-start font-medium rounded-lg group hover:text-white hover:bg-[var(--primary-color)]",
                         isSidebarCollapsed && "w-full justify-center"
                       )}
                       style={{
                         color: brandColors.primary?.full,
-                        "--hover-bg": brandColors.primary?.full,
-                        "--hover-color": "white"
+                        '--primary-color': brandColors.primary?.full
                       } as React.CSSProperties}
                       onClick={() => { window.location.href = '/dashboard'; }}
                     >
-                      <Home className={cn("h-4 w-4 text-primary group-hover:text-[var(--hover-color)]", !isSidebarCollapsed && "mr-2")} />
-                      <span className={cn("group-hover:text-[var(--hover-color)]", isSidebarCollapsed && "sr-only")}>Return to Dashboard</span>
+                      <Home className={cn("h-4 w-4 group-hover:!text-white", !isSidebarCollapsed && "mr-2")} 
+                            style={{ color: brandColors.primary?.full }} />
+                      <span className={cn("group-hover:!text-white", isSidebarCollapsed && "sr-only")}>Return to Dashboard</span>
                     </Button>
                   </TooltipTrigger>
                   {isSidebarCollapsed && (
@@ -626,17 +626,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <nav className="grid items-start px-2 text-sm font-medium space-y-1">
                 <Button
                   variant="ghost"
-                  className="justify-start font-medium rounded-lg hover:bg-[var(--hover-bg)] w-full"
+                  className="justify-start font-medium rounded-lg w-full group hover:text-white hover:bg-[var(--primary-color)]"
                   style={{
                     color: brandColors.primary?.full,
-                    "--hover-bg": brandColors.primary?.full,
-                    "--hover-color": "white"
+                    '--primary-color': brandColors.primary?.full
                   } as React.CSSProperties}
                   asChild
                 >
-                  <Link href="/dashboard" className="flex items-center group w-full">
-                    <Home className="mr-2 h-4 w-4 group-hover:text-[var(--hover-color)]" style={{ color: brandColors.primary?.full }} />
-                    <span className="group-hover:text-[var(--hover-color)]">Return to Dashboard</span>
+                  <Link href="/dashboard" className="flex items-center w-full">
+                    <Home className="mr-2 h-4 w-4 group-hover:!text-white" style={{ color: brandColors.primary?.full }} />
+                    <span className="group-hover:!text-white">Return to Dashboard</span>
                   </Link>
                 </Button>
 
