@@ -29,6 +29,7 @@ import {
   Activity,  Zap,
   MessageSquare,
   Globe,
+  Shield,
 } from "lucide-react";
 import { UseQueryOptions } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -373,6 +374,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: `${companyName}'s Blog`,
       href: "/dashboard/blog",
       icon: <FileText className="h-5 w-5 mr-3" />,
+    },
+    {
+      name: "Service Level Agreement",
+      href: "/dashboard/sla",
+      icon: <Shield className="h-5 w-5 mr-3" />,
     },
     // {
     //   name: "DNS Management",
@@ -1165,7 +1171,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   Privacy Policy
                 </a>
                 <a
-                  href="/sla"
+                  href="/dashboard/sla"
                   className="text-gray-600 hover:text-primary transition-colors duration-200 font-medium"
                 >
                   Service Level Agreement

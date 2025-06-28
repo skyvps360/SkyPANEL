@@ -20,8 +20,7 @@ interface SlaPlan {
 }
 
 export function DashboardSLAPage() {
-  const [companyName, setCompanyName] = useState("SkyVPS360");
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   
   // Parse query parameters to get specific SLA name
   const urlParams = new URLSearchParams(window.location.search);
@@ -38,18 +37,28 @@ export function DashboardSLAPage() {
     retry: 1,
   });
 
-  // Update branding information when data is available
+  // Get company name from branding data with fallback
+  const companyName = branding?.company_name || "SkyVPS360";
+
+  // Update document title when branding data is available
   useEffect(() => {
     if (branding?.company_name) {
-      setCompanyName(branding.company_name);
       document.title = `Service Level Agreements - ${branding.company_name}`;
     }
-  }, [branding]);
+  }, [branding?.company_name]);
 
   // Filter SLA plans to show only the requested one if specified
   const filteredSlaPlans = slaName 
     ? slaPlans?.filter(plan => plan.name.toLowerCase() === slaName.toLowerCase()) || []
     : slaPlans || [];
+
+  // Redirect to /dashboard/sla if SLA name is provided but not found
+  useEffect(() => {
+    if (slaName && slaPlans && slaPlans.length > 0 && filteredSlaPlans.length === 0) {
+      // SLA name was provided but no matching SLA was found, redirect to main SLA page
+      navigate('/dashboard/sla');
+    }
+  }, [slaName, slaPlans, filteredSlaPlans.length, navigate]);
 
   const getSLAIcon = (slaName: string) => {
     const name = slaName.toLowerCase();
