@@ -1171,7 +1171,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   Privacy Policy
                 </a>
                 <a
-                  href="/dashboard/sla"
+                  href="/sla"
                   className="text-gray-600 hover:text-primary transition-colors duration-200 font-medium"
                 >
                   Service Level Agreement
