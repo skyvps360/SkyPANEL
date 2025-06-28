@@ -426,7 +426,7 @@ export default function PackagesPage() {
                         </TableCell>
                         <TableCell>
                           {(pkg.sla || pkg.sla_plan) ? (
-                            <Link href={`/dashboard/sla?sla=${encodeURIComponent((pkg.sla || pkg.sla_plan)?.name || '')}`}>
+                            <Link href={`/dashboard/sla?sla=${encodeURIComponent((pkg.sla || pkg.sla_plan)?.name || '')}&from=packages`}>
                               <div className="flex flex-col cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors">
                                 <span className="text-sm font-medium text-primary hover:underline">{(pkg.sla || pkg.sla_plan)?.name}</span>
                                 <span className="text-xs text-muted-foreground">

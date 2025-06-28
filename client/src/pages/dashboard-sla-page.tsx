@@ -4,7 +4,8 @@ import { Helmet } from 'react-helmet';
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Shield, Zap, CheckCircle, AlertTriangle, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, Shield, Zap, CheckCircle, AlertTriangle, Info, ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface SlaPlan {
@@ -22,9 +23,31 @@ interface SlaPlan {
 export function DashboardSLAPage() {
   const [location, navigate] = useLocation();
   
-  // Parse query parameters to get specific SLA name
+  // Parse query parameters to get specific SLA name and referrer
   const urlParams = new URLSearchParams(window.location.search);
   const slaName = urlParams.get('sla') || urlParams.get('SLAName');
+  const referrer = urlParams.get('from');
+  
+  // Determine back navigation based on referrer or browser history
+  const getBackPath = () => {
+    if (referrer === 'plans') {
+      return '/plans';
+    } else if (referrer === 'packages') {
+      return '/packages';
+    }
+    // Default fallback - try to go back in history, or to dashboard
+    return null;
+  };
+
+  const handleBackClick = () => {
+    const backPath = getBackPath();
+    if (backPath) {
+      navigate(backPath);
+    } else {
+      // Use browser's back functionality if no specific referrer
+      window.history.back();
+    }
+  };
 
   // Fetch branding information
   const { data: branding } = useQuery<{ company_name: string }>({
@@ -92,16 +115,30 @@ export function DashboardSLAPage() {
 
       <DashboardLayout>
         <div className="container mx-auto px-6 py-8 space-y-8">
-          {/* Header */}
+          {/* Header with Back Button */}
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Service Level Agreements</h1>
-              <p className="text-gray-600 mt-2">
-                {slaName 
-                  ? `Details for ${slaName} SLA plan`
-                  : "Our commitment to service quality and reliability"
-                }
-              </p>
+            <div className="flex items-center space-x-4">
+              {/* Back Button - Show when coming from plans/packages or when SLA name is specified */}
+              {(referrer || slaName) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBackClick}
+                  className="flex items-center space-x-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Back</span>
+                </Button>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Service Level Agreements</h1>
+                <p className="text-gray-600 mt-2">
+                  {slaName 
+                    ? `Details for ${slaName} SLA plan`
+                    : "Our commitment to service quality and reliability"
+                  }
+                </p>
+              </div>
             </div>
             {slaName && (
               <Badge variant="outline" className="text-sm">
