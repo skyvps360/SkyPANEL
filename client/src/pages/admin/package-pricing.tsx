@@ -51,7 +51,7 @@ import { AlertCircle, Check, DollarSign, Info, RefreshCw, X } from 'lucide-react
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Types for VirtFusion packages and our pricing records
 interface VirtFusionPackage {
@@ -79,6 +79,8 @@ interface PackageCategory {
   updatedAt: string;
 }
 
+import { SlaPlan } from '../../../../shared/schemas/sla-schema';
+
 interface PricingRecord {
   id: number;
   virtFusionPackageId: number;
@@ -89,6 +91,8 @@ interface PricingRecord {
   enabled: boolean;
   categoryId: number | null;
   category: PackageCategory | null;
+  slaPlanId: string | null; // New field for SLA Plan ID
+  slaPlan: SlaPlan | null; // New field for SLA Plan details
   createdAt: string;
   updatedAt: string;
 }
@@ -100,6 +104,7 @@ const pricingFormSchema = z.object({
   displayOrder: z.coerce.number().int().min(0, "Display order must be 0 or greater"),
   enabled: z.boolean().default(true),
   categoryId: z.coerce.number().nullable().optional(),
+  slaPlanId: z.string().uuid("Invalid UUID format").nullable().optional(), // New SLA Plan ID field
 });
 
 // Form schema for category management
@@ -110,9 +115,19 @@ const categoryFormSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+const slaFormSchema = z.object({
+  name: z.string().min(1, "SLA name is required"),
+  description: z.string().optional(),
+  response_time_hours: z.coerce.number().int().min(0, "Response time must be 0 or greater"),
+  resolution_time_hours: z.coerce.number().int().min(0, "Resolution time must be 0 or greater"),
+  uptime_guarantee_percentage: z.coerce.number().min(0).max(100, "Uptime must be between 0 and 100"),
+  is_active: z.boolean().default(true),
+});
+
 type PricingFormValues = z.infer<typeof pricingFormSchema>;
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
+type SlaFormValues = z.infer<typeof slaFormSchema>;
 
 export default function PackagePricingPage() {
   const { toast } = useToast();
@@ -122,9 +137,12 @@ export default function PackagePricingPage() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<PackageCategory | null>(null);
   const [categoryFormMode, setCategoryFormMode] = useState<'create' | 'edit'>('create');
+  const [slaDialogOpen, setSlaDialogOpen] = useState(false);
+  const [selectedSlaPlan, setSelectedSlaPlan] = useState<SlaPlan | null>(null);
+  const [slaFormMode, setSlaFormMode] = useState<'create' | 'edit'>('create');
 
   // Fetch packages and pricing data
-  const { data: packages, isLoading, error, failureReason: errorInfo } = useQuery<VirtFusionPackage[]>({
+  const { data: packages, isLoading, error, refetch } = useQuery<VirtFusionPackage[]>({
     queryKey: ['/api/admin/packages'],
     staleTime: 60 * 1000,
     retry: 1, // Only retry once since we expect authentication errors to persist
@@ -136,6 +154,12 @@ export default function PackagePricingPage() {
     staleTime: 60 * 1000,
   });
 
+  // Fetch SLA plans for dropdown
+  const { data: slaPlans, isLoading: isLoadingSlaPlans } = useQuery<SlaPlan[]>({
+    queryKey: ['/api/sla'],
+    staleTime: 60 * 1000,
+  });
+
   // Setup form for pricing (ENHANCED: Added categoryId support)
   const form = useForm<PricingFormValues>({
     resolver: zodResolver(pricingFormSchema),
@@ -144,6 +168,7 @@ export default function PackagePricingPage() {
       displayOrder: 0,
       enabled: true,
       categoryId: null,
+      slaPlanId: null,
     },
   });
 
@@ -155,6 +180,19 @@ export default function PackagePricingPage() {
       description: '',
       displayOrder: 0,
       isActive: true,
+    },
+  });
+
+  // Setup form for SLA management
+  const slaForm = useForm<SlaFormValues>({
+    resolver: zodResolver(slaFormSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      response_time_hours: 24,
+      resolution_time_hours: 48,
+      uptime_guarantee_percentage: 99.9,
+      is_active: true,
     },
   });
 
@@ -174,6 +212,7 @@ export default function PackagePricingPage() {
           price: data.price * 100,
           // Include category assignment
           categoryId: data.categoryId,
+          slaPlanId: data.slaPlanId,
         }
       });
     },
@@ -295,6 +334,80 @@ export default function PackagePricingPage() {
     },
   });
 
+  // SLA management mutations
+  const createSlaMutation = useMutation({
+    mutationFn: async (data: SlaFormValues) => {
+      return apiRequest('/api/sla', {
+        method: 'POST',
+        data,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sla'] });
+      setSlaDialogOpen(false);
+      slaForm.reset();
+      toast({
+        title: "Success",
+        description: "SLA Plan created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create SLA Plan",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateSlaMutation = useMutation({
+    mutationFn: async (data: SlaFormValues & { id: string }) => {
+      return apiRequest(`/api/sla/${data.id}`, {
+        method: 'PUT',
+        data,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sla'] });
+      setSlaDialogOpen(false);
+      slaForm.reset();
+      setSelectedSlaPlan(null);
+      toast({
+        title: "Success",
+        description: "SLA Plan updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update SLA Plan",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteSlaMutation = useMutation({
+    mutationFn: async (slaId: string) => {
+      return apiRequest(`/api/sla/${slaId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sla'] });
+      toast({
+        title: "Success",
+        description: "SLA Plan deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete SLA Plan",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Format memory size (MB to GB)
   const formatMemory = (memoryMB: number) => {
     return (memoryMB / 1024).toFixed(1) + ' GB';
@@ -332,6 +445,7 @@ export default function PackagePricingPage() {
         displayOrder: pkg.pricing.displayOrder,
         enabled: pkg.pricing.enabled,
         categoryId: pkg.pricing.categoryId,
+        slaPlanId: pkg.pricing.slaPlanId,
       });
     } else {
       // Default values when no pricing exists
@@ -340,6 +454,7 @@ export default function PackagePricingPage() {
         displayOrder: 0,
         enabled: true,
         categoryId: null,
+        slaPlanId: null,
       });
     }
 
@@ -397,6 +512,49 @@ export default function PackagePricingPage() {
     }
   };
 
+  // SLA management handlers
+  const handleCreateSlaPlan = () => {
+    setSlaFormMode('create');
+    setSelectedSlaPlan(null);
+    slaForm.reset({
+      name: '',
+      description: '',
+      response_time_hours: 24,
+      resolution_time_hours: 48,
+      uptime_guarantee_percentage: 99.9,
+      is_active: true,
+    });
+    setSlaDialogOpen(true);
+  };
+
+  const handleEditSlaPlan = (sla: SlaPlan) => {
+    setSlaFormMode('edit');
+    setSelectedSlaPlan(sla);
+    slaForm.reset({
+      name: sla.name,
+      description: sla.description || '',
+      response_time_hours: sla.response_time_hours,
+      resolution_time_hours: sla.resolution_time_hours,
+      uptime_guarantee_percentage: sla.uptime_guarantee_percentage,
+      is_active: sla.is_active,
+    });
+    setSlaDialogOpen(true);
+  };
+
+  const handleDeleteSlaPlan = (slaId: string) => {
+    if (confirm("Are you sure you want to delete this SLA plan? This action cannot be undone.")) {
+      deleteSlaMutation.mutate(slaId);
+    }
+  };
+
+  const onSlaSubmit = (data: SlaFormValues) => {
+    if (slaFormMode === 'create') {
+      createSlaMutation.mutate(data);
+    } else if (selectedSlaPlan) {
+      updateSlaMutation.mutate({ ...data, id: selectedSlaPlan.id });
+    }
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -421,185 +579,151 @@ export default function PackagePricingPage() {
   }
 
   if (error) {
-    // Determine the specific error type
-    const errorResponse = (errorInfo as any)?.response;
-    const statusCode = errorResponse?.status;
-    const errorType = errorResponse?.data?.errorType || 'unknown';
-    const errorDetail = errorResponse?.data?.errorDetail || 'An unknown error occurred';
-    
-    let errorTitle = 'VirtFusion API Error';
-    let errorDescription = (
-      <div className="space-y-2">
-        <p>Failed to load package data from VirtFusion. The API returned an error.</p>
-        <p>This could be due to:</p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>An expired API token</li>
-          <li>Invalid credentials</li>
-          <li>API access restrictions</li>
-          <li>Network connectivity issues</li>
-        </ul>
-        <p>Please check your VirtFusion API settings in the admin settings page.</p>
-      </div>
-    );
-    
-    // Customize error message based on status code
-    if (statusCode === 401) {
-      errorTitle = 'VirtFusion API Authentication Error';
-      errorDescription = (
-        <div className="space-y-2">
-          <p>Failed to authenticate with the VirtFusion API (401 Unauthorized).</p>
-          <p>This means your API token is invalid or has expired.</p>
-          <p>Please update your VirtFusion API token in the admin settings page.</p>
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded mt-2 font-mono text-xs">
-            Error details: {errorDetail}
-          </div>
-        </div>
-      );
-    } else if (statusCode === 403) {
-      errorTitle = 'VirtFusion API Permission Error';
-      errorDescription = (
-        <div className="space-y-2">
-          <p>Your account doesn't have permission to access the VirtFusion API (403 Forbidden).</p>
-          <p>Please check that your API token has the correct permissions.</p>
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded mt-2 font-mono text-xs">
-            Error details: {errorDetail}
-          </div>
-        </div>
-      );
-    } else if (statusCode === 404) {
-      errorTitle = 'VirtFusion API Endpoint Not Found';
-      errorDescription = (
-        <div className="space-y-2">
-          <p>The VirtFusion API endpoint was not found (404 Not Found).</p>
-          <p>Please check that your VirtFusion API URL is correct.</p>
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded mt-2 font-mono text-xs">
-            Error details: {errorDetail}
-          </div>
-        </div>
-      );
-    }
-    
+    const errorInfo = error as any;
     return (
       <AdminLayout>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold">Package Pricing Management</h1>
-            <p className="text-gray-500 mt-1">Manage pricing for VirtFusion packages to display on your plans page</p>
-          </div>
-        </div>
-        
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{errorTitle}</AlertTitle>
-          <AlertDescription>{errorDescription}</AlertDescription>
-        </Alert>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Quick API Token Update</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                You can quickly update your VirtFusion API token below or visit the settings page for full configuration.
-              </p>
-              
-              <div className="space-y-2">
-                <Label htmlFor="quickApiToken">VirtFusion API Token</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    id="quickApiToken"
-                    type="password"
-                    placeholder="Enter your VirtFusion API token"
-                    className="flex-1"
-                  />
-                  <Button variant="secondary" size="sm" onClick={() => {
-                    const token = (document.getElementById('quickApiToken') as HTMLInputElement).value;
-                    if (token && token.length > 10) {
-                      apiRequest('/api/admin/settings/virtfusion', {
-                        method: 'POST',
-                        data: {
-                          apiToken: token
-                        }
-                      }).then(() => {
-                        toast({
-                          title: "API Token Updated",
-                          description: "Your VirtFusion API token has been updated. Refreshing...",
-                        });
-                        setTimeout(() => {
-                          window.location.reload();
-                        }, 1500);
-                      }).catch(err => {
-                        toast({
-                          title: "Update Failed",
-                          description: "Could not update API token. Please try again.",
-                          variant: "destructive"
-                        });
-                        console.error("Error updating token:", err);
-                      });
-                    } else {
-                      toast({
-                        title: "Invalid Token",
-                        description: "Please enter a valid API token (at least 10 characters)",
-                        variant: "destructive"
-                      });
-                    }
-                  }}>Update Token</Button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Enter only the token value without the "Bearer" prefix
+        <div className="flex flex-col items-center justify-center h-full p-4">
+          <Card className="w-full max-w-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-6 w-6" />
+                <span>VirtFusion API Error</span>
+              </CardTitle>
+              <CardDescription>
+                Failed to load package data from VirtFusion. This can happen if the API token is invalid, expired, or lacks the required permissions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>
+                  Please ensure your VirtFusion API token is correctly configured in the{' '}
+                  <Link to="/admin/settings" className="font-medium text-primary hover:underline">
+                    admin settings page
+                  </Link>
+                  . The token must have permissions to read packages.
                 </p>
+                {errorInfo?.response?.data?.errorDetail && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>API Error Details</AlertTitle>
+                    <AlertDescription>
+                      <pre className="mt-2 rounded-md bg-slate-950 p-4 text-xs">
+                        <code className="text-white">{JSON.stringify(errorInfo.response.data, null, 2)}</code>
+                      </pre>
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
-              
-              <div className="flex justify-between pt-2">
-                <Link href="/admin/settings?tab=virtfusion">
-                  <Button variant="outline">Full Settings Page</Button>
-                </Link>
-                <Button variant="outline" onClick={() => window.location.reload()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => refetch()} className="w-full">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </AdminLayout>
     );
   }
 
   return (
     <AdminLayout>
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Package Pricing Management</h1>
-          <p className="text-gray-500 mt-1">Manage pricing for VirtFusion packages to display on your plans page</p>
-        </div>
-        <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="flex items-center h-9"
-            onClick={() => window.location.reload()}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Packages
-          </Button>
-        </div>
-      </div>
-      
-      <Card className="mb-6 w-full overflow-hidden">
-        <CardHeader className="py-4">
-          <CardTitle className="text-base">Pricing Information</CardTitle>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Important Notes</CardTitle>
         </CardHeader>
-        <CardContent className="py-2">
-          <div className="flex items-start xs:items-center gap-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4 flex-shrink-0 mt-1 xs:mt-0" />
+        <CardContent>
+          <div className="space-y-2">
             <p className="break-words">
               Prices are displayed in dollars (e.g., $2.50) but stored in cents (250) for precision.
               Only packages with pricing configured will appear on the plans page.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6 w-full overflow-hidden">
+        <CardHeader className="px-4 sm:px-6 py-4 border-b">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle className="text-xl">Service Level Agreements (SLAs)</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Define and manage Service Level Agreement plans for your packages.
+              </p>
+            </div>
+            <Button onClick={handleCreateSlaPlan} className="mt-4 sm:mt-0">
+              Add SLA Plan
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {slaPlans && slaPlans.length > 0 ? (
+            <div className="overflow-x-auto w-full">
+              <Table className="w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden sm:table-cell">Description</TableHead>
+                    <TableHead>Response Time</TableHead>
+                    <TableHead>Resolution Time</TableHead>
+                    <TableHead>Uptime</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {slaPlans.map((sla) => (
+                    <TableRow key={sla.id}>
+                      <TableCell className="font-medium">
+                        {sla.name}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {sla.description || (
+                          <span className="text-muted-foreground italic">No description</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{sla.response_time_hours} hours</TableCell>
+                      <TableCell>{sla.resolution_time_hours} hours</TableCell>
+                      <TableCell>{sla.uptime_guarantee_percentage}%</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={sla.is_active ? "default" : "secondary"}
+                          className={sla.is_active ? "bg-green-100 text-green-800" : ""}
+                        >
+                          {sla.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditSlaPlan(sla)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => handleDeleteSlaPlan(sla.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-muted-foreground">
+              <p>No SLA plans created yet.</p>
+              <p className="text-sm mt-1">Create your first SLA plan to assign to packages.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -966,6 +1090,38 @@ export default function PackagePricingPage() {
 
               <FormField
                 control={form.control}
+                name="slaPlanId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SLA Plan (Optional)</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+                      value={field.value ? field.value.toString() : "none"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an SLA plan (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">No SLA Plan</SelectItem>
+                        {slaPlans?.map((sla) => (
+                          <SelectItem key={sla.id} value={sla.id}>
+                            {sla.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Assign a Service Level Agreement plan to this package.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="enabled"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -1122,6 +1278,179 @@ export default function PackagePricingPage() {
                   {createCategoryMutation.isPending || updateCategoryMutation.isPending
                     ? "Saving..."
                     : categoryFormMode === 'create' ? "Create Category" : "Update Category"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* SLA Management Dialog */}
+      <Dialog open={slaDialogOpen} onOpenChange={setSlaDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>
+              {slaFormMode === 'create' ? "Create SLA Plan" : "Edit SLA Plan"}
+            </DialogTitle>
+            <DialogDescription>
+              {slaFormMode === 'create'
+                ? "Create a new Service Level Agreement plan"
+                : "Update the SLA plan information"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...slaForm}>
+            <form onSubmit={slaForm.handleSubmit(onSlaSubmit)} className="space-y-4">
+              <FormField
+                control={slaForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>SLA Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., Standard SLA, Premium SLA"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      A descriptive name for this SLA plan
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={slaForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Brief description of this SLA plan"
+                        className="resize-none"
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Optional description to help clients understand this SLA plan
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={slaForm.control}
+                  name="response_time_hours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Response Time (Hours)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="24"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Guaranteed response time for support tickets
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={slaForm.control}
+                  name="resolution_time_hours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Resolution Time (Hours)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="48"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Guaranteed resolution time for issues
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={slaForm.control}
+                name="uptime_guarantee_percentage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Uptime Guarantee (%)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        placeholder="99.9"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Guaranteed monthly uptime percentage
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={slaForm.control}
+                name="is_active"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col justify-end">
+                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-sm">Active</FormLabel>
+                        <FormDescription className="text-xs">
+                          Show this SLA plan as available
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSlaDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createSlaMutation.isPending || updateSlaMutation.isPending}
+                >
+                  {createSlaMutation.isPending || updateSlaMutation.isPending
+                    ? "Saving..."
+                    : slaFormMode === 'create' ? "Create SLA Plan" : "Update SLA Plan"}
                 </Button>
               </DialogFooter>
             </form>

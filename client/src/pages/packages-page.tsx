@@ -21,6 +21,17 @@ interface PackageCategory {
   isActive: boolean;
 }
 
+// Define the SlaPlan interface
+interface SlaPlan {
+  id: number;
+  name: string;
+  description: string | null;
+  price: string;
+  uptime_guarantee_percentage: number;
+  response_time_hours: number;
+  is_active: boolean;
+}
+
 // Define the Package interface based on the VirtFusion API response
 interface Package {
   id: number;
@@ -43,6 +54,8 @@ interface Package {
   primaryNetworkProfile: number;
   created: string;
   category?: PackageCategory | null;
+  sla?: SlaPlan | null;
+  sla_plan?: SlaPlan | null; // Alternative property name that might come from API
 }
 
 export default function PackagesPage() {
@@ -369,6 +382,7 @@ export default function PackagesPage() {
                       <TableHead className="text-foreground">Memory</TableHead>
                       <TableHead className="text-foreground">Storage</TableHead>
                       <TableHead className="text-foreground">Bandwidth</TableHead>
+                      <TableHead className="text-foreground">SLA</TableHead>
                       <TableHead className="text-foreground">Price</TableHead>
                       <TableHead className="text-foreground">Status</TableHead>
                       <TableHead className="text-foreground">Action</TableHead>
@@ -410,6 +424,18 @@ export default function PackagesPage() {
                           </div>
                         </TableCell>
                         <TableCell>
+                          {(pkg.sla || pkg.sla_plan) ? (
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-foreground">{(pkg.sla || pkg.sla_plan)?.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No SLA</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center">
                             <DollarSign className="h-4 w-4 mr-1 text-primary" />
                             <span className="font-semibold text-primary">${getPackagePrice(pkg).toFixed(2)}/mo</span>
@@ -430,11 +456,7 @@ export default function PackagesPage() {
                         </TableCell>
                         <TableCell>
                           {pkg.enabled ? (
-                            <VirtFusionSsoButton
-                              variant="default"
-                              size="sm"
-                              text="Purchase"
-                            />
+                            <VirtFusionSsoButton packageId={pkg.id} />
                           ) : (
                             <Button variant="ghost" size="sm" disabled>
                               Unavailable

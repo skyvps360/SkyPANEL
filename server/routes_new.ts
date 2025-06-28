@@ -270,32 +270,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         packages = [];
       }
 
-      // Get pricing records with category information (ENHANCED: Added category support for public endpoint)
+      // Get pricing records with category and SLA information
       const pricingRecords = await db
         .select({
           pricing: schema.packagePricing,
-          category: schema.packageCategories
+          category: schema.packageCategories,
+          sla: schema.slaPlans
         })
         .from(schema.packagePricing)
-        .leftJoin(schema.packageCategories, eq(schema.packagePricing.categoryId, schema.packageCategories.id));
+        .leftJoin(schema.packageCategories, eq(schema.packagePricing.categoryId, schema.packageCategories.id))
+        .leftJoin(schema.slaPlans, eq(schema.packagePricing.slaPlanId, schema.slaPlans.id));
 
-      // Create a map of VirtFusion package ID to our pricing records with category info
+      // Create a map of VirtFusion package ID to our pricing records with category and SLA info
       const pricingMap = pricingRecords.reduce((acc, record) => {
         acc[record.pricing.virtFusionPackageId] = {
           ...record.pricing,
-          category: record.category || null
+          category: record.category || null,
+          sla: record.sla || null
         };
         return acc;
       }, {} as Record<number, any>);
 
-      // Include ALL packages (both enabled and disabled) with category information and sort by memory size
+      // Include ALL packages (both enabled and disabled) with category and SLA information and sort by memory size
       const allPackages = packages
         .map(pkg => {
           const pricingRecord = pricingMap[pkg.id];
           return {
             ...pkg,
             pricing: pricingRecord || null,
-            category: pricingRecord?.category || null // Add category directly to package for easier filtering
+            category: pricingRecord?.category || null,
+            sla: pricingRecord?.sla || null,
+            sla_plan: pricingRecord?.sla || null // Add alternative property name for backward compatibility
           };
         })
         .sort((a: any, b: any) => a.memory - b.memory);
@@ -577,20 +582,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get all our package pricing records with category information (ENHANCED: Added category join)
+      // Get all our package pricing records with category and SLA information
       const pricingRecords = await db
         .select({
           pricing: schema.packagePricing,
-          category: schema.packageCategories
+          category: schema.packageCategories,
+          sla: schema.slaPlans
         })
         .from(schema.packagePricing)
-        .leftJoin(schema.packageCategories, eq(schema.packagePricing.categoryId, schema.packageCategories.id));
+        .leftJoin(schema.packageCategories, eq(schema.packagePricing.categoryId, schema.packageCategories.id))
+        .leftJoin(schema.slaPlans, eq(schema.packagePricing.slaPlanId, schema.slaPlans.id));
 
-      // Create a map of VirtFusion package ID to our pricing records with category info
+      // Create a map of VirtFusion package ID to our pricing records with category and SLA info
       const pricingMap = pricingRecords.reduce((acc, record) => {
         acc[record.pricing.virtFusionPackageId] = {
           ...record.pricing,
-          category: record.category || null
+          category: record.category || null,
+          sla: record.sla || null
         };
         return acc;
       }, {} as Record<number, any>);
@@ -654,8 +662,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid package ID' });
       }
 
-      // Validate the incoming data (ENHANCED: Added categoryId support)
-      const { name, description, price, displayOrder, enabled, categoryId } = req.body;
+      // Validate the incoming data (ENHANCED: Added categoryId and slaPlanId support)
+      const { name, description, price, displayOrder, enabled, categoryId, slaPlanId } = req.body;
 
       if (typeof price !== 'number' || price < 0) {
         return res.status(400).json({ error: 'Price must be a positive number' });
@@ -669,7 +677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(1);
 
       if (existingRecord.length > 0) {
-        // Update existing record (ENHANCED: Added categoryId support)
+        // Update existing record (ENHANCED: Added categoryId and slaPlanId support)
         const updated = await db
           .update(schema.packagePricing)
           .set({
@@ -679,6 +687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             displayOrder: displayOrder || existingRecord[0].displayOrder,
             enabled: enabled !== undefined ? enabled : existingRecord[0].enabled,
             categoryId: categoryId !== undefined ? categoryId : existingRecord[0].categoryId,
+            slaPlanId: slaPlanId !== undefined ? slaPlanId : existingRecord[0].slaPlanId,
             updatedAt: new Date()
           })
           .where(eq(schema.packagePricing.virtFusionPackageId, virtFusionPackageId))
@@ -686,7 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return res.json(updated[0]);
       } else {
-        // Create new record (ENHANCED: Added categoryId support)
+        // Create new record (ENHANCED: Added categoryId and slaPlanId support)
         const inserted = await db
           .insert(schema.packagePricing)
           .values({
@@ -697,6 +706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             displayOrder: displayOrder || 0,
             enabled: enabled !== undefined ? enabled : true,
             categoryId: categoryId || null,
+            slaPlanId: slaPlanId || null,
             createdAt: new Date(),
             updatedAt: new Date()
           })
@@ -1586,16 +1596,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert to array if it's not already
       const packagesArray = Array.isArray(packagesResponse) ? packagesResponse : packagesResponse.data || [];
 
-      // Get our package pricing records
-      const pricingRecords = await db.select().from(schema.packagePricing);
+      // Get pricing records with category and SLA information
+      const pricingRecords = await db
+        .select({
+          pricing: schema.packagePricing,
+          category: schema.packageCategories,
+          sla: schema.slaPlans
+        })
+        .from(schema.packagePricing)
+        .leftJoin(schema.packageCategories, eq(schema.packagePricing.categoryId, schema.packageCategories.id))
+        .leftJoin(schema.slaPlans, eq(schema.packagePricing.slaPlanId, schema.slaPlans.id));
 
-      // Create a map of VirtFusion package ID to our pricing records
+      // Create a map of VirtFusion package ID to our pricing records with category and SLA info
       const pricingMap = pricingRecords.reduce((acc, record) => {
-        acc[record.virtFusionPackageId] = record;
+        acc[record.pricing.virtFusionPackageId] = {
+          ...record.pricing,
+          category: record.category || null,
+          sla: record.sla || null
+        };
         return acc;
-      }, {} as Record<number, typeof schema.packagePricing.$inferSelect>);
+      }, {} as Record<number, any>);
 
-      // Filter enabled packages and add pricing data
+      // Filter enabled packages and add pricing data with SLA information
       const clientPackages = packagesArray
         .filter(pkg => pkg.enabled) // Only show enabled packages to clients
         .map(pkg => {
@@ -1607,7 +1629,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               price: pricingRecord.price / 100, // Convert cents to dollars
               displayOrder: pricingRecord.displayOrder,
               enabled: pricingRecord.enabled
-            } : null
+            } : null,
+            category: pricingRecord?.category || null,
+            sla: pricingRecord?.sla || null,
+            sla_plan: pricingRecord?.sla || null // Add alternative property name for backward compatibility
           };
         })
         .filter(pkg => !pkg.pricing || pkg.pricing.enabled) // Only show packages with enabled pricing
@@ -1619,6 +1644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return a.name.localeCompare(b.name);
         });
 
+      console.log(`Returning ${clientPackages.length} packages for authenticated client with SLA information`);
       res.json(clientPackages);
     } catch (error: any) {
       console.error("Error fetching packages for client:", error);

@@ -9,6 +9,7 @@ import { emailQueueManager } from "./email-queue";
 import { betterStackService } from "./betterstack-service";
 import { geminiService } from "./gemini-service";
 import { cronService } from "./services/cron-service";
+import slaRoutes from './routes/sla-routes';
 // Blog comments routes removed
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -83,6 +84,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
   app.use(adminLegalRoutes);
+  app.use('/api/sla', slaRoutes);
 
   // Routes for Terms of Service and Privacy Policy pages
   // These are now handled by React components through client-side routing

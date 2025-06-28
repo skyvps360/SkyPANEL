@@ -873,8 +873,8 @@ export default function BlogPage() {
         
         {/* Post Form Dialog */}
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent className="max-w-3xl p-0 overflow-auto max-h-[90vh]">
-            <DialogHeader className="px-5 pt-5 pb-3 border-b bg-gray-50 dark:bg-gray-900 sticky top-0">
+          <DialogContent className="max-w-3xl p-0 overflow-auto max-h-[90vh] bg-white dark:bg-gray-950 rounded-xl shadow-lg">
+            <DialogHeader className="px-5 pt-5 pb-3 border-b bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
               <DialogTitle className="text-xl font-bold flex items-center">
                 <FileText className="h-5 w-5 mr-2" style={{ color: `#${brandColors.primary?.hex}` }} />
                 {selectedPost ? "Edit Blog Post" : "Create New Blog Post"}

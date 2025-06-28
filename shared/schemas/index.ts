@@ -20,3 +20,4 @@ export * from './legal-schema';
 export * from './team-schema';
 export * from './chat-schema';
 export * from './discord-ai-schema';
+export * from './sla-schema';

@@ -25,6 +25,16 @@ interface PackageCategory {
   isActive: boolean;
 }
 
+interface SlaPlan {
+  id: number;
+  name: string;
+  description: string | null;
+  price: string;
+  uptime_guarantee_percentage: number;
+  response_time_hours: number;
+  is_active: boolean;
+}
+
 interface Package {
   id: number;
   name: string;
@@ -38,6 +48,8 @@ interface Package {
   primaryNetworkSpeedOut: number;
   primaryDiskType: string;
   category?: PackageCategory | null;
+  sla?: SlaPlan | null;
+  sla_plan?: SlaPlan | null; // Alternative property name that might come from API
 }
 
 // Default pricing for packages if no pricing data is available
@@ -486,6 +498,7 @@ export default function PlansPage() {
                     <th className="text-center p-4 font-medium text-gray-700">Storage</th>
                     <th className="text-center p-4 font-medium text-gray-700">Bandwidth</th>
                     <th className="text-center p-4 font-medium text-gray-700">Network</th>
+                    <th className="text-center p-4 font-medium text-gray-700">SLA</th>
                     <th className="text-right p-4 font-medium text-gray-700">Price</th>
                     <th className="text-center p-4 font-medium text-gray-700">Action</th>
                   </tr>
@@ -519,6 +532,18 @@ export default function PlansPage() {
                         <td className="p-4 text-center">{pkg.primaryStorage} GB</td>
                         <td className="p-4 text-center">{formatBandwidth(pkg.traffic)}</td>
                         <td className="p-4 text-center">{formatNetworkSpeed(pkg.primaryNetworkSpeedIn)}</td>
+                        <td className="p-4 text-center">
+                          {(pkg.sla || pkg.sla_plan) ? (
+                            <div className="flex flex-col items-center">
+                              <span className="text-sm font-medium">{(pkg.sla || pkg.sla_plan)?.name || 'SLA'}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">No SLA</span>
+                          )}
+                        </td>
                         <td className="p-4 text-right font-bold">${getPackagePrice(pkg).toFixed(2)}/mo</td>
                         <td className="p-4 text-center">
                           {pkg.enabled ? (
@@ -594,8 +619,18 @@ export default function PlansPage() {
                       <div className="py-1">
                         <span className="text-gray-500">Bandwidth:</span> {formatBandwidth(pkg.traffic)}
                       </div>
-                      <div className="py-1 col-span-2">
+                      <div className="py-1">
                         <span className="text-gray-500">Network:</span> {formatNetworkSpeed(pkg.primaryNetworkSpeedIn)}
+                      </div>
+                      <div className="py-1">
+                        <span className="text-gray-500">SLA:</span>
+                        {(pkg.sla || pkg.sla_plan) ? (
+                          <span className="ml-1">
+                            {(pkg.sla || pkg.sla_plan)?.name} ({(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime)
+                          </span>
+                        ) : (
+                          <span className="ml-1">No SLA</span>
+                        )}
                       </div>
                     </div>
                     

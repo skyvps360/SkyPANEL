@@ -19,6 +19,7 @@ interface VirtFusionSsoButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
   serverId?: number; // Optional server ID for direct server access
+  packageId?: number; // Optional package ID for purchase flow
   text?: string; // Optional custom button text
 }
 
@@ -31,6 +32,7 @@ export function VirtFusionSsoButton({
   size = "default", 
   className = "",
   serverId,
+  packageId,
   text
 }: VirtFusionSsoButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
@@ -85,8 +87,10 @@ export function VirtFusionSsoButton({
       setIsLoading(true);
       
       // Create and dispatch SSO event with more detailed info for debugging
-      const eventDetail = serverId 
+      const eventDetail = serverId
         ? { serverId, timestamp: Date.now(), source: 'VirtFusionSsoButton' }
+        : packageId
+        ? { packageId, timestamp: Date.now(), source: 'VirtFusionSsoButton' }
         : { timestamp: Date.now(), source: 'VirtFusionSsoButton' };
             
       const event = new CustomEvent('virtfusion-sso', {

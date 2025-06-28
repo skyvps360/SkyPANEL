@@ -1,5 +1,8 @@
 import { pgTable, text, serial, integer, timestamp, json, createInsertSchema, z } from "./common-imports";
+import { uuid } from "drizzle-orm/pg-core";
+import { uuid } from "drizzle-orm/pg-core";
 import { users } from "./user-schema";
+import { slaPlans } from "./sla-schema";
 
 // Server Power Status
 export const serverPowerStatus = pgTable("server_power_status", {
@@ -10,6 +13,7 @@ export const serverPowerStatus = pgTable("server_power_status", {
   lastAction: text("last_action"),
   lastActionTime: timestamp("last_action_time").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  slaPlanId: uuid("sla_plan_id").references(() => slaPlans.id, { onDelete: 'set null' }),
 });
 
 export const insertServerPowerStatusSchema = createInsertSchema(serverPowerStatus, {

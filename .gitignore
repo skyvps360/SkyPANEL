@@ -23,11 +23,7 @@ migrations/
 .aiignore
 *.log
 .vscode-test/
-.continue/
-.qodo/
-.codacy-cli-v2/
-.windsurf/
-.codacy/
+.docs/
 
 #Ignore vscode AI rules
 .github/copilot-instructions.md

@@ -1,4 +1,6 @@
 import { pgTable, text, serial, integer, boolean, timestamp, createInsertSchema, z } from "./common-imports";
+import { uuid } from "drizzle-orm/pg-core";
+import { slaPlans } from "./sla-schema";
 
 // Package Categories for organizing VirtFusion packages
 export const packageCategories = pgTable("package_categories", {
@@ -9,7 +11,7 @@ export const packageCategories = pgTable("package_categories", {
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+  });
 
 export const insertPackageCategorySchema = createInsertSchema(packageCategories).omit({
   id: true,
@@ -32,6 +34,7 @@ export const packagePricing = pgTable("package_pricing", {
   categoryId: integer("category_id").references(() => packageCategories.id, { onDelete: 'set null' }), // Optional category assignment
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  slaPlanId: uuid("sla_plan_id").references(() => slaPlans.id, { onDelete: 'set null' }),
 });
 
 export const insertPackagePricingSchema = createInsertSchema(packagePricing).omit({
