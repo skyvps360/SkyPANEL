@@ -34,7 +34,7 @@ interface ColorTheme {
 interface ColorPreset {
   name: string;
   value: string;
-  category: 'blue' | 'green' | 'purple' | 'red' | 'orange' | 'pink' | 'gray';
+  category: 'blue' | 'green' | 'purple' | 'red' | 'orange' | 'pink' | 'gray' | 'neutral';
 }
 
 interface EnhancedColorSelectorProps {
@@ -49,261 +49,205 @@ interface EnhancedColorSelectorProps {
 
 // Predefined color themes
 const COLOR_THEMES: ColorTheme[] = [
+  // Professional Themes
   {
     name: 'Corporate Elegance',
-    description: 'Deep blues with sophisticated grays for professional branding',
-    primary: '2C3E50',
-    secondary: '34495E',
-    accent: '3498DB',
+    description: 'Deep blues and silvers for a sophisticated, trustworthy brand.',
+    primary: '1A2C42',
+    secondary: '6C7A89',
+    accent: '4A90E2',
     category: 'professional'
   },
   {
-    name: 'Strategic Vision',
-    description: 'Bold blues with green and amber accents for dynamic brands',
-    primary: '2980B9',
-    secondary: '85C1AE',
-    accent: 'F7DC6F',
+    name: 'Modern Professional',
+    description: 'Clean and crisp with a vibrant blue, subtle grey, and a touch of gold.',
+    primary: '2B6CB0',
+    secondary: '4A5568',
+    accent: 'D69E2E',
     category: 'professional'
   },
   {
-    name: 'Contemporary Focus',
-    description: 'Modern tech startup palette with balanced contrast',
-    primary: '34495E',
-    secondary: '5DADE2',
-    accent: 'E74C3C',
+    name: 'Executive Green',
+    description: 'Rich greens and deep blues for a reliable and established feel.',
+    primary: '047857',
+    secondary: '1E3A8A',
+    accent: 'FBBF24',
     category: 'professional'
   },
   {
-    name: 'Professional Blue',
-    description: 'Classic business colors with blue primary',
-    primary: '2563eb',
-    secondary: '10b981',
-    accent: 'f59e0b',
+    name: 'Tech Blueprint',
+    description: 'Cool blues and light grays, evoking a sense of innovation and precision.',
+    primary: '2563EB',
+    secondary: '4299E1',
+    accent: '38B2AC',
     category: 'professional'
   },
   {
-    name: 'Financial Trust',
-    description: 'Trustworthy deep blues with emerald accents',
-    primary: '1e3a8a',
-    secondary: '059669',
-    accent: 'd97706',
+    name: 'Classic Neutral',
+    description: 'Understated elegance with warm grays, a soft primary, and a subtle accent.',
+    primary: '4B5563',
+    secondary: '6B7280',
+    accent: 'F59E0B',
     category: 'professional'
   },
+
+  // Vibrant Themes
   {
-    name: 'Tech Innovation',
-    description: 'Modern purple with cyan and orange highlights',
-    primary: '7c3aed',
-    secondary: '06b6d4',
-    accent: 'f97316',
+    name: 'Dynamic Energy',
+    description: 'Bright and energetic with a striking orange, bold purple, and electric blue.',
+    primary: 'F97316',
+    secondary: '8B5CF6',
+    accent: '3B82F6',
     category: 'vibrant'
   },
   {
-    name: 'Nature Harmony',
-    description: 'Earthy green tones inspired by nature',
+    name: 'Creative Spectrum',
+    description: 'A playful mix of cyan, magenta, and a sunny yellow.',
+    primary: '06B6D4',
+    secondary: 'EC4899',
+    accent: 'FDE047',
+    category: 'vibrant'
+  },
+  {
+    name: 'Electric Pulse',
+    description: 'High-contrast and modern with a deep teal, bright pink, and lime green.',
+    primary: '14B8A6',
+    secondary: 'DB2777',
+    accent: '84CC16',
+    category: 'vibrant'
+  },
+  {
+    name: 'Urban Glow',
+    description: 'Sleek dark tones contrasted with a neon green and a vibrant violet.',
+    primary: '1F2937',
+    secondary: '22C55E',
+    accent: 'A78BFA',
+    category: 'vibrant'
+  },
+
+  // Nature Themes
+  {
+    name: 'Forest Retreat',
+    description: 'Earthy greens and warm browns for a natural and calming presence.',
     primary: '059669',
-    secondary: '0d9488',
-    accent: 'f59e0b',
+    secondary: '78350F',
+    accent: 'D97706',
     category: 'nature'
   },
   {
-    name: 'Sunset Warmth',
-    description: 'Warm orange and red tones for energetic brands',
-    primary: 'ea580c',
-    secondary: 'dc2626',
-    accent: 'fbbf24',
+    name: 'Desert Bloom',
+    description: 'Warm, muted tones of terracotta, sage, and a soft beige.',
+    primary: 'EA580C',
+    secondary: '6B7280',
+    accent: 'D97706',
+    category: 'nature'
+  },
+  {
+    name: 'Ocean Depths',
+    description: 'Cool blues and deep teals, reminiscent of clear waters.',
+    primary: '0369A1',
+    secondary: '0F766E',
+    accent: '38BDF8',
+    category: 'nature'
+  },
+
+  // Warm Themes
+  {
+    name: 'Sunset Horizon',
+    description: 'Fiery oranges and reds, reflecting warmth and energy.',
+    primary: 'DC2626',
+    secondary: 'F97316',
+    accent: 'FBBF24',
     category: 'warm'
   },
   {
-    name: 'Ocean Depth',
-    description: 'Cool blue and teal combination for calm professionalism',
-    primary: '0284c7',
-    secondary: '0891b2',
-    accent: '06b6d4',
+    name: 'Golden Hour',
+    description: 'Soft yellows and oranges, capturing the essence of a warm glow.',
+    primary: 'F59E0B',
+    secondary: 'FB923C',
+    accent: 'FEF08A',
+    category: 'warm'
+  },
+  {
+    name: 'Autumn Harvest',
+    description: 'Deep reds, rustic oranges, and rich browns for a cozy feel.',
+    primary: '991B1B',
+    secondary: 'EA580C',
+    accent: '78350F',
+    category: 'warm'
+  },
+
+  // Cool Themes
+  {
+    name: 'Winter Chill',
+    description: 'Icy blues and crisp whites for a clean and refreshing look.',
+    primary: '0EA5E9',
+    secondary: '63B3ED',
+    accent: 'A78BFA',
     category: 'cool'
   },
   {
-    name: 'Royal Luxury',
-    description: 'Elegant purple with gold accents for premium brands',
-    primary: '9333ea',
-    secondary: '7c3aed',
-    accent: 'd97706',
-    category: 'vibrant'
-  },
-  {
-    name: 'Enterprise Growth',
-    description: 'Professional green with blue and amber support',
-    primary: '16a34a',
-    secondary: '2563eb',
-    accent: 'f59e0b',
-    category: 'professional'
-  },  {
-    name: 'Creative Energy',
-    description: 'Vibrant magenta with purple and orange accents',
-    primary: 'c026d3',
-    secondary: '9333ea',
-    accent: 'f97316',
-    category: 'vibrant'
-  },
-  // Additional Vibrant Themes
-  {
-    name: 'Electric Fusion',
-    description: 'High-energy cyan and lime with hot pink accents',
-    primary: '06b6d4',
-    secondary: '84cc16',
-    accent: 'ec4899',
-    category: 'vibrant'
-  },
-  {
-    name: 'Neon Dreams',
-    description: 'Electric blue with neon green and bright yellow',
-    primary: '0ea5e9',
-    secondary: '22c55e',
-    accent: 'eab308',
-    category: 'vibrant'
-  },
-  {
-    name: 'Pop Culture',
-    description: 'Hot pink with electric purple and lime highlights',
-    primary: 'ec4899',
-    secondary: 'a855f7',
-    accent: '84cc16',
-    category: 'vibrant'
-  },
-  {
-    name: 'Digital Glow',
-    description: 'Bright blue with electric orange and neon purple',
-    primary: '3b82f6',
-    secondary: 'f97316',
-    accent: 'a855f7',
-    category: 'vibrant'
-  },
-  // Additional Nature Themes
-  {
-    name: 'Forest Deep',
-    description: 'Deep forest greens with moss and earth tones',
-    primary: '166534',
-    secondary: '65a30d',
-    accent: 'a3a3a3',
-    category: 'nature'
-  },
-  {
-    name: 'Mountain Ridge',
-    description: 'Sage green with stone gray and warm brown',
-    primary: '84cc16',
-    secondary: '6b7280',
-    accent: 'a3a3a3',
-    category: 'nature'
-  },
-  {
-    name: 'Garden Fresh',
-    description: 'Fresh spring green with lavender and peach',
-    primary: '22c55e',
-    secondary: 'a855f7',
-    accent: 'fb923c',
-    category: 'nature'
-  },
-  {
-    name: 'Earth Elements',
-    description: 'Terra cotta with sage green and warm beige',
-    primary: 'dc2626',
-    secondary: '65a30d',
-    accent: 'f59e0b',
-    category: 'nature'
-  },
-  {
-    name: 'Ocean Breeze',
-    description: 'Sea blue with seafoam green and sandy beige',
-    primary: '0284c7',
-    secondary: '10b981',
-    accent: 'fbbf24',
-    category: 'nature'
-  },
-  // Additional Warm Themes
-  {
-    name: 'Autumn Glow',
-    description: 'Burnt orange with warm red and golden yellow',
-    primary: 'ea580c',
-    secondary: 'dc2626',
-    accent: 'f59e0b',
-    category: 'warm'
-  },
-  {
-    name: 'Desert Sand',
-    description: 'Warm beige with rust and amber tones',
-    primary: 'd97706',
-    secondary: 'dc2626',
-    accent: 'fbbf24',
-    category: 'warm'
-  },
-  {
-    name: 'Cozy Hearth',
-    description: 'Warm brick with cream and golden accents',
-    primary: 'dc2626',
-    secondary: 'f59e0b',
-    accent: 'fbbf24',
-    category: 'warm'
-  },
-  {
-    name: 'Spice Market',
-    description: 'Cinnamon and paprika with saffron highlights',
-    primary: 'ea580c',
-    secondary: 'dc2626',
-    accent: 'f59e0b',
-    category: 'warm'
-  },
-  {
-    name: 'Sunset Coral',
-    description: 'Coral pink with warm orange and peach',
-    primary: 'f97316',
-    secondary: 'fb923c',
-    accent: 'fbbf24',
-    category: 'warm'
+    name: 'Midnight Sky',
+    description: 'Deep purples and blues, creating a serene and mysterious atmosphere.',
+    primary: '4C1D95',
+    secondary: '1E3A8A',
+    accent: '8B5CF6',
+    category: 'cool'
   }
 ];
 
 // Color presets organized by category
 const COLOR_PRESETS: Record<string, ColorPreset[]> = {
   blue: [
-    { name: 'Sky Blue', value: '0ea5e9', category: 'blue' },
-    { name: 'Blue', value: '2563eb', category: 'blue' },
-    { name: 'Dark Blue', value: '1d4ed8', category: 'blue' },
-    { name: 'Indigo', value: '4338ca', category: 'blue' },
-    { name: 'Navy', value: '1e3a8a', category: 'blue' },
-    { name: 'Cyan', value: '0891b2', category: 'blue' }
+    { name: 'Navy Blue', value: '1A2C42', category: 'blue' },
+    { name: 'Royal Blue', value: '2B6CB0', category: 'blue' },
+    { name: 'Sky Blue', value: '38BDF8', category: 'blue' },
+    { name: 'Electric Blue', value: '3B82F6', category: 'blue' },
+    { name: 'Ocean Blue', value: '0369A1', category: 'blue' },
+    { name: 'Teal Blue', value: '0F766E', category: 'blue' }
   ],
   green: [
-    { name: 'Emerald', value: '10b981', category: 'green' },
-    { name: 'Green', value: '16a34a', category: 'green' },
-    { name: 'Teal', value: '0d9488', category: 'green' },
-    { name: 'Dark Green', value: '059669', category: 'green' },
-    { name: 'Lime', value: '84cc16', category: 'green' },
-    { name: 'Forest', value: '15803d', category: 'green' }
+    { name: 'Forest Green', value: '047857', category: 'green' },
+    { name: 'Emerald Green', value: '059669', category: 'green' },
+    { name: 'Lime Green', value: '84CC16', category: 'green' },
+    { name: 'Mint Green', value: '14B8A6', category: 'green' },
+    { name: 'Dark Green', value: '166534', category: 'green' },
+    { name: 'Olive Green', value: '38A169', category: 'green' } 
   ],
   purple: [
-    { name: 'Purple', value: '7c3aed', category: 'purple' },
-    { name: 'Violet', value: '9333ea', category: 'purple' },
-    { name: 'Dark Purple', value: '6b21a8', category: 'purple' },
-    { name: 'Indigo', value: '4f46e5', category: 'purple' },
-    { name: 'Lavender', value: 'a855f7', category: 'purple' },
-    { name: 'Magenta', value: 'c026d3', category: 'purple' }
+    { name: 'Deep Purple', value: '4C1D95', category: 'purple' },
+    { name: 'Violet', value: '8B5CF6', category: 'purple' },
+    { name: 'Lavender', value: 'A78BFA', category: 'purple' },
+    { name: 'Magenta', value: 'EC4899', category: 'purple' },
+    { name: 'Amethyst', value: 'A855F7', category: 'purple' },
+    { name: 'Plum', value: 'DB2777', category: 'purple' }
   ],
   red: [
-    { name: 'Red', value: 'ef4444', category: 'red' },
-    { name: 'Dark Red', value: 'dc2626', category: 'red' },
-    { name: 'Crimson', value: 'b91c1c', category: 'red' },
-    { name: 'Rose', value: 'f43f5e', category: 'red' },
-    { name: 'Pink', value: 'ec4899', category: 'red' },
-    { name: 'Cherry', value: 'be123c', category: 'red' }
+    { name: 'Crimson', value: '991B1B', category: 'red' },
+    { name: 'Scarlet', value: 'DC2626', category: 'red' },
+    { name: 'Terracotta', value: 'EA580C', category: 'red' },
+    { name: 'Rose Red', value: 'F43F5E', category: 'red' },
+    { name: 'Ruby', value: 'BE123C', category: 'red' },
+    { name: 'Maroon', value: '7F1D1D', category: 'red' }
   ],
   orange: [
-    { name: 'Orange', value: 'f97316', category: 'orange' },
-    { name: 'Dark Orange', value: 'ea580c', category: 'orange' },
-    { name: 'Amber', value: 'f59e0b', category: 'orange' },
-    { name: 'Yellow', value: 'fbbf24', category: 'orange' },
-    { name: 'Gold', value: 'd97706', category: 'orange' },
-    { name: 'Tangerine', value: 'fb923c', category: 'orange' }
+    { name: 'Bright Orange', value: 'F97316', category: 'orange' },
+    { name: 'Golden Yellow', value: 'FBBF24', category: 'orange' },
+    { name: 'Amber', value: 'F59E0B', category: 'orange' },
+    { name: 'Peach', value: 'FB923C', category: 'orange' },
+    { name: 'Rust', value: '78350F', category: 'orange' },
+    { name: 'Soft Yellow', value: 'FEF08A', category: 'orange' }
+  ],
+  neutral: [
+    { name: 'Dark Gray', value: '1F2937', category: 'neutral' },
+    { name: 'Charcoal', value: '374151', category: 'neutral' },
+    { name: 'Slate Gray', value: '4B5563', category: 'neutral' },
+    { name: 'Medium Gray', value: '6B7280', category: 'neutral' },
+    { name: 'Darker Gray', value: '525252', category: 'neutral' },
+    { name: 'Greyish Brown', value: '737373', category: 'neutral' }
   ]
 };
+
 
 /**
  * Enhanced color selector component with modern UI and comprehensive features
@@ -350,14 +294,6 @@ export function EnhancedColorSelector({
     }
   };
 
-  // Handle theme selection
-  const handleThemeSelect = (theme: ColorTheme) => {
-    const colorValue = type === 'primary' ? theme.primary : 
-                     type === 'secondary' ? theme.secondary : 
-                     theme.accent;
-    handleColorChange(colorValue);
-    setIsOpen(false);
-  };
 
   // Get color category for the current type
   const getColorCategories = () => {
@@ -365,7 +301,7 @@ export function EnhancedColorSelector({
       case 'primary':
         return ['blue', 'purple', 'green'];
       case 'secondary':
-        return ['green', 'blue', 'orange'];
+        return ['green', 'blue', 'orange', 'neutral']; // Added 'neutral' to secondary options
       case 'accent':
         return ['orange', 'red', 'purple'];
       default:
@@ -406,7 +342,7 @@ export function EnhancedColorSelector({
             
             <PopoverContent className="w-96 p-0" align="start">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="picker" className="flex items-center gap-2">
                     <Pipette className="w-4 h-4" />
                     Picker
@@ -414,10 +350,6 @@ export function EnhancedColorSelector({
                   <TabsTrigger value="presets" className="flex items-center gap-2">
                     <Palette className="w-4 h-4" />
                     Presets
-                  </TabsTrigger>
-                  <TabsTrigger value="themes" className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Themes
                   </TabsTrigger>
                 </TabsList>
 
@@ -479,50 +411,6 @@ export function EnhancedColorSelector({
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="themes" className="space-y-4 mt-0">
-                    <div className="space-y-3">
-                      {COLOR_THEMES.map((theme) => (
-                        <Card 
-                          key={theme.name} 
-                          className="cursor-pointer hover:bg-accent/50 transition-colors"
-                          onClick={() => handleThemeSelect(theme)}
-                        >
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-medium text-sm">{theme.name}</h4>
-                                  <Badge variant="secondary" className="text-xs">
-                                    {theme.category}
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {theme.description}
-                                </p>
-                              </div>
-                              <div className="flex space-x-1">
-                                <div 
-                                  className="w-4 h-4 rounded-full border"
-                                  style={{ backgroundColor: `#${theme.primary}` }}
-                                  title="Primary"
-                                />
-                                <div 
-                                  className="w-4 h-4 rounded-full border"
-                                  style={{ backgroundColor: `#${theme.secondary}` }}
-                                  title="Secondary"
-                                />
-                                <div 
-                                  className="w-4 h-4 rounded-full border"
-                                  style={{ backgroundColor: `#${theme.accent}` }}
-                                  title="Accent"
-                                />
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </TabsContent>
                 </div>
               </Tabs>
             </PopoverContent>
@@ -576,7 +464,7 @@ export function ColorPreview({ primaryColor, secondaryColor, accentColor }: Colo
           <Palette className="w-4 h-4" />
           Color Preview
         </CardTitle>
-        <CardDescription className="text-xs">
+        <CardDescription className="xs">
           See how your colors work together
         </CardDescription>
       </CardHeader>
@@ -682,7 +570,7 @@ export function ThemeSelector({ currentTheme, onThemeSelect, disabled = false }:
   const filteredThemes = COLOR_THEMES.filter(theme => theme.category === selectedCategory);
   
   // Check if a theme matches the current colors
-  const isThemeActive = (theme: ColorTheme) => {
+  const isThemeActive = (theme: ColorTheme, currentTheme?: { primary: string; secondary: string; accent: string; }) => {
     if (!currentTheme) return false;
     return theme.primary.toLowerCase() === currentTheme.primary.toLowerCase() &&
            theme.secondary.toLowerCase() === currentTheme.secondary.toLowerCase() &&
@@ -765,7 +653,7 @@ export function ThemeSelector({ currentTheme, onThemeSelect, disabled = false }:
           
           <div className="grid gap-3 max-h-96 overflow-y-auto">
             {filteredThemes.map((theme) => {
-              const isActive = isThemeActive(theme);
+              const isActive = isThemeActive(theme, currentTheme);
               return (
                 <Card 
                   key={theme.name} 
