@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Utility to get/set admin theme in localStorage
 const getStoredAdminTheme = () => {
@@ -18,6 +19,8 @@ export const ThemeToggle: React.FC = () => {
   const [adminTheme, setAdminTheme] = useState<"light" | "dark">(() => getStoredAdminTheme() as "light" | "dark");
   const [showReloadPopup, setShowReloadPopup] = useState(false);
   const [countdown, setCountdown] = useState(5);
+  const [cancelReload, setCancelReload] = useState(false);
+  const reloadTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Check if we're in admin area
   const isAdminArea = location.startsWith('/admin');
@@ -109,7 +112,8 @@ export const ThemeToggle: React.FC = () => {
       const newTheme = adminTheme === "light" ? "dark" : "light";
       setShowReloadPopup(true);
       setCountdown(5);
-      setTimeout(() => {
+      setCancelReload(false);
+      reloadTimeoutRef.current = setTimeout(() => {
         setStoredAdminTheme(newTheme);
         window.location.reload();
       }, 5000);
@@ -118,9 +122,21 @@ export const ThemeToggle: React.FC = () => {
     // Frontend areas always stay light, so no toggle needed
   };
 
+  // Cancel handler
+  const handleCancel = () => {
+    setShowReloadPopup(false);
+    setCancelReload(true);
+    setCountdown(5);
+    if (reloadTimeoutRef.current) {
+      clearTimeout(reloadTimeoutRef.current);
+      reloadTimeoutRef.current = null;
+    }
+  };
+
   useEffect(() => {
     if (!showReloadPopup) return;
     setCountdown(5);
+    setCancelReload(false);
     const intervalId = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -161,7 +177,8 @@ export const ThemeToggle: React.FC = () => {
             <CardContent className="flex flex-col items-center justify-center py-10">
               <RotateCcw className="w-12 h-12 mb-4 text-primary animate-spin" />
               <div className="text-2xl font-semibold mb-2">Theme is changing...</div>
-              <div className="text-base text-muted-foreground">Refreshing page in {countdown} second{countdown !== 1 ? 's' : ''}</div>
+              <div className="text-base text-muted-foreground mb-6">Refreshing page in {countdown} second{countdown !== 1 ? 's' : ''}</div>
+              <Button variant="outline" onClick={handleCancel}>Cancel</Button>
             </CardContent>
           </Card>
         </div>
