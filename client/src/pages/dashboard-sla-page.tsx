@@ -8,13 +8,15 @@ import { Clock, Shield, Zap, CheckCircle, AlertTriangle, Info } from "lucide-rea
 import { useLocation } from "wouter";
 
 interface SlaPlan {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
-  price: string;
   uptime_guarantee_percentage: number;
   response_time_hours: number;
+  resolution_time_hours: number;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export function DashboardSLAPage() {
@@ -120,7 +122,13 @@ export function DashboardSLAPage() {
               ))}
             </div>
           ) : filteredSlaPlans.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className={`grid gap-6 ${
+              filteredSlaPlans.length === 1 
+                ? 'grid-cols-1' 
+                : filteredSlaPlans.length === 2 
+                  ? 'grid-cols-1 md:grid-cols-2' 
+                  : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+            }`}>
               {filteredSlaPlans.map((plan) => (
                 <Card key={plan.id} className="border-2 hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-4">
@@ -166,14 +174,15 @@ export function DashboardSLAPage() {
                       </Badge>
                     </div>
 
-                    {/* Price */}
+                    {/* Resolution Time */}
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center space-x-2">
-                        <span className="text-sm font-medium">Monthly Cost</span>
+                        <Clock className="h-4 w-4 text-gray-600" />
+                        <span className="text-sm font-medium">Resolution Time</span>
                       </div>
-                      <span className="text-lg font-bold text-green-600">
-                        ${parseFloat(plan.price).toFixed(2)}
-                      </span>
+                      <Badge className={getResponseTimeBadgeColor(plan.resolution_time_hours)}>
+                        {plan.resolution_time_hours}h
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>

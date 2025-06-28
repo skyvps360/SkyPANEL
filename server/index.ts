@@ -10,6 +10,7 @@ import { betterStackService } from "./betterstack-service";
 import { geminiService } from "./gemini-service";
 import { cronService } from "./services/cron-service";
 import slaRoutes from './routes/sla-routes';
+import publicSlaRoutes from './routes/public-sla-routes';
 // Blog comments routes removed
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -85,6 +86,7 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
   app.use(adminLegalRoutes);
   app.use('/api/sla', slaRoutes);
+  app.use('/api/sla-plans', publicSlaRoutes);
 
   // Routes for Terms of Service and Privacy Policy pages
   // These are now handled by React components through client-side routing
