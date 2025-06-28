@@ -603,12 +603,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {} as Record<number, any>);
 
-      // For each VirtFusion package, add our pricing data and category if it exists
+      // For each VirtFusion package, add our pricing data with category and SLA if it exists
       const packages = packagesArray.map(pkg => {
         const pricingRecord = pricingMap[pkg.id];
         return {
           ...pkg,
-          pricing: pricingRecord || null
+          pricing: pricingRecord ? {
+            ...pricingRecord,
+            slaPlan: pricingRecord.sla || null // Include SLA plan data
+          } : null
         };
       });
 

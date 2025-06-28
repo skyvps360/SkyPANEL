@@ -817,15 +817,16 @@ export default function PackagePricingPage() {
         <CardContent className="p-0">
           <div className="overflow-x-auto w-full">
             <Table className="w-full table-fixed">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap w-[30%]">Name</TableHead>
-                  <TableHead className="hidden md:table-cell">Specs</TableHead>
-                  <TableHead className="hidden sm:table-cell">Pricing</TableHead>
-                  <TableHead className="whitespace-nowrap w-[25%]">Status</TableHead>
-                  <TableHead className="text-right w-[20%]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+            <TableHeader>
+            <TableRow>
+            <TableHead className="whitespace-nowrap w-[25%]">Name</TableHead>
+            <TableHead className="hidden md:table-cell">Specs</TableHead>
+            <TableHead className="hidden sm:table-cell">Pricing</TableHead>
+            <TableHead className="hidden lg:table-cell">SLA Plan</TableHead>
+            <TableHead className="whitespace-nowrap w-[20%]">Status</TableHead>
+            <TableHead className="text-right w-[15%]">Actions</TableHead>
+            </TableRow>
+            </TableHeader>
               <TableBody>
                 {Array.isArray(packages) && packages.map((pkg) => (
                   <TableRow key={pkg.id}>
@@ -834,10 +835,15 @@ export default function PackagePricingPage() {
                       <div className="md:hidden mt-1">
                         <span className="text-xs text-muted-foreground">
                           {pkg.pricing 
-                            ? `$${(pkg.pricing.price / 100).toFixed(2)}` 
+                            ? `${(pkg.pricing.price / 100).toFixed(2)}` 
                             : "No pricing"
                           }
                         </span>
+                        {pkg.pricing?.slaPlan && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <span className="font-medium">SLA:</span> {pkg.pricing.slaPlan.name}
+                          </div>
+                        )}
                       </div>
                       <div className="sm:hidden mt-2 space-y-1">
                         <div className="text-xs text-muted-foreground">
@@ -885,6 +891,29 @@ export default function PackagePricingPage() {
                         </div>
                       ) : (
                         <span className="text-sm text-muted-foreground">No pricing</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell p-2 sm:p-4">
+                      {pkg.pricing?.slaPlan ? (
+                        <div className="space-y-1">
+                          <div className="text-sm">
+                            <span className="font-semibold">{pkg.pricing.slaPlan.name}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Response: {pkg.pricing.slaPlan.response_time_hours}h
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Uptime: {pkg.pricing.slaPlan.uptime_guarantee_percentage}%
+                          </div>
+                          <Badge
+                            variant={pkg.pricing.slaPlan.is_active ? "default" : "secondary"}
+                            className={`text-xs ${pkg.pricing.slaPlan.is_active ? "bg-green-100 text-green-800" : ""}`}
+                          >
+                            {pkg.pricing.slaPlan.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">No SLA</span>
                       )}
                     </TableCell>
                     <TableCell className="p-2 sm:p-4">
@@ -944,7 +973,7 @@ export default function PackagePricingPage() {
                 
                 {(!packages || !Array.isArray(packages) || packages.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       No packages found. Check your VirtFusion API configuration.
                     </TableCell>
                   </TableRow>
