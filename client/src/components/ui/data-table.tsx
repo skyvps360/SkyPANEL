@@ -48,6 +48,17 @@ interface DataTableProps<T> {
   enablePagination?: boolean; // Enable pagination
   defaultPageSize?: number; // Default page size
   pageSizeOptions?: number[]; // Available page size options
+  searchQuery?: string; // Controlled search value
+  setSearchQuery?: (q: string) => void; // Controlled search setter
+}
+
+// Utility to highlight search matches
+export function highlightMatch(text: string, query: string) {
+  if (!query) return text;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.split(regex).map((part, i) =>
+    regex.test(part) ? <mark key={i} style={{ background: '#ffe066', padding: 0 }}>{part}</mark> : part
+  );
 }
 
 export function DataTable<T>({
@@ -64,8 +75,12 @@ export function DataTable<T>({
   enablePagination = true,
   defaultPageSize = 10,
   pageSizeOptions = [5, 10, 25, 50, 100],
+  searchQuery: controlledSearchQuery,
+  setSearchQuery: setControlledSearchQuery,
 }: DataTableProps<T>) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [internalSearchQuery, setInternalSearchQuery] = useState("");
+  const searchQuery = controlledSearchQuery !== undefined ? controlledSearchQuery : internalSearchQuery;
+  const setSearchQuery = setControlledSearchQuery !== undefined ? setControlledSearchQuery : setInternalSearchQuery;
   const [sortBy, setSortBy] = useState<keyof T | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -233,11 +248,13 @@ export function DataTable<T>({
               >
                 {columns.map((column, colIndex) => (
                   <TableCell key={getColumnKey(column, colIndex)}>
-                    {column.cell 
-                      ? column.cell(item) 
-                      : column.accessorKey 
-                      ? String(item[column.accessorKey] || "") 
-                      : ""}
+                    {column.cell
+                      ? column.cell(item)
+                      : column.accessorKey
+                        ? (searchKey && column.accessorKey === searchKey && typeof item[column.accessorKey] === 'string' && debouncedSearchQuery)
+                          ? highlightMatch(String(item[column.accessorKey] || ''), debouncedSearchQuery)
+                          : String(item[column.accessorKey] || "")
+                        : ""}
                   </TableCell>
                 ))}
                 {actions && (
@@ -282,11 +299,13 @@ export function DataTable<T>({
                       <div key={getColumnKey(column, colIndex)} className="flex justify-between items-start">
                         <span className="text-sm font-medium text-muted-foreground">{column.header}:</span>
                         <div className="text-sm text-right flex-1 ml-4">
-                          {column.cell 
-                            ? column.cell(item) 
-                            : column.accessorKey 
-                            ? String(item[column.accessorKey] || "") 
-                            : ""}
+                          {column.cell
+                            ? column.cell(item)
+                            : column.accessorKey
+                              ? (searchKey && column.accessorKey === searchKey && typeof item[column.accessorKey] === 'string' && debouncedSearchQuery)
+                                ? highlightMatch(String(item[column.accessorKey] || ''), debouncedSearchQuery)
+                                : String(item[column.accessorKey] || "")
+                              : ""}
                         </div>
                       </div>
                     )
@@ -316,7 +335,7 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-4">
-      {(enableSearch || searchKey || searchFunction) && (
+      {enableSearch && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

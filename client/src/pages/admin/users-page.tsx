@@ -37,18 +37,21 @@ import { format } from "date-fns";
 import { UserCog, Download, Edit, ShieldAlert, User as UserIcon, Trash2, Power, PowerOff } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { highlightMatch } from "@/components/ui/data-table";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 // Helper function to generate CSV from users data
 const generateCSV = (users: User[]): string => {
   const headers = ["ID", "Full Name", "Username", "Email", "Role", "Credits", "Joined"];
   const rows = users.map(user => [
-    user.id.toString(),
-    user.fullName,
-    user.username,
-    user.email,
-    user.role,
-    user.credits.toString(),
-    new Date(user.createdAt).toLocaleDateString()
+    user.id?.toString() ?? "",
+    user.fullName ?? "",
+    user.username ?? "",
+    user.email ?? "",
+    user.role ?? "",
+    (user.credits !== undefined && user.credits !== null) ? user.credits.toString() : "0",
+    user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ""
   ]);
 
   return [
@@ -94,6 +97,7 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [userStatus, setUserStatus] = useState<boolean>(true); // true = enabled, false = suspended
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch users
   const { data: users = [], isLoading, refetch } = useQuery<User[]>({
@@ -296,7 +300,9 @@ export default function UsersPage() {
             <UserIcon className="h-4 w-4 text-muted-foreground" />
           </div>
           <div>
-            <div className="font-medium">{user.fullName}</div>
+            <div className="font-medium">
+              {searchQuery ? highlightMatch(user.fullName, searchQuery) : user.fullName}
+            </div>
             <div className="text-xs text-muted-foreground">{user.username}</div>
           </div>
         </div>
@@ -305,7 +311,11 @@ export default function UsersPage() {
     {
       accessorKey: "email" as keyof User,
       header: "Email",
-      cell: (user: User) => <span className="text-sm">{user.email}</span>,
+      cell: (user: User) => (
+        <span className="text-sm">
+          {searchQuery ? highlightMatch(user.email, searchQuery) : user.email}
+        </span>
+      ),
     },
     {
       accessorKey: "role" as keyof User,
@@ -385,6 +395,10 @@ export default function UsersPage() {
     </>
   );
 
+  // Filter users by role
+  const admins = users.filter(user => user.role === "admin");
+  const clients = users.filter(user => user.role !== "admin");
+
   return (
     <AdminLayout>
       {/* Page Header */}
@@ -412,8 +426,21 @@ export default function UsersPage() {
         </div>
       </div>
 
+      {/* Global Search Bar */}
+      <div className="mb-6 max-w-md">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search users or admins..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
       {/* Users Table */}
-      <Card>
+      <Card className="mb-8">
         <CardHeader>
           <CardTitle className="text-lg">Users</CardTitle>
         </CardHeader>
@@ -425,10 +452,38 @@ export default function UsersPage() {
             </div>
           ) : (
             <DataTable
-              data={users}
+              data={clients}
               columns={columns}
               searchKey="fullName"
               actions={renderActions}
+              enableSearch={false}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Admins Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Admins</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="ml-2">Loading users...</p>
+            </div>
+          ) : (
+            <DataTable
+              data={admins}
+              columns={columns}
+              searchKey="fullName"
+              actions={renderActions}
+              enableSearch={false}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
             />
           )}
         </CardContent>
