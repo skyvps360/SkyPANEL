@@ -113,10 +113,8 @@ export default function BlogPage() {
   const [activeTab, setActiveTab] = useState("posts");
   
   // Brand colors
-  const [brandColors, setBrandColors] = useState<any>({
-    primary: { hex: '33be00', full: '#33be00' },
-    secondary: { hex: 'f59e0b', full: '#f59e0b' }
-  });
+  // Start as null to avoid flash of wrong color
+  const [brandColors, setBrandColors] = useState<any>(null);
   
   // State for dialogs
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -607,13 +605,20 @@ export default function BlogPage() {
                     setIsFormOpen(true);
                   }}
                   className="text-white hover:text-white"
-                  style={{ 
+                  style={brandColors ? {
                     backgroundColor: `#${brandColors.primary?.hex}`,
                     borderColor: `#${brandColors.primary?.hex}`
-                  }}
+                  } : {}}
+                  disabled={!brandColors}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Post
+                  {brandColors ? (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Post
+                    </>
+                  ) : (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -635,13 +640,20 @@ export default function BlogPage() {
                         setIsFormOpen(true);
                       }}
                       className="text-white hover:text-white"
-                      style={{ 
+                      style={brandColors ? {
                         backgroundColor: `#${brandColors.primary?.hex}`,
-                        borderColor: `#${brandColors.primary?.hex}` 
-                      }}
+                        borderColor: `#${brandColors.primary?.hex}`
+                      } : {}}
+                      disabled={!brandColors}
                     >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Post
+                      {brandColors ? (
+                        <>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Post
+                        </>
+                      ) : (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
                     </Button>
                   </div>
                 ) : (
@@ -747,12 +759,19 @@ export default function BlogPage() {
                   }}
                   className="text-white hover:text-white"
                   style={{ 
-                    backgroundColor: `#${brandColors.secondary?.hex}`,
-                    borderColor: `#${brandColors.secondary?.hex}`
+                    backgroundColor: `#${brandColors?.secondary?.hex}`,
+                    borderColor: `#${brandColors?.secondary?.hex}`
                   }}
+                  disabled={!brandColors}
                 >
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Category
+                  {brandColors ? (
+                    <>
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Category
+                    </>
+                  ) : (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -775,12 +794,19 @@ export default function BlogPage() {
                       }}
                       className="text-white hover:text-white"
                       style={{ 
-                        backgroundColor: `#${brandColors.secondary?.hex}`,
-                        borderColor: `#${brandColors.secondary?.hex}` 
+                        backgroundColor: `#${brandColors?.secondary?.hex}`,
+                        borderColor: `#${brandColors?.secondary?.hex}`
                       }}
+                      disabled={!brandColors}
                     >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Category
+                      {brandColors ? (
+                        <>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create Category
+                        </>
+                      ) : (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
                     </Button>
                   </div>
                 ) : (
@@ -876,7 +902,7 @@ export default function BlogPage() {
           <DialogContent className="max-w-3xl p-0 overflow-auto max-h-[90vh] bg-white dark:bg-gray-950 rounded-xl shadow-lg">
             <DialogHeader className="px-5 pt-5 pb-3 border-b bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
               <DialogTitle className="text-xl font-bold flex items-center">
-                <FileText className="h-5 w-5 mr-2" style={{ color: `#${brandColors.primary?.hex}` }} />
+                <FileText className="h-5 w-5 mr-2" style={{ color: `#${brandColors?.primary?.hex}` }} />
                 {selectedPost ? "Edit Blog Post" : "Create New Blog Post"}
               </DialogTitle>
               <DialogDescription>
@@ -904,7 +930,7 @@ export default function BlogPage() {
                         size="sm"
                         onClick={generateSlug}
                         className="h-7 px-2 text-xs"
-                        style={{ color: `#${brandColors.primary?.hex}` }}
+                        style={{ color: `#${brandColors?.primary?.hex}` }}
                       >
                         Generate from title
                       </Button>
@@ -927,13 +953,13 @@ export default function BlogPage() {
                   
                   <div className="p-3 rounded-lg" 
                     style={{ 
-                      borderColor: `#${brandColors.primary?.lighter}`,
-                      backgroundColor: `#${brandColors.primary?.extraLight}`,
+                      borderColor: `#${brandColors?.primary?.lighter}`,
+                      backgroundColor: `#${brandColors?.primary?.extraLight}`,
                       border: '1px solid'
                     }}>
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="text-sm font-semibold flex items-center"
-                        style={{ color: `#${brandColors.primary?.hex}` }}>
+                        style={{ color: `#${brandColors?.primary?.hex}` }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         Content <span className="text-red-500 ml-0.5">*</span>
                       </h3>
@@ -956,8 +982,8 @@ export default function BlogPage() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
                         <div className="flex gap-2">
-                          <Button type="button" variant={contentViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "write" ? "text-white" : ""}`} onClick={() => setContentViewMode("write")} style={contentViewMode === "write" ? { backgroundColor: `#${brandColors.primary?.hex}`, borderColor: `#${brandColors.primary?.hex}` } : {}}>Write</Button>
-                          <Button type="button" variant={contentViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "preview" ? "text-white" : ""}`} onClick={() => setContentViewMode("preview")} style={contentViewMode === "preview" ? { backgroundColor: `#${brandColors.primary?.hex}`, borderColor: `#${brandColors.primary?.hex}` } : {}}>Preview</Button>
+                          <Button type="button" variant={contentViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "write" ? "text-white" : ""}`} onClick={() => setContentViewMode("write")} style={contentViewMode === "write" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Write</Button>
+                          <Button type="button" variant={contentViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "preview" ? "text-white" : ""}`} onClick={() => setContentViewMode("preview")} style={contentViewMode === "preview" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Preview</Button>
                         </div>
                       </div>
                       {contentViewMode === "write" && (
@@ -1099,13 +1125,13 @@ export default function BlogPage() {
                   {/* --- SNIPPET EDITOR POPUP REFACTOR --- */}
                   <div className="p-3 rounded-lg" 
                     style={{ 
-                      borderColor: `#${brandColors.primary?.lighter}`,
-                      backgroundColor: `#${brandColors.primary?.extraLight}`,
+                      borderColor: `#${brandColors?.primary?.lighter}`,
+                      backgroundColor: `#${brandColors?.primary?.extraLight}`,
                       border: '1px solid'
                     }}>
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="text-sm font-semibold flex items-center"
-                        style={{ color: `#${brandColors.primary?.hex}` }}>
+                        style={{ color: `#${brandColors?.primary?.hex}` }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         Excerpt/Snippet
                       </h3>
@@ -1128,8 +1154,8 @@ export default function BlogPage() {
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
                         <div className="flex gap-2">
-                          <Button type="button" variant={snippetViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "write" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("write")} style={snippetViewMode === "write" ? { backgroundColor: `#${brandColors.primary?.hex}`, borderColor: `#${brandColors.primary?.hex}` } : {}}>Write</Button>
-                          <Button type="button" variant={snippetViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "preview" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("preview")} style={snippetViewMode === "preview" ? { backgroundColor: `#${brandColors.primary?.hex}`, borderColor: `#${brandColors.primary?.hex}` } : {}}>Preview</Button>
+                          <Button type="button" variant={snippetViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "write" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("write")} style={snippetViewMode === "write" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Write</Button>
+                          <Button type="button" variant={snippetViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "preview" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("preview")} style={snippetViewMode === "preview" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Preview</Button>
                         </div>
                       </div>
                       {snippetViewMode === "write" && (
@@ -1313,7 +1339,7 @@ export default function BlogPage() {
                 <Button 
                   type="submit" 
                   className="text-white"
-                  style={{ backgroundColor: `#${brandColors.primary?.hex}` }}
+                  style={{ backgroundColor: `#${brandColors?.primary?.hex}` }}
                   disabled={createPostMutation.isPending || updatePostMutation.isPending}
                 >
                   {(createPostMutation.isPending || updatePostMutation.isPending) && (
@@ -1334,7 +1360,7 @@ export default function BlogPage() {
           <DialogContent className="max-w-2xl p-0 overflow-auto max-h-[90vh] bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 shadow-lg rounded-xl">
             <DialogHeader className="px-5 pt-5 pb-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 sticky top-0">
               <DialogTitle className="text-xl font-bold flex items-center">
-                <FolderTree className="h-5 w-5 mr-2" style={{ color: `#${brandColors.secondary?.hex}` }} />
+                <FolderTree className="h-5 w-5 mr-2" style={{ color: `#${brandColors?.secondary?.hex}` }} />
                 {selectedCategory ? "Edit Category" : "Create New Category"}
               </DialogTitle>
               <DialogDescription className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -1347,7 +1373,7 @@ export default function BlogPage() {
                 <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold flex items-center"
-                        style={{ color: `#${brandColors.secondary?.hex}` }}>
+                        style={{ color: `#${brandColors?.secondary?.hex}` }}>
                       <FolderTree className="h-4 w-4 mr-1.5" />
                       Category Details
                     </h3>
@@ -1380,7 +1406,7 @@ export default function BlogPage() {
                       size="sm"
                       onClick={generateCategorySlug}
                             className="h-7 px-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800/20"
-                      style={{ color: `#${brandColors.secondary?.hex}` }}
+                      style={{ color: `#${brandColors?.secondary?.hex}` }}
                     >
                             <span className="mr-1">Generate from name</span>
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/><path d="M13 17l6-6"/><path d="M22 10V4h-6"/></svg>
@@ -1407,7 +1433,7 @@ export default function BlogPage() {
                                   <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h3 className="text-sm font-semibold flex items-center"
-                        style={{ color: `#${brandColors.secondary?.hex}` }}>
+                        style={{ color: `#${brandColors?.secondary?.hex}` }}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       Description
                     </h3>
@@ -1447,7 +1473,7 @@ export default function BlogPage() {
                 <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-semibold flex items-center"
-                        style={{ color: `#${brandColors.secondary?.hex}` }}>
+                        style={{ color: `#${brandColors?.secondary?.hex}` }}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
                       Settings
                     </h3>
@@ -1506,7 +1532,7 @@ export default function BlogPage() {
                 <Button 
                   type="submit" 
                   className="text-white hover:text-white"
-                  style={{ backgroundColor: `#${brandColors.secondary?.hex}` }}
+                  style={{ backgroundColor: `#${brandColors?.secondary?.hex}` }}
                   disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
                 >
                   {(createCategoryMutation.isPending || updateCategoryMutation.isPending) && (
