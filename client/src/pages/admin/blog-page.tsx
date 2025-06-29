@@ -918,426 +918,320 @@ export default function BlogPage() {
                 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center mb-1">
-                  <Label htmlFor="content">Content <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="content">Content <span className="text-red-500">*</span></Label>
                     <div className="text-xs text-gray-500 flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="m18 7 4 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9l4-2"/><path d="M14 22v-4a2 2 0 0 0-4 0v4"/><path d="M18 22V5l-6-3-6 3v17"/><path d="M12 7v5"/><path d="M10 9h4"/></svg>
                       Supports markdown formatting
                     </div>
                   </div>
                   
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
-                    <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                      {/* Editor mode tabs */}
-                      <div className="flex border-b border-gray-200 dark:border-gray-700">
+                  <div className="p-3 rounded-lg" 
+                    style={{ 
+                      borderColor: `#${brandColors.primary?.lighter}`,
+                      backgroundColor: `#${brandColors.primary?.extraLight}`,
+                      border: '1px solid'
+                    }}>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-sm font-semibold flex items-center"
+                        style={{ color: `#${brandColors.primary?.hex}` }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Content <span className="text-red-500 ml-0.5">*</span>
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-gray-500">
+                          {contentViewMode === "write" ? "Edit mode" : "Preview mode"}
+                        </div>
                         <Button
                           type="button"
-                          variant={contentViewMode === "write" ? "default" : "ghost"}
+                          variant="ghost"
                           size="sm"
-                          onClick={() => setContentViewMode("write")}
-                          className={`rounded-none border-0 ${contentViewMode === "write" ? "bg-white dark:bg-gray-900 border-b-2 border-primary" : ""}`}
+                          className="h-7 text-xs"
+                          onClick={() => setContentViewMode(contentViewMode === "write" ? "preview" : "write")}
+                          title={contentViewMode === "write" ? "Show Preview" : "Edit Content"}
                         >
-                          Write
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={contentViewMode === "preview" ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => setContentViewMode("preview")}
-                          className={`rounded-none border-0 ${contentViewMode === "preview" ? "bg-white dark:bg-gray-900 border-b-2 border-primary" : ""}`}
-                        >
-                          Preview
+                          {contentViewMode === "write" ? "Show Preview" : "Edit Content"}
                         </Button>
                       </div>
-                      
-                      {/* Formatting toolbar - only shown in write mode */}
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
+                        <div className="flex gap-2">
+                          <Button type="button" variant={contentViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "write" ? "text-white" : ""}`} onClick={() => setContentViewMode("write")} style={contentViewMode === "write" ? { backgroundColor: `#${brandColors.primary?.hex}`, borderColor: `#${brandColors.primary?.hex}` } : {}}>Write</Button>
+                          <Button type="button" variant={contentViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "preview" ? "text-white" : ""}`} onClick={() => setContentViewMode("preview")} style={contentViewMode === "preview" ? { backgroundColor: `#${brandColors.primary?.hex}`, borderColor: `#${brandColors.primary?.hex}` } : {}}>Preview</Button>
+                        </div>
+                      </div>
                       {contentViewMode === "write" && (
-                        <div className="p-1 flex flex-wrap gap-1 border-b border-gray-200 dark:border-gray-700">
-                          <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm"
-                              className="h-8 w-8 p-0" 
-                              onClick={() => insertTextAtCursor("# ", contentEditorRef, setPostContentEditorValue)}
-                              title="Heading 1"
-                            >
-                              H1
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
-                              onClick={() => insertTextAtCursor("## ", contentEditorRef, setPostContentEditorValue)}
-                              title="Heading 2"
-                            >
-                              H2
-                            </Button>
+                        <>
+                          <div className="flex flex-wrap gap-1 py-2 border-x border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2">
+                            <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('# ', contentEditorRef, setPostContentEditorValue)} title="Heading 1">H1</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('## ', contentEditorRef, setPostContentEditorValue)} title="Heading 2">H2</Button>
+                            </div>
+                            <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 font-bold" onClick={() => insertTextAtCursor('**Bold Text**', contentEditorRef, setPostContentEditorValue)} title="Bold">B</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 italic" onClick={() => insertTextAtCursor('*Italic Text*', contentEditorRef, setPostContentEditorValue)} title="Italic">I</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('> ', contentEditorRef, setPostContentEditorValue)} title="Blockquote">"</Button>
+                            </div>
+                            <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('- ', contentEditorRef, setPostContentEditorValue)} title="Unordered List">•</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('1. ', contentEditorRef, setPostContentEditorValue)} title="Ordered List">1.</Button>
+                            </div>
+                            <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('[Link Text](https://example.com)', contentEditorRef, setPostContentEditorValue)} title="Link"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('![Image Alt](image.jpg)', contentEditorRef, setPostContentEditorValue)} title="Image"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></Button>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('`inline code`', contentEditorRef, setPostContentEditorValue)} title="Inline Code"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('```\nCode block\n```', contentEditorRef, setPostContentEditorValue)} title="Code Block"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('---', contentEditorRef, setPostContentEditorValue)} title="Horizontal Rule"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></Button>
+                            </div>
                           </div>
-                          
-                          <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 font-bold"
-                              onClick={() => insertTextAtCursor("**Bold Text**", contentEditorRef, setPostContentEditorValue)}
-                              title="Bold"
-                            >
-                              B
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 italic"
-                              onClick={() => insertTextAtCursor("*Italic Text*", contentEditorRef, setPostContentEditorValue)}
-                              title="Italic"
-                            >
-                              I
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
-                              onClick={() => insertTextAtCursor("> ", contentEditorRef, setPostContentEditorValue)}
-                              title="Blockquote"
-                            >
-                              "
-                            </Button>
+                          <div className="border border-gray-200 dark:border-gray-700 rounded-b-md overflow-hidden">
+                            <Editor
+                              height="320px"
+                              defaultLanguage="markdown"
+                              value={postContentEditorValue}
+                              onChange={(value) => {
+                                setPostContentEditorValue(value || "");
+                                form.setValue("content", value || "", { shouldValidate: true });
+                              }}
+                              theme={editorTheme}
+                              options={{
+                                minimap: { enabled: false },
+                                lineNumbers: 'on',
+                                fontSize: 14,
+                                wordWrap: 'on',
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true
+                              }}
+                              onMount={handleContentEditorDidMount}
+                            />
                           </div>
-                          
-                          <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
-                              onClick={() => insertTextAtCursor("- ", contentEditorRef, setPostContentEditorValue)}
-                              title="Unordered List"
-                            >
-                              •
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
-                              onClick={() => insertTextAtCursor("1. ", contentEditorRef, setPostContentEditorValue)}
-                              title="Ordered List"
-                            >
-                              1.
-                            </Button>
-                          </div>
-                          
-                          <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8"
-                              onClick={() => insertTextAtCursor("[Link Text](https://example.com)", contentEditorRef, setPostContentEditorValue)}
-                              title="Link"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8"
-                              onClick={() => insertTextAtCursor("![Image Alt](image.jpg)", contentEditorRef, setPostContentEditorValue)}
-                              title="Image"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                            </Button>
-                          </div>
-                          
-                          <div className="flex items-center gap-1">
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8"
-                              onClick={() => insertTextAtCursor("`inline code`", contentEditorRef, setPostContentEditorValue)}
-                              title="Inline Code"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8"
-                              onClick={() => insertTextAtCursor("```\nCode block\n```", contentEditorRef, setPostContentEditorValue)}
-                              title="Code Block"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8"
-                              onClick={() => insertTextAtCursor("---", contentEditorRef, setPostContentEditorValue)}
-                              title="Horizontal Rule"
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                            </Button>
-                          </div>
+                        </>
+                      )}
+                      {contentViewMode === "preview" && (
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-b-md overflow-hidden p-4 min-h-[320px] max-h-[600px] overflow-y-auto bg-white dark:bg-gray-900">
+                          {postContentEditorValue ? (
+                            <ReactMarkdown>{postContentEditorValue}</ReactMarkdown>
+                          ) : (
+                            <div className="text-gray-400 dark:text-gray-600 italic text-center mt-12">
+                              No content to preview
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                    
-                    {contentViewMode === "write" ? (
-                      <Editor
-                        height="350px"
-                        defaultLanguage="markdown"
-                        value={postContentEditorValue}
-                        onChange={(value) => {
-                          setPostContentEditorValue(value || "");
-                          form.setValue("content", value || "", { shouldValidate: true });
-                        }}
-                        theme={editorTheme}
-                        options={{
-                          minimap: { enabled: false },
-                          lineNumbers: 'on',
-                          fontSize: 14,
-                          wordWrap: 'on',
-                          scrollBeyondLastLine: false,
-                          automaticLayout: true
-                        }}
-                        onMount={handleContentEditorDidMount}
-                      />
-                    ) : (
-                      <div className="bg-white dark:bg-gray-900 p-4 min-h-[350px] max-h-[600px] overflow-auto prose dark:prose-invert prose-sm w-full">
-                        {postContentEditorValue ? (
-                          <ReactMarkdown>{postContentEditorValue}</ReactMarkdown>
-                        ) : (
-                          <div className="text-gray-400 dark:text-gray-600 italic text-center py-12">
-                            No content to preview
-                          </div>
-                        )}
-                      </div>
+                    {form.formState.errors.content && (
+                      <p className="text-xs text-red-500 mt-1">{form.formState.errors.content.message}</p>
                     )}
+                    <details className="mt-2 text-xs text-gray-500">
+                      <summary className="cursor-pointer font-medium hover:text-gray-700 dark:hover:text-gray-300 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Markdown Cheatsheet
+                      </summary>
+                      <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <th className="pb-2 pr-4 font-medium">Element</th>
+                              <th className="pb-2 font-medium">Markdown Syntax</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Heading</td>
+                              <td className="py-2 font-mono"># H1<br />## H2<br />### H3</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Bold</td>
+                              <td className="py-2 font-mono">**bold text**</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Italic</td>
+                              <td className="py-2 font-mono">*italicized text*</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Blockquote</td>
+                              <td className="py-2 font-mono">&gt; blockquote</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Ordered List</td>
+                              <td className="py-2 font-mono">1. First item<br />2. Second item</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Unordered List</td>
+                              <td className="py-2 font-mono">- First item<br />- Second item</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Code</td>
+                              <td className="py-2 font-mono">`code`</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Code Block</td>
+                              <td className="py-2 font-mono">```<br />code block<br />```</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Horizontal Rule</td>
+                              <td className="py-2 font-mono">---</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Link</td>
+                              <td className="py-2 font-mono">[title](https://www.example.com)</td>
+                            </tr>
+                            <tr>
+                              <td className="py-2 pr-4">Image</td>
+                              <td className="py-2 font-mono">![alt text](image.jpg)</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
                   </div>
-                  {form.formState.errors.content && (
-                    <p className="text-xs text-red-500 mt-1">{form.formState.errors.content.message}</p>
-                  )}
-                  <details className="mt-2 text-xs text-gray-500">
-                    <summary className="cursor-pointer font-medium hover:text-gray-700 dark:hover:text-gray-300 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                      Markdown Cheatsheet
-                    </summary>
-                    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <th className="pb-2 pr-4 font-medium">Element</th>
-                            <th className="pb-2 font-medium">Markdown Syntax</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Heading</td>
-                            <td className="py-2 font-mono"># H1<br />## H2<br />### H3</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Bold</td>
-                            <td className="py-2 font-mono">**bold text**</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Italic</td>
-                            <td className="py-2 font-mono">*italicized text*</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Blockquote</td>
-                            <td className="py-2 font-mono">&gt; blockquote</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Ordered List</td>
-                            <td className="py-2 font-mono">1. First item<br />2. Second item</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Unordered List</td>
-                            <td className="py-2 font-mono">- First item<br />- Second item</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Code</td>
-                            <td className="py-2 font-mono">`code`</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Code Block</td>
-                            <td className="py-2 font-mono">```<br />code block<br />```</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Horizontal Rule</td>
-                            <td className="py-2 font-mono">---</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Link</td>
-                            <td className="py-2 font-mono">[title](https://www.example.com)</td>
-                          </tr>
-                          <tr>
-                            <td className="py-2 pr-4">Image</td>
-                            <td className="py-2 font-mono">![alt text](image.jpg)</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
                 </div>
                 
                 <div className="space-y-2">
                   <div className="flex justify-between items-center mb-1">
-                  <Label htmlFor="snippet">Excerpt/Snippet <span className="text-red-500">*</span></Label>
+                    <Label htmlFor="snippet">Excerpt/Snippet <span className="text-red-500">*</span></Label>
                     <div className="text-xs text-gray-500">
                       A brief summary shown in blog listings
                     </div>
                   </div>
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
-                    <div className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                      {/* Editor mode tabs */}
-                      <div className="flex border-b border-gray-200 dark:border-gray-700">
+                  {/* --- SNIPPET EDITOR POPUP REFACTOR --- */}
+                  <div className="p-3 rounded-lg" 
+                    style={{ 
+                      borderColor: `#${brandColors.primary?.lighter}`,
+                      backgroundColor: `#${brandColors.primary?.extraLight}`,
+                      border: '1px solid'
+                    }}>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-sm font-semibold flex items-center"
+                        style={{ color: `#${brandColors.primary?.hex}` }}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Excerpt/Snippet
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-gray-500">
+                          {snippetViewMode === "write" ? "Edit mode" : "Preview mode"}
+                        </div>
                         <Button
                           type="button"
-                          variant={snippetViewMode === "write" ? "default" : "ghost"}
+                          variant="ghost"
                           size="sm"
-                          onClick={() => setSnippetViewMode("write")}
-                          className={`rounded-none border-0 ${snippetViewMode === "write" ? "bg-white dark:bg-gray-900 border-b-2 border-primary" : ""}`}
+                          className="h-7 text-xs"
+                          onClick={() => setSnippetViewMode(snippetViewMode === "write" ? "preview" : "write")}
+                          title={snippetViewMode === "write" ? "Show Preview" : "Edit Snippet"}
                         >
-                          Write
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={snippetViewMode === "preview" ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => setSnippetViewMode("preview")}
-                          className={`rounded-none border-0 ${snippetViewMode === "preview" ? "bg-white dark:bg-gray-900 border-b-2 border-primary" : ""}`}
-                        >
-                          Preview
+                          {snippetViewMode === "write" ? "Show Preview" : "Edit Snippet"}
                         </Button>
                       </div>
-                      
-                      {/* Mini toolbar for the snippet editor - simpler than the content editor */}
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
+                        <div className="flex gap-2">
+                          <Button type="button" variant={snippetViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "write" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("write")} style={snippetViewMode === "write" ? { backgroundColor: `#${brandColors.primary?.hex}`, borderColor: `#${brandColors.primary?.hex}` } : {}}>Write</Button>
+                          <Button type="button" variant={snippetViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "preview" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("preview")} style={snippetViewMode === "preview" ? { backgroundColor: `#${brandColors.primary?.hex}`, borderColor: `#${brandColors.primary?.hex}` } : {}}>Preview</Button>
+                        </div>
+                      </div>
                       {snippetViewMode === "write" && (
-                        <div className="p-1 flex items-center gap-1 border-b border-gray-200 dark:border-gray-700">
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="sm"
-                            className="h-8 w-8 p-0 font-bold"
-                            onClick={() => insertTextAtCursor("**Bold**", snippetEditorRef, setPostSnippetEditorValue)}
-                            title="Bold"
-                          >
-                            B
-                          </Button>
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 w-8 p-0 italic"
-                            onClick={() => insertTextAtCursor("*Italic*", snippetEditorRef, setPostSnippetEditorValue)}
-                            title="Italic"
-                          >
-                            I
-                          </Button>
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8"
-                            onClick={() => insertTextAtCursor("[Link](url)", snippetEditorRef, setPostSnippetEditorValue)}
-                            title="Link"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                          </Button>
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8"
-                            onClick={() => insertTextAtCursor("`code`", snippetEditorRef, setPostSnippetEditorValue)}
-                            title="Inline Code"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                          </Button>
+                        <>
+                          <div className="flex flex-wrap gap-1 py-2 border-x border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2">
+                            <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 font-bold" onClick={() => insertTextAtCursor('**Bold**', snippetEditorRef, setPostSnippetEditorValue)} title="Bold">B</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 italic" onClick={() => insertTextAtCursor('*Italic*', snippetEditorRef, setPostSnippetEditorValue)} title="Italic">I</Button>
+                            </div>
+                            <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('[Link](url)', snippetEditorRef, setPostSnippetEditorValue)} title="Link"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('![Image Alt](image.jpg)', snippetEditorRef, setPostSnippetEditorValue)} title="Image"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></Button>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('`inline code`', snippetEditorRef, setPostSnippetEditorValue)} title="Inline Code"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('```\nCode block\n```', snippetEditorRef, setPostSnippetEditorValue)} title="Code Block"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('---', snippetEditorRef, setPostSnippetEditorValue)} title="Horizontal Rule"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></Button>
+                            </div>
+                          </div>
+                          <div className="border border-gray-200 dark:border-gray-700 rounded-b-md overflow-hidden">
+                            <Editor
+                              height="150px"
+                              defaultLanguage="markdown"
+                              value={postSnippetEditorValue}
+                              onChange={(value) => {
+                                setPostSnippetEditorValue(value || "");
+                                form.setValue("snippet", value || "", { shouldValidate: true });
+                              }}
+                              theme={editorTheme}
+                              options={{
+                                minimap: { enabled: false },
+                                lineNumbers: 'off',
+                                fontSize: 14,
+                                wordWrap: 'on',
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true
+                              }}
+                              onMount={handleSnippetEditorDidMount}
+                            />
+                          </div>
+                        </>
+                      )}
+                      {snippetViewMode === "preview" && (
+                        <div className="border border-gray-200 dark:border-gray-700 rounded-b-md overflow-hidden p-4 min-h-[150px] max-h-[300px] overflow-auto bg-white dark:bg-gray-900">
+                          {postSnippetEditorValue ? (
+                            <ReactMarkdown>{postSnippetEditorValue}</ReactMarkdown>
+                          ) : (
+                            <div className="text-gray-400 dark:text-gray-600 italic text-center py-8">
+                              No excerpt to preview
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                    
-                    {snippetViewMode === "write" ? (
-                      <Editor
-                        height="150px"
-                        defaultLanguage="markdown"
-                        value={postSnippetEditorValue}
-                        onChange={(value) => {
-                          setPostSnippetEditorValue(value || "");
-                          form.setValue("snippet", value || "", { shouldValidate: true });
-                        }}
-                        theme={editorTheme}
-                        options={{
-                          minimap: { enabled: false },
-                          lineNumbers: 'off',
-                          fontSize: 14,
-                          wordWrap: 'on',
-                          scrollBeyondLastLine: false,
-                          automaticLayout: true
-                        }}
-                        onMount={handleSnippetEditorDidMount}
-                      />
-                    ) : (
-                      <div className="bg-white dark:bg-gray-900 p-4 min-h-[150px] max-h-[300px] overflow-auto prose dark:prose-invert prose-sm w-full">
-                        {postSnippetEditorValue ? (
-                          <ReactMarkdown>{postSnippetEditorValue}</ReactMarkdown>
-                        ) : (
-                          <div className="text-gray-400 dark:text-gray-600 italic text-center py-8">
-                            No excerpt to preview
-                          </div>
-                        )}
-                      </div>
+                    {form.formState.errors.snippet && (
+                      <p className="text-xs text-red-500 mt-1">{form.formState.errors.snippet.message}</p>
                     )}
+                    <details className="mt-2 text-xs text-gray-500">
+                      <summary className="cursor-pointer font-medium hover:text-gray-700 dark:hover:text-gray-300 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        Markdown Cheatsheet
+                      </summary>
+                      <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <th className="pb-2 pr-4 font-medium">Element</th>
+                              <th className="pb-2 font-medium">Markdown Syntax</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Bold</td>
+                              <td className="py-2 font-mono">**bold text**</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Italic</td>
+                              <td className="py-2 font-mono">*italicized text*</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Link</td>
+                              <td className="py-2 font-mono">[title](https://www.example.com)</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Code</td>
+                              <td className="py-2 font-mono">`code`</td>
+                            </tr>
+                            <tr className="border-b border-gray-200 dark:border-gray-700">
+                              <td className="py-2 pr-4">Code Block</td>
+                              <td className="py-2 font-mono">```<br />code block<br />```</td>
+                            </tr>
+                            <tr>
+                              <td className="py-2 pr-4">Image</td>
+                              <td className="py-2 font-mono">![alt text](image.jpg)</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
                   </div>
-                  {form.formState.errors.snippet && (
-                    <p className="text-xs text-red-500 mt-1">{form.formState.errors.snippet.message}</p>
-                  )}
-                  <details className="mt-2 text-xs text-gray-500">
-                    <summary className="cursor-pointer font-medium hover:text-gray-700 dark:hover:text-gray-300 flex items-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                      Markdown Cheatsheet
-                    </summary>
-                    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 overflow-x-auto">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <th className="pb-2 pr-4 font-medium">Element</th>
-                            <th className="pb-2 font-medium">Markdown Syntax</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Bold</td>
-                            <td className="py-2 font-mono">**bold text**</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Italic</td>
-                            <td className="py-2 font-mono">*italicized text*</td>
-                          </tr>
-                          <tr className="border-b border-gray-200 dark:border-gray-700">
-                            <td className="py-2 pr-4">Link</td>
-                            <td className="py-2 font-mono">[title](https://www.example.com)</td>
-                          </tr>
-                          <tr>
-                            <td className="py-2 pr-4">Code</td>
-                            <td className="py-2 font-mono">`code`</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
                 </div>
-
+                
                 <div className="space-y-2">
                   <Label htmlFor="featuredImageUrl">Featured Image URL</Label>
                   <FormField
