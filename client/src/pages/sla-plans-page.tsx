@@ -57,7 +57,7 @@ export default function SLAPublicPlansPage() {
   const { data: branding } = useQuery<{ company_name: string }>({
     queryKey: ["/api/settings/branding"],
   });
-  const companyName = branding?.company_name || "SkyVPS360";
+  const companyName = branding?.company_name ?? "SkyVPS360";
 
   // Public endpoint for SLA plans – no auth required
   const {
@@ -69,8 +69,8 @@ export default function SLAPublicPlansPage() {
   });
 
   const filteredPlans = slaName
-    ? slaPlans?.filter((p) => p.name.toLowerCase() === slaName.toLowerCase()) || []
-    : slaPlans || [];
+    ? slaPlans?.filter((p) => p.name.toLowerCase() === slaName.toLowerCase()) ?? []
+    : slaPlans ?? [];
 
   // Redirect back to generic page when a non-existent SLA is requested
   useEffect(() => {

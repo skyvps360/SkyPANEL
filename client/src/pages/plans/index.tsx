@@ -61,6 +61,11 @@ const DEFAULT_PRICES = {
   'enterprise': 79.99
 };
 
+// If we have tokens property (VirtFusion credit amount), convert to USD
+interface PackageWithTokens extends Package {
+  tokens?: number;
+}
+
 export default function PlansPage() {
   const [packagePrices, setPackagePrices] = useState<Record<string, number>>({});
   const [cpuFilter, setCpuFilter] = useState<number>(0);
@@ -227,8 +232,8 @@ export default function PlansPage() {
     }
     
     // If we have tokens property (VirtFusion credit amount), convert to USD
-    if ((pkg as any).tokens) {
-      return Number(((pkg as any).tokens / 100).toFixed(2));
+    if ((pkg as PackageWithTokens).tokens) {
+      return Number(((pkg as PackageWithTokens).tokens! / 100).toFixed(2));
     }
     
     // No pricing found for package, available pricing logged
@@ -539,12 +544,12 @@ export default function PlansPage() {
                         <td className="p-4 text-center">{formatBandwidth(pkg.traffic)}</td>
                         <td className="p-4 text-center">{formatNetworkSpeed(pkg.primaryNetworkSpeedIn)}</td>
                         <td className="p-4 text-center">
-                          {(pkg.sla || pkg.sla_plan) ? (
-                            <Link href={`/sla-plans?sla=${encodeURIComponent((pkg.sla || pkg.sla_plan)?.name || '')}&from=plans`}>
+                          {(pkg.sla ?? pkg.sla_plan) ? (
+                            <Link href={`/sla-plans?sla=${encodeURIComponent((pkg.sla ?? pkg.sla_plan)?.name ?? '')}&from=plans`}>
                               <div className="flex flex-col items-center cursor-pointer hover:bg-gray-100 p-2 rounded transition-colors">
-                                <span className="text-sm font-medium text-blue-600 hover:underline">{(pkg.sla || pkg.sla_plan)?.name || 'SLA'}</span>
+                                <span className="text-sm font-medium text-blue-600 hover:underline">{(pkg.sla ?? pkg.sla_plan)?.name ?? 'SLA'}</span>
                                 <span className="text-xs text-muted-foreground">
-                                  {(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime
+                                  {(pkg.sla ?? pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime
                                 </span>
                               </div>
                             </Link>
@@ -632,10 +637,10 @@ export default function PlansPage() {
                       </div>
                       <div className="py-1">
                         <span className="text-gray-500">SLA:</span>
-                        {(pkg.sla || pkg.sla_plan) ? (
-                          <Link href={`/sla-plans?sla=${encodeURIComponent((pkg.sla || pkg.sla_plan)?.name || '')}&from=plans`}>
+                        {(pkg.sla ?? pkg.sla_plan) ? (
+                          <Link href={`/sla-plans?sla=${encodeURIComponent((pkg.sla ?? pkg.sla_plan)?.name ?? '')}&from=plans`}>
                             <span className="ml-1 text-blue-600 hover:underline cursor-pointer">
-                              {(pkg.sla || pkg.sla_plan)?.name} ({(pkg.sla || pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime)
+                              {(pkg.sla ?? pkg.sla_plan)?.name} ({(pkg.sla ?? pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime)
                             </span>
                           </Link>
                         ) : (
@@ -735,7 +740,7 @@ export default function PlansPage() {
                     .join('') : 'Server';
                   
                   // Get the icon component dynamically from Lucide icons
-                  const IconComponent = (LucideIcons as any)[iconName] || LucideIcons.Server;
+                  const IconComponent = (LucideIcons as Record<string, React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>>)[iconName] || LucideIcons.Server;
                   
                   return (
                     <div key={feature.id} className="flex items-start mb-2 py-1">
@@ -810,9 +815,19 @@ export default function PlansPage() {
             <div className="max-w-4xl mx-auto">
               {/* Group FAQs by category */}
               {(() => {
+                // Define a Faq interface
+                interface Faq {
+                  id: number;
+                  question: string;
+                  answer: string;
+                  category?: string;
+                  isActive: boolean;
+                  displayOrder: number;
+                }
+                
                 // Create FAQ categories object
-                const faqsByCategory = Array.isArray(faqs) ? faqs.reduce((acc: Record<string, any[]>, faq: any) => {
-                  const category = faq.category || 'general';
+                const faqsByCategory = Array.isArray(faqs) ? faqs.reduce((acc: Record<string, Faq[]>, faq: Faq) => {
+                  const category = faq.category ?? 'general';
                   if (!acc[category]) {
                     acc[category] = [];
                   }
@@ -835,9 +850,9 @@ export default function PlansPage() {
                     
                     <Accordion type="single" collapsible className="w-full">
                       {faqsByCategory[category]
-                        .filter((faq: any) => faq.isActive)
-                        .sort((a: any, b: any) => a.displayOrder - b.displayOrder)
-                        .map((faq: any) => (
+                        .filter((faq: Faq) => faq.isActive)
+                        .sort((a: Faq, b: Faq) => a.displayOrder - b.displayOrder)
+                        .map((faq: Faq) => (
                           <AccordionItem key={`faq-${faq.id}`} value={`faq-${faq.id}`}>
                             <AccordionTrigger>{faq.question}</AccordionTrigger>
                             <AccordionContent>

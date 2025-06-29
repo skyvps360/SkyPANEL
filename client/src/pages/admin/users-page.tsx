@@ -50,7 +50,7 @@ const generateCSV = (users: User[]): string => {
     user.username ?? "",
     user.email ?? "",
     user.role,
-    (user.credits !== undefined && user.credits !== null) ? user.credits.toString() : "0",
+    user.credits?.toString() ?? "0",
     user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ""
   ]);
 
@@ -120,7 +120,7 @@ export default function UsersPage() {
       setRoleDialogOpen(false);
       refetch();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error updating role",
         description: error.message || "Failed to update user role",
@@ -145,7 +145,7 @@ export default function UsersPage() {
       setStatusDialogOpen(false);
       refetch();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error updating user status",
         description: error.message || "Failed to update user status",
@@ -169,7 +169,11 @@ export default function UsersPage() {
       setDeleteDialogOpen(false);
       refetch();
     },
-    onError: (error: any) => {
+    onError: (error: Error & { 
+      status?: number; 
+      details?: string; 
+      serverCount?: number;
+    }) => {
       console.error("User deletion error:", error);
       
       // Close the dialog regardless of error type so user can see the toast
@@ -356,42 +360,49 @@ export default function UsersPage() {
       {/* Don't allow changing your own role or account status */}
       {currentUser?.id !== user.id && (
         <>
-          <DropdownMenuItem onClick={() => openRoleDialog(user)}>
-            <UserCog className="h-4 w-4 mr-2" />
-            Change Role
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            onClick={() => openStatusDialog(user)}
-            className={user.isActive === false ? "text-amber-600" : "text-gray-700"}
-          >
-            {user.isActive === false ? (
-              <>
-                <Power className="h-4 w-4 mr-2" />
-                Enable User
-              </>
-            ) : (
-              <>
-                <PowerOff className="h-4 w-4 mr-2" />
-                Suspend User
-              </>
-            )}
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            onClick={() => openDeleteDialog(user)}
-            className="text-red-600 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete User
-          </DropdownMenuItem>
+          <div className="flex items-center space-x-2">
+            <DropdownMenuItem onClick={() => {
+              openRoleDialog(user);
+            }}>
+              <UserCog className="mr-2 h-4 w-4" />
+              Change Role
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => {
+                openStatusDialog(user);
+              }}
+              className={user.isActive === false ? "text-green-600" : "text-amber-600"}
+            >
+              {user.isActive === false ? (
+                <>
+                  <Power className="mr-2 h-4 w-4" />
+                  Enable User
+                </>
+              ) : (
+                <>
+                  <PowerOff className="mr-2 h-4 w-4" />
+                  Suspend User
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => {
+                openDeleteDialog(user);
+              }}
+              className="text-red-600"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete User
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => {
+              navigate(`/admin/users/${user.id}`);
+            }}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit User
+            </DropdownMenuItem>
+          </div>
         </>
       )}
-
-      <DropdownMenuItem onClick={() => navigate(`/admin/users/${user.id}`)}>
-        <UserIcon className="h-4 w-4 mr-2" />
-        View User
-      </DropdownMenuItem>
     </>
   );
 
@@ -540,11 +551,15 @@ export default function UsersPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setRoleDialogOpen(false);
+            }}>
               Cancel
             </Button>
             <Button
-              onClick={handleRoleChange}
+              onClick={() => {
+                handleRoleChange();
+              }}
               disabled={updateRoleMutation.isPending || selectedRole === selectedUser?.role}
             >
               {updateRoleMutation.isPending ? "Updating..." : "Update Role"}
@@ -596,11 +611,15 @@ export default function UsersPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setStatusDialogOpen(false);
+            }}>
               Cancel
             </Button>
             <Button
-              onClick={handleStatusChange}
+              onClick={() => {
+                handleStatusChange();
+              }}
               disabled={updateStatusMutation.isPending}
               variant={userStatus ? "default" : "destructive"}
             >
@@ -652,7 +671,9 @@ export default function UsersPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteUser}
+              onClick={() => {
+                handleDeleteUser();
+              }}
               className="bg-red-600 text-white hover:bg-red-700"
               disabled={deleteUserMutation.isPending}
             >

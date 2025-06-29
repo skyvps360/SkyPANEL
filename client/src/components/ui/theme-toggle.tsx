@@ -4,6 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Define NodeJS.Timeout type if not available
+type TimeoutRef = ReturnType<typeof setTimeout>;
+
 // Utility to get/set admin theme in localStorage
 const getStoredAdminTheme = () => {
   if (typeof window === "undefined") return "dark";
@@ -19,8 +22,7 @@ export const ThemeToggle: React.FC = () => {
   const [adminTheme, setAdminTheme] = useState<"light" | "dark">(() => getStoredAdminTheme() as "light" | "dark");
   const [showReloadPopup, setShowReloadPopup] = useState(false);
   const [countdown, setCountdown] = useState(5);
-  const [cancelReload, setCancelReload] = useState(false);
-  const reloadTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const reloadTimeoutRef = React.useRef<TimeoutRef | null>(null);
 
   // Check if we're in admin area
   const isAdminArea = location.startsWith('/admin');
@@ -112,7 +114,6 @@ export const ThemeToggle: React.FC = () => {
       const newTheme = adminTheme === "light" ? "dark" : "light";
       setShowReloadPopup(true);
       setCountdown(5);
-      setCancelReload(false);
       reloadTimeoutRef.current = setTimeout(() => {
         setStoredAdminTheme(newTheme);
         window.location.reload();
@@ -125,7 +126,6 @@ export const ThemeToggle: React.FC = () => {
   // Cancel handler
   const handleCancel = () => {
     setShowReloadPopup(false);
-    setCancelReload(true);
     setCountdown(5);
     if (reloadTimeoutRef.current) {
       clearTimeout(reloadTimeoutRef.current);
@@ -136,7 +136,6 @@ export const ThemeToggle: React.FC = () => {
   useEffect(() => {
     if (!showReloadPopup) return;
     setCountdown(5);
-    setCancelReload(false);
     const intervalId = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {

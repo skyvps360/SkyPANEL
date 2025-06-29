@@ -6,7 +6,6 @@ import {
   Mail,
   MapPin,
   Phone,
-  Globe,
   Headphones,
   ChevronRight,
   Linkedin,
@@ -22,6 +21,21 @@ interface BrandingSettings {
   secondary_color?: string;
   accent_color?: string;
 }
+
+// Define social icons mapping
+const socialIcons = {
+  github: Github,
+  facebook: Facebook,
+  linkedin: Linkedin,
+  youtube: Youtube,
+  instagram: Instagram,
+  // Discord icon is not available in lucide-react by default
+  // If you need to add Discord support, you can either:
+  // 1. Install a Discord icon from another library
+  // 2. Create a custom Discord icon component
+  // 3. Use a similar icon as a placeholder
+  discord: Github, // Temporarily using Github icon as a placeholder for Discord
+};
 
 export function SharedFooter() {
   // Fetch branding settings with default values
@@ -59,7 +73,7 @@ export function SharedFooter() {
   const socialIconsEnabled = getSettingValue("footer_social_icons_enabled", "true") === "true";
   
   // Get all social media URLs
-  const socialUrls = {
+  const socialUrls: Record<string, string> = {
     github: getSettingValue("footer_github_url", ""),
     facebook: getSettingValue("footer_facebook_url", ""),
     discord: getSettingValue("footer_discord_url", ""),

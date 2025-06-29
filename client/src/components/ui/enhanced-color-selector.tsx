@@ -388,7 +388,7 @@ export function EnhancedColorSelector({
                             {category} Colors
                           </h4>
                           <div className="grid grid-cols-6 gap-2">
-                            {COLOR_PRESETS[category]?.map((preset) => (
+                            {COLOR_PRESETS[category].map((preset) => (
                               <Tooltip key={preset.value}>
                                 <TooltipTrigger asChild>
                                   <Button
@@ -562,9 +562,6 @@ interface ThemeSelectorProps {
 
 export function ThemeSelector({ currentTheme, onThemeSelect, disabled = false }: ThemeSelectorProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('professional');
-  
-  // Get unique categories
-  const categories = Array.from(new Set(COLOR_THEMES.map(theme => theme.category)));
   
   // Filter themes by category
   const filteredThemes = COLOR_THEMES.filter(theme => theme.category === selectedCategory);

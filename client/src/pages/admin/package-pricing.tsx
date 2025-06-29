@@ -200,7 +200,7 @@ export default function PackagePricingPage() {
     mutationFn: async (data: PricingFormValues) => {
       if (!selectedPackage) return null;
 
-      return apiRequest(`/api/admin/packages/${selectedPackage.id}/pricing`, {
+      return await apiRequest(`/api/admin/packages/${selectedPackage.id}/pricing`, {
         method: 'POST',
         data: {
           ...data,
@@ -276,7 +276,7 @@ export default function PackagePricingPage() {
         description: "Category created successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create category",
@@ -302,7 +302,7 @@ export default function PackagePricingPage() {
         description: "Category updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update category",
@@ -324,7 +324,7 @@ export default function PackagePricingPage() {
         description: "Category deleted successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete category",
@@ -350,7 +350,7 @@ export default function PackagePricingPage() {
         description: "SLA Plan created successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to create SLA Plan",
@@ -376,7 +376,7 @@ export default function PackagePricingPage() {
         description: "SLA Plan updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to update SLA Plan",
@@ -398,7 +398,7 @@ export default function PackagePricingPage() {
         description: "SLA Plan deleted successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete SLA Plan",
@@ -960,7 +960,9 @@ export default function PackagePricingPage() {
                             variant="outline" 
                             size="sm"
                             className="text-red-500 hover:text-red-700 h-7 w-full px-1 text-xs mt-1" 
-                            onClick={() => handleDeletePricing(pkg.id)}
+                            onClick={() => {
+                              handleDeletePricing(pkg.id);
+                            }}
                           >
                             Remove
                           </Button>
@@ -1024,8 +1026,8 @@ export default function PackagePricingPage() {
               <div className="bg-primary/5 p-4 rounded-md mb-2">
                 <p className="text-sm font-medium">Package Details from VirtFusion</p>
                 <p className="text-sm mt-1"><span className="font-semibold">Name:</span> {selectedPackage?.name}</p>
-                {selectedPackage?.description && (
-                  <p className="text-sm mt-1"><span className="font-semibold">Description:</span> {selectedPackage?.description}</p>
+                {selectedPackage && selectedPackage.description && (
+                  <p className="text-sm mt-1"><span className="font-semibold">Description:</span> {selectedPackage.description}</p>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">
                   Package name and description are now used directly from VirtFusion
@@ -1468,7 +1470,9 @@ export default function PackagePricingPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setSlaDialogOpen(false)}
+                  onClick={() => {
+                    setSlaDialogOpen(false);
+                  }}
                 >
                   Cancel
                 </Button>

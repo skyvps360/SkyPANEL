@@ -281,7 +281,15 @@ export default function AdminChatManagement() {
       }
 
       // Refresh sessions to update status
-      refetchSessions();
+      refetchSessions()
+        .catch(error => {
+          console.error('Failed to refresh sessions:', error);
+          toast({
+            title: 'Failed to refresh sessions',
+            description: 'Could not update the sessions list',
+            variant: 'destructive'
+          });
+        });
     },
     onError: (error: any) => {
       toast({
@@ -731,7 +739,12 @@ export default function AdminChatManagement() {
 
       // Also update via WebSocket for real-time status propagation
       if (updateAdminStatus) {
-        await updateAdminStatus(formData.status, formData.statusMessage);
+        try {
+          await updateAdminStatus(formData.status, formData.statusMessage);
+        } catch (wsError) {
+          console.error('WebSocket status update failed:', wsError);
+          // Continue as the API update was successful
+        }
       }
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -760,7 +773,7 @@ export default function AdminChatManagement() {
   const activeTab = activeTabs.find(tab => tab.sessionId === activeTabId);
   const activeTabState = activeTabId ? tabStates[activeTabId] : null;
 
-  const stats = statsData?.stats || { activeSessions: 0, totalMessages: 0, averageResponseTime: 0 };
+  const stats = statsData?.stats ?? { activeSessions: 0, totalMessages: 0, averageResponseTime: 0 };
 
   const getStatusColor = (status: string) => {
     switch (status) {

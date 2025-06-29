@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -151,8 +150,9 @@ export function DataTable<T>({
   // Sort data
   const sortedData = sortBy
     ? [...filteredData].sort((a, b) => {
-        const aValue = a[sortBy];
-        const bValue = b[sortBy];
+        // Use type assertion to ensure type safety
+        const aValue = sortBy in a ? a[sortBy] : undefined;
+        const bValue = sortBy in b ? b[sortBy] : undefined;
 
         // Handle string comparison
         if (typeof aValue === "string" && typeof bValue === "string") {
@@ -405,9 +405,9 @@ export function DataTable<T>({
             <Button
               variant="outline"
               size="sm"
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
+              onClick={() => {
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+              }}
               disabled={currentPage === totalPages}
               title="Next page"
             >

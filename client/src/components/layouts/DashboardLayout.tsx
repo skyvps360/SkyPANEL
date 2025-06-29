@@ -2,12 +2,11 @@ import { ReactNode, useState, useRef, useEffect, useMemo, useCallback } from "re
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import {
   Gauge,
   Server,
-  Network,
   HardDrive,
   CreditCard,
   Ticket,
@@ -23,7 +22,6 @@ import {
   Mail,
   Code,
   Download,
-  Receipt,
   FileText,
   BookOpen,
   Activity,  Zap,
@@ -194,14 +192,12 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
       // Apply to both our CSS variables and Shadcn theme variables
       applyBrandColorVars({
-        primaryColor: brandingSettings?.primary_color || brandingSettings?.company_color || '2563eb',
-        secondaryColor: brandingSettings?.secondary_color || '10b981',
-        accentColor: brandingSettings?.accent_color || 'f59e0b'
+        primaryColor: brandingSettings.primary_color || brandingSettings.company_color || '2563eb',
+        secondaryColor: brandingSettings.secondary_color || '10b981',
+        accentColor: brandingSettings.accent_color || 'f59e0b'
       });
     });
   }, [brandingSettings?.primary_color, brandingSettings?.company_color, brandingSettings?.secondary_color, brandingSettings?.accent_color]);
-
-  const queryClient = useQueryClient();
 
   // Define searchable content categories
   const searchCategories = [
@@ -702,9 +698,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             const newIndex = prev < searchResults.length - 1 ? prev + 1 : 0;
             // Scroll to the active item
             const resultItems = document.querySelectorAll('.search-result-item');
-            if (resultItems[newIndex]) {
-              resultItems[newIndex].scrollIntoView({ block: 'nearest' });
-            }
+            resultItems[newIndex]?.scrollIntoView({ block: 'nearest' });
             return newIndex;
           });
         } else if (e.key === "ArrowUp") {
@@ -713,9 +707,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             const newIndex = prev > 0 ? prev - 1 : searchResults.length - 1;
             // Scroll to the active item
             const resultItems = document.querySelectorAll('.search-result-item');
-            if (resultItems[newIndex]) {
-              resultItems[newIndex].scrollIntoView({ block: 'nearest' });
-            }
+            resultItems[newIndex]?.scrollIntoView({ block: 'nearest' });
             return newIndex;
           });
         } else if (e.key === "Enter" && activeResultIndex >= 0) {

@@ -127,7 +127,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     Cookies.set("sidebar-collapsed", isSidebarCollapsed.toString(), { expires: 365 });
   }, [isSidebarCollapsed]);
   const { logoutMutation, user } = useAuth();
-  const { toast } = useToast();
 
   // Search-related state
   const [searchQuery, setSearchQuery] = useState("");
@@ -207,7 +206,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       // Force immediate cache invalidation with timestamp
       const cacheKey = Date.now();
 
-      import('@/lib/brand-theme').then(({ applyBrandColorVars, applyToShadcnTheme }) => {
+      import('@/lib/brand-theme').then(({ applyBrandColorVars }) => {
         // Clear only brand-related CSS variables, NOT theme variables
         const root = document.documentElement;
         const cssVarProps = Array.from(root.style);
@@ -226,6 +225,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         setTimeout(() => {
           document.body.classList.remove(`theme-refresh-${cacheKey}`);
         }, 50);
+      }).catch(error => {
+        console.error("Failed to apply brand colors:", error);
       });
     }
   }, [brandColorOptions, brandSettings?.primary_color, brandSettings?.company_color]);
@@ -464,7 +465,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             >
               <span
                 className="w-6 h-6 text-white flex items-center justify-center font-bold rounded"
-                style={{ backgroundColor: brandColors.primary?.full }}
+                style={{ backgroundColor: brandColors.primary.full }}
               >
                 A
               </span>
@@ -491,13 +492,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         isSidebarCollapsed && "w-full justify-center"
                       )}
                       style={{
-                        color: brandColors.primary?.full,
-                        '--primary-color': brandColors.primary?.full
+                        color: brandColors.primary.full,
+                        '--primary-color': brandColors.primary.full
                       } as React.CSSProperties}
                       onClick={() => { window.location.href = '/dashboard'; }}
                     >
                       <Home className={cn("h-4 w-4 group-hover:!text-white", !isSidebarCollapsed && "mr-2")} 
-                            style={{ color: brandColors.primary?.full }} />
+                            style={{ color: brandColors.primary.full }} />
                       <span className={cn("group-hover:!text-white", isSidebarCollapsed && "sr-only")}>Return to Dashboard</span>
                     </Button>
                   </TooltipTrigger>
@@ -614,7 +615,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               >
                 <span
                   className="w-6 h-6 text-white flex items-center justify-center font-bold rounded"
-                  style={{ backgroundColor: brandColors.primary?.full }}
+                  style={{ backgroundColor: brandColors.primary.full }}
                 >
                   A
                 </span>
@@ -627,13 +628,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   variant="ghost"
                   className="justify-start font-medium rounded-lg w-full group hover:text-white hover:bg-[var(--primary-color)]"
                   style={{
-                    color: brandColors.primary?.full,
-                    '--primary-color': brandColors.primary?.full
+                    color: brandColors.primary.full,
+                    '--primary-color': brandColors.primary.full
                   } as React.CSSProperties}
                   asChild
                 >
                   <Link href="/dashboard" className="flex items-center w-full">
-                    <Home className="mr-2 h-4 w-4 group-hover:!text-white" style={{ color: brandColors.primary?.full }} />
+                    <Home className="mr-2 h-4 w-4 group-hover:!text-white" style={{ color: brandColors.primary.full }} />
                     <span className="group-hover:!text-white">Return to Dashboard</span>
                   </Link>
                 </Button>
@@ -697,7 +698,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           >
             <span
               className="w-6 h-6 text-white flex items-center justify-center font-bold rounded"
-              style={{ backgroundColor: brandColors.primary?.full }}
+              style={{ backgroundColor: brandColors.primary.full }}
             >
               A
             </span>
@@ -842,8 +843,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                         <button
                                           key={`${result.type}-${result.id}`}
                                           className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
-                                          onClick={() => { navigateToResult(result); }}
-                                          onMouseEnter={() => setActiveResultIndex(overallIndex)}
+                                          onClick={() => {
+                                            navigateToResult(result);
+                                          }}
+                                          onMouseEnter={() => {
+                                            setActiveResultIndex(overallIndex);
+                                          }}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
                                         >
                                           <div className="flex-shrink-0 mr-2">
@@ -877,8 +882,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                         <button
                                           key={`${result.type}-${result.id}`}
                                           className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
-                                          onClick={() => { navigateToResult(result); }}
-                                          onMouseEnter={() => setActiveResultIndex(overallIndex)}
+                                          onClick={() => {
+                                            navigateToResult(result);
+                                          }}
+                                          onMouseEnter={() => {
+                                            setActiveResultIndex(overallIndex);
+                                          }}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
                                         >
                                           <div className="flex-shrink-0 mr-2">
@@ -912,8 +921,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                         <button
                                           key={`${result.type}-${result.id}`}
                                           className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
-                                          onClick={() => { navigateToResult(result); }}
-                                          onMouseEnter={() => setActiveResultIndex(overallIndex)}
+                                          onClick={() => {
+                                            navigateToResult(result);
+                                          }}
+                                          onMouseEnter={() => {
+                                            setActiveResultIndex(overallIndex);
+                                          }}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
                                         >
                                           <div className="flex-shrink-0 mr-2">
@@ -947,8 +960,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                         <button
                                           key={`${result.type}-${result.id}`}
                                           className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
-                                          onClick={() => { navigateToResult(result); }}
-                                          onMouseEnter={() => setActiveResultIndex(overallIndex)}
+                                          onClick={() => {
+                                            navigateToResult(result);
+                                          }}
+                                          onMouseEnter={() => {
+                                            setActiveResultIndex(overallIndex);
+                                          }}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
                                         >
                                           <div className="flex-shrink-0 mr-2">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import { TicketForm } from "@/components/tickets/TicketForm";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, MessageSquare, ExternalLink, ChevronLeft, ChevronRight, BookOpen, TicketIcon, AlertCircle } from "lucide-react";
+import { Plus, MessageSquare, ExternalLink, ChevronLeft, ChevronRight, BookOpen, TicketIcon } from "lucide-react";
 import { getBrandColors } from "@/lib/brand-theme";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -277,7 +277,9 @@ export default function TicketsPage() {
                 Docs
               </Button>
               <Button
-                onClick={() => setCreateDialogOpen(true)}
+                onClick={() => {
+                  setCreateDialogOpen(true);
+                }}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -366,7 +368,9 @@ export default function TicketsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    onClick={() => {
+                      setCurrentPage(p => Math.max(1, p - 1));
+                    }}
                     disabled={currentPage === 1}
                     className="text-primary border-primary hover:bg-primary/10"
                   >

@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import {
   Select,
-  SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -89,10 +88,10 @@ export function LegalEditorPage() {
   const [editorTheme, setEditorTheme] = useState<string>(
     document.documentElement.classList.contains('dark') ? 'vs-dark' : 'light'
   );
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<typeof Editor | null>(null);
   
   // Fetch all legal content from the server
-  const { data: legalContent, isLoading, error } = useQuery<LegalContent[]>({
+  const { data: legalContent, error } = useQuery<LegalContent[]>({
     queryKey: ["/api/admin/legal"],
   });
   
@@ -153,7 +152,7 @@ export function LegalEditorPage() {
   }, [activeTab, legalContent, form]);
 
   // Function to handle editor mounting
-  const handleEditorDidMount = (editor: any) => {
+  const handleEditorDidMount = (editor: typeof Editor) => {
     editorRef.current = editor;
   };
 
@@ -443,10 +442,12 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8 w-8 p-0"
-                                  onClick={() => insertTextAtCursor("<em>Italic text</em>")}
+                                  onClick={() => {
+                                    insertTextAtCursor("<em>Italic text</em>");
+                                  }}
                                   title="Italic"
                                 >
-                                <Italic className="h-4 w-4" />
+                                  <Italic className="h-4 w-4" />
                                 </Button>
                                 <Button 
                                   type="button" 
@@ -489,7 +490,9 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8"
-                                  onClick={() => insertTextAtCursor('<a href="https://example.com" class="text-blue-600 hover:underline">Link text</a>')}
+                                  onClick={() => {
+                                    insertTextAtCursor('<a href="https://example.com" class="text-blue-600 hover:underline">Link text</a>');
+                                  }}
                                   title="Link"
                                 >
                                   <LinkIcon className="h-4 w-4" />
@@ -542,7 +545,9 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8"
-                                  onClick={() => insertTextAtCursor('<table class="w-full border-collapse border border-gray-300 my-4">\n  <tr class="bg-gray-50">\n    <th class="border border-gray-300 px-4 py-2 text-left font-semibold">Header 1</th>\n    <th class="border border-gray-300 px-4 py-2 text-left font-semibold">Header 2</th>\n  </tr>\n  <tr>\n    <td class="border border-gray-300 px-4 py-2">Cell 1</td>\n    <td class="border border-gray-300 px-4 py-2">Cell 2</td>\n  </tr>\n</table>')}
+                                  onClick={() => {
+                                    insertTextAtCursor('<table class="w-full border-collapse border border-gray-300 my-4">\n  <tr class="bg-gray-50">\n    <th class="border border-gray-300 px-4 py-2 text-left font-semibold">Header 1</th>\n    <th class="border border-gray-300 px-4 py-2 text-left font-semibold">Header 2</th>\n  </tr>\n  <tr>\n    <td class="border border-gray-300 px-4 py-2">Cell 1</td>\n    <td class="border border-gray-300 px-4 py-2">Cell 2</td>\n  </tr>\n</table>');
+                                  }}
                                   title="Table"
                                 >
                                   <Table className="h-4 w-4" />
