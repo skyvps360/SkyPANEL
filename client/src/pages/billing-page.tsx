@@ -835,10 +835,10 @@ export default function BillingPage() {
                           key={amount}
                           variant={!isCustomAmount && creditAmount === amount ? "default" : "outline"}
                           onClick={() => handlePredefinedAmountSelect(amount)}
-                          className={`font-medium transition-all ${
+                          className={`font-medium transition-all duration-150 ${
                             !isCustomAmount && creditAmount === amount
                               ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg'
-                              : 'hover:bg-primary/5 text-primary border-primary/30'
+                              : 'hover:bg-primary/30 text-primary border-primary/80 hover:border-primary hover:shadow-lg hover:scale-[1.04] focus-visible:ring-2 focus-visible:ring-primary/50'
                           }`}
                         >
                           ${amount}
