@@ -1883,7 +1883,18 @@ export default function ServerDetailPage() {
     },
   });
 
-
+  // Fetch package for this server
+  const { data: allPackages } = useQuery({
+    queryKey: ["/api/packages"],
+    queryFn: async () => {
+      const res = await fetch("/api/packages");
+      if (!res.ok) throw new Error("Failed to fetch packages");
+      return res.json();
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+  const pkg = allPackages?.find((p: any) => p.virtFusionPackageId === server?.packageId);
+  const sla = pkg?.sla || pkg?.sla_plan || pkg?.pricing?.slaPlan;
 
   return (
     <DashboardLayout>
@@ -2364,6 +2375,18 @@ export default function ServerDetailPage() {
                           <div className="flex items-center justify-between py-3 border-b border-slate-100">
                             <span className="text-sm font-medium text-slate-600">Hypervisor</span>
                             <span className="font-semibold text-slate-800">{server.hypervisorId}</span>
+                          </div>
+                          {/* SLA Plan row */}
+                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                            <span className="text-sm font-medium text-slate-600">SLA Plan</span>
+                            {sla ? (
+                              <Link href={`/sla-plans?sla=${encodeURIComponent(sla.name)}`}
+                                className="font-semibold text-blue-700 hover:underline">
+                                {sla.name}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-slate-400">No SLA</span>
+                            )}
                           </div>
                         </div>
 
