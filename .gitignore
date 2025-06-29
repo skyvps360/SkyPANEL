@@ -12,13 +12,16 @@ logs/
 SkyPANEL.code-workspace
 migrations/
 
-# DotFiles
+# DotFiles & Directories
 .env
 .idea
 .aiignore
 *.log
 .vscode-test/
-.docs/
+md-docs/
+.cursor/
+.windsurf
+
 
 #Ignore vscode AI rules
 .github/copilot-instructions.md
@@ -27,10 +30,8 @@ migrations/
 #Ignore cursor AI rules
 .cursor\rules\codacy.mdc
 
-
 #Ignore vscode AI rules
 .github\copilot-instructions.md
-
 
 #Ignore windsurf AI rules
 .windsurfrules
