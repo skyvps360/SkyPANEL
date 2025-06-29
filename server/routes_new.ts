@@ -7882,7 +7882,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`Fetching package with ID ${packageId} from VirtFusion API`);
-      const packageData = await virtFusionApi.getPackage(packageId);
+      // VirtFusionApi does not have getPackage, so fetch all and filter
+      const allPackagesResponse = await virtFusionApi.getPackages();
+      let packageData = null;
+      if (allPackagesResponse && Array.isArray(allPackagesResponse.data)) {
+        packageData = allPackagesResponse.data.find((pkg: any) => pkg.id === packageId);
+      }
 
       // Log the response for debugging
       console.log(
@@ -7890,14 +7895,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         JSON.stringify(packageData),
       );
 
-      // Handle different response formats
       let pkg;
       if (packageData && typeof packageData === "object") {
-        if (packageData.data) {
-          pkg = packageData.data;
-        } else {
-          pkg = packageData;
-        }
+        pkg = packageData;
       } else {
         return res.status(404).json({ error: "Package not found" });
       }
@@ -8583,7 +8583,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const packageData = await virtFusionApi.getPackage(parseInt(id));
+      // VirtFusionApi does not have getPackage, so fetch all and filter
+      const allPackagesResponse = await virtFusionApi.getPackages();
+      let packageData = null;
+      if (allPackagesResponse && Array.isArray(allPackagesResponse.data)) {
+        packageData = allPackagesResponse.data.find((pkg: any) => pkg.id === parseInt(id));
+      }
 
       if (!packageData) {
         return res.status(404).json({ error: "Package not found" });

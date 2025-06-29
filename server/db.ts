@@ -1,25 +1,26 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+// Use ESM import for WebSocket (required for Neon in ESM)
+import { WebSocket } from "ws";
+// Use local import to avoid TypeScript path resolution issues
+import * as schema from "../shared/schema";
 
-// Configure Neon for Node.js environment
-neonConfig.webSocketConstructor = ws;
+// Configure Neon for Node.js environment (must be the WebSocket constructor, not namespace)
+neonConfig.webSocketConstructor = WebSocket;
 
-// Patch for ErrorEvent message property TypeError
+// Patch for ErrorEvent message property TypeError (use class to match expected signature)
 const originalErrorEventConstructor = global.ErrorEvent;
 if (originalErrorEventConstructor) {
-  global.ErrorEvent = function(type, eventInit) {
-    const event = new originalErrorEventConstructor(type, eventInit);
-    // Make message property writable to avoid TypeError
-    Object.defineProperty(event, 'message', {
-      writable: true,
-      configurable: true,
-      value: eventInit?.message || ''
-    });
-    return event;
+  global.ErrorEvent = class extends originalErrorEventConstructor {
+    constructor(type: string, eventInitDict?: ErrorEventInit) {
+      super(type, eventInitDict);
+      Object.defineProperty(this, 'message', {
+        writable: true,
+        configurable: true,
+        value: eventInitDict?.message || ''
+      });
+    }
   };
-  global.ErrorEvent.prototype = originalErrorEventConstructor.prototype;
 }
 
 if (!process.env.DATABASE_URL) {

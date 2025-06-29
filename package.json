@@ -157,6 +157,7 @@
     "@types/ws": "^8.5.13",
     "drizzle-kit": "^0.30.6",
     "husky": "^8.0.3",
+    "mysql2": "^3.14.1",
     "npm-check-updates": "^16.8.0",
     "rimraf": "^6.0.1",
     "vitest": "^3.2.3"

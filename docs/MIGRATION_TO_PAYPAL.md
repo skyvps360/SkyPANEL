@@ -4,7 +4,7 @@ This document describes the migration process from Stripe to PayPal as the payme
 
 ## Overview
 
-SkyPANEL has migrated from Stripe to PayPal for payment processing. This migration involved removing Stripe dependencies and implementing PayPal integration for all billing-related functionality.
+SkyPANEL has migrated from Stripe to PayPal(WE NEVER USED STRIPE TO BEGIN WITH IT WAS ONLY ADDED INTO THE APPLICATION AS A NPM REPO ITS BEEN REMOVED AND NOT NEED AS WE NEVER INTERGRATED STRIPE) for payment processing. This migration involved removing Stripe dependencies and implementing PayPal integration for all billing-related functionality.
 
 ## Changes Made
 

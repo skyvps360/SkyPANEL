@@ -99,7 +99,8 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, gte, lte, count, inArray, or, ilike, lt, sql, not } from "drizzle-orm";
-import session from "express-session";
+// Use import * as for express-session (namespace), but default import for connect-pg-simple (function)
+import * as session from "express-session";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
@@ -497,7 +498,8 @@ export class DatabaseStorage implements IStorage {
       query = query.offset(options.offset);
     }
 
-    return await query;
+    // Use .all() to resolve Drizzle ORM type errors with joins and custom select objects
+    return await query.all();
   }
 
   async getServerLogsWithUser(serverId: number, options: {
@@ -507,7 +509,16 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   } = {}): Promise<(ServerLog & { user: User })[]> {
-    let query = db.select({
+    // Refactored: chain all query builder methods in one statement to avoid type errors
+    const filters = [eq(serverLogs.serverId, serverId)];
+    if (options.actionType) filters.push(eq(serverLogs.actionType, options.actionType));
+    if (options.startDate) filters.push(gte(serverLogs.createdAt, options.startDate));
+    if (options.endDate) {
+      const endDate = new Date(options.endDate);
+      endDate.setDate(endDate.getDate() + 1);
+      filters.push(lt(serverLogs.createdAt, endDate));
+    }
+    return await db.select({
       id: serverLogs.id,
       serverId: serverLogs.serverId,
       userId: serverLogs.userId,
@@ -535,43 +546,13 @@ export class DatabaseStorage implements IStorage {
         updatedAt: users.updatedAt,
       }
     })
-    .from(serverLogs)
-    .leftJoin(users, eq(serverLogs.userId, users.id));
-
-    // Build filters
-    const filters = [eq(serverLogs.serverId, serverId)];
-
-    if (options.actionType) {
-      filters.push(eq(serverLogs.actionType, options.actionType));
-    }
-
-    if (options.startDate) {
-      filters.push(gte(serverLogs.createdAt, options.startDate));
-    }
-
-    if (options.endDate) {
-      // Add one day to include the end date fully
-      const endDate = new Date(options.endDate);
-      endDate.setDate(endDate.getDate() + 1);
-      filters.push(lt(serverLogs.createdAt, endDate));
-    }
-
-    // Apply filters
-    query = query.where(and(...filters));
-
-    // Order by created date descending (newest first)
-    query = query.orderBy(desc(serverLogs.createdAt));
-
-    // Apply pagination
-    if (options.limit) {
-      query = query.limit(options.limit);
-    }
-
-    if (options.offset) {
-      query = query.offset(options.offset);
-    }
-
-    return await query;
+      .from(serverLogs)
+      .leftJoin(users, eq(serverLogs.userId, users.id))
+      .where(and(...filters))
+      .orderBy(desc(serverLogs.createdAt))
+      .limit(options.limit)
+      .offset(options.offset)
+      .all();
   }
 
   async getServerLogCount(serverId: number, options: {
@@ -2551,6 +2532,48 @@ export class DatabaseStorage implements IStorage {
       ...session,
       department: session.chatDepartment
     })));
+  }
+
+  // --- Package Pricing Operations ---
+  async getAllPackagePricing(): Promise<PackagePricing[]> {
+    // TODO: Implement actual DB query
+    throw new Error('Not implemented: getAllPackagePricing');
+  }
+  async getEnabledPackagePricing(): Promise<PackagePricing[]> {
+    // TODO: Implement actual DB query
+    throw new Error('Not implemented: getEnabledPackagePricing');
+  }
+  async getPackagePricingById(id: number): Promise<PackagePricing | undefined> {
+    // TODO: Implement actual DB query
+    throw new Error('Not implemented: getPackagePricingById');
+  }
+  async getPackagePricingByVirtFusionId(virtFusionPackageId: number): Promise<PackagePricing | undefined> {
+    // TODO: Implement actual DB query
+    throw new Error('Not implemented: getPackagePricingByVirtFusionId');
+  }
+  async createPackagePricing(data: InsertPackagePricing): Promise<PackagePricing> {
+    // TODO: Implement actual DB insert
+    throw new Error('Not implemented: createPackagePricing');
+  }
+  async updatePackagePricing(id: number, updates: Partial<PackagePricing>): Promise<void> {
+    // TODO: Implement actual DB update
+    throw new Error('Not implemented: updatePackagePricing');
+  }
+  async deletePackagePricing(id: number): Promise<void> {
+    // TODO: Implement actual DB delete
+    throw new Error('Not implemented: deletePackagePricing');
+  }
+
+  // --- Ticket Operations ---
+  async getTicketsByDepartment(departmentId: number): Promise<Ticket[]> {
+    // TODO: Implement actual DB query
+    throw new Error('Not implemented: getTicketsByDepartment');
+  }
+
+  // --- Settings Operations ---
+  async getCustomCreditsName(): Promise<string> {
+    // TODO: Implement actual DB query
+    throw new Error('Not implemented: getCustomCreditsName');
   }
 
 }

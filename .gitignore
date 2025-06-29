@@ -16,10 +16,6 @@ migrations/
 # DotFiles
 .env
 .idea
-.vscode
-.cursorrules/
-.cursorignore/
-.cursor/
 .aiignore
 *.log
 .vscode-test/
