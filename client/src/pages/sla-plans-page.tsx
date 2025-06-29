@@ -210,6 +210,62 @@ export default function SLAPublicPlansPage() {
               ))}
             </div>
           )}
+
+          {/* General SLA Information */}
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="text-2xl">Understanding Our SLA Commitments</CardTitle>
+            </CardHeader>
+            <CardContent className="prose max-w-none">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center">
+                    <Shield className="h-5 w-5 mr-2 text-blue-600" />
+                    Uptime Guarantee
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Our uptime guarantee represents the minimum percentage of time your services will be available each month, excluding scheduled maintenance.
+                  </p>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• 99.9% = Maximum 43 minutes downtime per month</li>
+                    <li>• 99.5% = Maximum 3.6 hours downtime per month</li>
+                    <li>• 99.0% = Maximum 7.2 hours downtime per month</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center">
+                    <Clock className="h-5 w-5 mr-2 text-green-600" />
+                    Response Time
+                  </h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Response time indicates how quickly our support team will acknowledge and begin working on your support requests.
+                  </p>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• Critical issues: Immediate response</li>
+                    <li>• High priority: Within SLA response time</li>
+                    <li>• Normal priority: Best effort within SLA</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-2">Service Credits</h4>
+                <p className="text-blue-700 text-sm">
+                  If we fail to meet our SLA commitments, you may be eligible for service credits.
+                  Credits are calculated based on the duration and severity of the service interruption
+                  and will be applied to your account automatically or upon request.
+                </p>
+              </div>
+
+              <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 className="font-semibold text-gray-800 mb-2">Exclusions</h4>
+                <p className="text-muted-foreground text-sm">
+                  SLA commitments do not apply to downtime caused by scheduled maintenance,
+                  customer-initiated actions, external factors beyond our control, or force majeure events.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </PublicLayout>
     </>
