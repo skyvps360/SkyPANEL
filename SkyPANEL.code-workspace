@@ -13,7 +13,8 @@
 		"geminicodeassist.verboseLogging": false,
 		"geminicodeassist.agentYoloMode": true,
 		"geminicodeassist.agentDebugMode": true,
-		"editor.formatOnSave": true
+		"editor.formatOnSave": true,
+		"codium.codeCompletion.enable": true
 	},
 	"launch": {
 		"configurations": [

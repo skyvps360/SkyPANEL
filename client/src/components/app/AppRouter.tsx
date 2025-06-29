@@ -66,6 +66,7 @@ import LiveChat from "@/pages/LiveChat";
 import {AdminProtectedRoute, ProtectedRoute} from "@/lib/protected-route-new";
 
 // Lazy load the landing page to avoid issues with direct file redirect
+const SLAPublicPlansPage = lazy(() => import("@/pages/sla-plans-page"));
 const LandingPage = lazy(() => import("@/pages/landing-page"));
 
 export function AppRouter() {
@@ -134,6 +135,7 @@ export function AppRouter() {
                 <Route path="/team" component={TeamsPage}/>
                 <Route path="/tos" component={TermsOfServicePage}/>
                 <Route path="/privacy" component={PrivacyPolicyPage}/>
+                <Route path="/sla-plans" component={SLAPublicPlansPage}/>
                 <Route path="/sla" component={SLAPage}/>                {/* VNC Console - User access allowed */}
                 <ProtectedRoute path="/vnc-console" component={VNCConsole}/>
 

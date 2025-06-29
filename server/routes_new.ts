@@ -33,6 +33,7 @@ import chatDepartmentsRoutes from "./routes/chat-departments";
 // import dnsRoutes from "./routes/dns"; // DNS feature disabled
 // import adminDnsRoutes from "./routes/admin-dns"; // DNS feature disabled
 import serverRoutes from "./routes/server-routes";
+import publicSlaRoutes from "./routes/public-sla-routes";
 import transactionRoutes from "./routes/transaction-routes";
 import userRoutes from "./routes/user-routes";
 import settingsRoutes from "./routes/settings-routes";
@@ -237,6 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // Public endpoint for packages (no authentication required)
+  app.use("/api/public/sla-plans", publicSlaRoutes);
   app.get("/api/public/packages", async (req, res) => {
     try {
       console.log("Getting all packages for public display");
