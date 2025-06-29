@@ -805,7 +805,7 @@ export default function AdminChatManagement() {
             <div className="flex items-center space-x-3">
               <div
                 className="flex h-10 w-10 items-center justify-center rounded-xl shadow-lg"
-                style={{ backgroundColor: brandColors.primary.full }}
+                style={{ backgroundColor: brandColors.primary.full.match(/^#[0-9a-f]{6}$/i) ? brandColors.primary.full : '#2563eb' }}
               >
                 <MessageSquare className="h-5 w-5 text-white" />
               </div>

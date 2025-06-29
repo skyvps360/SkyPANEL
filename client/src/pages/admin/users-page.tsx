@@ -45,7 +45,7 @@ import { Search } from "lucide-react";
 const generateCSV = (users: User[]): string => {
   const headers = ["ID", "Full Name", "Username", "Email", "Role", "Credits", "Joined"];
   const rows = users.map(user => [
-    user.id?.toString() ?? "",
+    user.id.toString(),
     user.fullName ?? "",
     user.username ?? "",
     user.email ?? "",
@@ -360,47 +360,45 @@ export default function UsersPage() {
       {/* Don't allow changing your own role or account status */}
       {currentUser?.id !== user.id && (
         <>
-          <div className="flex items-center space-x-2">
-            <DropdownMenuItem onClick={() => {
-              openRoleDialog(user);
-            }}>
-              <UserCog className="mr-2 h-4 w-4" />
-              Change Role
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => {
-                openStatusDialog(user);
-              }}
-              className={user.isActive === false ? "text-green-600" : "text-amber-600"}
-            >
-              {user.isActive === false ? (
-                <>
-                  <Power className="mr-2 h-4 w-4" />
-                  Enable User
-                </>
-              ) : (
-                <>
-                  <PowerOff className="mr-2 h-4 w-4" />
-                  Suspend User
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              onClick={() => {
-                openDeleteDialog(user);
-              }}
-              className="text-red-600"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete User
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => {
-              navigate(`/admin/users/${user.id}`);
-            }}>
-              <Edit className="mr-2 h-4 w-4" />
-              Edit User
-            </DropdownMenuItem>
-          </div>
+          <DropdownMenuItem onClick={() => {
+            openRoleDialog(user);
+          }}>
+            <UserCog className="mr-2 h-4 w-4" />
+            Change Role
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => {
+              openStatusDialog(user);
+            }}
+            className={user.isActive === false ? "text-green-600" : "text-amber-600"}
+          >
+            {user.isActive === false ? (
+              <>
+                <Power className="mr-2 h-4 w-4" />
+                Enable User
+              </>
+            ) : (
+              <>
+                <PowerOff className="mr-2 h-4 w-4" />
+                Suspend User
+              </>
+            )}
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onClick={() => {
+              openDeleteDialog(user);
+            }}
+            className="text-red-600"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete User
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => {
+            navigate(`/admin/users/${user.id}`);
+          }}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit User
+          </DropdownMenuItem>
         </>
       )}
     </>

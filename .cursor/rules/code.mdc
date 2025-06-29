@@ -3,6 +3,7 @@ description:
 globs: 
 alwaysApply: true
 ---
+
 ---
 - when i tell you something i want you to use the sequential_thinking tool. 
 - Check for what im telling you if it corrisponds with whats already in our codebase by calling the codebase tools
