@@ -49,7 +49,7 @@ const generateCSV = (users: User[]): string => {
     user.fullName ?? "",
     user.username ?? "",
     user.email ?? "",
-    user.role ?? "",
+    user.role,
     (user.credits !== undefined && user.credits !== null) ? user.credits.toString() : "0",
     user.createdAt ? new Date(user.createdAt).toLocaleDateString() : ""
   ]);

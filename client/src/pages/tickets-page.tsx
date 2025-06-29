@@ -55,7 +55,7 @@ export default function TicketsPage() {
   };
 
   // Fetch tickets
-  const { data, isLoading, refetch } = useQuery<PaginatedResponse>({
+  const { data, isLoading } = useQuery<PaginatedResponse>({
     queryKey: ["/api/tickets", { page: currentPage, limit: pageSize, status: statusFilter }],
     queryFn: async () => {
       const params = new URLSearchParams({

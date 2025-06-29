@@ -45,7 +45,6 @@ import { Badge } from '@/components/ui/badge';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Check, DollarSign, Info, RefreshCw, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';

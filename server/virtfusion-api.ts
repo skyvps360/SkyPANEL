@@ -82,7 +82,7 @@ export class VirtFusionApi {
   }
 
   // Generic request method
-  async request(method: string, endpoint: string, data?: any) {
+  async request(method: string, endpoint: string, data?: unknown) {
     try {
       // Validate required settings
       if (!this.apiUrl || !this.apiToken) {

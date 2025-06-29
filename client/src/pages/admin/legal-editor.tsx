@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import {
   Select,
-  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -513,7 +512,7 @@ export function LegalEditorPage() {
                                   variant="ghost" 
                                   size="sm" 
                                   className="h-8"
-                                  onClick={() => insertTextAtCursor('<code class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-mono">inline code</code>')}
+                                  onClick={() => { insertTextAtCursor('<code class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-mono">inline code</code>'); }}
                                   title="Inline Code"
                                 >
                                   <Code className="h-4 w-4" />

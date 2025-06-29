@@ -589,7 +589,7 @@ export default function AdminChatManagement() {
     }
 
     // Pre-fill the subject with session info
-    const defaultSubject = session.subject || `Chat Support - ${session.user?.fullName || 'User'}`;
+    const defaultSubject = session.subject || `Chat Support - ${session.user.fullName || 'User'}`;
 
     setConvertingSessionId(sessionId);
     setConvertSubject(defaultSubject);

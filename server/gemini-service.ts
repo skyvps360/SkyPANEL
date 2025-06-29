@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { geminiRateLimiter } from './gemini-rate-limiter';
 import { db } from './db';
 import { docs, blogPosts } from '@shared/schemas';
-import { sql, desc, ilike, or } from 'drizzle-orm';
+import { desc, ilike, or } from 'drizzle-orm';
 
 /**
  * Service for interacting with Google's Gemini AI API

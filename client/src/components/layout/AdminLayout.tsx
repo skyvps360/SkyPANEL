@@ -30,7 +30,6 @@ import {
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ui/theme-toggle";
 import { CacheClearButton } from "@/components/ui/cache-clear-button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -837,13 +836,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 <div className="space-y-1">
                                   {searchResults
                                     .filter(result => result.type === "user")
-                                    .map((result, index) => {
+                                    .map((result) => {
                                       const overallIndex = searchResults.findIndex(r => r.id === result.id && r.type === result.type);
                                       return (
                                         <button
                                           key={`${result.type}-${result.id}`}
                                           className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
-                                          onClick={() => navigateToResult(result)}
+                                          onClick={() => { navigateToResult(result); }}
                                           onMouseEnter={() => setActiveResultIndex(overallIndex)}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
                                         >
@@ -872,13 +871,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 <div className="space-y-1">
                                   {searchResults
                                     .filter(result => result.type === "ticket")
-                                    .map((result, index) => {
+                                    .map((result) => {
                                       const overallIndex = searchResults.findIndex(r => r.id === result.id && r.type === result.type);
                                       return (
                                         <button
                                           key={`${result.type}-${result.id}`}
                                           className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
-                                          onClick={() => navigateToResult(result)}
+                                          onClick={() => { navigateToResult(result); }}
                                           onMouseEnter={() => setActiveResultIndex(overallIndex)}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
                                         >
@@ -907,13 +906,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 <div className="space-y-1">
                                   {searchResults
                                     .filter(result => result.type === "billing")
-                                    .map((result, index) => {
+                                    .map((result) => {
                                       const overallIndex = searchResults.findIndex(r => r.id === result.id && r.type === result.type);
                                       return (
                                         <button
                                           key={`${result.type}-${result.id}`}
                                           className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
-                                          onClick={() => navigateToResult(result)}
+                                          onClick={() => { navigateToResult(result); }}
                                           onMouseEnter={() => setActiveResultIndex(overallIndex)}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
                                         >
@@ -942,13 +941,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                 <div className="space-y-1">
                                   {searchResults
                                     .filter(result => result.type === "server")
-                                    .map((result, index) => {
+                                    .map((result) => {
                                       const overallIndex = searchResults.findIndex(r => r.id === result.id && r.type === result.type);
                                       return (
                                         <button
                                           key={`${result.type}-${result.id}`}
                                           className="flex items-center px-3 py-2 w-full text-left rounded-md hover:bg-muted focus:outline-none text-foreground"
-                                          onClick={() => navigateToResult(result)}
+                                          onClick={() => { navigateToResult(result); }}
                                           onMouseEnter={() => setActiveResultIndex(overallIndex)}
                                           style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary?.lighter } : undefined}
                                         >

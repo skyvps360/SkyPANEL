@@ -23,35 +23,6 @@ interface BrandingSettings {
   accent_color?: string;
 }
 
-interface FooterSettings {
-  footer_description: string;
-  footer_social_icons_enabled: string;
-  footer_github_url: string;
-  footer_facebook_url: string;
-  footer_discord_url: string;
-  footer_linkedin_url: string;
-  footer_youtube_url: string;
-  footer_instagram_url: string;
-  footer_contact_email: string;
-  footer_contact_support_text: string;
-  footer_contact_phone: string;
-}
-
-// Map platform names to Lucide icons
-const socialIcons: Record<string, React.ComponentType<any>> = {
-  github: Github,
-  facebook: Facebook,
-  linkedin: Linkedin,
-  youtube: Youtube,
-  instagram: Instagram,
-  discord: () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 12h.01M15 12h.01M8.5 17h7a4.5 4.5 0 0 0 4.5-4.5v-2a4.5 4.5 0 0 0-4.5-4.5h-7A4.5 4.5 0 0 0 4 10.5v2A4.5 4.5 0 0 0 8.5 17Z" />
-      <path d="m7 16.5-2 3M17 16.5l2 3" />
-    </svg>
-  )
-};
-
 export function SharedFooter() {
   // Fetch branding settings with default values
   const {

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Activity, Cpu, HardDrive, MemoryStick, Zap, Settings } from "lucide-react";
+import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Cpu, HardDrive, MemoryStick, Zap, Settings } from "lucide-react";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import { getBrandColors } from "@/lib/brand-theme";
 
