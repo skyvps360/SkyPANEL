@@ -1,3 +1,17 @@
+/*
+ * Button Styling Consistency & Visibility Fix - Updated 2024
+ * 
+ * Fixed button hover states and visual consistency issues in the admin blog interface:
+ * - Replaced inline style attributes with proper CSS classes for brand color integration
+ * - Updated subtle hover states (bg-primary/10) with high-contrast effects (hover:bg-primary hover:text-white)
+ * - Added shadow effects and longer transition durations for better visual feedback
+ * - Applied transition-all duration-200 for smooth hover animations
+ * - Updated "Generate from title", "Write/Preview/AI Generate", and toolbar buttons
+ * - Used semantic CSS classes that work with the brand theme system
+ * 
+ * All buttons now have highly visible hover feedback with proper contrast for accessibility.
+ */
+
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -1055,13 +1069,12 @@ export default function BlogPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <Label htmlFor="slug">Slug <span className="text-red-500">*</span></Label>
-                      <Button
+                                              <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={generateSlug}
-                        className="h-7 px-2 text-xs"
-                        style={{ color: `#${brandColors?.primary?.hex}` }}
+                        className="h-7 px-2 text-xs text-primary hover:text-white hover:bg-primary hover:shadow-md transition-all duration-200"
                       >
                         Generate from title
                       </Button>
@@ -1090,19 +1103,39 @@ export default function BlogPage() {
                     }}>
                     <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
                       <div className="flex gap-2">
-                        <Button type="button" variant={contentViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "write" ? "text-white" : ""}`} onClick={() => setContentViewMode("write")} style={contentViewMode === "write" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Write</Button>
-                        <Button type="button" variant={contentViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "preview" ? "text-white" : ""}`} onClick={() => setContentViewMode("preview")} style={contentViewMode === "preview" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Preview</Button>
+                        <Button 
+                          type="button" 
+                          variant={contentViewMode === "write" ? "default" : "outline"} 
+                          size="sm" 
+                          className={`h-8 text-xs transition-all duration-200 ${
+                            contentViewMode === "write" 
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" 
+                              : "border-primary text-primary hover:bg-primary hover:text-white hover:shadow-md"
+                          }`} 
+                          onClick={() => setContentViewMode("write")}
+                        >
+                          Write
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant={contentViewMode === "preview" ? "default" : "outline"} 
+                          size="sm" 
+                          className={`h-8 text-xs transition-all duration-200 ${
+                            contentViewMode === "preview" 
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" 
+                              : "border-primary text-primary hover:bg-primary hover:text-white hover:shadow-md"
+                          }`} 
+                          onClick={() => setContentViewMode("preview")}
+                        >
+                          Preview
+                        </Button>
                         <Button 
                           type="button" 
                           variant="outline" 
                           size="sm" 
-                          className="h-8 text-xs flex items-center gap-1" 
+                          className="h-8 text-xs flex items-center gap-1 border-primary text-primary hover:bg-primary hover:text-white hover:shadow-md transition-all duration-200" 
                           onClick={() => setIsGeminiDialogOpen(true)}
                           disabled={contentViewMode === "preview"}
-                          style={{ 
-                            borderColor: `#${brandColors?.primary?.hex}`, 
-                            color: `#${brandColors?.primary?.hex}`
-                          }}
                         >
                           <Sparkles size={14} />
                           <span>AI Generate</span>
@@ -1114,26 +1147,26 @@ export default function BlogPage() {
                         <>
                           <div className="flex flex-wrap gap-1 py-2 border-x border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2">
                             <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('# ', contentEditorRef, setPostContentEditorValue)} title="Heading 1">H1</Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('## ', contentEditorRef, setPostContentEditorValue)} title="Heading 2">H2</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('# ', contentEditorRef, setPostContentEditorValue)} title="Heading 1">H1</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('## ', contentEditorRef, setPostContentEditorValue)} title="Heading 2">H2</Button>
                             </div>
                             <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 font-bold" onClick={() => insertTextAtCursor('**Bold Text**', contentEditorRef, setPostContentEditorValue)} title="Bold">B</Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 italic" onClick={() => insertTextAtCursor('*Italic Text*', contentEditorRef, setPostContentEditorValue)} title="Italic">I</Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('> ', contentEditorRef, setPostContentEditorValue)} title="Blockquote">"</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 font-bold hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('**Bold Text**', contentEditorRef, setPostContentEditorValue)} title="Bold">B</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 italic hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('*Italic Text*', contentEditorRef, setPostContentEditorValue)} title="Italic">I</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('> ', contentEditorRef, setPostContentEditorValue)} title="Blockquote">"</Button>
                             </div>
                             <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('- ', contentEditorRef, setPostContentEditorValue)} title="Unordered List">•</Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => insertTextAtCursor('1. ', contentEditorRef, setPostContentEditorValue)} title="Ordered List">1.</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('- ', contentEditorRef, setPostContentEditorValue)} title="Unordered List">•</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('1. ', contentEditorRef, setPostContentEditorValue)} title="Ordered List">1.</Button>
                             </div>
                             <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('[Link Text](https://example.com)', contentEditorRef, setPostContentEditorValue)} title="Link"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('![Image Alt](image.jpg)', contentEditorRef, setPostContentEditorValue)} title="Image"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('[Link Text](https://example.com)', contentEditorRef, setPostContentEditorValue)} title="Link"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('![Image Alt](image.jpg)', contentEditorRef, setPostContentEditorValue)} title="Image"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></Button>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('`inline code`', contentEditorRef, setPostContentEditorValue)} title="Inline Code"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('```\nCode block\n```', contentEditorRef, setPostContentEditorValue)} title="Code Block"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('---', contentEditorRef, setPostContentEditorValue)} title="Horizontal Rule"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('`inline code`', contentEditorRef, setPostContentEditorValue)} title="Inline Code"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('```\nCode block\n```', contentEditorRef, setPostContentEditorValue)} title="Code Block"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('---', contentEditorRef, setPostContentEditorValue)} title="Horizontal Rule"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></Button>
                             </div>
                           </div>
                           <div className="border border-gray-200 dark:border-gray-700 rounded-b-md overflow-hidden">
@@ -1255,19 +1288,39 @@ export default function BlogPage() {
                     }}>
                     <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
                       <div className="flex gap-2">
-                        <Button type="button" variant={snippetViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "write" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("write")} style={snippetViewMode === "write" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Write</Button>
-                        <Button type="button" variant={snippetViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "preview" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("preview")} style={snippetViewMode === "preview" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Preview</Button>
+                        <Button 
+                          type="button" 
+                          variant={snippetViewMode === "write" ? "default" : "outline"} 
+                          size="sm" 
+                          className={`h-8 text-xs transition-all duration-200 ${
+                            snippetViewMode === "write" 
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" 
+                              : "border-primary text-primary hover:bg-primary hover:text-white hover:shadow-md"
+                          }`} 
+                          onClick={() => setSnippetViewMode("write")}
+                        >
+                          Write
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant={snippetViewMode === "preview" ? "default" : "outline"} 
+                          size="sm" 
+                          className={`h-8 text-xs transition-all duration-200 ${
+                            snippetViewMode === "preview" 
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm" 
+                              : "border-primary text-primary hover:bg-primary hover:text-white hover:shadow-md"
+                          }`} 
+                          onClick={() => setSnippetViewMode("preview")}
+                        >
+                          Preview
+                        </Button>
                         <Button 
                           type="button" 
                           variant="outline" 
                           size="sm" 
-                          className="h-8 text-xs flex items-center gap-1" 
+                          className="h-8 text-xs flex items-center gap-1 border-primary text-primary hover:bg-primary hover:text-white hover:shadow-md transition-all duration-200" 
                           onClick={() => setIsGeminiDialogOpen(true)}
                           disabled={snippetViewMode === "preview"}
-                          style={{ 
-                            borderColor: `#${brandColors?.primary?.hex}`,
-                            color: `#${brandColors?.primary?.hex}`
-                          }}
                         >
                           <Sparkles size={14} />
                           <span>AI Generate</span>
@@ -1279,17 +1332,17 @@ export default function BlogPage() {
                         <>
                           <div className="flex flex-wrap gap-1 py-2 border-x border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2">
                             <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 font-bold" onClick={() => insertTextAtCursor('**Bold**', snippetEditorRef, setPostSnippetEditorValue)} title="Bold">B</Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 italic" onClick={() => insertTextAtCursor('*Italic*', snippetEditorRef, setPostSnippetEditorValue)} title="Italic">I</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 font-bold hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('**Bold**', snippetEditorRef, setPostSnippetEditorValue)} title="Bold">B</Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 italic hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('*Italic*', snippetEditorRef, setPostSnippetEditorValue)} title="Italic">I</Button>
                             </div>
                             <div className="flex items-center gap-1 mr-2 pr-2 border-r border-gray-300 dark:border-gray-600">
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('[Link](url)', snippetEditorRef, setPostSnippetEditorValue)} title="Link"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('![Image Alt](image.jpg)', snippetEditorRef, setPostSnippetEditorValue)} title="Image"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('[Link](url)', snippetEditorRef, setPostSnippetEditorValue)} title="Link"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('![Image Alt](image.jpg)', snippetEditorRef, setPostSnippetEditorValue)} title="Image"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg></Button>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('`inline code`', snippetEditorRef, setPostSnippetEditorValue)} title="Inline Code"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('```\nCode block\n```', snippetEditorRef, setPostSnippetEditorValue)} title="Code Block"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></Button>
-                              <Button type="button" variant="ghost" size="sm" className="h-8" onClick={() => insertTextAtCursor('---', snippetEditorRef, setPostSnippetEditorValue)} title="Horizontal Rule"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('`inline code`', snippetEditorRef, setPostSnippetEditorValue)} title="Inline Code"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('```\nCode block\n```', snippetEditorRef, setPostSnippetEditorValue)} title="Code Block"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></Button>
+                              <Button type="button" variant="ghost" size="sm" className="h-8 hover:bg-primary hover:text-white hover:shadow-sm transition-all duration-200" onClick={() => insertTextAtCursor('---', snippetEditorRef, setPostSnippetEditorValue)} title="Horizontal Rule"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg></Button>
                             </div>
                           </div>
                           <div className="border border-gray-200 dark:border-gray-700 rounded-b-md overflow-hidden">
@@ -1522,11 +1575,10 @@ export default function BlogPage() {
                       variant="ghost"
                       size="sm"
                       onClick={generateCategorySlug}
-                            className="h-7 px-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-800/20"
-                      style={{ color: `#${brandColors?.secondary?.hex}` }}
+                      className="h-7 px-2 text-xs text-secondary hover:text-white hover:bg-secondary hover:shadow-md transition-all duration-200"
                     >
-                            <span className="mr-1">Generate from name</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/><path d="M13 17l6-6"/><path d="M22 10V4h-6"/></svg>
+                      <span className="mr-1">Generate from name</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/><path d="M13 17l6-6"/><path d="M22 10V4h-6"/></svg>
                     </Button>
                   </div>
                         <div className="relative">
