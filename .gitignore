@@ -9,8 +9,6 @@ package-lock.json
 dnsmasq.conf
 vitest.config.ts
 logs/
-SkyPANEL.code-workspace
-migrations/
 
 # DotFiles & Directories
 .env
@@ -18,7 +16,6 @@ migrations/
 .aiignore
 *.log
 .vscode-test/
-md-docs/
 .cursor/
 .windsurf
 

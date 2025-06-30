@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1748893045040,
+      "tag": "0000_greedy_odin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1751073258194,
+      "tag": "0001_futuristic_sersi",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1751074365244,
+      "tag": "0002_custom-servers-and-ssh-keys",
+      "breakpoints": true
+    }
+  ]
+}
