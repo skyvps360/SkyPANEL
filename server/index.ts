@@ -2,6 +2,7 @@ import 'dotenv/config';  // Import dotenv at the very top to load environment va
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes_new";
 import adminLegalRoutes from './routes/admin-legal';
+import adminBlogRoutes from './routes/admin-blog';
 import { setupVite, serveStatic, log } from "./vite";
 import { discordBotService } from "./discord-bot-service";
 import { emailService } from "./email";
@@ -85,6 +86,7 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
   app.use(adminLegalRoutes);
+  app.use(adminBlogRoutes);
   app.use('/api/sla', slaRoutes);
   app.use('/api/sla-plans', publicSlaRoutes);
 

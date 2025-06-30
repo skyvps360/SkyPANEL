@@ -85,6 +85,10 @@ export const clearAllCaches = () => api.post('/admin/cache/clear');
 export const clearSpecificCache = (cacheType: 'betterstack' | 'gemini' | 'modules') =>
   api.post(`/admin/cache/clear/${cacheType}`);
 
+// Blog Management with AI
+export const generateBlogContent = (context: string) => 
+  api.post('/admin/blog/gemini-assist', { context });
+
 // Get Hypervisors
 export const getHypervisors = () => api.get('/hypervisors');
 

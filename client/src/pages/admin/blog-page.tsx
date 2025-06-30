@@ -45,7 +45,8 @@ import {
   Trash2,
   Eye,
   EyeOff,
-  FolderTree
+  FolderTree,
+  Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -125,6 +126,12 @@ export default function BlogPage() {
   const [selectedCategory, setSelectedCategory] = useState<BlogCategory | null>(null);
   const [isDeleteCategoryDialogOpen, setIsDeleteCategoryDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<BlogCategory | null>(null);
+  
+  // AI assistance state
+  const [isGeminiDialogOpen, setIsGeminiDialogOpen] = useState(false);
+  const [geminiContext, setGeminiContext] = useState("");
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<{ content?: string, snippet?: string } | null>(null);
   
   // Editor state
   const [postContentEditorValue, setPostContentEditorValue] = useState<string>("");
@@ -566,6 +573,130 @@ export default function BlogPage() {
     setCategoryDescriptionEditorValue("");
   };
 
+  // Handle Gemini AI generated content
+  const handleGeminiAssist = async () => {
+    if (!geminiContext.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide context for the blog post",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingContent(true);
+    try {
+      // Call the Gemini API endpoint
+      const response = await apiRequest('/api/admin/blog/gemini-assist', {
+        method: 'POST',
+        data: { context: geminiContext }
+      });
+
+      if (response && response.response) {
+        // Parse the JSON response
+        let parsedContent;
+        try {
+          // The response might be a JSON string inside the response field
+          let jsonContent = response.response;
+          
+          // Handle case where Gemini wraps the JSON in markdown code blocks
+          if (typeof jsonContent === 'string') {
+            // Remove markdown code block formatting if present
+            const codeBlockMatch = jsonContent.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (codeBlockMatch && codeBlockMatch[1]) {
+              jsonContent = codeBlockMatch[1].trim();
+            }
+            
+            // Additional cleanup for any leftover markdown or formatting
+            jsonContent = jsonContent.replace(/^```json/gm, '').replace(/```$/gm, '').trim();
+            
+            console.log("Cleaned JSON content for parsing:", jsonContent);
+            
+            try {
+              parsedContent = JSON.parse(jsonContent);
+            } catch (innerError) {
+              // Fallback: Try to manually extract content and snippet from the text
+              console.warn("JSON parsing failed, attempting manual extraction:", innerError);
+              
+              // Attempt to extract content and snippet using regex
+              const contentMatch = jsonContent.match(/"content"\s*:\s*"([^"]*(?:"[^"]*"[^"]*)*)"/);
+              const snippetMatch = jsonContent.match(/"snippet"\s*:\s*"([^"]*(?:"[^"]*"[^"]*)*)"/);
+              
+              if (contentMatch && snippetMatch) {
+                parsedContent = {
+                  content: contentMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n'),
+                  snippet: snippetMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n')
+                };
+                console.log("Manual extraction succeeded:", parsedContent);
+              } else {
+                throw new Error("Could not extract content from response");
+              }
+            }
+          } else {
+            parsedContent = response.response;
+          }
+
+          if (parsedContent && parsedContent.content && parsedContent.snippet) {
+            setGeneratedContent(parsedContent);
+            toast({
+              title: "Success",
+              description: "Blog content generated successfully!",
+            });
+          } else {
+            throw new Error("Invalid response format from AI service");
+          }
+        } catch (parseError) {
+          console.error("Error parsing AI response:", parseError);
+          console.error("Raw response:", response.response);
+          toast({
+            title: "Error",
+            description: "Failed to parse AI generated content",
+            variant: "destructive",
+          });
+        }
+      } else {
+        throw new Error("Invalid response from AI service");
+      }
+    } catch (error: any) {
+      console.error("Error generating blog content:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate blog content",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingContent(false);
+      // Close the dialog only if content was successfully generated
+      if (generatedContent) {
+        setIsGeminiDialogOpen(false);
+      }
+    }
+  };
+
+  // Apply generated content to editors
+  const applyGeneratedContent = () => {
+    if (generatedContent) {
+      if (generatedContent.content) {
+        setPostContentEditorValue(generatedContent.content);
+        form.setValue("content", generatedContent.content, { shouldValidate: true });
+      }
+      
+      if (generatedContent.snippet) {
+        setPostSnippetEditorValue(generatedContent.snippet);
+        form.setValue("snippet", generatedContent.snippet, { shouldValidate: true });
+      }
+      
+      // Clear the generated content and close the dialog
+      setGeneratedContent(null);
+      setIsGeminiDialogOpen(false);
+      
+      toast({
+        title: "Content Applied",
+        description: "AI generated content has been applied to the form",
+      });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="container mx-auto py-6">
@@ -957,35 +1088,28 @@ export default function BlogPage() {
                       backgroundColor: `#${brandColors?.primary?.extraLight}`,
                       border: '1px solid'
                     }}>
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-sm font-semibold flex items-center"
-                        style={{ color: `#${brandColors?.primary?.hex}` }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        Content <span className="text-red-500 ml-0.5">*</span>
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <div className="text-xs text-gray-500">
-                          {contentViewMode === "write" ? "Edit mode" : "Preview mode"}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => setContentViewMode(contentViewMode === "write" ? "preview" : "write")}
-                          title={contentViewMode === "write" ? "Show Preview" : "Edit Content"}
+                    <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
+                      <div className="flex gap-2">
+                        <Button type="button" variant={contentViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "write" ? "text-white" : ""}`} onClick={() => setContentViewMode("write")} style={contentViewMode === "write" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Write</Button>
+                        <Button type="button" variant={contentViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "preview" ? "text-white" : ""}`} onClick={() => setContentViewMode("preview")} style={contentViewMode === "preview" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Preview</Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs flex items-center gap-1" 
+                          onClick={() => setIsGeminiDialogOpen(true)}
+                          disabled={contentViewMode === "preview"}
+                          style={{ 
+                            borderColor: `#${brandColors?.primary?.hex}`, 
+                            color: `#${brandColors?.primary?.hex}`
+                          }}
                         >
-                          {contentViewMode === "write" ? "Show Preview" : "Edit Content"}
+                          <Sparkles size={14} />
+                          <span>AI Generate</span>
                         </Button>
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
-                        <div className="flex gap-2">
-                          <Button type="button" variant={contentViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "write" ? "text-white" : ""}`} onClick={() => setContentViewMode("write")} style={contentViewMode === "write" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Write</Button>
-                          <Button type="button" variant={contentViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${contentViewMode === "preview" ? "text-white" : ""}`} onClick={() => setContentViewMode("preview")} style={contentViewMode === "preview" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Preview</Button>
-                        </div>
-                      </div>
                       {contentViewMode === "write" && (
                         <>
                           <div className="flex flex-wrap gap-1 py-2 border-x border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2">
@@ -1129,35 +1253,28 @@ export default function BlogPage() {
                       backgroundColor: `#${brandColors?.primary?.extraLight}`,
                       border: '1px solid'
                     }}>
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-sm font-semibold flex items-center"
-                        style={{ color: `#${brandColors?.primary?.hex}` }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        Excerpt/Snippet
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <div className="text-xs text-gray-500">
-                          {snippetViewMode === "write" ? "Edit mode" : "Preview mode"}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => setSnippetViewMode(snippetViewMode === "write" ? "preview" : "write")}
-                          title={snippetViewMode === "write" ? "Show Preview" : "Edit Snippet"}
+                    <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
+                      <div className="flex gap-2">
+                        <Button type="button" variant={snippetViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "write" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("write")} style={snippetViewMode === "write" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Write</Button>
+                        <Button type="button" variant={snippetViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "preview" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("preview")} style={snippetViewMode === "preview" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Preview</Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-xs flex items-center gap-1" 
+                          onClick={() => setIsGeminiDialogOpen(true)}
+                          disabled={snippetViewMode === "preview"}
+                          style={{ 
+                            borderColor: `#${brandColors?.primary?.hex}`,
+                            color: `#${brandColors?.primary?.hex}`
+                          }}
                         >
-                          {snippetViewMode === "write" ? "Show Preview" : "Edit Snippet"}
+                          <Sparkles size={14} />
+                          <span>AI Generate</span>
                         </Button>
                       </div>
                     </div>
                     <div className="space-y-1.5">
-                      <div className="flex justify-between items-center py-2 px-2 border border-gray-200 dark:border-gray-700 border-b-0 rounded-t-md bg-gray-50 dark:bg-gray-800">
-                        <div className="flex gap-2">
-                          <Button type="button" variant={snippetViewMode === "write" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "write" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("write")} style={snippetViewMode === "write" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Write</Button>
-                          <Button type="button" variant={snippetViewMode === "preview" ? "default" : "outline"} size="sm" className={`h-8 text-xs ${snippetViewMode === "preview" ? "text-white" : ""}`} onClick={() => setSnippetViewMode("preview")} style={snippetViewMode === "preview" ? { backgroundColor: `#${brandColors?.primary?.hex}`, borderColor: `#${brandColors?.primary?.hex}` } : {}}>Preview</Button>
-                        </div>
-                      </div>
                       {snippetViewMode === "write" && (
                         <>
                           <div className="flex flex-wrap gap-1 py-2 border-x border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2">
@@ -1595,6 +1712,109 @@ export default function BlogPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Add the Gemini AI dialog for generating content */}
+        <Dialog open={isGeminiDialogOpen} onOpenChange={setIsGeminiDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" style={{ color: `#${brandColors?.primary?.hex}` }} />
+                Generate Blog Content with AI
+              </DialogTitle>
+              <DialogDescription>
+                Provide some context or topic details for your blog post and Google Gemini will generate content for you.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="gemini-context">Context or Topic</Label>
+                <Textarea
+                  id="gemini-context"
+                  placeholder="Describe the topic, key points, or context for your blog post..."
+                  rows={6}
+                  value={geminiContext}
+                  onChange={(e) => setGeminiContext(e.target.value)}
+                  className="resize-none"
+                  disabled={isGeneratingContent}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Be specific and include key points you want covered in the blog post.
+                </p>
+              </div>
+
+              {generatedContent && (
+                <div className="space-y-2 border rounded-md p-3 bg-muted/30">
+                  <div className="flex justify-between items-center">
+                    <Label className="font-medium">Generated Content Preview</Label>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setGeneratedContent(null)}
+                      className="h-8 text-xs"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto text-sm border rounded-md p-2 bg-background">
+                    <div className="font-medium mb-1">Main Content (excerpt):</div>
+                    <div className="text-muted-foreground">
+                      {generatedContent.content ? generatedContent.content.substring(0, 150) + '...' : 'No content generated'}
+                    </div>
+                    
+                    <div className="font-medium mb-1 mt-3">Snippet:</div>
+                    <div className="text-muted-foreground">
+                      {generatedContent.snippet || 'No snippet generated'}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline" 
+                onClick={() => setIsGeminiDialogOpen(false)}
+                disabled={isGeneratingContent}
+              >
+                Cancel
+              </Button>
+              
+              {generatedContent ? (
+                <Button
+                  type="button"
+                  className="text-white"
+                  style={{ backgroundColor: `#${brandColors?.primary?.hex}` }}
+                  onClick={applyGeneratedContent}
+                >
+                  Apply Generated Content
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  className="text-white"
+                  style={{ backgroundColor: `#${brandColors?.primary?.hex}` }}
+                  onClick={handleGeminiAssist}
+                  disabled={isGeneratingContent || !geminiContext.trim()}
+                >
+                  {isGeneratingContent ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate Content
+                    </>
+                  )}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

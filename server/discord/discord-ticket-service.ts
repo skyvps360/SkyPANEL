@@ -5,7 +5,8 @@ import {
     ButtonStyle,
     ActionRowBuilder,
     EmbedBuilder,
-    Message
+    Message,
+    PermissionFlagsBits
 } from 'discord.js';
 import {storage} from '../storage';
 import {InsertTicketMessage, InsertDiscordTicketThread} from '../../shared/schema';
@@ -427,6 +428,13 @@ export class DiscordTicketService {
                 return false;
             }
 
+            // Check if the bot has the required permissions
+            const permissions = thread.permissionsFor(client.user!.id);
+            if (!permissions?.has(PermissionFlagsBits.ManageThreads)) {
+                console.error(`Bot lacks MANAGE_THREADS permission for thread ${threadId} (ticket #${ticketId})`);
+                return false;
+            }
+
             // Create the status update embed
             const embed = new EmbedBuilder()
                 .setColor(status.toLowerCase() === 'closed' ? 0xFF0000 : 0x00FF00)
@@ -455,24 +463,48 @@ export class DiscordTicketService {
                     components: [reopenButton]
                 });
 
-                // Archive the thread to close it - do this LAST
-                try {
-                    await thread.setArchived(true, 'Ticket closed');
-                    console.log(`Archived Discord thread for closed ticket #${ticketId}`);
-                } catch (archiveError: any) {
-                    console.error(`Error archiving thread for ticket #${ticketId}:`, archiveError.message);
+                // Archive the thread to close it - do this LAST with retry logic
+                let retries = 3;
+                while (retries > 0) {
+                    try {
+                        await thread.setArchived(true, 'Ticket closed');
+                        console.log(`Archived Discord thread for closed ticket #${ticketId}`);
+                        break;
+                    } catch (archiveError: any) {
+                        retries--;
+                        console.error(`Error archiving thread for ticket #${ticketId} (${retries} retries left):`, archiveError.message);
+                        if (retries > 0) {
+                            // Wait before retrying
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        } else {
+                            console.error(`Failed to archive thread after multiple attempts for ticket #${ticketId}`);
+                            return false; // Failed after all retries
+                        }
+                    }
                 }
             }
             // If reopening, add a close button and unarchive the thread
             else if (status.toLowerCase() === 'open') {
-                // Unarchive the thread first if it's archived
-                try {
-                    if (thread.archived) {
-                        await thread.setArchived(false, 'Ticket reopened');
-                        console.log(`Unarchived Discord thread for reopened ticket #${ticketId}`);
+                // Unarchive the thread first if it's archived with retry logic
+                if (thread.archived) {
+                    let retries = 3;
+                    while (retries > 0) {
+                        try {
+                            await thread.setArchived(false, 'Ticket reopened');
+                            console.log(`Unarchived Discord thread for reopened ticket #${ticketId}`);
+                            break;
+                        } catch (unarchiveError: any) {
+                            retries--;
+                            console.error(`Error unarchiving thread for ticket #${ticketId} (${retries} retries left):`, unarchiveError.message);
+                            if (retries > 0) {
+                                // Wait before retrying
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            } else {
+                                console.error(`Failed to unarchive thread after multiple attempts for ticket #${ticketId}`);
+                                return false; // Failed after all retries
+                            }
+                        }
                     }
-                } catch (unarchiveError: any) {
-                    console.error(`Error unarchiving thread for ticket #${ticketId}:`, unarchiveError.message);
                 }
 
                 const closeButton = new ActionRowBuilder<ButtonBuilder>()

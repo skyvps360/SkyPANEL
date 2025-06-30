@@ -287,21 +287,29 @@ export class DiscordBotCore {
                     // Defer the reply to give us more time
                     await interaction.deferReply({ ephemeral: true });
 
-                    // Update the ticket status in the database
-                    const newStatus = action === 'close' ? 'closed' : 'open';
-                    await storage.updateTicket(ticketId, { status: newStatus });
-                    
-                    // Then update the Discord thread status (this may archive the thread)
+                    // First update the Discord thread status (this may archive/unarchive the thread)
+                    let threadUpdateSuccess = false;
                     if (action === 'close') {
-                        await this.ticketService.updateThreadStatus(ticketId, 'closed', interaction.user.username);
+                        threadUpdateSuccess = await this.ticketService.updateThreadStatus(ticketId, 'closed', interaction.user.username);
                     } else if (action === 'reopen') {
-                        await this.ticketService.updateThreadStatus(ticketId, 'open', interaction.user.username);
+                        threadUpdateSuccess = await this.ticketService.updateThreadStatus(ticketId, 'open', interaction.user.username);
                     }
 
-                    // Send the final reply
-                    await interaction.editReply({
-                        content: `Ticket #${ticketId} ${action === 'close' ? 'closed' : 'reopened'} successfully`
-                    });
+                    // Only update the database if Discord thread update was successful
+                    if (threadUpdateSuccess) {
+                        const newStatus = action === 'close' ? 'closed' : 'open';
+                        await storage.updateTicket(ticketId, { status: newStatus });
+                        
+                        // Send success message
+                        await interaction.editReply({
+                            content: `Ticket #${ticketId} ${action === 'close' ? 'closed' : 'reopened'} successfully`
+                        });
+                    } else {
+                        // Send failure message
+                        await interaction.editReply({
+                            content: `Failed to ${action} ticket #${ticketId} in Discord. The system may be experiencing issues. Please try again.`
+                        });
+                    }
                 } catch (error: any) {
                     console.error(`Error ${action}ing ticket #${ticketId}:`, error.message);
                     try {

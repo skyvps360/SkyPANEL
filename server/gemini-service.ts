@@ -773,6 +773,94 @@ Generated legal content:`;
   }
 
   /**
+   * Generate blog content based on provided context
+   * @param prompt The prompt/context for the blog content
+   * @param req Express request object for rate limiting
+   * @param res Express response object for rate limiting
+   * @returns Generated blog content or error message
+   */
+  public async generateBlogContent(
+    prompt: string,
+    req: Request,
+    res: Response
+  ): Promise<{ success: boolean; response: string }> {
+    if (!this.isReady()) {
+      return { 
+        success: false, 
+        response: 'Gemini AI service is not configured. Please add GOOGLE_AI_API_KEY to your environment variables.' 
+      };
+    }
+
+    // Apply rate limiting
+    const rateCheck = geminiRateLimiter.checkUserAllowed(req, res);
+    if (!rateCheck.allowed) {
+      return {
+        success: false,
+        response: rateCheck.message || 'Rate limit exceeded. Please try again later.'
+      };
+    }
+
+    try {
+      console.log('[gemini-service.ts] generateBlogContent received prompt:', prompt);
+      const modelName = await this.getBestAvailableModel();
+      console.log(`[gemini-service.ts] Using model for blog content generation: ${modelName}`);
+
+      const model = this.genAI!.getGenerativeModel(
+        {
+          model: modelName,
+          safetySettings: [
+            {
+              category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+            {
+              category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+              threshold: HarmBlockThreshold.BLOCK_NONE,
+            },
+          ],
+        },
+        { apiVersion: "v1" }
+      );
+
+      // Construct the prompt for blog content generation
+      const blogPrompt = `You are a professional content writer specializing in creating engaging blog posts. 
+      Your task is to generate a well-structured, informative blog post based on the user's prompt.
+      
+      The blog post should:
+      - Have a clear and engaging introduction
+      - Include relevant headings and subheadings (using markdown formatting)
+      - Provide valuable insights or information
+      - Have a concise conclusion
+      
+      Additionally, create a brief excerpt/snippet (3-5 sentences) that summarizes the blog post for use in listings.
+      
+      Format your response as JSON with two fields:
+      {
+        "content": "The full blog post content with markdown formatting",
+        "snippet": "A brief summary of the blog post (3-5 sentences)"
+      }
+      
+      User's prompt: "${prompt}"`;
+
+      const result = await model.generateContent(blogPrompt);
+      const geminiRawResponse = result.response.text();
+      console.log('[gemini-service.ts] Raw Gemini API response:', geminiRawResponse);
+
+      // Track this request for rate limiting
+      geminiRateLimiter.trackUsageForRequest(req);
+
+      console.log('[gemini-service.ts] Returning success with response:', geminiRawResponse);
+      return { success: true, response: geminiRawResponse };
+    } catch (error: any) {
+      console.error('[gemini-service.ts] Error generating blog content:', error);
+      return {
+        success: false,
+        response: `Failed to generate blog content: ${error.message || 'Unknown error'}`
+      };
+    }
+  }
+
+  /**
    * Test function to list and display available models
    * Call this to see what models are available in your API
    */
