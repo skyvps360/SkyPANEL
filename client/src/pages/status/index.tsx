@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
+import { InfrastructureTable } from "@/components/status/InfrastructureTable";
 
 // Define types for platform statistics
 interface PlatformStats {
@@ -657,91 +658,11 @@ export default function StatusPage() {
             <h2 className="text-2xl font-bold">Infrastructure Metrics</h2>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <Card className="border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-              <div className="h-2 w-full" style={{ backgroundColor: brandColors.primary.full }}></div>
-              <CardContent className="pt-5 pb-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 mb-1">Servers</p>
-                    <p className="text-3xl font-bold" style={{ color: brandColors.primary.full }}>
-                      {isLoading ? "..." : (platformStats?.serverCount || 0).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">Virtual machines</p>
-                  </div>
-                  <div 
-                    className="p-3 rounded-full"
-                    style={{ backgroundColor: brandColors.primary.extraLight }}
-                  >
-                    <Server className="h-5 w-5" style={{ color: brandColors.primary.full }} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-              <div className="h-2 w-full" style={{ backgroundColor: brandColors.primary.full }}></div>
-              <CardContent className="pt-5 pb-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 mb-1">Hypervisors</p>
-                    <p className="text-3xl font-bold" style={{ color: brandColors.primary.full }}>
-                      {isLoading ? "..." : (platformStats?.hypervisorCount || 0).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">Physical servers</p>
-                  </div>
-                  <div 
-                    className="p-3 rounded-full"
-                    style={{ backgroundColor: brandColors.primary.extraLight }}
-                  >
-                    <HardDrive className="h-5 w-5" style={{ color: brandColors.primary.full }} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-              <div className="h-2 w-full" style={{ backgroundColor: brandColors.primary.full }}></div>
-              <CardContent className="pt-5 pb-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 mb-1">Compute</p>
-                    <p className="text-3xl font-bold" style={{ color: brandColors.primary.full }}>
-                      {isLoading ? "..." : (platformStats?.maxCPU || 0).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">CPU cores</p>
-                  </div>
-                  <div 
-                    className="p-3 rounded-full"
-                    style={{ backgroundColor: brandColors.primary.extraLight }}
-                  >
-                    <Cpu className="h-5 w-5" style={{ color: brandColors.primary.full }} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card className="border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-              <div className="h-2 w-full" style={{ backgroundColor: brandColors.primary.full }}></div>
-              <CardContent className="pt-5 pb-6">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 mb-1">Memory</p>
-                    <p className="text-3xl font-bold" style={{ color: brandColors.primary.full }}>
-                      {isLoading ? "..." : (platformStats?.maxMemory || 0).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">GB RAM</p>
-                  </div>
-                  <div 
-                    className="p-3 rounded-full"
-                    style={{ backgroundColor: brandColors.primary.extraLight }}
-                  >
-                    <Database className="h-5 w-5" style={{ color: brandColors.primary.full }} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <InfrastructureTable
+            platformStats={platformStats}
+            brandColors={brandColors}
+            isLoading={isLoading}
+          />
         </div>
         
         {/* Incident history */}
@@ -949,7 +870,19 @@ export default function StatusPage() {
                           borderColor: brandColors.primary.light,
                           color: brandColors.primary.full
                         }}
-                        className="rounded-full w-10 h-10"
+                        className="rounded-full w-10 h-10 hover:bg-opacity-10 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onMouseEnter={(e) => {
+                          if (currentPage !== 1) {
+                            e.currentTarget.style.backgroundColor = brandColors.primary.extraLight;
+                            e.currentTarget.style.borderColor = brandColors.primary.full;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (currentPage !== 1) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.borderColor = brandColors.primary.light;
+                          }
+                        }}
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
@@ -967,6 +900,7 @@ export default function StatusPage() {
                                 borderRadius: '9999px',
                                 width: '2.5rem',
                                 height: '2.5rem',
+                                borderColor: brandColors.primary.full
                               }
                             : { 
                                 borderColor: brandColors.primary.light,
@@ -976,7 +910,23 @@ export default function StatusPage() {
                                 height: '2.5rem',
                               }
                           }
-                          className="rounded-full w-10 h-10"
+                          className="rounded-full w-10 h-10 transition-all duration-200"
+                          onMouseEnter={(e) => {
+                            if (currentPage !== page) {
+                              e.currentTarget.style.backgroundColor = brandColors.primary.extraLight;
+                              e.currentTarget.style.borderColor = brandColors.primary.full;
+                            } else {
+                              e.currentTarget.style.backgroundColor = brandColors.primary.dark;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (currentPage !== page) {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                              e.currentTarget.style.borderColor = brandColors.primary.light;
+                            } else {
+                              e.currentTarget.style.backgroundColor = brandColors.primary.full;
+                            }
+                          }}
                         >
                           {page}
                         </Button>
@@ -991,7 +941,19 @@ export default function StatusPage() {
                           borderColor: brandColors.primary.light,
                           color: brandColors.primary.full
                         }}
-                        className="rounded-full w-10 h-10"
+                        className="rounded-full w-10 h-10 hover:bg-opacity-10 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onMouseEnter={(e) => {
+                          if (currentPage !== getTotalPages(incidentData.incidents)) {
+                            e.currentTarget.style.backgroundColor = brandColors.primary.extraLight;
+                            e.currentTarget.style.borderColor = brandColors.primary.full;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (currentPage !== getTotalPages(incidentData.incidents)) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.borderColor = brandColors.primary.light;
+                          }
+                        }}
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>

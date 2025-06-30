@@ -45,6 +45,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getBrandColors } from "@/lib/brand-theme";
+import { BlogTable } from "@/components/blog/BlogTable";
 
 // Define the BlogCategory type
 interface BlogCategory {
@@ -961,143 +962,16 @@ export default function BlogPage() {
               />
             </div>
           ) : paginatedPosts.length > 0 ? (
-            // Grid or list view based on selection
-            selectedView === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                {paginatedPosts.map(post => (
-                  <div 
-                    key={post.id}
-                    className="group cursor-pointer flex flex-col bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all h-full"
-                    onClick={() => setLocation(`/blog/${post.slug}`)}
-                  >
-                    {post.featuredImageUrl ? (
-                      <div className="h-48 overflow-hidden">
-                        <img
-                          src={post.featuredImageUrl}
-                          alt={post.title}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        />
-                      </div>
-                    ) : (
-                      <div 
-                        className="h-48 flex items-center justify-center bg-gradient-to-r from-primary-50 to-gray-50"
-                        style={{ 
-                          backgroundImage: `linear-gradient(to right, ${brandColors.primary.extraLight}, rgba(249, 250, 251, 1))` 
-                        }}
-                      >
-                        <BookOpen 
-                          className="h-10 w-10" 
-                          style={{ color: brandColors.primary.light }}
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="p-6 flex flex-col flex-grow">
-                      {post.categoryName && (
-                        <Badge 
-                          className="rounded-full px-2 py-1 text-xs font-medium mb-3 w-fit"
-                          style={{
-                            backgroundColor: brandColors.primary.extraLight,
-                            color: brandColors.primary.full,
-                          }}
-                        >
-                          {post.categoryName}
-                        </Badge>
-                      )}
-                      
-                      <h3 className="font-bold text-lg mb-3 transition-colors"
-                          style={{ color: brandColors.primary.dark }}>
-                        {post.title}
-                      </h3>
-                      
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-grow">
-                        {post.snippet}
-                      </p>
-                      
-                      <div className="flex items-center text-xs text-gray-500 mt-auto">
-                        <Calendar className="h-3 w-3 mr-1" />
-                        <span>{formatDate(post.date)}</span>
-                        
-                        <div className="mx-2">•</div>
-                        
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>{getReadingTime(post.content)} min read</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              // List view
-              <div className="space-y-6 mb-12">
-                {paginatedPosts.map(post => (
-                  <div 
-                    key={post.id}
-                    className="group cursor-pointer flex bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all"
-                    onClick={() => setLocation(`/blog/${post.slug}`)}
-                  >
-                    {post.featuredImageUrl ? (
-                      <div className="w-1/4 h-auto overflow-hidden hidden md:block">
-                        <img
-                          src={post.featuredImageUrl}
-                          alt={post.title}
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        />
-                      </div>
-                    ) : (
-                      <div 
-                        className="w-1/4 h-auto flex items-center justify-center bg-gradient-to-r from-primary-50 to-gray-50 hidden md:flex"
-                        style={{ 
-                          backgroundImage: `linear-gradient(to right, ${brandColors.primary.extraLight}, rgba(249, 250, 251, 1))` 
-                        }}
-                      >
-                        <BookOpen 
-                          className="h-10 w-10" 
-                          style={{ color: brandColors.primary.light }}
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="p-6 w-full md:w-3/4">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center">
-                          {post.categoryName && (
-                            <Badge 
-                              className="rounded-full px-2 py-1 text-xs font-medium mr-3 w-fit"
-                              style={{
-                                backgroundColor: brandColors.primary.extraLight,
-                                color: brandColors.primary.full,
-                              }}
-                            >
-                              {post.categoryName}
-                            </Badge>
-                          )}
-                          
-                          <div className="flex items-center text-xs text-gray-500">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            <span>{formatDate(post.date)}</span>
-                            
-                            <div className="mx-2">•</div>
-                            
-                            <Clock className="h-3 w-3 mr-1" />
-                            <span>{getReadingTime(post.content)} min read</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <h3 className="font-bold text-lg mb-2 transition-colors"
-                          style={{ color: brandColors.primary.dark }}>
-                        {post.title}
-                      </h3>
-                      
-                      <p className="text-gray-600 text-sm line-clamp-2">
-                        {post.snippet}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
+            <div className="mb-12">
+              <BlogTable
+                posts={paginatedPosts}
+                brandColors={brandColors}
+                selectedView={selectedView}
+                formatDate={formatDate}
+                getReadingTime={getReadingTime}
+                onPostClick={(slug) => setLocation(`/blog/${slug}`)}
+              />
+            </div>
           ) : (
             // No posts found
             <div className="flex flex-col items-center justify-center py-16 text-center">

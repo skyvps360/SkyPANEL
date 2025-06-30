@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { DocsTable } from "@/components/docs/DocsTable";
 
 // Define the DocCategory type
 interface DocCategory {
@@ -248,7 +249,7 @@ export default function DocsPage() {
                       onClick={() => setSelectedCategory(category.id.toString())}
                     >
                       <BookMarked className="mr-1 h-4 w-4" />
-                      {category.name.split('|')[1] || category.name}
+                      {category.name}
                     </Button>
                   ))}
                 </div>
@@ -268,7 +269,7 @@ export default function DocsPage() {
                     Category
                   </Badge>
                   <span className="ml-2 font-medium text-lg">
-                    {selectedCategoryName.split('|')[1] || selectedCategoryName}
+                    {selectedCategoryName}
                   </span>
                   <Button
                     variant="ghost"
@@ -348,42 +349,12 @@ export default function DocsPage() {
           
           {/* Document list */}
           {!isLoadingDocs && filteredDocs.length > 0 && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {paginatedDocs.map(doc => (
-                <Link key={doc.id} href={`/docs/${doc.slug}`}>
-                  <Card className="h-full flex flex-col transition-all duration-300 hover:shadow-md cursor-pointer" 
-                    style={{ borderColor: "transparent" }}
-                    onMouseOver={(e) => e.currentTarget.style.borderColor = `${brandColors.primary.light}`}
-                    onMouseOut={(e) => e.currentTarget.style.borderColor = "transparent"}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="line-clamp-2 text-xl group">
-                        {doc.title}
-                        <ExternalLink className="h-4 w-4 ml-2 inline-block opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="py-0 flex-grow">
-                      <div className="line-clamp-3 text-sm text-muted-foreground">
-                        {doc.content.replace(/[#*`]/g, '').substring(0, 150)}...
-                      </div>
-                    </CardContent>
-                    <CardFooter className="pt-3 border-t flex justify-between items-center text-xs text-muted-foreground">
-                      <div className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>
-                          {new Date(doc.updatedAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      
-                      {doc.categoryId && (
-                        <Badge variant="outline" className="text-xs">
-                          {(categoriesData.find(c => c.id === doc.categoryId)?.name || '').split('|')[1] || ''}
-                        </Badge>
-                      )}
-                    </CardFooter>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+            <DocsTable
+              docs={paginatedDocs}
+              categoriesData={categoriesData}
+              brandColors={brandColors}
+              onDocClick={(slug) => setLocation(`/docs/${slug}`)}
+            />
           )}
           
           {/* Pagination */}

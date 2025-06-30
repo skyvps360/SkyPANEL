@@ -2,8 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Helmet } from "react-helmet";
 import { getBrandColors } from "@/lib/brand-theme";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { TeamCards } from "@/components/teams/TeamCards";
 import { Loader2, Users } from "lucide-react";
 
 interface TeamMember {
@@ -105,7 +104,16 @@ export default function teamPage() {
       </Helmet>
 
       {/* Hero Section - matching blog, docs, status, and speed-test pages */}
-      <div style={{ backgroundColor: brandColors.primary.full }} className="relative overflow-hidden w-full">
+      <div 
+        className="relative overflow-hidden w-full"
+        style={{ 
+          backgroundColor: brandColors.primary.full,
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+        }}
+      >
+        {/* Pattern overlay */}
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)]" style={{ backgroundSize: '20px 20px' }}></div>
+        
         {/* Decorative bubbles in the background, matching other pages */}
         <div className="absolute top-0 right-0 opacity-10">
           <svg width="350" height="350" viewBox="0 0 350 350" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -115,6 +123,11 @@ export default function teamPage() {
         <div className="absolute bottom-0 left-0 opacity-10 translate-y-1/2 -translate-x-1/4">
           <svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="150" cy="150" r="150" fill="white" />
+          </svg>
+        </div>
+        <div className="absolute top-1/4 right-1/4 opacity-10">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="40" fill="white" />
           </svg>
         </div>
 
@@ -149,61 +162,7 @@ export default function teamPage() {
               <p className="text-gray-600">Check back soon to meet our team!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-              {teamMembers
-                .sort((a, b) => a.displayOrder - b.displayOrder)
-                .map((member) => (
-                  <Card key={member.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-gray-300">
-                    <CardContent className="p-6 text-center">
-                      {/* Avatar */}
-                      <div className="mb-4">
-                        {member.discordAvatarUrl ? (
-                          <img
-                            src={member.discordAvatarUrl}
-                            alt={`${member.displayName || member.discordUsername}'s avatar`}
-                            className="w-20 h-20 rounded-full mx-auto border-4 border-gray-100 group-hover:border-gray-200 transition-colors"
-                          />
-                        ) : (
-                          <div
-                            className="w-20 h-20 rounded-full mx-auto border-4 border-gray-100 group-hover:border-gray-200 transition-colors flex items-center justify-center text-white font-bold text-xl"
-                            style={{ backgroundColor: brandColors.primary.full }}
-                          >
-                            {(member.displayName || member.discordUsername).charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Name */}
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        {member.displayName || member.discordUsername}
-                      </h3>
-
-                      {/* Role Badge */}
-                      <Badge
-                        variant="secondary"
-                        className="mb-3 text-white"
-                        style={{ backgroundColor: brandColors.primary.full }}
-                      >
-                        {member.role}
-                      </Badge>
-
-                      {/* About Me */}
-                      {member.aboutMe && (
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {member.aboutMe}
-                        </p>
-                      )}
-
-                      {/* Discord ID (subtle) */}
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs text-gray-400">
-                          Discord: {member.discordUserId}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
+            <TeamCards teamMembers={teamMembers} brandColors={brandColors} />
           )}
         </div>
       </section>
