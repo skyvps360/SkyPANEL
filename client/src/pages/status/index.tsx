@@ -498,27 +498,27 @@ export default function StatusPage() {
                 </div>
               </div>
             ) : (
-              <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
                 <table className="w-full">
                   <thead>
                     <tr style={{ backgroundColor: brandColors.primary.extraLight }}>
-                      <th className="text-left py-3 px-4 font-medium" style={{ color: brandColors.primary.dark }}>Service</th>
-                      <th className="text-left py-3 px-4 font-medium" style={{ color: brandColors.primary.dark }}>Status</th>
-                      <th className="text-left py-3 px-4 font-medium" style={{ color: brandColors.primary.dark }}>Uptime</th>
+                      <th className="text-left py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>Service</th>
+                      <th className="text-center py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>Status</th>
+                      <th className="text-right py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>Uptime</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-100">
                     {services.map((service, index) => {
                       const statusColor = getStatusColor(service.status);
                       return (
                         <tr 
                           key={index} 
-                          className={`border-b border-gray-100 hover:bg-gray-50 ${index === services.length - 1 ? 'border-0' : ''}`}
+                          className="hover:bg-gray-50/50 transition-colors duration-200"
                         >
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-3">
+                          <td className="py-5 px-6">
+                            <div className="flex items-center gap-4">
                               <span 
-                                className="flex items-center justify-center p-1.5 rounded-full"
+                                className="flex items-center justify-center p-2.5 rounded-xl shadow-sm"
                                 style={{ 
                                   backgroundColor: brandColors.primary.extraLight,
                                   color: brandColors.primary.full
@@ -527,14 +527,14 @@ export default function StatusPage() {
                                 {service.icon}
                               </span>
                               <div>
-                                <p className="font-medium">{service.name}</p>
+                                <p className="font-semibold text-gray-900 text-base">{service.name}</p>
                                 <p className="text-sm text-gray-500">{service.description}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-4">
+                          <td className="py-5 px-6 text-center">
                             <span 
-                              className="inline-flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-full"
+                              className="inline-flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-full shadow-sm"
                               style={{ 
                                 backgroundColor: statusColor.bg,
                                 color: statusColor.text
@@ -544,15 +544,17 @@ export default function StatusPage() {
                               <span className="capitalize">{service.status}</span>
                             </span>
                           </td>
-                          <td className="py-4 px-4">
-                            <div className="w-48">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium">Uptime</span>
-                                <span className="text-sm font-bold">{formatUptimePercentage(service.uptimePercentage)}</span>
+                          <td className="py-5 px-6">
+                            <div className="flex flex-col items-end">
+                              <div className="flex items-center gap-3 mb-2 w-full max-w-48">
+                                <span className="text-sm font-medium text-gray-600">Uptime</span>
+                                <span className="text-sm font-bold tabular-nums" style={{ color: brandColors.primary.full }}>
+                                  {formatUptimePercentage(service.uptimePercentage)}
+                                </span>
                               </div>
-                              <div className="relative h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: brandColors.primary.extraLight }}>
+                              <div className="relative h-2 w-full max-w-48 overflow-hidden rounded-full" style={{ backgroundColor: brandColors.primary.extraLight }}>
                                 <div 
-                                  className="h-full transition-all absolute left-0 top-0"
+                                  className="h-full transition-all duration-300 absolute left-0 top-0 rounded-full"
                                   style={{ 
                                     width: `${service.uptimePercentage}%`,
                                     backgroundColor: brandColors.primary.full
@@ -571,14 +573,14 @@ export default function StatusPage() {
           </div>
 
           {/* CARD VIEW ON MOBILE */}
-          <div className="grid grid-cols-1 gap-5 md:hidden">
+          <div className="grid grid-cols-1 gap-4 md:hidden">
             {isLoading ? (
               Array(3).fill(0).map((_, i) => (
-                <Card key={i} className="animate-pulse border border-gray-100 rounded-xl overflow-hidden shadow-sm">
-                  <div className="h-2 w-full bg-gray-200"></div>
+                <Card key={i} className="animate-pulse border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                  <div className="h-1 w-full bg-gray-200"></div>
                   <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-5 w-5 rounded-full bg-gray-200"></div>
+                    <div className="flex items-center gap-3">
+                      <div className="h-6 w-6 rounded-xl bg-gray-200"></div>
                       <div className="h-6 bg-gray-200 rounded-md w-32"></div>
                     </div>
                   </CardHeader>
@@ -595,16 +597,16 @@ export default function StatusPage() {
               services.map((service, index) => {
                 const statusColor = getStatusColor(service.status);
                 return (
-                  <Card key={index} className="border border-gray-100 rounded-xl overflow-hidden shadow-sm transition-all hover:shadow-md">
+                  <Card key={index} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md bg-white">
                     <div 
-                      className="h-2 w-full" 
+                      className="h-1 w-full" 
                       style={{ backgroundColor: brandColors.primary.full }}
                     ></div>
-                    <CardHeader className="pb-2">
+                    <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <span 
-                            className="flex items-center justify-center p-1.5 rounded-full"
+                            className="flex items-center justify-center p-2.5 rounded-xl shadow-sm"
                             style={{ 
                               backgroundColor: brandColors.primary.extraLight,
                               color: brandColors.primary.full
@@ -612,10 +614,10 @@ export default function StatusPage() {
                           >
                             {service.icon}
                           </span>
-                          <CardTitle className="text-lg">{service.name}</CardTitle>
+                          <CardTitle className="text-lg font-semibold">{service.name}</CardTitle>
                         </div>
                         <span 
-                          className="flex items-center gap-1 text-sm font-medium px-2 py-1 rounded-full"
+                          className="flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-full shadow-sm"
                           style={{ 
                             backgroundColor: statusColor.bg,
                             color: statusColor.text
@@ -626,16 +628,18 @@ export default function StatusPage() {
                         </span>
                       </div>
                     </CardHeader>
-                    <CardContent className="pb-5">
+                    <CardContent className="pb-6">
                       <p className="text-sm text-gray-500 mb-4">{service.description}</p>
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium">Uptime</span>
-                          <span className="text-sm font-bold" style={{ color: brandColors.primary.full }}>{formatUptimePercentage(service.uptimePercentage)}</span>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-600">Uptime</span>
+                          <span className="text-sm font-bold tabular-nums" style={{ color: brandColors.primary.full }}>
+                            {formatUptimePercentage(service.uptimePercentage)}
+                          </span>
                         </div>
                         <div className="relative h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: brandColors.primary.extraLight }}>
                           <div 
-                            className="h-full transition-all absolute left-0 top-0"
+                            className="h-full transition-all duration-300 absolute left-0 top-0 rounded-full"
                             style={{ 
                               width: `${service.uptimePercentage}%`,
                               backgroundColor: brandColors.primary.full

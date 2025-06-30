@@ -55,55 +55,47 @@ export function InfrastructureTable({ platformStats, brandColors, isLoading }: I
   return (
     <div className="w-full">
       {/* Desktop Table View */}
-      <div className="hidden md:block border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="hidden md:block border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
         <table className="w-full">
           <thead>
             <tr style={{ backgroundColor: brandColors.primary.extraLight }}>
-              <th className="text-left py-3 px-4 font-medium" style={{ color: brandColors.primary.dark }}>
+              <th className="text-left py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>
                 Metric
               </th>
-              <th className="text-left py-3 px-4 font-medium" style={{ color: brandColors.primary.dark }}>
+              <th className="text-right py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>
                 Value
-              </th>
-              <th className="text-left py-3 px-4 font-medium" style={{ color: brandColors.primary.dark }}>
-                Description
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-100">
             {metrics.map((metric, index) => (
               <tr 
                 key={index}
-                className={`hover:bg-gray-50 transition-colors ${index === metrics.length - 1 ? '' : 'border-b border-gray-100'}`}
+                className="hover:bg-gray-50/50 transition-colors duration-200"
               >
                 {/* Metric (Icon + Name) */}
-                <td className="py-4 px-4">
-                  <div className="flex items-center space-x-3">
+                <td className="py-5 px-6">
+                  <div className="flex items-center space-x-4">
                     <div 
-                      className="flex-shrink-0 p-2 rounded-lg"
+                      className="flex-shrink-0 p-2.5 rounded-xl shadow-sm"
                       style={{ backgroundColor: brandColors.primary.extraLight }}
                     >
                       <div style={{ color: brandColors.primary.full }}>
                         {metric.icon}
                       </div>
                     </div>
-                    <span className="font-medium text-gray-900">{metric.name}</span>
+                    <span className="font-semibold text-gray-900 text-base">{metric.name}</span>
                   </div>
                 </td>
 
                 {/* Value */}
-                <td className="py-4 px-4">
+                <td className="py-5 px-6 text-right">
                   <span 
-                    className="text-2xl font-bold"
+                    className="text-3xl font-bold tabular-nums"
                     style={{ color: brandColors.primary.full }}
                   >
                     {isLoading ? "..." : metric.value.toLocaleString()}
                   </span>
-                </td>
-
-                {/* Description */}
-                <td className="py-4 px-4">
-                  <span className="text-sm text-gray-600">{metric.description}</span>
                 </td>
               </tr>
             ))}
@@ -111,25 +103,24 @@ export function InfrastructureTable({ platformStats, brandColors, isLoading }: I
         </table>
       </div>
 
-      {/* Mobile View - preserving original card functionality */}
-      <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-5">
+      {/* Mobile View - cleaner card design */}
+      <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
         {metrics.map((metric, index) => (
           <div 
             key={index}
-            className="border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all bg-white"
+            className="border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 bg-white"
           >
-            <div className="h-2 w-full" style={{ backgroundColor: brandColors.primary.full }}></div>
-            <div className="pt-5 pb-6 px-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-500 mb-1">{metric.name}</p>
-                  <p className="text-3xl font-bold" style={{ color: brandColors.primary.full }}>
+            <div className="h-1 w-full" style={{ backgroundColor: brandColors.primary.full }}></div>
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">{metric.name}</p>
+                  <p className="text-2xl font-bold tabular-nums" style={{ color: brandColors.primary.full }}>
                     {isLoading ? "..." : metric.value.toLocaleString()}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">{metric.description}</p>
                 </div>
                 <div 
-                  className="p-3 rounded-full"
+                  className="p-3 rounded-xl shadow-sm ml-4"
                   style={{ backgroundColor: brandColors.primary.extraLight }}
                 >
                   <div style={{ color: brandColors.primary.full }}>
