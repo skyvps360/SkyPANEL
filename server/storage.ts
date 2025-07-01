@@ -498,8 +498,8 @@ export class DatabaseStorage implements IStorage {
       query = query.offset(options.offset);
     }
 
-    // Use .all() to resolve Drizzle ORM type errors with joins and custom select objects
-    return await query.all();
+    // Fixed: Removed .all() call - Drizzle ORM queries should be awaited directly
+    return await query;
   }
 
   async getServerLogsWithUser(serverId: number, options: {
@@ -509,7 +509,7 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
     offset?: number;
   } = {}): Promise<(ServerLog & { user: User })[]> {
-    // Refactored: chain all query builder methods in one statement to avoid type errors
+    // Fixed: Build query properly with conditional limit/offset
     const filters = [eq(serverLogs.serverId, serverId)];
     if (options.actionType) filters.push(eq(serverLogs.actionType, options.actionType));
     if (options.startDate) filters.push(gte(serverLogs.createdAt, options.startDate));
@@ -518,7 +518,8 @@ export class DatabaseStorage implements IStorage {
       endDate.setDate(endDate.getDate() + 1);
       filters.push(lt(serverLogs.createdAt, endDate));
     }
-    return await db.select({
+    
+    let query = db.select({
       id: serverLogs.id,
       serverId: serverLogs.serverId,
       userId: serverLogs.userId,
@@ -549,10 +550,18 @@ export class DatabaseStorage implements IStorage {
       .from(serverLogs)
       .leftJoin(users, eq(serverLogs.userId, users.id))
       .where(and(...filters))
-      .orderBy(desc(serverLogs.createdAt))
-      .limit(options.limit)
-      .offset(options.offset)
-      .all();
+      .orderBy(desc(serverLogs.createdAt));
+    
+    // Apply pagination conditionally
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+    
+    if (options.offset) {
+      query = query.offset(options.offset);
+    }
+    
+    return await query;
   }
 
   async getServerLogCount(serverId: number, options: {
