@@ -228,7 +228,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     staleTime: 60 * 1000, // 1 minute
   });
 
-
+  // Fetch servers for search - use admin endpoint for admins
+  const { data: serversResponse } = useQuery<{ data: ServerType[] } | ServerType[] | any>({
+    queryKey: [user?.role === "admin" ? "/api/admin/servers" : "/api/user/servers"],
+    staleTime: 60 * 1000, // 1 minute
+  });
 
   // Fetch balance data (VirtFusion only)
   const { data: balanceData } = useQuery<{
@@ -244,6 +248,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const users = usersData;
   const tickets = ticketsResponse?.data || [];
   const transactions = transactionsData;
+  // Extract servers from response - handle both paginated admin response and direct user response
+  const servers = Array.isArray(serversResponse) 
+    ? serversResponse 
+    : (serversResponse?.data || []);
 
 
   // Define global navigation shortcuts
@@ -405,6 +413,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   // more carefully to avoid infinite loops.
 
   // Improved search function with better organization and shortcuts
+  // ENHANCED: Added comprehensive server search support for both admin and regular users
+  // Now supports: tickets, transactions/billing, servers, navigation shortcuts, and admin features
   const performSearch = useCallback((query: string) => {
     setIsSearching(true);
     try {
@@ -525,7 +535,37 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           }
         });
 
+        // Admins can search ALL servers
+        servers.forEach((server: ServerType) => {
+          const serverName = (server.name || "").toLowerCase();
+          const serverStatus = (server.status || "").toLowerCase();
+          const serverIp = (server.ipAddress || "").toLowerCase();
+          const serverIdString = server.id.toString();
 
+          // Search by server name, ID, IP address, or status
+          if (serverName.includes(cleanQuery) ||
+              serverIdString === cleanQuery ||
+              serverIp.includes(cleanQuery) ||
+              serverStatus.includes(cleanQuery) ||
+              'server'.includes(cleanQuery)) {
+
+            // For admin view, show which user the server belongs to if available
+            const serverOwner = users.find(u => u.id === (server as any).userId)?.fullName || 'System';
+            
+            // Create server status badge info
+            const statusInfo = server.status ? ` | Status: ${server.status}` : '';
+            const ipInfo = server.ipAddress ? ` | IP: ${server.ipAddress}` : '';
+
+            results.push({
+              id: server.id,
+              type: "server",
+              name: `${server.name || `Server #${server.id}`}`,
+              description: `Owner: ${serverOwner}${statusInfo}${ipInfo}`,
+              url: `/admin/servers/${server.id}`,
+              icon: <Server className="h-4 w-4" />,
+            });
+          }
+        });
 
         // System settings search for admins
         if ("system settings".includes(cleanQuery) ||
@@ -618,7 +658,37 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           }
         });
 
+        // Regular users can only search their own servers
+        servers.forEach((server: ServerType) => {
+          // Only show servers owned by the current user
+          if ((server as any).userId && (server as any).userId !== user?.id) return;
 
+          const serverName = (server.name || "").toLowerCase();
+          const serverStatus = (server.status || "").toLowerCase();
+          const serverIp = (server.ipAddress || "").toLowerCase();
+          const serverIdString = server.id.toString();
+
+          // Search by server name, ID, IP address, or status
+          if (serverName.includes(cleanQuery) ||
+              serverIdString === cleanQuery ||
+              serverIp.includes(cleanQuery) ||
+              serverStatus.includes(cleanQuery) ||
+              'server'.includes(cleanQuery)) {
+
+            // Create server status badge info
+            const statusInfo = server.status ? ` | Status: ${server.status}` : '';
+            const ipInfo = server.ipAddress ? ` | IP: ${server.ipAddress}` : '';
+
+            results.push({
+              id: server.id,
+              type: "server",
+              name: `${server.name || `Server #${server.id}`}`,
+              description: `Server${statusInfo}${ipInfo}`,
+              url: `/servers/${server.id}`,
+              icon: <Server className="h-4 w-4" />,
+            });
+          }
+        });
 
         // Add user profile search for regular users
         if ("profile".includes(cleanQuery) ||
@@ -643,7 +713,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       console.error('Search failed:', error);
       toast({ title: "Search Error", description: "An error occurred while searching. Please try again.", variant: "destructive" });
     }
-  }, [user, users, tickets, transactions, toast]);
+  }, [user, users, tickets, transactions, servers, toast]);
 
   // Handle search input changes with debounce
   useEffect(() => {
@@ -1340,6 +1410,105 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                     Download
                                   </Button>
                                 </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Server Results */}
+                      {searchResults.filter(r => r.type === "server").length > 0 && (
+                        <div className="py-2">
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase flex items-center">
+                            <Server className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
+                            Servers
+                          </div>
+                          {searchResults.filter(r => r.type === "server").map((result, index) => {
+                            // Calculate overall index position in the combined results array
+                            const navItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length;
+                            const adminItems = searchResults.filter(r => r.type === "user" && typeof r.id === "string").length;
+                            const ticketItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").length;
+                            const overallIndex = navItems + adminItems + ticketItems + index;
+
+                            return (
+                              <div
+                                key={`server-${result.id}`}
+                                onClick={() => navigateToResult(result)}
+                                className={`search-result-item flex items-center px-4 py-2 cursor-pointer ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
+                                style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
+                              >
+                                <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
+                                 style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                  <Server className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
+                                  {result.description && (
+                                    <p className="text-xs text-gray-500 truncate">{result.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Billing & Transaction Results */}
+                      {searchResults.filter(r => r.type === "billing").length > 0 && (
+                        <div className="py-2">
+                          <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase flex items-center">
+                            <CreditCard className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
+                            Billing & Transactions
+                          </div>
+                          {searchResults.filter(r => r.type === "billing").map((result, index) => {
+                            // Calculate overall index position in the combined results array
+                            const navItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "string").length;
+                            const adminItems = searchResults.filter(r => r.type === "user" && typeof r.id === "string").length;
+                            const ticketItems = searchResults.filter(r => r.type === "ticket" && typeof r.id === "number").length;
+                            const serverItems = searchResults.filter(r => r.type === "server").length;
+                            const overallIndex = navItems + adminItems + ticketItems + serverItems + index;
+
+                            return (
+                              <div
+                                key={`billing-${result.id}`}
+                                onClick={() => navigateToResult(result)}
+                                className={`search-result-item flex items-center px-4 py-2 cursor-pointer ${activeResultIndex === overallIndex ? 'bg-brand/10' : 'hover:bg-gray-50'}`}
+                                style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
+                              >
+                                <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
+                                 style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                  <CreditCard className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{result.name}</p>
+                                  {result.description && (
+                                    <p className="text-xs text-gray-500 truncate">{result.description}</p>
+                                  )}
+                                </div>
+                                {/* Action buttons for transactions */}
+                                {result.actionButtons && (
+                                  <div className="flex space-x-2 ml-2">
+                                    {result.actionButtons.map((button, btnIndex) => (
+                                      <Button
+                                        key={btnIndex}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="px-2 text-xs"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (button.action.startsWith('/api/')) {
+                                            window.open(button.action, '_blank');
+                                          } else {
+                                            navigate(button.action);
+                                          }
+                                        }}
+                                      >
+                                        {button.icon}
+                                        {button.label}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

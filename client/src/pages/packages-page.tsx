@@ -446,12 +446,12 @@ export default function PackagesPage() {
                         </TableCell>
                         <TableCell>
                           {pkg.enabled ? (
-                            <Badge variant="default" className="bg-primary/10 text-primary border-primary/20">
+                            <Badge variant="default" className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 hover:border-primary/30 transition-colors">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Available
                             </Badge>
                           ) : (
-                            <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                            <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-muted-foreground/90 transition-colors">
                               <XCircle className="h-3 w-3 mr-1" />
                               Unavailable
                             </Badge>
