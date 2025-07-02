@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // InterServer API Types based on the OpenAPI specification
 export interface DnsListItem {
@@ -40,6 +40,20 @@ export interface DnsUpdateRecord {
 export interface InterServerApiError {
   error: string;
   message?: string;
+}
+
+/**
+ * Type guard to check if an error is an AxiosError
+ */
+function isAxiosError(error: unknown): error is AxiosError {
+  return axios.isAxiosError(error);
+}
+
+/**
+ * Type guard to check if response data has an error property
+ */
+function hasErrorProperty(data: any): data is InterServerApiError {
+  return data && typeof data === 'object' && typeof data.error === 'string';
 }
 
 /**
@@ -86,11 +100,13 @@ export class InterServerApi {
       },
       (error) => {
         console.error('InterServer API Error Details:');
-        console.error('- Status:', error.response?.status);
-        console.error('- Status Text:', error.response?.statusText);
-        console.error('- Data:', error.response?.data);
-        console.error('- Headers:', error.response?.headers);
-        console.error('- Message:', error.message);
+        if (isAxiosError(error)) {
+          console.error('- Status:', error.response?.status);
+          console.error('- Status Text:', error.response?.statusText);
+          console.error('- Data:', error.response?.data);
+          console.error('- Headers:', error.response?.headers);
+        }
+        console.error('- Message:', error instanceof Error ? error.message : String(error));
         throw error;
       }
     );
@@ -160,13 +176,14 @@ export class InterServerApi {
       }
     } catch (error) {
       console.error('Error adding DNS domain to InterServer:', error);
-      if (error.response?.status === 401) {
-        throw new Error('Unauthorized access to InterServer API');
-      } else if (error.response?.data?.error) {
-        throw new Error(`InterServer API error: ${error.response.data.error}`);
-      } else {
-        throw new Error('Failed to add DNS domain to InterServer');
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access to InterServer API');
+        } else if (error.response?.data && hasErrorProperty(error.response.data)) {
+          throw new Error(`InterServer API error: ${error.response.data.error}`);
+        }
       }
+      throw new Error('Failed to add DNS domain to InterServer');
     }
   }
 
@@ -187,13 +204,14 @@ export class InterServerApi {
       return response.data;
     } catch (error) {
       console.error('Error fetching DNS records from InterServer:', error);
-      if (error.response?.status === 404) {
-        throw new Error('Domain not found in InterServer DNS');
-      } else if (error.response?.status === 401) {
-        throw new Error('Unauthorized access to InterServer API');
-      } else {
-        throw new Error('Failed to fetch DNS records from InterServer');
+      if (isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          throw new Error('Domain not found in InterServer DNS');
+        } else if (error.response?.status === 401) {
+          throw new Error('Unauthorized access to InterServer API');
+        }
       }
+      throw new Error('Failed to fetch DNS records from InterServer');
     }
   }
 
@@ -211,15 +229,16 @@ export class InterServerApi {
     } catch (error) {
       console.error('Error deleting DNS domain from InterServer:', error);
 
-      if (error.response?.status === 401) {
-        throw new Error('Unauthorized access to InterServer API');
-      } else if (error.response?.status === 404) {
-        throw new Error('DNS domain not found in InterServer');
-      } else if (error.response?.data?.error) {
-        throw new Error(`InterServer API error: ${error.response.data.error}`);
-      } else {
-        throw new Error('Failed to delete DNS domain from InterServer');
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access to InterServer API');
+        } else if (error.response?.status === 404) {
+          throw new Error('DNS domain not found in InterServer');
+        } else if (error.response?.data && hasErrorProperty(error.response.data)) {
+          throw new Error(`InterServer API error: ${error.response.data.error}`);
+        }
       }
+      throw new Error('Failed to delete DNS domain from InterServer');
     }
   }
 
@@ -239,15 +258,16 @@ export class InterServerApi {
       return response.data;
     } catch (error) {
       console.error('Error updating DNS record in InterServer:', error);
-      if (error.response?.status === 401) {
-        throw new Error('Unauthorized access to InterServer API');
-      } else if (error.response?.status === 404) {
-        throw new Error('DNS record not found in InterServer');
-      } else if (error.response?.data?.error) {
-        throw new Error(`InterServer API error: ${error.response.data.error}`);
-      } else {
-        throw new Error('Failed to update DNS record in InterServer');
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access to InterServer API');
+        } else if (error.response?.status === 404) {
+          throw new Error('DNS record not found in InterServer');
+        } else if (error.response?.data && hasErrorProperty(error.response.data)) {
+          throw new Error(`InterServer API error: ${error.response.data.error}`);
+        }
       }
+      throw new Error('Failed to update DNS record in InterServer');
     }
   }
 
@@ -263,15 +283,16 @@ export class InterServerApi {
       return response.data;
     } catch (error) {
       console.error('Error deleting DNS record from InterServer:', error);
-      if (error.response?.status === 401) {
-        throw new Error('Unauthorized access to InterServer API');
-      } else if (error.response?.status === 404) {
-        throw new Error('DNS record not found in InterServer');
-      } else if (error.response?.data?.error) {
-        throw new Error(`InterServer API error: ${error.response.data.error}`);
-      } else {
-        throw new Error('Failed to delete DNS record from InterServer');
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access to InterServer API');
+        } else if (error.response?.status === 404) {
+          throw new Error('DNS record not found in InterServer');
+        } else if (error.response?.data && hasErrorProperty(error.response.data)) {
+          throw new Error(`InterServer API error: ${error.response.data.error}`);
+        }
       }
+      throw new Error('Failed to delete DNS record from InterServer');
     }
   }
 
@@ -305,15 +326,16 @@ export class InterServerApi {
       return response.data;
     } catch (error) {
       console.error('Error adding DNS record to InterServer:', error);
-      if (error.response?.status === 401) {
-        throw new Error('Unauthorized access to InterServer API');
-      } else if (error.response?.status === 404) {
-        throw new Error('Domain not found in InterServer');
-      } else if (error.response?.data?.error) {
-        throw new Error(`InterServer API error: ${error.response.data.error}`);
-      } else {
-        throw new Error('Failed to add DNS record to InterServer');
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error('Unauthorized access to InterServer API');
+        } else if (error.response?.status === 404) {
+          throw new Error('Domain not found in InterServer');
+        } else if (error.response?.data && hasErrorProperty(error.response.data)) {
+          throw new Error(`InterServer API error: ${error.response.data.error}`);
+        }
       }
+      throw new Error('Failed to add DNS record to InterServer');
     }
   }
 
