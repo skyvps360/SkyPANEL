@@ -2360,7 +2360,7 @@ export default function ServerDetailPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => copyToClipboard(server.uuid, "uuid")}
-                                className="h-6 w-6 p-0 transition-colors hover:bg-slate-100"
+                                className="h-6 w-6 p-0 transition-colors hover:bg-slate-100 hover:text-slate-600"
                                 title="Copy UUID to clipboard"
                                 aria-label="Copy UUID to clipboard"
                               >
@@ -2425,7 +2425,7 @@ export default function ServerDetailPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-                                    className="h-6 w-6 p-0 transition-colors hover:bg-slate-100"
+                                    className="h-6 w-6 p-0 transition-colors hover:bg-slate-100 hover:text-slate-600"
                                     title={isPasswordVisible ? "Hide password" : "Show password"}
                                     aria-label={isPasswordVisible ? "Hide password" : "Show password"}
                                   >
@@ -2435,7 +2435,7 @@ export default function ServerDetailPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => copyToClipboard(generatedPassword, 'password')}
-                                    className="h-6 w-6 p-0 transition-colors hover:bg-slate-100"
+                                    className="h-6 w-6 p-0 transition-colors hover:bg-slate-100 hover:text-slate-600"
                                     title="Copy to clipboard"
                                     aria-label="Copy password to clipboard"
                                   >
