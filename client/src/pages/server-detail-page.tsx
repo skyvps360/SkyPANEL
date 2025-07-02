@@ -2360,12 +2360,9 @@ export default function ServerDetailPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => copyToClipboard(server.uuid, "uuid")}
-                                className="h-6 w-6 p-0 transition-colors"
-                                style={{
-                                  '--hover-bg': brandColors.primary.extraLight,
-                                } as React.CSSProperties}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = brandColors.primary.extraLight}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                className="h-6 w-6 p-0 transition-colors hover:bg-slate-100"
+                                title="Copy UUID to clipboard"
+                                aria-label="Copy UUID to clipboard"
                               >
                                 <Copy className="h-3 w-3" />
                               </Button>
@@ -2428,11 +2425,9 @@ export default function ServerDetailPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-                                    className="h-6 w-6 p-0 transition-colors"
+                                    className="h-6 w-6 p-0 transition-colors hover:bg-slate-100"
                                     title={isPasswordVisible ? "Hide password" : "Show password"}
                                     aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = brandColors.secondary.extraLight}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                   >
                                     {isPasswordVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                                   </Button>
@@ -2440,11 +2435,9 @@ export default function ServerDetailPage() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => copyToClipboard(generatedPassword, 'password')}
-                                    className="h-6 w-6 p-0 transition-colors"
+                                    className="h-6 w-6 p-0 transition-colors hover:bg-slate-100"
                                     title="Copy to clipboard"
                                     aria-label="Copy password to clipboard"
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = brandColors.secondary.extraLight}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                   >
                                     <Copy className="h-3 w-3" />
                                   </Button>
