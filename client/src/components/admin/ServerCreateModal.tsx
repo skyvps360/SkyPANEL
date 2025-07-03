@@ -490,12 +490,17 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
       try {
         const res = await fetch(`/api/admin/servers/${serverId}`);
         if (!res.ok) throw new Error('Failed to fetch server status');
-        const server = await res.json();
-        if (server.state && server.state !== 'queued' && server.state !== 'allocated') {
+        const serverResp = await res.json();
+
+        // API shape: { data: { state: "queued" | "complete" | ... }, ... }
+        const serverData: any = serverResp.data || serverResp;
+        const state: string | undefined = serverData.state;
+
+        if (state && state !== 'queued' && state !== 'allocated') {
           // Build finished (complete or failed)
           clearInterval(id);
           setPollId(null);
-          if (server.state === 'complete') {
+          if (state === 'complete') {
             setStep('success');
           } else {
             setStep('failed');
