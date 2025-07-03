@@ -5040,16 +5040,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
-
-
-
-
-
-
-
-
   // Get a single user by ID (admin only)
   app.get("/api/admin/users/:id", isAdmin, async (req, res) => {
     try {
@@ -6330,37 +6320,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         templates = result;
       }
 
-      // Group templates by OS family for better organization
-      const groupedTemplates = templates.reduce((groups: any, template: any) => {
-        // Determine OS family based on template name or type
-        let family = 'Other';
-        const name = template.name?.toLowerCase() || '';
-        const type = template.type?.toLowerCase() || '';
-
-        if (name.includes('ubuntu') || name.includes('debian') || name.includes('centos') ||
-            name.includes('almalinux') || name.includes('rocky') || name.includes('fedora') ||
-            type.includes('linux')) {
-          family = 'Linux';
-        } else if (name.includes('windows') || type.includes('windows')) {
-          family = 'Windows';
-        } else if (name.includes('freebsd') || name.includes('openbsd')) {
-          family = 'BSD';
-        }
-
-        if (!groups[family]) {
-          groups[family] = [];
-        }
-        groups[family].push(template);
-        return groups;
-      }, {});
+      // VirtFusion already groups templates by distro (Debian, Ubuntu, Windows, etc.).
+      // Pass the data straight through so the frontend sees full sub-distro structure.
 
       res.json({
         success: true,
-        data: {
-          packageId,
-          templates: groupedTemplates,
-          totalCount: templates.length
-        }
+        data: templates
       });
 
     } catch (error: any) {
@@ -9358,11 +9323,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // This Blog posts endpoint for public access is removed - using the implementation below
-
-  // Documentation endpoint for public access
-  // This route is replaced by the implementation below
-
   // Plan features endpoint - Public fetch all plan features
   app.get("/api/plan-features", async (req, res) => {
     try {
@@ -9682,8 +9642,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
-
-  // Second PATCH implementation removed to fix duplicate route
 
   app.delete("/api/admin/blog-categories/:id", isAdmin, async (req, res) => {
     try {
@@ -10301,7 +10259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (record.name) {
           acc[record.name] = record.price / 100;
         }
-        return acc;
+        return acc as Record<string | number, number>;
       }, {} as Record<string | number, number>);
 
       console.log("Formatted pricing data:", pricing);
@@ -10647,20 +10605,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return 'degraded';
     }
   }
-
-  // FAQs endpoint - This is a duplicate and has been implemented above
-  // Keeping the commented code for reference but removing actual endpoint to avoid conflicts
-  /*
-  app.get("/api/faqs", async (req, res) => {
-    try {
-      // This endpoint has been implemented above
-      res.json([]);
-    } catch (error: any) {
-      console.error('Error fetching FAQs:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-  */
 
   // Current authenticated user endpoint
   app.get("/api/user", (req, res) => {

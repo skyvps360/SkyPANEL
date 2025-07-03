@@ -156,18 +156,21 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
     enabled: open,
   });
 
-  // Fetch VirtFusion OS templates
+  // Fetch VirtFusion OS templates – now package-specific
+  const selectedPackageId = selectedPackage?.id;
   const { data: osTemplatesData, isLoading: osTemplatesLoading, error: osTemplatesError } = useQuery({
-    queryKey: ['/api/admin/os-templates'],
+    queryKey: ['/api/admin/os-templates', selectedPackageId],
     queryFn: async () => {
-      const response = await fetch('/api/admin/os-templates');
+      // Require a package before fetching templates
+      if (!selectedPackageId) return { data: [] };
+      const response = await fetch(`/api/admin/packages/${selectedPackageId}/templates`);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch OS templates');
       }
       return response.json();
     },
-    enabled: open,
+    enabled: open && !!selectedPackageId,
   });
 
   const form = useForm<ServerCreateFormData>({
@@ -581,6 +584,13 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   const isLoading = packagesLoading || usersLoading || hypervisorsLoading || osTemplatesLoading;
   const hasErrors = packagesError || usersError || hypervisorsError || osTemplatesError;
 
+  useEffect(() => {
+    // Reset OS template when package changes
+    setSelectedOsTemplate(null);
+    form.setValue('operatingSystemId', undefined as any);
+    setOsSearch('');
+  }, [selectedPackageId]);
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -985,7 +995,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                             <FormLabel>OS Template</FormLabel>
                             <Popover open={osSelectOpen} onOpenChange={setOsSelectOpen}>
                               <PopoverTrigger asChild>
-                                <Button variant="outline" role="combobox" className="w-full justify-between">
+                                <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!selectedPackage || osTemplatesLoading || flatOsTemplates.length === 0}>
                                   {selectedOsTemplate
                                     ? `${selectedOsTemplate.name} ${selectedOsTemplate.version}`
                                     : "Select an operating system"}
