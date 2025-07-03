@@ -119,7 +119,7 @@ export function DocsTable({ docs, categoriesData, brandColors, onDocClick }: Doc
                     variant="outline"
                     size="sm"
                     onClick={() => onDocClick(doc.slug)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 hover:text-current"
                     style={{ 
                       borderColor: brandColors.primary.light,
                       color: brandColors.primary.full
