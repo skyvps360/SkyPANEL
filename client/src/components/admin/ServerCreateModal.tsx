@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,7 +33,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle } from "lucide-react";
+import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandItem
+} from "@/components/ui/command";
+import { Pagination } from "@/components/ui/pagination";
 
 interface ServerCreateModalProps {
   open: boolean;
@@ -86,6 +95,11 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   const [step, setStep] = useState<'create' | 'building' | 'success'>('create');
   const [createdServer, setCreatedServer] = useState<any>(null);
   const queryClient = useQueryClient();
+  // OS template dropdown helpers
+  const [osSelectOpen, setOsSelectOpen] = useState(false);
+  const [osSearch, setOsSearch] = useState("");
+  const [osPage, setOsPage] = useState(1);
+  const pageSize = 5;
 
   // Fetch VirtFusion packages
   const { data: packagesData, isLoading: packagesLoading, error: packagesError } = useQuery({
@@ -285,6 +299,39 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   const users = Array.isArray(usersData) ? usersData : usersData?.data || [];
   const hypervisors = hypervisorsData?.data || hypervisorsData || [];
   const osTemplates = osTemplatesData?.data || [];
+
+  // Flatten OS template categories for easier searching / paging
+  const flatOsTemplates = useMemo(() => {
+    const templates: any[] = [];
+    for (const category of osTemplates) {
+      if (category.templates) {
+        templates.push(
+          ...category.templates.map((t: any) => ({ ...t, categoryName: category.name }))
+        );
+      }
+    }
+    return templates;
+  }, [osTemplates]);
+
+  // Filter by search term
+  const filteredOsTemplates = useMemo(() => {
+    if (!osSearch) return flatOsTemplates;
+    return flatOsTemplates.filter((t) =>
+      `${t.name} ${t.version} ${t.variant || ""}`.toLowerCase().includes(osSearch.toLowerCase())
+    );
+  }, [flatOsTemplates, osSearch]);
+
+  // Pagination
+  const totalOsPages = Math.max(1, Math.ceil(filteredOsTemplates.length / pageSize));
+  const paginatedOsTemplates = useMemo(
+    () => filteredOsTemplates.slice((osPage - 1) * pageSize, osPage * pageSize),
+    [filteredOsTemplates, osPage]
+  );
+
+  // Reset to page 1 whenever search changes
+  useEffect(() => {
+    setOsPage(1);
+  }, [osSearch]);
 
   // Update form when package is selected
   useEffect(() => {
@@ -690,57 +737,70 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>OS Template</FormLabel>
-                            <Select
-                              value={field.value ? field.value.toString() : ""}
-                              onValueChange={(value) => {
-                                const osId = parseInt(value);
-                                field.onChange(osId);
-                                // Find the selected template in the nested structure
-                                let foundTemplate = null;
-                                for (const category of osTemplates) {
-                                  if (category.templates) {
-                                    foundTemplate = category.templates.find((t: any) => t.id === osId);
-                                    if (foundTemplate) break;
-                                  }
-                                }
-                                setSelectedOsTemplate(foundTemplate);
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select an operating system" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="max-h-80">
-                                {osTemplates?.map((category: any) => (
-                                  category.templates && category.templates.length > 0 && (
-                                    <div key={category.id || category.name}>
-                                      <div className="px-2 py-1.5 text-sm font-medium text-muted-foreground">
-                                        {category.name}
-                                      </div>
-                                      {category.templates.map((template: any) => (
-                                        <SelectItem key={template.id} value={template.id.toString()}>
-                                          <div className="flex items-center gap-2">
-                                            <span className="font-medium">{template.name}</span>
-                                            <span className="text-muted-foreground">{template.version}</span>
+                            <Popover open={osSelectOpen} onOpenChange={setOsSelectOpen}>
+                              <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" className="w-full justify-between">
+                                  {selectedOsTemplate
+                                    ? `${selectedOsTemplate.name} ${selectedOsTemplate.version}`
+                                    : "Select an operating system"}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                <Command shouldFilter={false}>
+                                  <CommandInput
+                                    placeholder="Search operating systems..."
+                                    value={osSearch}
+                                    onValueChange={setOsSearch}
+                                    className="h-9"
+                                  />
+                                  <CommandList className="max-h-[200px]">
+                                    <CommandEmpty>No operating systems found.</CommandEmpty>
+                                    {paginatedOsTemplates.map((template: any) => (
+                                      <CommandItem
+                                        key={template.id}
+                                        value={`${template.name} ${template.version} ${template.variant || ""}`}
+                                        onSelect={(value) => {
+                                          field.onChange(template.id);
+                                          setSelectedOsTemplate(template);
+                                          setOsSelectOpen(false);
+                                        }}
+                                        className="px-3 py-2"
+                                      >
+                                        <div className="flex items-center justify-between w-full">
+                                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                                            <span className="font-medium truncate">{template.name}</span>
+                                            <span className="text-sm text-muted-foreground">{template.version}</span>
                                             {template.variant && (
-                                              <Badge variant="outline" className="text-xs">
+                                              <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
                                                 {template.variant}
                                               </Badge>
                                             )}
+                                          </div>
+                                          <div className="flex items-center gap-1 ml-2">
                                             {template.eol && (
-                                              <Badge variant="destructive" className="text-xs">
+                                              <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
                                                 EOL
                                               </Badge>
                                             )}
                                           </div>
-                                        </SelectItem>
-                                      ))}
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandList>
+                                  {totalOsPages > 1 && (
+                                    <div className="border-t bg-muted/30 p-2">
+                                      <Pagination
+                                        currentPage={osPage}
+                                        totalPages={totalOsPages}
+                                        onPageChange={setOsPage}
+                                        className="justify-center [&>*]:h-7 [&>*]:text-xs"
+                                      />
                                     </div>
-                                  )
-                                ))}
-                              </SelectContent>
-                            </Select>
+                                  )}
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
                             <FormDescription>
                               The operating system template to install on the server
                             </FormDescription>

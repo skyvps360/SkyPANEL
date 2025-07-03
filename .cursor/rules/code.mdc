@@ -14,3 +14,4 @@ alwaysApply: true
 - when writing, deleting or editing lines of codes or files make sure to always comment the file change.
 - when working on my applicaiton make sure to commit to your memory everything new that might not already be in your memroy.
 - always use the to-dos too set this way you ca keep better track of what you are doing.
+- always fix any linting errors that you created if you edit / add / delete from the codebase.
