@@ -492,19 +492,40 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
         if (!res.ok) throw new Error('Failed to fetch server status');
         const serverResp = await res.json();
 
-        // API shape: { data: { state: "queued" | "complete" | ... }, ... }
+        // VirtFusion API usually wraps the response in a data property
         const serverData: any = serverResp.data || serverResp;
         const state: string | undefined = serverData.state;
+        const buildFailed: boolean = serverData.buildFailed === true;
+        const tasksActiveFlag = serverData.tasks?.active;
 
-        if (state && state !== 'queued' && state !== 'allocated') {
-          // Build finished (complete or failed)
+        // If tasksActiveFlag is explicitly false the queue finished processing
+        if (tasksActiveFlag === false) {
           clearInterval(id);
           setPollId(null);
-          if (state === 'complete') {
+          if (!buildFailed) {
             setStep('success');
           } else {
             setStep('failed');
           }
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/servers'] });
+          return;
+        }
+
+        // If tasks are still active keep waiting
+        if (tasksActiveFlag === true) {
+          return;
+        }
+
+        // Fallback – rely on explicit state flags if tasks info is missing
+        if (state === 'complete') {
+          clearInterval(id);
+          setPollId(null);
+          setStep('success');
+          queryClient.invalidateQueries({ queryKey: ['/api/admin/servers'] });
+        } else if (buildFailed || state === 'failed' || state === 'error') {
+          clearInterval(id);
+          setPollId(null);
+          setStep('failed');
         }
       } catch (err) {
         console.error('Polling error:', err);
@@ -579,7 +600,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
               : step === 'installing'
               ? 'Waiting for VirtFusion to finish installing the operating system. This may take several minutes.'
               : step === 'success'
-              ? 'Your server has been successfully created and the OS installation is in progress.'
+              ? 'Your server has been successfully created and is ready.'
               : 'Something went wrong while installing the OS. Please check the server queue in VirtFusion.'
             }
           </DialogDescription>
