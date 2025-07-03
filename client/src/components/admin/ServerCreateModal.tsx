@@ -92,9 +92,10 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [selectedHypervisorGroup, setSelectedHypervisorGroup] = useState<any>(null);
   const [selectedOsTemplate, setSelectedOsTemplate] = useState<any>(null);
-  const [step, setStep] = useState<'create' | 'building' | 'success'>('create');
+  const [step, setStep] = useState<'create' | 'building' | 'installing' | 'success' | 'failed'>('create');
   const [createdServer, setCreatedServer] = useState<any>(null);
   const queryClient = useQueryClient();
+  const [pollId, setPollId] = useState<NodeJS.Timeout | null>(null);
   // OS template dropdown helpers
   const [osSelectOpen, setOsSelectOpen] = useState(false);
   const [osSearch, setOsSearch] = useState("");
@@ -289,7 +290,8 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
         description: `Server "${form.getValues('name')}" (ID: ${data.serverId}) has been created and is installing the OS.`,
       });
       setCreatedServer(data.server);
-      setStep('success');
+      setStep('installing');
+      startBuildPolling(data.serverId);
       queryClient.invalidateQueries({ queryKey: ['/api/admin/servers'] });
       onSuccess?.();
     },
@@ -455,6 +457,41 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
     onOpenChange(false);
   };
 
+  // Helper to poll VirtFusion for build status
+  const startBuildPolling = (serverId: number) => {
+    // Clear any existing poller
+    if (pollId) clearInterval(pollId);
+
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin/servers/${serverId}`);
+        if (!res.ok) throw new Error('Failed to fetch server status');
+        const server = await res.json();
+        if (server.state && server.state !== 'queued' && server.state !== 'allocated') {
+          // Build finished (complete or failed)
+          clearInterval(id);
+          setPollId(null);
+          if (server.state === 'complete') {
+            setStep('success');
+          } else {
+            setStep('failed');
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 10000); // 10-second interval
+
+    setPollId(id);
+  };
+
+  // Clear poller on unmount
+  useEffect(() => {
+    return () => {
+      if (pollId) clearInterval(pollId);
+    };
+  }, [pollId]);
+
   const isLoading = packagesLoading || usersLoading || hypervisorsLoading || osTemplatesLoading;
   const hasErrors = packagesError || usersError || hypervisorsError || osTemplatesError;
 
@@ -466,14 +503,19 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
             <Server className="h-5 w-5" />
             {step === 'create' ? 'Create & Build VirtFusion Server' : 
              step === 'building' ? 'Building Server...' : 
-             'Server Created Successfully'}
+             step === 'installing' ? 'OS Installation In Progress' :
+             step === 'success' ? 'Server Created Successfully!' : 'Server Build Failed'}
           </DialogTitle>
           <DialogDescription>
             {step === 'create' 
               ? 'Create and build a new virtual server by configuring hardware resources, selecting an OS template, and server settings.'
               : step === 'building'
               ? 'Creating server hardware and installing the operating system. This may take a few moments.'
-              : 'Your server has been successfully created and the OS installation is in progress.'
+              : step === 'installing'
+              ? 'Waiting for VirtFusion to finish installing the operating system. This may take several minutes.'
+              : step === 'success'
+              ? 'Your server has been successfully created and the OS installation is in progress.'
+              : 'Something went wrong while installing the OS. Please check the server queue in VirtFusion.'
             }
           </DialogDescription>
         </DialogHeader>
@@ -1163,7 +1205,29 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
               </div>
             </CardContent>
           </Card>
-        ) : (
+        ) : step === 'installing' ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 mb-4">
+                  <Spinner className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-lg font-medium">OS Installation In Progress</h3>
+                <p className="text-muted-foreground mt-2">
+                  Server ID: {createdServer?.id} • UUID: {createdServer?.uuid}
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Waiting for VirtFusion to finish installing the operating system. This may take several minutes.
+                </p>
+                <div className="mt-6 flex justify-center gap-3">
+                  <Button variant="outline" disabled>
+                    Installing...
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : step === 'success' ? (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center py-8">
@@ -1171,18 +1235,50 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                   <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
                 <h3 className="text-lg font-medium">Server Created & Built Successfully!</h3>
-                <p className="text-muted-foreground mt-2">
-                  Server ID: {createdServer?.id} • UUID: {createdServer?.uuid}
+                <p className="text-muted-foreground mt-2 flex items-center justify-center gap-2">
+                  Server ID: {createdServer?.id} • UUID:
+                  {createdServer?.uuid && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => navigator.clipboard.writeText(createdServer.uuid)}
+                      title="Copy UUID"
+                    >
+                      {createdServer.uuid.substring(0, 8)}…
+                    </Button>
+                  )}
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">
                   The server has been created and the OS installation is in progress. You can monitor the build status from the server details page.
                 </p>
                 <div className="mt-6 flex justify-center gap-3">
+                  <Button
+                    onClick={() => {
+                      handleClose();
+                      window.location.href = `/admin/servers/${createdServer?.id}`;
+                    }}
+                  >
+                    View Server
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/20 mb-4">
+                  <CheckCircle className="h-8 w-8 text-destructive" />
+                </div>
+                <h3 className="text-lg font-medium text-destructive">Server Build Failed</h3>
+                <p className="text-muted-foreground mt-2">
+                  Something went wrong while installing the OS. Please check the server queue in VirtFusion.
+                </p>
+                <div className="mt-6 flex justify-center gap-3">
                   <Button variant="outline" onClick={handleClose}>
                     Close
-                  </Button>
-                  <Button onClick={handleClose}>
-                    View Servers
                   </Button>
                 </div>
               </div>
