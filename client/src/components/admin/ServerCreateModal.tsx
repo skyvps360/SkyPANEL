@@ -425,7 +425,8 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
     createServerMutation.mutate(data);
   };
 
-  const handleClose = () => {
+  // Resets modal state and notifies parent to close
+  const resetAndClose = () => {
     setStep('create');
     setCreatedServer(null);
     setSelectedPackage(null);
@@ -455,6 +456,19 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
       swap: 512,
     });
     onOpenChange(false);
+  };
+
+  // Radix Dialog open state handler – prevent closing while building/installing
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      if (step === 'building' || step === 'installing') {
+        // Ignore attempts to close while busy
+        return;
+      }
+      resetAndClose();
+    } else {
+      onOpenChange(true);
+    }
   };
 
   // Helper to poll VirtFusion for build status
@@ -496,7 +510,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   const hasErrors = packagesError || usersError || hypervisorsError || osTemplatesError;
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -1162,7 +1176,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                   <Separator />
 
                   <div className="flex justify-end gap-3">
-                    <Button type="button" variant="outline" onClick={handleClose} disabled={createServerMutation.isPending}>
+                    <Button type="button" variant="outline" onClick={resetAndClose} disabled={createServerMutation.isPending}>
                       Cancel
                     </Button>
                     <Button 
@@ -1255,7 +1269,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                 <div className="mt-6 flex justify-center gap-3">
                   <Button
                     onClick={() => {
-                      handleClose();
+                      resetAndClose();
                       window.location.href = `/admin/servers/${createdServer?.id}`;
                     }}
                   >
@@ -1277,7 +1291,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                   Something went wrong while installing the OS. Please check the server queue in VirtFusion.
                 </p>
                 <div className="mt-6 flex justify-center gap-3">
-                  <Button variant="outline" onClick={handleClose}>
+                  <Button variant="outline" onClick={resetAndClose}>
                     Close
                   </Button>
                 </div>
