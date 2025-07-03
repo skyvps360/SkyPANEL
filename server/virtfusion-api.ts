@@ -242,6 +242,12 @@ export class VirtFusionApi {
                 throw new Error(
                   `VirtFusion API Error ${axiosError.response.status}: ${axiosError.response.data.error}`,
                 );
+              } else if (axiosError.response.data.errors) {
+                // Capture detailed validation errors array/object
+                const errs = JSON.stringify(axiosError.response.data.errors);
+                throw new Error(
+                  `VirtFusion API Error ${axiosError.response.status}: ${errs}`,
+                );
               }
             }
 
@@ -763,6 +769,11 @@ export class VirtFusionApi {
   // Get all hypervisors from VirtFusion API
   async getHypervisors() {
     return this.request("GET", "/compute/hypervisors");
+  }
+
+  // Get all hypervisor groups from VirtFusion API
+  async getHypervisorGroups() {
+    return this.request("GET", "/compute/hypervisors/groups");
   }
 
   // Server creation and build functions

@@ -657,6 +657,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 🖥️ Admin Hypervisor Groups Management - Get all hypervisor groups (admin only)
+  app.get("/api/admin/hypervisor-groups", isAdmin, async (req, res) => {
+    try {
+      console.log("Admin fetching hypervisor groups from VirtFusion API");
+
+      // Get hypervisor groups from VirtFusion API (required for server creation)
+      const result = await virtFusionApi.getHypervisorGroups();
+
+      console.log("VirtFusion hypervisor groups response:", JSON.stringify(result, null, 2));
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error fetching hypervisor groups:", error.message);
+      res.status(500).json({
+        error: "Failed to fetch hypervisor groups",
+        message: error.message
+      });
+    }
+  });
+
   // Create or update package pricing
   app.post('/api/admin/packages/:id/pricing', isAdmin, async (req, res) => {
     try {
@@ -6384,6 +6404,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 🖥️ Admin Server Management - Get OS templates (admin only)
+  app.get("/api/admin/os-templates", isAdmin, async (req, res) => {
+    try {
+      console.log("Admin fetching OS templates");
+
+      // Get OS templates via VirtFusion API
+      const result = await virtFusionApi.getOsTemplates();
+
+      console.log("VirtFusion OS templates response:", JSON.stringify(result, null, 2));
+
+      res.json({
+        success: true,
+        data: result.data || []
+      });
+
+    } catch (error: any) {
+      console.error("Error fetching OS templates:", error.message);
+      res.status(500).json({
+        error: "Failed to fetch OS templates",
+        message: error.message
+      });
+    }
+  });
+
+  // 🖥️ Admin Server Management - Build server with OS (LEGACY, renamed to avoid conflict)
+  app.post("/api/admin/servers/:serverId/build-legacy", isAdmin, async (req, res) => {
+    try {
+      const { serverId } = req.params;
+      const {
+        operatingSystemId,
+        name,
+        hostname,
+        sshKeys = [],
+        vnc = false,
+        ipv6 = false,
+        email = true,
+        swap = 512
+      } = req.body;
+
+      console.log(`Admin building server ${serverId} with OS ${operatingSystemId}`);
+
+      // Build the server using VirtFusion API
+      const result = await virtFusionApi.buildServer(parseInt(serverId), {
+        operatingSystemId,
+        name,
+        hostname: hostname || name,
+        sshKeys,
+        vnc,
+        ipv6,
+        email,
+        swap
+      });
+
+      console.log("VirtFusion build server response:", JSON.stringify(result, null, 2));
+
+      res.json({
+        success: true,
+        data: result.data,
+        message: "Server build initiated successfully"
+      });
+
+    } catch (error: any) {
+      console.error("Error building server:", error.message);
+      res.status(500).json({
+        error: "Failed to build server",
+        message: error.message
+      });
+    }
+  });
+
   // 🖥️ Admin Server Management - Create new server (admin only)
   app.post("/api/admin/servers", isAdmin, async (req, res) => {
     try {
@@ -6393,16 +6483,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const createServerSchema = z.object({
         packageId: z.number().int().positive("Package ID must be a positive integer"),
         userId: z.number().int().positive("User ID must be a positive integer"),
-        hypervisorId: z.number().int().positive("Hypervisor ID must be a positive integer"),
+        hypervisorId: z.number().int().positive("Hypervisor Group ID must be a positive integer"),
         ipv4: z.number().int().min(0).default(1),
         storage: z.number().int().positive("Storage must be a positive integer"),
-        traffic: z.number().int().positive("Traffic must be a positive integer"),
+        traffic: z.number().int().min(0, "Traffic must be a non-negative integer (0 = unlimited)"),
         memory: z.number().int().positive("Memory must be a positive integer"),
         cpuCores: z.number().int().positive("CPU cores must be a positive integer"),
         networkSpeedInbound: z.number().int().positive().default(1000),
         networkSpeedOutbound: z.number().int().positive().default(1000),
-        storageProfile: z.number().int().positive().default(1),
-        networkProfile: z.number().int().positive().default(1),
+        storageProfile: z.number().int().min(0).default(0),
+        networkProfile: z.number().int().optional().default(0),
         firewallRulesets: z.array(z.number().int()).default([]),
         hypervisorAssetGroups: z.array(z.number().int()).default([]),
         additionalStorage1Enable: z.boolean().default(false),
@@ -6424,10 +6514,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = validationResult.data;
 
+      // Get the SkyPANEL user to obtain their VirtFusion user ID
+      const skyPanelUser = await storage.getUser(validatedData.userId);
+      if (!skyPanelUser) {
+        return res.status(400).json({
+          error: "Invalid user ID",
+          message: "The specified user does not exist"
+        });
+      }
+
+      if (!skyPanelUser.virtFusionId) {
+        return res.status(400).json({
+          error: "User not linked to VirtFusion",
+          message: "The specified user does not have a VirtFusion account associated"
+        });
+      }
+
       // Prepare server creation data for VirtFusion API
       const serverData = {
         packageId: validatedData.packageId,
-        userId: validatedData.userId,
+        userId: skyPanelUser.virtFusionId, // Use VirtFusion user ID, not local SkyPANEL user ID
         hypervisorId: validatedData.hypervisorId,
         ipv4: validatedData.ipv4,
         storage: validatedData.storage,
@@ -6454,6 +6560,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         serverData.additionalStorage2Profile = validatedData.additionalStorage2Profile;
         serverData.additionalStorage2Capacity = validatedData.additionalStorage2Capacity;
       }
+
+      // 🔍 Clean out optional fields that are empty or have sentinel values VirtFusion rejects
+      Object.keys(serverData).forEach((key) => {
+        const value: any = (serverData as any)[key];
+        if (value === undefined || value === null) {
+          delete (serverData as any)[key];
+        }
+        if (Array.isArray(value) && value.length === 0) {
+          delete (serverData as any)[key];
+        }
+        // Remove networkProfile when 0 as VirtFusion expects a valid profile id
+        if ((key === "networkProfile" || key === "storageProfile") && value === 0) {
+          delete (serverData as any)[key];
+        }
+      });
 
       console.log("Sending server creation request to VirtFusion API:", JSON.stringify(serverData, null, 2));
 
@@ -6545,6 +6666,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: validatedData.email,
         swap: validatedData.swap
       };
+
+      // Clean out optional fields just like server creation
+      Object.keys(buildData).forEach((key) => {
+        const value: any = (buildData as any)[key];
+        if (value === undefined || value === null) {
+          delete (buildData as any)[key];
+        }
+        if (Array.isArray(value) && value.length === 0) {
+          delete (buildData as any)[key];
+        }
+        if (typeof value === 'string' && value.trim() === '') {
+          delete (buildData as any)[key];
+        }
+        if (key === 'hostname' && typeof value === 'string' && !value.includes('.')) {
+          // Hostname must be FQDN; remove if invalid so VirtFusion can set automatically
+          delete (buildData as any)[key];
+        }
+      });
 
       console.log("Sending server build request to VirtFusion API:", JSON.stringify(buildData, null, 2));
 
