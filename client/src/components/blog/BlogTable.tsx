@@ -142,7 +142,7 @@ export function BlogTable({
                     variant="outline"
                     size="sm"
                     onClick={() => onPostClick(post.slug)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 hover:!text-current hover:!border-current"
                     style={{ 
                       borderColor: brandColors.primary.light,
                       color: brandColors.primary.full
