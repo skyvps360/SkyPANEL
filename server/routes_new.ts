@@ -6465,6 +6465,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Server build initiated successfully"
       });
 
+      // -------------------------
+      // Admin Queue Inspection
+      // -------------------------
+
+      // Note: we insert the queue route immediately after the build route definition so it's easy to locate
+
+      // 📝 Admin Queue Management - Get queue item details (admin only)
+      app.get("/api/admin/queue/:id", isAdmin, async (req, res) => {
+        try {
+          const queueId = parseInt(req.params.id);
+
+          if (isNaN(queueId)) {
+            return res.status(400).json({ error: "Invalid queue ID" });
+          }
+
+          console.log(`Admin fetching VirtFusion queue item ${queueId}`);
+
+          // Fetch queue item details via VirtFusion API wrapper
+          const result = await virtFusionApi.getQueueItem(queueId);
+
+          res.json(result);
+        } catch (error: any) {
+          console.error(`Error fetching queue item ${req.params.id}:`, error.message);
+          res.status(500).json({
+            error: "Failed to fetch queue item",
+            message: error.message
+          });
+        }
+      });
+
     } catch (error: any) {
       console.error("Error building server:", error.message);
       res.status(500).json({

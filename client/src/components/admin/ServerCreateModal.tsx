@@ -96,6 +96,8 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   const [createdServer, setCreatedServer] = useState<any>(null);
   const queryClient = useQueryClient();
   const [pollId, setPollId] = useState<NodeJS.Timeout | null>(null);
+  // Stores VirtFusion queue ID returned by the build request (used for polling)
+  const [queueId, setQueueId] = useState<number | null>(null);
   // OS template dropdown helpers
   const [osSelectOpen, setOsSelectOpen] = useState(false);
   const [osSearch, setOsSearch] = useState("");
@@ -290,8 +292,16 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
         description: `Server "${form.getValues('name')}" (ID: ${data.serverId}) has been created and is installing the OS.`,
       });
       setCreatedServer(data.server);
+      // Attempt to extract queueId from build result – supports various possible key names
+      const qId = (data.build as any)?.queueId ?? (data.build as any)?.queue_id ?? null;
+      setQueueId(qId ?? null);
       setStep('installing');
-      startBuildPolling(data.serverId);
+      // Prefer queue polling when we have a queue ID, otherwise fall back to server polling
+      if (qId) {
+        startQueuePolling(qId, data.serverId);
+      } else {
+        startBuildPolling(data.serverId);
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/admin/servers'] });
       onSuccess?.();
     },
@@ -493,6 +503,42 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
         }
       } catch (err) {
         console.error('Polling error:', err);
+      }
+    }, 10000); // 10-second interval
+
+    setPollId(id);
+  };
+
+  // Helper to poll VirtFusion queue item status (preferred when we have queueId)
+  const startQueuePolling = (vfQueueId: number, _serverId: number) => {
+    // Clear any existing poller first
+    if (pollId) clearInterval(pollId);
+
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin/queue/${vfQueueId}`);
+        if (!res.ok) throw new Error("Failed to fetch queue item");
+        const queueItem = await res.json();
+
+        // VirtFusion returns a 'data' wrapper; fall back to root when absent
+        const itemData: any = queueItem.data || queueItem;
+
+        const finished = itemData.finished !== null && itemData.finished !== undefined;
+        const failed = itemData.failed === true || itemData.failed === 1;
+
+        if (finished) {
+          clearInterval(id);
+          setPollId(null);
+          if (!failed) {
+            setStep("success");
+          } else {
+            setStep("failed");
+          }
+          // Invalidate server list cache once done so UI refreshes
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/servers"] });
+        }
+      } catch (err) {
+        console.error("Queue polling error:", err);
       }
     }, 10000); // 10-second interval
 
