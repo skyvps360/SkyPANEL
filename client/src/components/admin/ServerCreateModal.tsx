@@ -33,7 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle, ChevronsUpDown } from "lucide-react";
+import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle, ChevronsUpDown, Dices } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   Command,
@@ -332,6 +332,26 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   useEffect(() => {
     setOsPage(1);
   }, [osSearch]);
+
+  // Random server name generator
+  const generateRandomServerName = () => {
+    const adjectives = [
+      'swift', 'bold', 'bright', 'calm', 'clever', 'cool', 'fast', 'smart',
+      'strong', 'quick', 'mighty', 'stable', 'secure', 'robust', 'agile',
+      'prime', 'elite', 'ultra', 'mega', 'super', 'turbo', 'rapid', 'solid'
+    ];
+    const nouns = [
+      'server', 'node', 'host', 'box', 'machine', 'instance', 'compute',
+      'worker', 'engine', 'core', 'unit', 'system', 'platform', 'hub',
+      'nexus', 'cluster', 'grid', 'cloud', 'stack', 'rack', 'blade', 'pod'
+    ];
+    
+    const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const number = Math.floor(Math.random() * 99) + 1;
+    
+    return `${adjective}-${noun}-${number.toString().padStart(2, '0')}`;
+  };
 
   // Update form when package is selected
   useEffect(() => {
@@ -841,14 +861,29 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Server Name</FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="e.g., web-server-01"
-                                  {...field}
-                                />
-                              </FormControl>
+                              <div className="flex gap-2">
+                                <FormControl>
+                                  <Input
+                                    placeholder="e.g., web-server-01"
+                                    {...field}
+                                    className="flex-1"
+                                  />
+                                </FormControl>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => {
+                                    const randomName = generateRandomServerName();
+                                    field.onChange(randomName);
+                                  }}
+                                  title="Generate random name"
+                                >
+                                  <Dices className="h-4 w-4" />
+                                </Button>
+                              </div>
                               <FormDescription>
-                                Display name for the server
+                                Display name for the server (click dice to generate random name)
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
