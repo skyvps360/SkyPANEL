@@ -101,6 +101,16 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   const [osPage, setOsPage] = useState(1);
   const pageSize = 5;
 
+  // Package dropdown helpers
+  const [packageSelectOpen, setPackageSelectOpen] = useState(false);
+  const [packageSearch, setPackageSearch] = useState("");
+  const [packagePage, setPackagePage] = useState(1);
+
+  // User dropdown helpers
+  const [userSelectOpen, setUserSelectOpen] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [userPage, setUserPage] = useState(1);
+
   // Fetch VirtFusion packages
   const { data: packagesData, isLoading: packagesLoading, error: packagesError } = useQuery({
     queryKey: ['/api/admin/packages'],
@@ -372,6 +382,42 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
     }
   }, [selectedPackage, form]);
 
+  // ---------------- Package dropdown filtering / pagination ----------------
+  const filteredPackages = useMemo(() => {
+    if (!packageSearch) return packages;
+    return packages.filter((p: any) =>
+      `${p.name} ${p.cpuCores} ${p.memory} ${p.primaryStorage}`.toLowerCase().includes(packageSearch.toLowerCase())
+    );
+  }, [packages, packageSearch]);
+
+  const totalPackagePages = Math.max(1, Math.ceil(filteredPackages.length / pageSize));
+  const paginatedPackages = useMemo(
+    () => filteredPackages.slice((packagePage - 1) * pageSize, packagePage * pageSize),
+    [filteredPackages, packagePage]
+  );
+
+  useEffect(() => {
+    setPackagePage(1);
+  }, [packageSearch]);
+
+  // ---------------- User dropdown filtering / pagination ----------------
+  const filteredUsers = useMemo(() => {
+    if (!userSearch) return users;
+    return users.filter((u: any) =>
+      `${u.username} ${u.fullName || ""} ${u.email || ""}`.toLowerCase().includes(userSearch.toLowerCase())
+    );
+  }, [users, userSearch]);
+
+  const totalUserPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const paginatedUsers = useMemo(
+    () => filteredUsers.slice((userPage - 1) * pageSize, userPage * pageSize),
+    [filteredUsers, userPage]
+  );
+
+  useEffect(() => {
+    setUserPage(1);
+  }, [userSearch]);
+
   const onSubmit = (data: ServerCreateFormData) => {
     console.log('Form submitted with data:', data);
     createServerMutation.mutate(data);
@@ -473,33 +519,63 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Package</FormLabel>
-                              <Select
-                                value={field.value ? field.value.toString() : ""}
-                                onValueChange={(value) => {
-                                  const packageId = parseInt(value);
-                                  field.onChange(packageId);
-                                  const pkg = packages?.find((p: any) => p.id === packageId);
-                                  setSelectedPackage(pkg);
-                                }}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a VirtFusion package" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {packages?.filter((pkg: any) => pkg.enabled).map((pkg: any) => (
-                                    <SelectItem key={pkg.id} value={pkg.id.toString()}>
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-medium">{pkg.name}</span>
-                                        <Badge variant="outline" className="text-xs">
-                                          {pkg.cpuCores}C • {pkg.memory}MB • {pkg.primaryStorage}GB
-                                        </Badge>
+                              <Popover open={packageSelectOpen} onOpenChange={setPackageSelectOpen}>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" role="combobox" className="w-full justify-between">
+                                    {selectedPackage
+                                      ? `${selectedPackage.name} (${selectedPackage.cpuCores}C • ${selectedPackage.memory}MB • ${selectedPackage.primaryStorage}GB)`
+                                      : "Select a VirtFusion package"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                  <Command shouldFilter={false}>
+                                    <CommandInput
+                                      placeholder="Search packages..."
+                                      value={packageSearch}
+                                      onValueChange={setPackageSearch}
+                                      className="h-9"
+                                    />
+                                    <CommandList className="max-h-[200px]">
+                                      <CommandEmpty>No packages found.</CommandEmpty>
+                                      {paginatedPackages.map((pkg: any) => (
+                                        <CommandItem
+                                          key={pkg.id}
+                                          value={`${pkg.name} ${pkg.cpuCores} ${pkg.memory} ${pkg.primaryStorage}`}
+                                          onSelect={() => {
+                                            field.onChange(pkg.id);
+                                            setSelectedPackage(pkg);
+                                            setPackageSelectOpen(false);
+                                          }}
+                                          className="px-3 py-2"
+                                        >
+                                          <div className="flex items-center justify-between w-full">
+                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                              <span className="font-medium truncate">{pkg.name}</span>
+                                              <Badge variant="outline" className="text-xs">
+                                                {pkg.cpuCores}C•{pkg.memory}MB•{pkg.primaryStorage}GB
+                                              </Badge>
+                                            </div>
+                                            {!pkg.enabled && (
+                                              <Badge variant="destructive" className="text-xs px-1.5 py-0.5">Disabled</Badge>
+                                            )}
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandList>
+                                    {totalPackagePages > 1 && (
+                                      <div className="border-t bg-muted/30 p-2">
+                                        <Pagination
+                                          currentPage={packagePage}
+                                          totalPages={totalPackagePages}
+                                          onPageChange={setPackagePage}
+                                          className="justify-center [&>*]:h-7 [&>*]:text-xs"
+                                        />
                                       </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                    )}
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                               <FormDescription>
                                 Select a VirtFusion package that defines the server resources
                               </FormDescription>
@@ -537,36 +613,61 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Assign to User</FormLabel>
-                              <Select
-                                value={field.value ? field.value.toString() : ""}
-                                onValueChange={(value) => {
-                                  const userId = parseInt(value);
-                                  field.onChange(userId);
-                                  const user = users?.find((u: any) => u.id === userId);
-                                  setSelectedUser(user);
-                                }}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select a user" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {users?.map((user: any) => (
-                                    <SelectItem key={user.id} value={user.id.toString()}>
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-medium">{user.username}</span>
-                                        {user.fullName && (
-                                          <span className="text-muted-foreground">({user.fullName})</span>
-                                        )}
-                                        <Badge variant="outline" className="text-xs">
-                                          ID: {user.id}
-                                        </Badge>
+                              <Popover open={userSelectOpen} onOpenChange={setUserSelectOpen}>
+                                <PopoverTrigger asChild>
+                                  <Button variant="outline" role="combobox" className="w-full justify-between">
+                                    {selectedUser
+                                      ? `${selectedUser.username}${selectedUser.fullName ? ` (${selectedUser.fullName})` : ""}`
+                                      : "Select a user"}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                  <Command shouldFilter={false}>
+                                    <CommandInput
+                                      placeholder="Search users..."
+                                      value={userSearch}
+                                      onValueChange={setUserSearch}
+                                      className="h-9"
+                                    />
+                                    <CommandList className="max-h-[200px]">
+                                      <CommandEmpty>No users found.</CommandEmpty>
+                                      {paginatedUsers.map((user: any) => (
+                                        <CommandItem
+                                          key={user.id}
+                                          value={`${user.username} ${user.fullName || ""} ${user.email || ""}`}
+                                          onSelect={() => {
+                                            field.onChange(user.id);
+                                            setSelectedUser(user);
+                                            setUserSelectOpen(false);
+                                          }}
+                                          className="px-3 py-2"
+                                        >
+                                          <div className="flex items-center justify-between w-full">
+                                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                              <span className="font-medium truncate">{user.username}</span>
+                                              {user.fullName && (
+                                                <span className="text-muted-foreground truncate">({user.fullName})</span>
+                                              )}
+                                            </div>
+                                            <Badge variant="outline" className="text-xs">ID: {user.id}</Badge>
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandList>
+                                    {totalUserPages > 1 && (
+                                      <div className="border-t bg-muted/30 p-2">
+                                        <Pagination
+                                          currentPage={userPage}
+                                          totalPages={totalUserPages}
+                                          onPageChange={setUserPage}
+                                          className="justify-center [&>*]:h-7 [&>*]:text-xs"
+                                        />
                                       </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                    )}
+                                  </Command>
+                                </PopoverContent>
+                              </Popover>
                               <FormDescription>
                                 The SkyPANEL user who will own this server
                               </FormDescription>
@@ -629,9 +730,6 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                                           Default
                                         </Badge>
                                       )}
-                                      <Badge variant="secondary" className="text-xs">
-                                        Distribution: {hypervisorGroup.distributionType}
-                                      </Badge>
                                     </div>
                                   </SelectItem>
                                 ))}
