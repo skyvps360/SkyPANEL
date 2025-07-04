@@ -205,6 +205,39 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
     mutationFn: async (data: ServerCreateFormData) => {
       console.log('Creating and building server with data:', data);
       
+      // Step 0: Deduct credits from the selected user based on the chosen package pricing
+      if (selectedPackage?.pricing?.price && selectedPackage.pricing.price > 0) {
+        try {
+          const tokenAmount = selectedPackage.pricing.price; // price is stored in cents = tokens (100 tokens = $1)
+          console.log(`Deducting ${tokenAmount} tokens from user ${data.userId} before server creation`);
+
+          const creditResponse = await fetch(`/api/admin/users/${data.userId}/virtfusion-credit`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              tokens: tokenAmount,
+              reference: `Server creation charge for package ${selectedPackage.name}`,
+            }),
+          });
+
+          if (!creditResponse.ok) {
+            const errorResp = await creditResponse.json().catch(() => ({}));
+            console.error('Credit deduction failed:', errorResp);
+            throw new Error(errorResp.error || `Failed to deduct credits (HTTP ${creditResponse.status})`);
+          }
+
+          console.log('Successfully deducted tokens for server creation');
+        } catch (deductErr: any) {
+          console.error('Error during credit deduction:', deductErr);
+          toast({
+            title: 'Credit Deduction Failed',
+            description: deductErr.message || 'Unable to deduct credits for this package. Server creation aborted.',
+            variant: 'destructive',
+          });
+          throw deductErr; // Abort the mutation – server will not be created
+        }
+      }
+      
       // Step 1: Create the server
       console.log('Step 1: Creating server...');
       setStep('building');
@@ -661,7 +694,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                                 <PopoverTrigger asChild>
                                   <Button variant="outline" role="combobox" className="w-full justify-between">
                                     {selectedPackage
-                                      ? `${selectedPackage.name} (${selectedPackage.cpuCores}C • ${selectedPackage.memory}MB • ${selectedPackage.primaryStorage}GB)`
+                                      ? `${selectedPackage.name} (${selectedPackage.cpuCores}C • ${selectedPackage.memory}MB • ${selectedPackage.primaryStorage}GB • $${((selectedPackage.pricing?.price || 0) / 100).toFixed(2)})`
                                       : "Select a VirtFusion package"}
                                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                   </Button>
@@ -694,9 +727,16 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                                                 {pkg.cpuCores}C•{pkg.memory}MB•{pkg.primaryStorage}GB
                                               </Badge>
                                             </div>
-                                            {!pkg.enabled && (
-                                              <Badge variant="destructive" className="text-xs px-1.5 py-0.5">Disabled</Badge>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                              {pkg.pricing && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                  ${((pkg.pricing.price || 0) / 100).toFixed(2)}
+                                                </Badge>
+                                              )}
+                                              {!pkg.enabled && (
+                                                <Badge variant="destructive" className="text-xs px-1.5 py-0.5">Disabled</Badge>
+                                              )}
+                                            </div>
                                           </div>
                                         </CommandItem>
                                       ))}
@@ -730,6 +770,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                               <div>Memory: {selectedPackage.memory} MB</div>
                               <div>Storage: {selectedPackage.primaryStorage} GB</div>
                               <div>Traffic: {selectedPackage.traffic === 0 ? 'Unlimited' : `${selectedPackage.traffic} GB`}</div>
+                              <div>Price: ${((selectedPackage.pricing?.price || 0) / 100).toFixed(2)}</div>
                             </div>
                           </div>
                         )}
