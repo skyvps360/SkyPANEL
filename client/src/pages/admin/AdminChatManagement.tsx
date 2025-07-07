@@ -36,7 +36,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getBrandColors } from '@/lib/brand-theme';
-import DepartmentManagement from '@/components/admin/DepartmentManagement';
 
 interface ChatSession {
   id: number;
@@ -1372,7 +1371,7 @@ export default function AdminChatManagement() {
 
             {/* Departments tab content hidden in fullscreen mode - we use the unified departments system in settings */}
             <TabsContent value="departments" className="hidden flex-1 mt-6">
-              <DepartmentManagement />
+              {/* Add your DepartmentManagement component here */}
             </TabsContent>
 
             <TabsContent value="settings" className="flex-1 mt-6">
@@ -2137,7 +2136,7 @@ export default function AdminChatManagement() {
 
           {/* Departments tab content hidden - we use the unified departments system in settings */}
           <TabsContent value="departments" className="hidden space-y-6">
-            <DepartmentManagement />
+            {/* Add your DepartmentManagement component here */}
           </TabsContent>
 
           <TabsContent value="settings" className="flex-1 mt-6">
