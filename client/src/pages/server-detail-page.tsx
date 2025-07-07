@@ -11,18 +11,7 @@ import {
   TabsTrigger
 } from "@/components/ui/tabs";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-} from "recharts";
+import { NetworkingChart } from "@/components/NetworkingChart";
 import {
   Server,
   HardDrive,
@@ -301,107 +290,11 @@ const TrafficTab = ({ serverId }: { serverId: number }) => {
           )}
 
           {!trafficLoading && !trafficError && chartData.length > 0 && (
-            <div className="space-y-6">
-              {/* Traffic Overview Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
-                  <DownloadCloud className="h-12 w-12 text-primary mb-2" />
-                  <h3 className="font-semibold text-lg">Download</h3>
-                  <p className="text-2xl font-bold">
-                    {currentMonthData ? formatBytes(currentMonthData.rx) : 'N/A'}
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
-                  <UploadCloud className="h-12 w-12 text-primary mb-2" />
-                  <h3 className="font-semibold text-lg">Upload</h3>
-                  <p className="text-2xl font-bold">
-                    {currentMonthData ? formatBytes(currentMonthData.tx) : 'N/A'}
-                  </p>
-                </div>
-
-                <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
-                  <Activity className="h-12 w-12 text-primary mb-2" />
-                  <h3 className="font-semibold text-lg">Total Usage</h3>
-                  <div className="flex flex-col items-center">
-                    <p className="text-2xl font-bold mb-1">
-                      {currentMonthData ? formatBytes(currentMonthData.total) : 'N/A'}
-                    </p>
-                    {currentMonthData && (
-                      <>
-                        <div className="w-full bg-muted rounded-full h-2.5 mb-1">
-                          <div
-                            className={`h-2.5 rounded-full ${
-                              usagePercent > 90 ? 'bg-destructive' :
-                              usagePercent > 70 ? 'bg-warning' :
-                              'bg-primary'
-                            }`}
-                            style={{ width: `${usagePercent}%` }}
-                          ></div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {`${Math.round(usagePercent)}% of ${formatBytes(currentMonthData.limit)}`}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Traffic Chart */}
-              <div className="mt-6">
-                <h3 className="font-semibold text-md mb-4">Monthly Traffic Breakdown</h3>
-                <div className="h-[400px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={chartData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" angle={-45} textAnchor="end" height={60} />
-                      <YAxis
-                        tickFormatter={(value) => formatBytes(value, 1)}
-                        width={100}
-                      />
-                      <Tooltip
-                        formatter={(value: any) => [formatBytes(value), '']}
-                        labelFormatter={(label) => `Month: ${label}`}
-                      />
-                      <Legend verticalAlign="top" height={36} />
-                      <Bar dataKey="rx" name="Download" fill="hsl(var(--primary))" />
-                      <Bar dataKey="tx" name="Upload" fill="hsl(var(--primary) / 0.7)" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Total Usage Chart */}
-              <div className="mt-6">
-                <h3 className="font-semibold text-md mb-4">Total Usage vs Limit</h3>
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart
-                      data={chartData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" angle={-45} textAnchor="end" height={60} />
-                      <YAxis
-                        tickFormatter={(value) => formatBytes(value, 1)}
-                        width={100}
-                      />
-                      <Tooltip
-                        formatter={(value: any) => [formatBytes(value), '']}
-                        labelFormatter={(label) => `Month: ${label}`}
-                      />
-                      <Legend verticalAlign="top" height={36} />
-                      <Area type="monotone" dataKey="total" name="Total Usage" fill="hsl(var(--primary) / 0.5)" stroke="hsl(var(--primary))" />
-                      <Area type="monotone" dataKey="limit" name="Monthly Limit" fill="hsl(var(--muted) / 0.4)" stroke="hsl(var(--muted-foreground))" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
+            <NetworkingChart
+              chartData={chartData}
+              currentMonthData={currentMonthData}
+              usagePercent={usagePercent}
+            />
           )}
         </CardContent>
       </Card>

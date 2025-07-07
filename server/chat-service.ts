@@ -20,7 +20,7 @@ interface WebSocketWithUser extends WebSocket {
 }
 
 interface ChatEvent {
-  type: 'message' | 'typing' | 'session_update' | 'admin_status' | 'error' | 'session_assigned' | 'session_converted_to_ticket';
+  type: 'message' | 'typing' | 'session_update' | 'admin_status' | 'error' | 'session_assigned' | 'session_converted_to_ticket' | 'pong' | 'debug_complete' | 'auth_success' | 'session_resumed' | 'session_started' | 'admin_joined' | 'session_joined' | 'session_ended' | 'status_updated' | 'new_session' | string;
   data: any;
   sessionId?: number;
   userId?: number;
@@ -89,8 +89,8 @@ export class ChatService {
         }
       });
 
-      ws.on('close', (event) => {
-        console.log('WebSocket connection closed:', event.code, event.reason);
+      ws.on('close', (code: number, reason: Buffer) => {
+        console.log('WebSocket connection closed:', code, reason.toString());
         this.handleDisconnection(ws);
       });
 
@@ -241,7 +241,7 @@ export class ChatService {
       console.log('WebSocket session creation - received departmentId:', data.departmentId);
 
       if (data.departmentId) {
-        const dept = await storage.getChatDepartment(data.departmentId);
+        const dept = await storage.getSupportDepartment(data.departmentId);
         console.log('Found department:', dept);
         if (dept && dept.isActive) {
           validDepartmentId = data.departmentId;
@@ -250,8 +250,8 @@ export class ChatService {
           console.log('Department not found or inactive');
         }
       } else {
-        // Get default department
-        const departments = await storage.getActiveChatDepartments();
+        // Get default department from unified support departments
+        const departments = await storage.getActiveSupportDepartments();
         const defaultDept = departments.find(d => d.isDefault);
         if (defaultDept) {
           validDepartmentId = defaultDept.id;
@@ -721,8 +721,7 @@ export class ChatService {
   private async updateAdminStatus(userId: number, status: string, statusMessage?: string): Promise<void> {
     await storage.upsertAdminChatStatus(userId, {
       status,
-      statusMessage,
-      lastSeenAt: new Date()
+      statusMessage
     });
 
     // Broadcast admin status change to all connected clients

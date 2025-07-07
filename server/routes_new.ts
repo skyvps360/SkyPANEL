@@ -3743,64 +3743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/ticket-departments", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const departments = await storage.getAllTicketDepartments();
-      res.json(departments);
-    } catch (error: any) {
-      console.error("Error fetching all ticket departments:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.post("/api/admin/ticket-departments", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const departmentData = insertTicketDepartmentSchema.parse(req.body);
-      const department = await storage.createTicketDepartment(departmentData);
-      res.status(201).json(department);
-    } catch (error: any) {
-      console.error("Error creating ticket department:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.patch("/api/admin/ticket-departments/:id", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      await storage.updateTicketDepartment(id, updates);
-      const updatedDepartment = await storage.getTicketDepartment(id);
-      res.json(updatedDepartment);
-    } catch (error: any) {
-      console.error("Error updating ticket department:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // PUT route for ticket departments to match client requests
-  app.put("/api/admin/ticket-departments/:id", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const updates = req.body;
-      await storage.updateTicketDepartment(id, updates);
-      const updatedDepartment = await storage.getTicketDepartment(id);
-      res.json(updatedDepartment);
-    } catch (error: any) {
-      console.error("Error updating ticket department:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.delete("/api/admin/ticket-departments/:id", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      await storage.deleteTicketDepartment(id);
-      res.json({ success: true });
-    } catch (error: any) {
-      console.error("Error deleting ticket department:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // Legacy ticket department admin routes removed - use unified department system at /admin/settings
 
   // Department Migration Routes
   app.get("/api/admin/department-migration/status", isAuthenticated, isAdmin, async (req, res) => {
@@ -3816,22 +3759,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Debug endpoint to check department counts
   app.get("/api/admin/department-counts", isAuthenticated, isAdmin, async (req, res) => {
     try {
+      // After migration cleanup: All departments are now unified in support_departments
       const supportDepts = await storage.getSupportDepartments();
-      const ticketDepts = await storage.getAllTicketDepartments();
-      const chatDepts = await storage.getChatDepartments();
 
       res.json({
         supportDepartments: {
           count: supportDepts.length,
           departments: supportDepts.map(d => ({ id: d.id, name: d.name, isActive: d.isActive }))
         },
+        // Legacy tables are no longer actively used - all departments are unified
         ticketDepartments: {
-          count: ticketDepts.length,
-          departments: ticketDepts.map(d => ({ id: d.id, name: d.name, isActive: d.isActive }))
+          count: 0,
+          departments: [],
+          note: "Legacy table - all departments unified in support_departments"
         },
         chatDepartments: {
-          count: chatDepts.length,
-          departments: chatDepts.map(d => ({ id: d.id, name: d.name, isActive: d.isActive }))
+          count: 0,
+          departments: [],
+          note: "Legacy table - all departments unified in support_departments"
         }
       });
     } catch (error: any) {

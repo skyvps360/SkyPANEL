@@ -47,13 +47,13 @@ router.post('/session', requireAuth, async (req, res) => {
     let validDepartmentId = null;
 
     if (departmentId) {
-      const dept = await storage.getChatDepartment(departmentId);
+      const dept = await storage.getSupportDepartment(departmentId);
       if (dept && dept.isActive) {
         validDepartmentId = departmentId;
       }
     } else {
-      // Get default department
-      const departments = await storage.getActiveChatDepartments();
+      // Get default department from unified support departments
+      const departments = await storage.getActiveSupportDepartments();
       const defaultDept = departments.find(d => d.isDefault);
       if (defaultDept) {
         validDepartmentId = defaultDept.id;
@@ -149,7 +149,7 @@ router.get('/history/:sessionId', requireAuth, async (req, res) => {
     // Get department info if available
     let department = null;
     if (session.departmentId) {
-      department = await storage.getChatDepartment(session.departmentId);
+      department = await storage.getSupportDepartment(session.departmentId);
     }
 
     res.json({

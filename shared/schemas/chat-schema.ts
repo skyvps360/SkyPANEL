@@ -2,7 +2,8 @@ import {pgTable, text, serial, integer, boolean, timestamp, json, createInsertSc
 import {users} from "./user-schema";
 import {supportDepartments, tickets} from "./support-schema";
 
-// Chat Departments
+// Legacy Chat Departments (kept for backward compatibility during migration)
+// NOTE: This table is deprecated. Use supportDepartments from support-schema.ts instead.
 export const chatDepartments = pgTable("chat_departments", {
     id: serial("id").primaryKey(),
     name: text("name").notNull().unique(),
@@ -55,7 +56,7 @@ export const chatSessions = pgTable("chat_sessions", {
     status: text("status").notNull().default("waiting"), // waiting, active, closed, converted_to_ticket
     priority: text("priority").notNull().default("normal"), // low, normal, high
     subject: text("subject"), // Optional subject for the chat
-    department: text("department").default("general"), // Legacy field - will be replaced by departmentId
+    department: text("department").default("general"), // Legacy field - use departmentId (unified support_departments) instead
     convertedToTicketId: integer("converted_to_ticket_id").references(() => tickets.id, {onDelete: 'set null'}), // Track ticket conversion
     convertedAt: timestamp("converted_at"), // When the chat was converted to a ticket
     convertedByAdminId: integer("converted_by_admin_id").references(() => users.id, {onDelete: 'set null'}), // Admin who performed the conversion

@@ -1369,10 +1369,7 @@ export default function AdminChatManagement() {
               </div>
             </TabsContent>
 
-            {/* Departments tab content hidden in fullscreen mode - we use the unified departments system in settings */}
-            <TabsContent value="departments" className="hidden flex-1 mt-6">
-              {/* Add your DepartmentManagement component here */}
-            </TabsContent>
+            {/* Departments tab content removed - we use the unified departments system in settings */}
 
             <TabsContent value="settings" className="flex-1 mt-6">
               <Card className="rounded-lg border shadow-lg bg-card">
@@ -2134,10 +2131,7 @@ export default function AdminChatManagement() {
             </div>
         </TabsContent>
 
-          {/* Departments tab content hidden - we use the unified departments system in settings */}
-          <TabsContent value="departments" className="hidden space-y-6">
-            {/* Add your DepartmentManagement component here */}
-          </TabsContent>
+          {/* Departments tab content removed - we use the unified departments system in settings */}
 
           <TabsContent value="settings" className="flex-1 mt-6">
             <Card className="rounded-lg border shadow-lg bg-card">
