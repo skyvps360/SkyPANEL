@@ -27,7 +27,6 @@ A **full-stack VPS hosting management panel** built with React, TypeScript, Node
 ## Key Features
 
 - **VPS Management** powered by VirtFusion API (create, rebuild, console, metrics).
-- **Bring Your Own Server (BYOS)** workflow — connect any bare-metal or cloud server via SSH.
 - **DNS Management** with InterServer API (domains, records, plans).
 - **Billing &amp; Payments** through PayPal with automated invoicing and transactions.
 - **Support Centre** including ticketing, live chat, and Discord bot integration.

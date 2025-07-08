@@ -111,23 +111,6 @@ CREATE TABLE "discord_ai_user_settings" (
 	CONSTRAINT "discord_ai_user_settings_discord_user_id_unique" UNIQUE("discord_user_id")
 );
 --> statement-breakpoint
-CREATE TABLE "byos_servers" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"user_id" integer NOT NULL,
-	"name" text NOT NULL,
-	"ip_address" text NOT NULL,
-	"provider" text NOT NULL,
-	"os" text NOT NULL,
-	"status" text DEFAULT 'provisioning' NOT NULL,
-	"agent_token" text NOT NULL,
-	"last_heartbeat" timestamp,
-	"metadata" json DEFAULT '{}'::json,
-	"created_at" timestamp DEFAULT now(),
-	"updated_at" timestamp DEFAULT now(),
-	CONSTRAINT "byos_servers_ip_address_unique" UNIQUE("ip_address"),
-	CONSTRAINT "byos_servers_agent_token_unique" UNIQUE("agent_token")
-);
---> statement-breakpoint
 ALTER TABLE "chat_sessions" DROP CONSTRAINT "chat_sessions_department_id_chat_departments_id_fk";
 --> statement-breakpoint
 ALTER TABLE "tickets" DROP CONSTRAINT "tickets_department_id_ticket_departments_id_fk";
@@ -142,7 +125,6 @@ ALTER TABLE "dns_records" ADD CONSTRAINT "dns_records_domain_id_dns_domains_id_f
 ALTER TABLE "support_department_admins" ADD CONSTRAINT "support_department_admins_department_id_support_departments_id_fk" FOREIGN KEY ("department_id") REFERENCES "public"."support_departments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "support_department_admins" ADD CONSTRAINT "support_department_admins_admin_id_users_id_fk" FOREIGN KEY ("admin_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "email_verification_attempts" ADD CONSTRAINT "email_verification_attempts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "byos_servers" ADD CONSTRAINT "byos_servers_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chat_sessions" ADD CONSTRAINT "chat_sessions_department_id_support_departments_id_fk" FOREIGN KEY ("department_id") REFERENCES "public"."support_departments"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chat_sessions" ADD CONSTRAINT "chat_sessions_legacy_chat_department_id_chat_departments_id_fk" FOREIGN KEY ("legacy_chat_department_id") REFERENCES "public"."chat_departments"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tickets" ADD CONSTRAINT "tickets_department_id_support_departments_id_fk" FOREIGN KEY ("department_id") REFERENCES "public"."support_departments"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
