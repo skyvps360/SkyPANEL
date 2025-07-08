@@ -6338,6 +6338,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 🔑 Admin SSH Keys Management - Get SSH keys for a user (admin only)
+  app.get("/api/admin/ssh-keys/user/:userId", isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      console.log(`Admin fetching SSH keys for user ${userId}`);
+
+      // First get the user to find their VirtFusion user ID
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.virtFusionId) {
+        return res.status(400).json({ error: "User does not have a VirtFusion account" });
+      }
+
+      // Get SSH keys via VirtFusion API
+      const result = await virtFusionApi.getUserSshKeys(user.virtFusionId);
+
+      console.log(`VirtFusion SSH keys response for user ${userId}:`, JSON.stringify(result, null, 2));
+
+      res.json({
+        success: true,
+        data: result.data || []
+      });
+
+    } catch (error: any) {
+      console.error(`Error fetching SSH keys for user ${req.params.userId}:`, error.message);
+      res.status(500).json({
+        error: "Failed to fetch SSH keys",
+        message: error.message
+      });
+    }
+  });
+
   // 🖥️ Admin Server Management - Build server with OS (LEGACY, renamed to avoid conflict)
   app.post("/api/admin/servers/:serverId/build-legacy", isAdmin, async (req, res) => {
     try {

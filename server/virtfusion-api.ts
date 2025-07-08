@@ -1081,6 +1081,73 @@ export class VirtFusionApi {
       };
     }
   }
+
+  /**
+   * Get SSH keys for a user
+   * @param userId The VirtFusion user ID
+   * @returns SSH keys data from VirtFusion
+   */
+  async getUserSshKeys(userId: number) {
+    try {
+      console.log(`Fetching SSH keys for user ${userId}`);
+      return this.request("GET", `/ssh_keys/user/${userId}`);
+    } catch (error) {
+      console.error(`Error fetching SSH keys for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific SSH key by ID
+   * @param keyId The SSH key ID
+   * @returns SSH key data from VirtFusion
+   */
+  async getSshKey(keyId: number) {
+    try {
+      console.log(`Fetching SSH key ${keyId}`);
+      return this.request("GET", `/ssh_keys/${keyId}`);
+    } catch (error) {
+      console.error(`Error fetching SSH key ${keyId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new SSH key for a user
+   * @param userId The VirtFusion user ID
+   * @param name The SSH key name
+   * @param publicKey The public key content
+   * @returns Created SSH key data from VirtFusion
+   */
+  async createSshKey(userId: number, name: string, publicKey: string) {
+    try {
+      console.log(`Creating SSH key for user ${userId}`);
+      const data = {
+        userId,
+        name,
+        publicKey
+      };
+      return this.request("POST", `/ssh_keys`, data);
+    } catch (error) {
+      console.error(`Error creating SSH key for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an SSH key
+   * @param keyId The SSH key ID
+   * @returns API response
+   */
+  async deleteSshKey(keyId: number) {
+    try {
+      console.log(`Deleting SSH key ${keyId}`);
+      return this.request("DELETE", `/ssh_keys/${keyId}`);
+    } catch (error) {
+      console.error(`Error deleting SSH key ${keyId}:`, error);
+      throw error;
+    }
+  }
 }
 
 // Create a singleton instance of the VirtFusion API client

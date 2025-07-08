@@ -32,8 +32,9 @@ import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle, ChevronsUpDown, Dices } from "lucide-react";
+import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle, ChevronsUpDown, Dices, Key } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   Command,
@@ -171,6 +172,22 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
       return response.json();
     },
     enabled: open && !!selectedPackageId,
+  });
+
+  // Fetch SSH keys for the selected user
+  const selectedUserId = selectedUser?.id;
+  const { data: sshKeysData, isLoading: sshKeysLoading, error: sshKeysError } = useQuery({
+    queryKey: ['/api/admin/ssh-keys/user', selectedUserId],
+    queryFn: async () => {
+      if (!selectedUserId) return { data: [] };
+      const response = await fetch(`/api/admin/ssh-keys/user/${selectedUserId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch SSH keys');
+      }
+      return response.json();
+    },
+    enabled: open && !!selectedUserId,
   });
 
   const form = useForm<ServerCreateFormData>({
@@ -357,6 +374,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   const users = Array.isArray(usersData) ? usersData : usersData?.data || [];
   const hypervisors = hypervisorsData?.data || hypervisorsData || [];
   const osTemplates = osTemplatesData?.data || [];
+  const sshKeys = sshKeysData?.data || [];
 
   // Flatten OS template categories for easier searching / paging
   const flatOsTemplates = useMemo(() => {
@@ -614,8 +632,8 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
     };
   }, [pollId]);
 
-  const isLoading = packagesLoading || usersLoading || hypervisorsLoading || osTemplatesLoading;
-  const hasErrors = packagesError || usersError || hypervisorsError || osTemplatesError;
+  const isLoading = packagesLoading || usersLoading || hypervisorsLoading || osTemplatesLoading || sshKeysLoading;
+  const hasErrors = packagesError || usersError || hypervisorsError || osTemplatesError || sshKeysError;
 
   useEffect(() => {
     // Reset OS template when package changes
@@ -623,6 +641,11 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
     form.setValue('operatingSystemId', undefined as any);
     setOsSearch('');
   }, [selectedPackageId]);
+
+  useEffect(() => {
+    // Reset SSH keys when user changes
+    form.setValue('sshKeys', []);
+  }, [selectedUserId]);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -658,7 +681,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                 </CardHeader>
                 <CardContent className="pt-0">
                   <p className="text-sm text-destructive">
-                    {packagesError?.message || usersError?.message || hypervisorsError?.message || osTemplatesError?.message || 'Failed to load required data'}
+                    {packagesError?.message || usersError?.message || hypervisorsError?.message || osTemplatesError?.message || sshKeysError?.message || 'Failed to load required data'}
                   </p>
                 </CardContent>
               </Card>
@@ -1121,6 +1144,83 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                       )}
                     </CardContent>
                   </Card>
+
+                  {/* SSH Key Selection */}
+                  {selectedUser && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Key className="h-4 w-4" />
+                          SSH Key Selection
+                        </CardTitle>
+                        <CardDescription>
+                          Select SSH keys to be installed on the server for the user
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <FormField
+                          control={form.control}
+                          name="sshKeys"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>SSH Keys</FormLabel>
+                              {sshKeysLoading ? (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Spinner className="h-4 w-4" />
+                                  Loading SSH keys...
+                                </div>
+                              ) : sshKeysError ? (
+                                <div className="text-sm text-destructive">
+                                  Failed to load SSH keys: {sshKeysError.message}
+                                </div>
+                              ) : sshKeys.length === 0 ? (
+                                <div className="text-sm text-muted-foreground">
+                                  No SSH keys found for this user
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {sshKeys.map((key: any) => (
+                                    <div key={key.id} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`ssh-key-${key.id}`}
+                                        checked={field.value?.includes(key.id) || false}
+                                        onCheckedChange={(checked) => {
+                                          const currentKeys = field.value || [];
+                                          if (checked) {
+                                            field.onChange([...currentKeys, key.id]);
+                                          } else {
+                                            field.onChange(currentKeys.filter((id: number) => id !== key.id));
+                                          }
+                                        }}
+                                      />
+                                      <label
+                                        htmlFor={`ssh-key-${key.id}`}
+                                        className="text-sm font-medium cursor-pointer flex items-center gap-2"
+                                      >
+                                        <span>{key.name}</span>
+                                        <Badge variant="outline" className="text-xs">
+                                          {key.type}
+                                        </Badge>
+                                        {key.enabled && (
+                                          <Badge variant="default" className="text-xs">
+                                            Enabled
+                                          </Badge>
+                                        )}
+                                      </label>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <FormDescription>
+                                Selected SSH keys will be installed on the server for password-less authentication
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
 
                   {/* Server Configuration */}
                   <Card>
