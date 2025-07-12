@@ -636,7 +636,7 @@ export default function UserEditPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="p-4 my-2 bg-gray-50 rounded-md border">
-            <div className="text-sm text-gray-500 mb-1">Temporary password:</div>
+            <div className="text-sm text-muted-foreground mb-1">Temporary password:</div>
             <div className="flex items-center space-x-2">
               <div className="bg-white p-2 rounded border flex-1 font-mono text-sm">
                 {tempPassword}
@@ -685,7 +685,7 @@ export default function UserEditPage() {
             </Button>
             <h1 className="text-2xl font-semibold">Edit User: {user.fullName}</h1>
           </div>
-          <p className="text-gray-500 mt-1">Update user information and manage their settings</p>
+          <p className="text-muted-foreground mt-1">Update user information and manage their settings</p>
         </div>
         <div className="mt-4 md:mt-0 space-x-2">
           <Button
@@ -739,22 +739,22 @@ export default function UserEditPage() {
         <CardContent>
           <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <dt className="text-sm font-medium text-gray-500">Username</dt>
-              <dd className="mt-1 text-sm text-gray-900">{user.username}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">Username</dt>
+              <dd className="mt-1 text-sm text-foreground">{user.username}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">User ID</dt>
-              <dd className="mt-1 text-sm text-gray-900">{user.id}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">User ID</dt>
+              <dd className="mt-1 text-sm text-foreground">{user.id}</dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">VirtFusion ID</dt>
-              <dd className="mt-1 text-sm text-gray-900">
+              <dt className="text-sm font-medium text-muted-foreground">VirtFusion ID</dt>
+              <dd className="mt-1 text-sm text-foreground">
                 {user.virtFusionId || <span className="text-amber-600">Not linked</span>}
               </dd>
             </div>
             <div>
-              <dt className="text-sm font-medium text-gray-500">Joined</dt>
-              <dd className="mt-1 text-sm text-gray-900">{formatDate(user.createdAt)}</dd>
+              <dt className="text-sm font-medium text-muted-foreground">Joined</dt>
+              <dd className="mt-1 text-sm text-foreground">{formatDate(user.createdAt)}</dd>
             </div>
           </dl>
         </CardContent>
