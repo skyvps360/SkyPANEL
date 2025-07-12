@@ -2104,26 +2104,24 @@ export default function AdminChatManagement() {
                     </>
                   ) : (
                     /* No Session Selected */
-                    <div className="flex-1 flex items-center justify-center">
-                      <Card className="rounded-lg border shadow-lg bg-background w-full max-w-md mx-auto">
-                        <CardContent className="text-center py-16">
-                          <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                          <h3 className="text-lg font-medium text-foreground mb-2">Select a Chat</h3>
-                          <p className="text-muted-foreground max-w-sm mx-auto">
-                            Choose a chat session from the sidebar to start messaging with customers
-                          </p>
-                          {!showSessionsList && (
-                            <Button
-                              onClick={() => setShowSessionsList(true)}
-                              className="mt-4"
-                              variant="outline"
-                            >
-                              <Users className="h-4 w-4 mr-2" />
-                              Show Sessions
-                            </Button>
-                          )}
-                        </CardContent>
-                      </Card>
+                    <div className="flex-1 flex items-center justify-center p-6">
+                      <div className="text-center">
+                        <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">Select a Chat</h3>
+                        <p className="text-muted-foreground max-w-sm mx-auto mb-4">
+                          Choose a chat session from the sidebar to start messaging with customers
+                        </p>
+                        {!showSessionsList && (
+                          <Button
+                            onClick={() => setShowSessionsList(true)}
+                            variant="outline"
+                            className="mt-2"
+                          >
+                            <Users className="h-4 w-4 mr-2" />
+                            Show Sessions
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
