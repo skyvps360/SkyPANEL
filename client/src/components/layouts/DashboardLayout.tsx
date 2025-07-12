@@ -43,6 +43,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getBrandColors } from "@/lib/brand-theme";
 import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
+import { TrustpilotWidget } from "../TrustpilotWidget";
 
 
 type NavigationItem = {
@@ -1188,7 +1189,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             </div>
           </div>
         </header>
-
+        {/* Trustpilot Review Collector widget - visible near dashboard header */}
+        <TrustpilotWidget />
         {/* Enhanced Main Content Area */}
         <main className="flex-1 overflow-y-auto bg-gray-100/60 p-4 md:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">

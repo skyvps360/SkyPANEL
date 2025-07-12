@@ -856,7 +856,12 @@ export class DatabaseStorage implements IStorage {
     const filters = [eq(tickets.userId, userId)];
 
     if (status) {
-      filters.push(eq(tickets.status, status));
+      if (status === "open") {
+        // Treat both "open" and "in-progress" (hyphen / underscore) as open tickets
+        filters.push(inArray(tickets.status, ["open", "in-progress", "in_progress"]));
+      } else {
+        filters.push(eq(tickets.status, status));
+      }
     }
 
     const result = await db.select({ count: sql<number>`count(*)` })
@@ -870,7 +875,11 @@ export class DatabaseStorage implements IStorage {
     const filters = [eq(tickets.userId, userId)];
 
     if (status) {
-      filters.push(eq(tickets.status, status));
+      if (status === "open") {
+        filters.push(inArray(tickets.status, ["open", "in-progress", "in_progress"]));
+      } else {
+        filters.push(eq(tickets.status, status));
+      }
     }
 
     return await db.select()
@@ -917,7 +926,11 @@ export class DatabaseStorage implements IStorage {
       .from(tickets);
 
     if (status) {
-      query = query.where(eq(tickets.status, status));
+      if (status === "open") {
+        query = query.where(inArray(tickets.status, ["open", "in-progress", "in_progress"]));
+      } else {
+        query = query.where(eq(tickets.status, status));
+      }
     }
 
     const result = await query;
@@ -929,7 +942,11 @@ export class DatabaseStorage implements IStorage {
       .from(tickets);
 
     if (status) {
-      query = query.where(eq(tickets.status, status));
+      if (status === "open") {
+        query = query.where(inArray(tickets.status, ["open", "in-progress", "in_progress"]));
+      } else {
+        query = query.where(eq(tickets.status, status));
+      }
     }
 
     return await query

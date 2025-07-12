@@ -98,6 +98,7 @@ export function TicketList({
       case "open":
         return <AlertCircle className="h-4 w-4" style={{ color: brandColors.accent.dark }} />;
       case "in_progress":
+      case "in-progress":
         return <Clock className="h-4 w-4" style={{ color: brandColors.primary.dark }} />;
       case "closed":
         return <Check className="h-4 w-4" style={{ color: brandColors.secondary.dark }} />;
@@ -123,6 +124,7 @@ export function TicketList({
           </Badge>
         );
       case "in_progress":
+      case "in-progress":
         return (
           <Badge 
             variant="outline" 

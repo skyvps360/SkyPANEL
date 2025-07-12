@@ -356,53 +356,56 @@ export default function UsersPage() {
 
   // Actions for each user
   const renderActions = (user: User) => (
-    <>
-      {/* Don't allow changing your own role or account status */}
-      {currentUser?.id !== user.id && (
-        <>
-          <DropdownMenuItem onClick={() => {
-            openRoleDialog(user);
-          }}>
-            <UserCog className="mr-2 h-4 w-4" />
-            Change Role
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => {
-              openStatusDialog(user);
-            }}
-            className={user.isActive === false ? "text-green-600" : "text-amber-600"}
-          >
-            {user.isActive === false ? (
-              <>
-                <Power className="mr-2 h-4 w-4" />
-                Enable User
-              </>
-            ) : (
-              <>
-                <PowerOff className="mr-2 h-4 w-4" />
-                Suspend User
-              </>
-            )}
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={() => {
-              openDeleteDialog(user);
-            }}
-            className="text-red-600"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete User
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => {
-            navigate(`/admin/users/${user.id}`);
-          }}>
-            <Edit className="mr-2 h-4 w-4" />
-            Edit User
-          </DropdownMenuItem>
-        </>
-      )}
-    </>
-  );
+  <>
+    {currentUser?.id === user.id ? (
+      <DropdownMenuItem disabled className="opacity-75 cursor-not-allowed select-none text-muted-foreground">
+        You cannot edit your own account
+      </DropdownMenuItem>
+    ) : (
+      <>
+        <DropdownMenuItem onClick={() => {
+          openRoleDialog(user);
+        }}>
+          <UserCog className="mr-2 h-4 w-4" />
+          Change Role
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => {
+            openStatusDialog(user);
+          }}
+          className={user.isActive === false ? "text-green-600" : "text-amber-600"}
+        >
+          {user.isActive === false ? (
+            <>
+              <Power className="mr-2 h-4 w-4" />
+              Enable User
+            </>
+          ) : (
+            <>
+              <PowerOff className="mr-2 h-4 w-4" />
+              Suspend User
+            </>
+          )}
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => {
+            openDeleteDialog(user);
+          }}
+          className="text-red-600"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Delete User
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          navigate(`/admin/users/${user.id}`);
+        }}>
+          <Edit className="mr-2 h-4 w-4" />
+          Edit User
+        </DropdownMenuItem>
+      </>
+    )}
+  </>
+);
 
   // Filter users by role
   const admins = users.filter(user => user.role === "admin");
