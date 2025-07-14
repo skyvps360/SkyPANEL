@@ -4201,6 +4201,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get department info
       const department = ticket.departmentId ? await storage.getSupportDepartment(ticket.departmentId) : null;
 
+      // Attach basic user info to ticket for easier display in admin UI
+      try {
+        const ticketUser = await storage.getUser(ticket.userId);
+        if (ticketUser) {
+          // Only expose necessary fields to the client
+          (ticket as any).user = {
+            id: ticketUser.id,
+            fullName: ticketUser.fullName,
+            email: ticketUser.email,
+          };
+        }
+      } catch (err) {
+        console.error(`Error fetching user for ticket ${ticketId}:`, err);
+      }
+
       // If this is a VPS-related ticket, fetch the VPS information
       let server = null;
       if (ticket.vpsId) {
