@@ -3,15 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from "@/components/ui/tabs";
+// Tabs removed - using Select dropdown instead for better mobile experience
 import {
   Slider
 } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   BarChart,
   Bar,
@@ -51,7 +53,8 @@ import {
   DownloadCloud,
   UploadCloud,
   LineChart,
-  Monitor
+  Monitor,
+  Terminal
 } from "lucide-react";
 
 // Helper function to format data size to human readable format
@@ -593,6 +596,9 @@ export default function ServerDetailPage() {
 
   // State for storing generated password
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+
+  // State for active tab
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Load saved password from localStorage on initial render
   useEffect(() => {
@@ -1533,19 +1539,68 @@ export default function ServerDetailPage() {
 
         {/* Server details */}
         {!isLoading && !error && server && (
-          <Tabs defaultValue="overview" className="space-y-4">
-            <TabsList className="grid grid-cols-2 md:grid-cols-7 lg:w-[900px] bg-muted/60 border-border">
-              <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
-              <TabsTrigger value="specs" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Specifications</TabsTrigger>
-              <TabsTrigger value="network" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Network</TabsTrigger>
-              <TabsTrigger value="traffic" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Traffic</TabsTrigger>
-              <TabsTrigger value="storage" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Storage</TabsTrigger>
-              <TabsTrigger value="vnc" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">VNC</TabsTrigger>
-              <TabsTrigger value="console" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Controls</TabsTrigger>
-            </TabsList>
+          <div className="space-y-4">
+            {/* Tab Navigation Dropdown */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Server Details</h2>
+                <div className="w-64">
+                  <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="overview">
+                        <div className="flex items-center gap-2">
+                          <Server className="h-4 w-4" />
+                          Overview
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="specs">
+                        <div className="flex items-center gap-2">
+                          <Cpu className="h-4 w-4" />
+                          Specifications
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="network">
+                        <div className="flex items-center gap-2">
+                          <Network className="h-4 w-4" />
+                          Network
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="traffic">
+                        <div className="flex items-center gap-2">
+                          <LineChart className="h-4 w-4" />
+                          Traffic
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="storage">
+                        <div className="flex items-center gap-2">
+                          <HardDrive className="h-4 w-4" />
+                          Storage
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="vnc">
+                        <div className="flex items-center gap-2">
+                          <Monitor className="h-4 w-4" />
+                          VNC
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="console">
+                        <div className="flex items-center gap-2">
+                          <Terminal className="h-4 w-4" />
+                          Controls
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </Card>
 
             {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-4">
+            {activeTab === "overview" && (
+              <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* General Information */}
                 <Card className="md:col-span-2">
@@ -1730,10 +1785,12 @@ export default function ServerDetailPage() {
               </div>
 
 
-            </TabsContent>
+              </div>
+            )}
 
             {/* Specifications Tab */}
-            <TabsContent value="specs" className="space-y-4">
+            {activeTab === "specs" && (
+              <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                   <Cpu className="h-12 w-12 text-primary mb-2" />
@@ -2009,10 +2066,12 @@ export default function ServerDetailPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+              </div>
+            )}
 
             {/* Network Tab */}
-            <TabsContent value="network" className="space-y-4">
+            {activeTab === "network" && (
+              <div className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -2520,16 +2579,20 @@ export default function ServerDetailPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+              </div>
+            )}
 
             {/* Traffic Tab */}
-            <TabsContent value="traffic" className="space-y-4">
-              {/* Add Traffic tab query */}
-              <TrafficTab serverId={serverId} />
-            </TabsContent>
+            {activeTab === "traffic" && (
+              <div className="space-y-4">
+                {/* Add Traffic tab query */}
+                <TrafficTab serverId={serverId} />
+              </div>
+            )}
 
             {/* Storage Tab */}
-            <TabsContent value="storage" className="space-y-4">
+            {activeTab === "storage" && (
+              <div className="space-y-4">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -2798,15 +2861,19 @@ export default function ServerDetailPage() {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+              </div>
+            )}
 
             {/* VNC Tab */}
-            <TabsContent value="vnc" className="space-y-4">
-              <VNCTab serverId={serverId} />
-            </TabsContent>
+            {activeTab === "vnc" && (
+              <div className="space-y-4">
+                <VNCTab serverId={serverId} />
+              </div>
+            )}
 
             {/* Controls Tab */}
-            <TabsContent value="console" className="space-y-4">
+            {activeTab === "console" && (
+              <div className="space-y-4">
               <div className="space-y-6">
                 {/* Power status card with enhanced design */}
                 <Card>
@@ -3118,9 +3185,10 @@ export default function ServerDetailPage() {
                   </CardContent>
                 </Card>
               </div>
-            </TabsContent>
+              </div>
+            )}
 
-          </Tabs>
+          </div>
         )}
       </div>
     </AdminLayout>
