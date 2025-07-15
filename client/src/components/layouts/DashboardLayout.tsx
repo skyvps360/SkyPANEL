@@ -313,20 +313,21 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       url: "/status",
       icon: <Activity className="h-4 w-4" />    
     },
-    {
-      id: "dns",
-      name: "DNS Management",
-      description: "Manage your DNS domains and records",
-      url: "/dns",
-      icon: <Globe className="h-4 w-4" />
-    },
-    {
-      id: "dns-plans",
-      name: "DNS Plans",
-      description: "Purchase and manage DNS service plans",
-      url: "/dns-plans",
-      icon: <CreditCard className="h-4 w-4" />
-    },
+    // DNS shortcuts hidden from client dashboard
+    // {
+    //   id: "dns",
+    //   name: "DNS Management",
+    //   description: "Manage your DNS domains and records",
+    //   url: "/dns",
+    //   icon: <Globe className="h-4 w-4" />
+    // },
+    // {
+    //   id: "dns-plans",
+    //   name: "DNS Plans",
+    //   description: "Purchase and manage DNS service plans",
+    //   url: "/dns-plans",
+    //   icon: <CreditCard className="h-4 w-4" />
+    // },
   ];
 
   // Simplified admin shortcuts to direct to the new admin dashboard
@@ -372,18 +373,19 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       href: "/dashboard/sla",
       icon: <Shield className="h-5 w-5 mr-3" />,
     },
-    {
-      name: "DNS Management",
-      href: "/dns",
-      icon: <Globe className="h-5 w-5 mr-3" />,
-      children: [
-        {
-          name: "DNS Plans",
-          href: "/dns-plans",
-          icon: <CreditCard className="h-4 w-4 mr-3" />,
-        },
-      ],
-    },
+    // DNS Management hidden from client dashboard
+    // {
+    //   name: "DNS Management",
+    //   href: "/dns",
+    //   icon: <Globe className="h-5 w-5 mr-3" />,
+    //   children: [
+    //     {
+    //       name: "DNS Plans",
+    //       href: "/dns-plans",
+    //       icon: <CreditCard className="h-4 w-4 mr-3" />,
+    //     },
+    //   ],
+    // },
    // {
    //   name: "API Documentation",
    //   href: "/api-docs",
