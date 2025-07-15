@@ -336,6 +336,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ServerLogsModal } from "@/components/server/ServerLogsModal";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 
 // VNC Tab Component
 const VNCTab = ({ serverId }: { serverId: number }) => {
@@ -661,6 +669,9 @@ export default function ServerDetailPage() {
   // State for password visibility toggle
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
+  // State for Windows password reset modal
+  const [isWindowsPasswordModalOpen, setIsWindowsPasswordModalOpen] = useState(false);
+
   // Add state for rate limiting the refresh button
   const [refreshClicks, setRefreshClicks] = useState<number[]>([]);
   const [isRateLimited, setIsRateLimited] = useState(false);
@@ -979,6 +990,16 @@ export default function ServerDetailPage() {
 
     // Final fallback
     return { name: "Unknown OS", icon: UnknownOSIcon };
+  }
+
+  // Function to detect if the server is running Windows OS
+  function isWindowsOS(serverData: any): boolean {
+    const osInfo = getServerOSInfo(serverData);
+    const osName = osInfo.name.toLowerCase();
+
+    // Check for Windows variants
+    const windowsKeywords = ['windows', 'win', 'server 2019', 'server 2022', 'server 2016'];
+    return windowsKeywords.some(keyword => osName.includes(keyword));
   }
 
   // Fetch VNC status for Quick Actions
@@ -2069,7 +2090,14 @@ export default function ServerDetailPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => resetPasswordMutation.mutate()}
+                    onClick={() => {
+                      // Check if this is a Windows server
+                      if (isWindowsOS(server)) {
+                        setIsWindowsPasswordModalOpen(true);
+                      } else {
+                        resetPasswordMutation.mutate();
+                      }
+                    }}
                     className="w-full justify-start gap-2 h-10 transition-all duration-200"
                   >
                     <Key className="h-4 w-4" />
@@ -2306,43 +2334,46 @@ export default function ServerDetailPage() {
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between py-3 border-b border-slate-100">
-                            <span className="text-sm font-medium text-slate-600">Root Password</span>
-                            <div className="flex items-center gap-2">
-                              {generatedPassword ? (
-                                <>
-                                  <code className="px-2 py-1 rounded text-xs font-mono text-slate-700" style={{ backgroundColor: brandColors.secondary.extraLight }}>
-                                    {isPasswordVisible ? generatedPassword : '•'.repeat(generatedPassword.length)}
-                                  </code>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setIsPasswordVisible(!isPasswordVisible)}
-                                    className="h-6 w-6 p-0 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                                    title={isPasswordVisible ? "Hide password" : "Show password"}
-                                    aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-                                  >
-                                    {isPasswordVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(generatedPassword, 'password')}
-                                    className="h-6 w-6 p-0 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                                    title="Copy to clipboard"
-                                    aria-label="Copy password to clipboard"
-                                  >
-                                    <Copy className="h-3 w-3" />
-                                  </Button>
-                                </>
-                              ) : (
-                                <span className="text-xs text-slate-500 flex items-center gap-1">
-                                  <InfoIcon className="h-3 w-3" />
-                                  Use Reset Password
-                                </span>
-                              )}
+                          {/* Only show password field for non-Windows servers */}
+                          {!isWindowsOS(server) && (
+                            <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                              <span className="text-sm font-medium text-slate-600">Root Password</span>
+                              <div className="flex items-center gap-2">
+                                {generatedPassword ? (
+                                  <>
+                                    <code className="px-2 py-1 rounded text-xs font-mono text-slate-700" style={{ backgroundColor: brandColors.secondary.extraLight }}>
+                                      {isPasswordVisible ? generatedPassword : '•'.repeat(generatedPassword.length)}
+                                    </code>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                                      className="h-6 w-6 p-0 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                                      title={isPasswordVisible ? "Hide password" : "Show password"}
+                                      aria-label={isPasswordVisible ? "Hide password" : "Show password"}
+                                    >
+                                      {isPasswordVisible ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => copyToClipboard(generatedPassword, 'password')}
+                                      className="h-6 w-6 p-0 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                                      title="Copy to clipboard"
+                                      aria-label="Copy password to clipboard"
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <span className="text-xs text-slate-500 flex items-center gap-1">
+                                    <InfoIcon className="h-3 w-3" />
+                                    Use Reset Password
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           <div className="flex items-center justify-between py-3 border-b border-slate-100">
                             <span className="text-sm font-medium text-slate-600">Status</span>
@@ -3448,6 +3479,29 @@ export default function ServerDetailPage() {
           serverId={serverId}
           serverName={server?.name}
         />
+
+        {/* Windows Password Reset Modal */}
+        <Dialog open={isWindowsPasswordModalOpen} onOpenChange={setIsWindowsPasswordModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Windows Password Reset</DialogTitle>
+              <DialogDescription>
+                Windows passwords can only be reset via VirtFusion panel due to security requirements.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                To reset the password for this Windows server, please use the VirtFusion panel where you can securely manage Windows authentication.
+              </p>
+              <VirtFusionSsoButton
+                variant="outline"
+                size="default"
+                className="w-full justify-center"
+                text="Open VirtFusion Panel"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
