@@ -16,19 +16,11 @@ logs/
 .aiignore
 *.log
 .vscode-test/
-.cursor/
+.cursor
 .windsurf
-
-
-#Ignore vscode AI rules
-.github/copilot-instructions.md
-.config/
-
+.codacy
 #Ignore cursor AI rules
 .cursor\rules\codacy.mdc
-
-#Ignore vscode AI rules
-.github\copilot-instructions.md
 
 #Ignore windsurf AI rules
 .windsurfrules
