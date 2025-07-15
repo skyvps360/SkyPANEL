@@ -12,7 +12,9 @@ import {EmailVerificationService} from "./email-verification-service";
 import {discordService} from "./discord-service";
 import {discordBotService} from "./discord-bot-service";
 import {virtFusionService} from "./virtfusion-service";
-import {VirtFusionApi as ImportedVirtFusionApi, virtFusionApi} from "./virtfusion-api";
+import {VirtFusionApi as ImportedVirtFusionApi, virtFusionApi, VirtFusionApi} from "./virtfusion-api";
+// Remove duplicate import of InsertTransaction
+// import { InsertTransaction } from "@shared/schema";
 import {emailService} from "./email";
 import {betterStackService} from "./betterstack-service";
 import {geminiService} from "./gemini-service";
