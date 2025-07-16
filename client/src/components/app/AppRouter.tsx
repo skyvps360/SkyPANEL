@@ -139,10 +139,9 @@ export function AppRouter() {
                 <Route path="/sla" component={SLAPage}/>                {/* VNC Console - User access allowed */}
                 <ProtectedRoute path="/vnc-console" component={VNCConsole}/>
 
-                {/* DNS routes hidden from client dashboard */}
-                {/* <ProtectedRoute path="/dns" component={DnsDomainsPage}/> */}
-                {/* <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage}/> */}
-                {/* <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/> */}
+                <ProtectedRoute path="/dns" component={DnsDomainsPage}/>
+                <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage}/>
+                <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/>
 
                 {/* Admin Routes */}
                 <AdminProtectedRoute path="/admin" component={AdminDashboard}/>
