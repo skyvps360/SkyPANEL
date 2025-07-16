@@ -69,18 +69,5 @@
 				]
 			}
 		]
-	},
-	"extensions": {
-		"recommendations": [
-			"google.geminicodeassist",
-			"ms-azuretools.vscode-containers",
-			"davidanson.vscode-markdownlint",
-			"christian-kohler.npm-intellisense",
-			"ms-python.python",
-			"esbenp.prettier-vscode",
-			"dbaeumer.vscode-eslint",
-			"kilocode.kilo-code",
-			"codeium.codeium"
-		]
 	}
 }
