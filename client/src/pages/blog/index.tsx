@@ -725,8 +725,7 @@ export default function BlogPage() {
                 className="pl-10 pr-10 py-6 rounded-full border-gray-200 input-brand-focus"
                 style={{
                   borderColor: searchQuery ? brandColors.primary.light : undefined,
-                  boxShadow: searchQuery ? `0 0 0 1px ${brandColors.primary.light}` : undefined,
-                  "--brand-primary-light": brandColors.primary.light
+                  boxShadow: searchQuery ? `0 0 0 1px ${brandColors.primary.light}` : undefined
                 }}
               />
               {searchQuery && (
