@@ -203,7 +203,7 @@ export function BlogTable({
                     </Badge>
                   )}
                   
-                  <h3 className="font-bold text-lg mb-3 transition-colors"
+                  <h3 className="font-bold text-lg mb-3 transition-colors line-clamp-2"
                       style={{ color: brandColors.primary.dark }}>
                     {post.title}
                   </h3>
@@ -282,7 +282,7 @@ export function BlogTable({
                     </div>
                   </div>
                   
-                  <h3 className="font-bold text-lg mb-2 transition-colors"
+                  <h3 className="font-bold text-lg mb-2 transition-colors line-clamp-2"
                       style={{ color: brandColors.primary.dark }}>
                     {post.title}
                   </h3>
@@ -298,4 +298,4 @@ export function BlogTable({
       </div>
     </div>
   );
-} 
+}
