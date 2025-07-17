@@ -10,17 +10,21 @@ dnsmasq.conf
 vitest.config.ts
 logs/
 
+
+# Dot Directories
+.vscode-test/
+.cursor/
+.windsurf/
+.codacy/
+
+
 # DotFiles & Directories
 .env
 .idea
 .aiignore
 *.log
-.vscode-test/
-.cursor
-.windsurf
-.codacy
 #Ignore cursor AI rules
-.cursor\rules\codacy.mdc
+.cursor/rules/codacy.mdc
 
 #Ignore windsurf AI rules
 .windsurfrules
