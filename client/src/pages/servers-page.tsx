@@ -315,144 +315,229 @@ export default function ServersPage() {
           </CardContent>
         </Card>
 
-        {/* Enhanced Loading State */}
+        {/* Loading State for Modern Table */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-xl bg-card border border-border shadow-md">
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-10 w-10 rounded-lg" />
-                      <div className="space-y-2">
-                        <Skeleton className="h-5 w-32" />
-                        <Skeleton className="h-4 w-20" />
-                      </div>
-                    </div>
-                    <Skeleton className="h-6 w-16 rounded-full" />
-                  </div>
-
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-4 w-4" />
-                      <Skeleton className="h-4 w-24" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-4 w-4" />
-                      <Skeleton className="h-4 w-32" />
-                    </div>
-                  </div>
-
-                  <Skeleton className="h-10 w-full rounded-lg" />
+          <Card className="shadow-xl border border-gray-300/60">
+            <div className="overflow-hidden">
+              {/* Table Header */}
+              <div className="bg-gray-50/80 border-b border-gray-200 px-8 py-4">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-5 w-40" />
                 </div>
               </div>
-            ))}
-          </div>
+              
+              {/* Loading Rows */}
+              <div className="divide-y divide-gray-100">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="px-8 py-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-6 flex-1">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-5 w-64" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-8">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-9 w-24 rounded-lg" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
         ) : servers?.length ? (
           <>
-            {/* Modern Server Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {servers.map((server: any) => {
-                const status = getServerStatus(server);
-                const isRunning = status === 'RUNNING';
-                const isStopped = status === 'STOPPED';
-                const isSuspended = status === 'SUSPENDED';
+            {/* Modern Server Management Table */}
+            <Card className="shadow-xl border border-gray-300/60 overflow-hidden">
+              {/* Table Header */}
+              <div 
+                className="px-8 py-5 border-b border-gray-200/80 backdrop-blur-sm"
+                style={{
+                  background: `linear-gradient(135deg, ${brandColors.primary.full}15, ${brandColors.secondary.full}10)`
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="p-2 rounded-lg text-white shadow-md"
+                      style={{ backgroundColor: brandColors.primary.full }}
+                    >
+                      <Server className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">Server Infrastructure</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {filteredServers.length} server{filteredServers.length !== 1 ? 's' : ''} • 
+                        {filteredServers.filter((s: any) => getServerStatus(s) === 'RUNNING').length} running
+                      </p>
+                    </div>
+                  </div>
+                  <div className="hidden lg:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+                    <span>Location</span>
+                    <span>Status</span>
+                    <span>CPU</span>
+                    <span>RAM</span>
+                    <span>Storage</span>
+                    <span>Actions</span>
+                  </div>
+                </div>
+              </div>
 
-                return (
-                  <Card
-                    key={server.id}
-                    className="group shadow-xl hover:shadow-xl hover:border-primary transition-all duration-300 ease-in-out"
-                  >
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className={`flex items-center justify-center h-10 w-10 rounded-full text-white shadow-lg transition-all duration-200 ${
-                            isRunning ? 'bg-primary' : isSuspended ? 'bg-destructive' : 'bg-muted-foreground'
-                          }`}
-                        >
-                          <Server className="h-5 w-5" />
+              {/* Server Rows */}
+              <div className="divide-y divide-gray-100/60">
+                {servers.map((server: any, index: number) => {
+                  const status = getServerStatus(server);
+                  const isRunning = status === 'RUNNING';
+                  const isStopped = status === 'STOPPED';
+                  const isSuspended = status === 'SUSPENDED';
+
+                  return (
+                    <div
+                      key={server.id}
+                      className={`group px-8 py-6 hover:bg-gray-50/60 transition-all duration-200 ${
+                        index % 2 === 0 ? 'bg-white' : 'bg-gray-25/20'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        {/* Server Info Section */}
+                        <div className="flex items-center gap-6 flex-1 min-w-0">
+                          <div
+                            className="flex items-center justify-center h-12 w-12 rounded-full text-white shadow-lg transition-all duration-200 flex-shrink-0"
+                            style={{
+                              backgroundColor: isRunning 
+                                ? brandColors.primary.full 
+                                : isSuspended 
+                                ? '#ef4444' 
+                                : '#6b7280'
+                            }}
+                          >
+                            <Server className="h-6 w-6" />
+                          </div>
+                          
+                          {/* Server Name & Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-1">
+                              <h4 className="text-lg font-semibold text-foreground leading-tight group-hover:text-primary transition-colors">
+                                <span className="break-all">{server.name}</span>
+                              </h4>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
+                                ID: {server.id}
+                              </span>
+                              {server.created && (
+                                <span className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {new Date(server.created).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <CardTitle className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
-                            {server.name}
-                          </CardTitle>
-                          <p className="text-sm text-muted-foreground font-mono">ID: {server.id}</p>
+
+                        {/* Server Stats & Actions */}
+                        <div className="flex items-center gap-8 flex-shrink-0">
+                          {/* Location */}
+                          <div className="hidden lg:block text-sm font-medium text-muted-foreground min-w-[120px]">
+                            {server.hypervisor?.name ? (
+                              <div className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4" />
+                                <span className="truncate">{server.hypervisor.name}</span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </div>
+                          
+                          {/* Status Badge */}
+                          <div className="min-w-[90px]">
+                            <Badge
+                              variant={getStatusBadgeVariant(status)}
+                              className={`text-xs font-medium px-3 py-1.5 rounded-full ${
+                                isRunning
+                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  : isSuspended
+                                  ? 'bg-red-100 text-red-800 border-red-200'
+                                  : 'bg-gray-100 text-gray-800 border-gray-200'
+                              }`}
+                            >
+                              <div className={`w-2 h-2 rounded-full mr-2 ${
+                                isRunning ? 'bg-green-500' : isSuspended ? 'bg-red-500' : 'bg-gray-500'
+                              }`}></div>
+                              {status}
+                            </Badge>
+                          </div>
+                          
+                          {/* Resource Stats */}
+                          <div className="hidden lg:flex items-center gap-6 text-sm font-medium">
+                            <div className="flex items-center gap-2 text-muted-foreground min-w-[60px]">
+                              <Cpu className="h-4 w-4" />
+                              <span>
+                                {server.cpu?.cores !== undefined && server.cpu?.cores !== null ? `${server.cpu.cores}c` : '—'}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 text-muted-foreground min-w-[70px]">
+                              <MemoryStick className="h-4 w-4" />
+                              <span>
+                                {(() => {
+                                  const memoryMb = server?.settings?.resources?.memory;
+                                  const legacyMemory = server.memory;
+                                  if (typeof memoryMb === 'number' && !isNaN(memoryMb)) {
+                                    return `${(memoryMb / 1024).toFixed(0)}GB`;
+                                  } else if (legacyMemory && !isNaN(parseInt(legacyMemory, 10))) {
+                                    return `${(parseInt(legacyMemory, 10) / 1024).toFixed(0)}GB`;
+                                  } else {
+                                    return '—';
+                                  }
+                                })()}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 text-muted-foreground min-w-[80px]">
+                              <HardDrive className="h-4 w-4" />
+                              <span>
+                                {server.storage?.length > 0 && server.storage[0]?.capacity !== undefined && server.storage[0]?.capacity !== null
+                                  ? `${server.storage[0].capacity}GB`
+                                  : '—'}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Action Button */}
+                          <Link href={`/servers/${server.id}`}>
+                            <Button
+                              size="sm"
+                              className="text-white shadow-md transition-all duration-300 group-hover:scale-105 hover:shadow-lg min-w-[90px]"
+                              style={{
+                                backgroundColor: brandColors.primary.full,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = `${brandColors.primary.full}dd`;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = brandColors.primary.full;
+                              }}
+                            >
+                              <Settings className="mr-2 h-4 w-4" />
+                              Manage
+                            </Button>
+                          </Link>
                         </div>
                       </div>
-                      <Badge
-                        variant={getStatusBadgeVariant(status)}
-                        className={`text-xs font-medium px-2 py-1 rounded-full ${
-                          isRunning
-                            ? 'bg-green-100 text-green-800 hover:bg-green-100' // Prevent hover color change
-                            : isSuspended
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {status}
-                      </Badge>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {server.hypervisor?.name && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <span>Location: {server.hypervisor.name}</span>
-                        </div>
-                      )}
-                      {server.created && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4 text-gray-500" />
-                          <span>Created: {new Date(server.created).toLocaleDateString()}</span>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
-                        <div className="flex flex-col items-center text-center">
-                          <Cpu className="h-5 w-5 text-gray-600 mb-1" />
-                          <span className="text-xs font-medium text-foreground">
-                            {server.cpu?.cores !== undefined && server.cpu?.cores !== null ? `${server.cpu.cores} Cores` : 'N/A'}
-                          </span>
-                        </div>
-                        <div className="flex flex-col items-center text-center">
-                          <MemoryStick className="h-5 w-5 text-gray-600 mb-1" />
-                          <span className="text-xs font-medium text-foreground">
-                            {/* Prefer VirtFusion API: server.settings.resources.memory (MB), fallback to server.memory */}
-                            {(() => {
-                              const memoryMb = server?.settings?.resources?.memory;
-                              const legacyMemory = server.memory;
-                              if (typeof memoryMb === 'number' && !isNaN(memoryMb)) {
-                                return `${(memoryMb / 1024).toFixed(1).replace('.0', '')} GB RAM`;
-                              } else if (legacyMemory && !isNaN(parseInt(legacyMemory, 10))) {
-                                return `${(parseInt(legacyMemory, 10) / 1024).toFixed(1).replace('.0', '')} GB RAM`;
-                              } else {
-                                return 'N/A';
-                              }
-                            })()}
-                          </span>
-                        </div>
-                        <div className="flex flex-col items-center text-center">
-                          <HardDrive className="h-5 w-5 text-gray-600 mb-1" />
-                          <span className="text-xs font-medium text-foreground">
-                            {server.storage?.length > 0 && server.storage[0]?.capacity !== undefined && server.storage[0]?.capacity !== null
-                              ? `${server.storage[0].capacity} GB Storage`
-                              : 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <Link href={`/servers/${server.id}`}>
-                        <Button
-                          className="w-full mt-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg transition-all duration-300 ease-in-out group-hover:scale-[1.02]"
-                        >
-                          Manage Server
-                          <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
-                        </Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
 
             {/* Enhanced Pagination */}
             {totalPages > 1 && (
