@@ -114,14 +114,23 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy({ usernameField: 'usernameOrEmail' }, async (usernameOrEmail, password, done) => {
       try {
         // Password must be at least 8 characters
         if (!password || password.length < 8) {
           return done(null, false, { message: 'Password must be at least 8 characters long' });
         }
         
-        const user = await storage.getUserByUsername(username);
+        // Determine if input is email or username and get user accordingly
+        let user;
+        if (usernameOrEmail.includes('@')) {
+          // Input contains '@', treat as email
+          user = await storage.getUserByEmail(usernameOrEmail);
+        } else {
+          // Input doesn't contain '@', treat as username
+          user = await storage.getUserByUsername(usernameOrEmail);
+        }
+        
         if (!user) {
           return done(null, false, { message: 'Invalid username or password' });
         }

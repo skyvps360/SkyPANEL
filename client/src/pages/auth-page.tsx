@@ -20,7 +20,7 @@ import { getBrandColors } from "@/lib/brand-theme";
 
 // Extend schema for validation
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  usernameOrEmail: z.string().min(1, "Username or email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -160,7 +160,7 @@ export default function AuthPage() {
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      usernameOrEmail: "",
       password: "",
     },
   });
@@ -602,14 +602,15 @@ export default function AuthPage() {
               <TabsContent value="login">
                 <form onSubmit={loginForm.handleSubmit(onLoginSubmitWithVerification)} className="space-y-4 mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-username">Username</Label>
+                    <Label htmlFor="login-username-email">Username or Email</Label>
                     <Input 
-                      id="login-username"
+                      id="login-username-email"
                       type="text"
-                      {...loginForm.register("username")}
+                      placeholder="Enter your username or email"
+                      {...loginForm.register("usernameOrEmail")}
                     />
-                    {loginForm.formState.errors.username && (
-                      <p className="text-sm text-destructive">{loginForm.formState.errors.username.message}</p>
+                    {loginForm.formState.errors.usernameOrEmail && (
+                      <p className="text-sm text-destructive">{loginForm.formState.errors.usernameOrEmail.message}</p>
                     )}
                   </div>
                   <div className="space-y-2">
