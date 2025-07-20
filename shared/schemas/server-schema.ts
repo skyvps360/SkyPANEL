@@ -47,3 +47,32 @@ export const insertServerLogSchema = createInsertSchema(serverLogs).omit({
 
 export type InsertServerLog = z.infer<typeof insertServerLogSchema>;
 export type ServerLog = typeof serverLogs.$inferSelect;
+
+// Server Notes
+export const serverNotes = pgTable("server_notes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  serverId: integer("server_id").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertServerNoteSchema = createInsertSchema(serverNotes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateServerNoteSchema = createInsertSchema(serverNotes).omit({
+  id: true,
+  userId: true,
+  serverId: true,
+  createdAt: true,
+  updatedAt: true,
+}).partial();
+
+export type InsertServerNote = z.infer<typeof insertServerNoteSchema>;
+export type UpdateServerNote = z.infer<typeof updateServerNoteSchema>;
+export type ServerNote = typeof serverNotes.$inferSelect;

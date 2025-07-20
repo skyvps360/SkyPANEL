@@ -344,6 +344,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
+import { NotesTab } from "@/components/server/NotesTab";
 
 // VNC Tab Component
 const VNCTab = ({ serverId }: { serverId: number }) => {
@@ -2128,6 +2129,7 @@ export default function ServerDetailPage() {
               { id: "network", label: "Network", icon: Network },
               { id: "traffic", label: "Traffic", icon: Activity },
               { id: "storage", label: "Storage", icon: HardDrive },
+              { id: "notes", label: "Notes", icon: FileText },
               { id: "vnc", label: "VNC", icon: Monitor },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -3460,6 +3462,11 @@ export default function ServerDetailPage() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Notes Tab */}
+            <TabsContent value="notes" className="space-y-4">
+              <NotesTab serverId={serverId} />
             </TabsContent>
 
             {/* VNC Tab */}

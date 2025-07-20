@@ -22,6 +22,15 @@ export const startServer = (id: number) => api.post(`/servers/${id}/power/start`
 export const stopServer = (id: number) => api.post(`/servers/${id}/power/stop`);
 export const restartServer = (id: number) => api.post(`/servers/${id}/power/restart`);
 
+// Server Notes
+export const getServerNotes = (serverId: number) => api.get(`/servers/${serverId}/notes`);
+export const createServerNote = (serverId: number, data: { title: string; content: string }) => 
+  api.post(`/servers/${serverId}/notes`, data);
+export const updateServerNote = (serverId: number, noteId: number, data: { title?: string; content?: string }) => 
+  api.put(`/servers/${serverId}/notes/${noteId}`, data);
+export const deleteServerNote = (serverId: number, noteId: number) => 
+  api.delete(`/servers/${serverId}/notes/${noteId}`);
+
 // IP Management
 export const getIpAddresses = () => api.get('/ip-addresses');
 export const allocateIp = (serverId: number, ipAddressId: number) => 

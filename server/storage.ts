@@ -7,6 +7,7 @@ import {
   settings,
   serverPowerStatus,
   serverLogs,
+  serverNotes,
   notifications,
   apiKeys,
   passwordResetTokens,
@@ -84,6 +85,8 @@ import {
   type InsertServerPowerStatus,
   type ServerLog,
   type InsertServerLog,
+  type ServerNote,
+  type InsertServerNote,
   type ChatSession,
   type InsertChatSession,
   type ChatMessage,
@@ -406,6 +409,7 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
+  db = db;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({

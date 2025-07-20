@@ -3,6 +3,8 @@ import { storage } from "../storage";
 import { virtFusionService } from "../virtfusion-service";
 import { serverLoggingService } from "../server-logging-service";
 import { z } from 'zod';
+import { serverNotes, insertServerNoteSchema, updateServerNoteSchema } from '../../shared/schemas';
+import { eq, and, desc } from 'drizzle-orm';
 
 const router = Router();
 
@@ -270,6 +272,149 @@ router.get('/:id/backups', async (req, res) => {
   } catch (error: any) {
     console.error('Error getting server backups:', error);
     return res.status(500).json({ message: 'An error occurred while getting server backups' });
+  }
+});
+
+// Get server notes
+router.get('/:id/notes', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const serverId = parseInt(req.params.id);
+    if (isNaN(serverId)) {
+      return res.status(400).json({ message: 'Invalid server ID' });
+    }
+    
+    const notes = await storage.db
+      .select()
+      .from(serverNotes)
+      .where(and(
+        eq(serverNotes.serverId, serverId),
+        eq(serverNotes.userId, req.user.id)
+      ))
+      .orderBy(desc(serverNotes.createdAt));
+    
+    return res.json(notes);
+  } catch (error: any) {
+    console.error('Error getting server notes:', error);
+    return res.status(500).json({ message: 'An error occurred while getting server notes' });
+  }
+});
+
+// Create server note
+router.post('/:id/notes', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const serverId = parseInt(req.params.id);
+    if (isNaN(serverId)) {
+      return res.status(400).json({ message: 'Invalid server ID' });
+    }
+    
+    const validationResult = insertServerNoteSchema.safeParse({
+      ...req.body,
+      userId: req.user.id,
+      serverId: serverId
+    });
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        message: 'Invalid input',
+        errors: validationResult.error.errors
+      });
+    }
+    
+    const [note] = await storage.db
+      .insert(serverNotes)
+      .values(validationResult.data)
+      .returning();
+    
+    return res.status(201).json(note);
+  } catch (error: any) {
+    console.error('Error creating server note:', error);
+    return res.status(500).json({ message: 'An error occurred while creating the server note' });
+  }
+});
+
+// Update server note
+router.put('/:id/notes/:noteId', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const serverId = parseInt(req.params.id);
+    const noteId = parseInt(req.params.noteId);
+    
+    if (isNaN(serverId) || isNaN(noteId)) {
+      return res.status(400).json({ message: 'Invalid server ID or note ID' });
+    }
+    
+    const validationResult = updateServerNoteSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        message: 'Invalid input',
+        errors: validationResult.error.errors
+      });
+    }
+    
+    const [note] = await storage.db
+      .update(serverNotes)
+      .set({ ...validationResult.data, updatedAt: new Date() })
+      .where(and(
+        eq(serverNotes.id, noteId),
+        eq(serverNotes.serverId, serverId),
+        eq(serverNotes.userId, req.user.id)
+      ))
+      .returning();
+    
+    if (!note) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+    
+    return res.json(note);
+  } catch (error: any) {
+    console.error('Error updating server note:', error);
+    return res.status(500).json({ message: 'An error occurred while updating the server note' });
+  }
+});
+
+// Delete server note
+router.delete('/:id/notes/:noteId', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const serverId = parseInt(req.params.id);
+    const noteId = parseInt(req.params.noteId);
+    
+    if (isNaN(serverId) || isNaN(noteId)) {
+      return res.status(400).json({ message: 'Invalid server ID or note ID' });
+    }
+    
+    const [deletedNote] = await storage.db
+      .delete(serverNotes)
+      .where(and(
+        eq(serverNotes.id, noteId),
+        eq(serverNotes.serverId, serverId),
+        eq(serverNotes.userId, req.user.id)
+      ))
+      .returning();
+    
+    if (!deletedNote) {
+      return res.status(404).json({ message: 'Note not found' });
+    }
+    
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting server note:', error);
+    return res.status(500).json({ message: 'An error occurred while deleting the server note' });
   }
 });
 
