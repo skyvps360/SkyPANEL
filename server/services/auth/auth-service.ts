@@ -3,8 +3,8 @@ import { storage } from '../../storage';
 import { emailService } from '../../email';
 import { hashPassword, comparePasswords } from '../../auth';
 import { User } from '@shared/schema';
-import { virtFusionService } from '../../services/integration/virtfusion-service';
-import { virtFusionApi } from '../../services/integration/virtfusion-api';
+import { virtFusionService } from '../../virtfusion-service';
+import { virtFusionApi } from '../../virtfusion-api';
 
 // Initialize the VirtFusion API settings
 (async function initializeVirtFusionApi() {

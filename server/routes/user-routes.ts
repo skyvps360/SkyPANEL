@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { storage } from "../storage";
-import { AuthService } from "../auth-service";
+import { AuthService } from "../services/auth/auth-service";
 import { EmailVerificationService } from "../email-verification-service";
 import { hashPassword } from "../auth";
 import { z } from 'zod';

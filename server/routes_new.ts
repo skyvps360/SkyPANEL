@@ -7,7 +7,7 @@ import {WebSocketServer} from "ws";
 import {storage} from "./storage";
 import {db, pool} from "./db";
 import {hashPassword, setupAuth} from "./auth";
-import {AuthService} from "./auth-service";
+import {AuthService} from "./services/auth/auth-service";
 import {EmailVerificationService} from "./email-verification-service";
 import {discordService} from "./discord-service";
 import {discordBotService} from "./discord-bot-service";
