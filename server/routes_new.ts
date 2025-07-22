@@ -10234,16 +10234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Public packages endpoint
-  app.get("/api/public/packages", async (req, res) => {
-    try {
-      // Return empty array until implemented
-      res.json([]);
-    } catch (error: any) {
-      console.error('Error fetching packages:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+
 
   // Public package pricing endpoint
   app.get("/api/public/package-pricing", async (req, res) => {
