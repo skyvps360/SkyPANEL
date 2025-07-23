@@ -98,6 +98,21 @@ import {
   type ChatDepartment,
   type InsertChatDepartment,  type ChatDepartmentAdmin,
   type InsertChatDepartmentAdmin,
+  awardSettings,
+  userLoginStreaks,
+  userAwards,
+  coupons,
+  userCouponUsage,
+  type AwardSetting,
+  type InsertAwardSetting,
+  type UserLoginStreak,
+  type InsertUserLoginStreak,
+  type UserAward,
+  type InsertUserAward,
+  type Coupon,
+  type InsertCoupon,
+  type UserCouponUsage,
+  type InsertUserCouponUsage,
 
 } from "@shared/schema";
 import { db } from "./db";
@@ -404,6 +419,24 @@ export interface IStorage {
   getChatSessionsWithDepartments(): Promise<(ChatSession & { user: User; assignedAdmin?: User; department?: ChatDepartment })[]>;
   getChatSessionsByDepartment(departmentId: number): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]>;
   getUserChatHistory(userId: number, limit?: number, offset?: number): Promise<(ChatSession & { department?: ChatDepartment })[]>;
+
+  // Awards system operations
+  getAllAwardSettings(): Promise<AwardSetting[]>;
+  getAwardSetting(id: number): Promise<AwardSetting | undefined>;
+  createAwardSetting(setting: InsertAwardSetting): Promise<AwardSetting>;
+  updateAwardSetting(id: number, updates: Partial<AwardSetting>): Promise<void>;
+  deleteAwardSetting(id: number): Promise<boolean>;
+  getUserLoginStreak(userId: number): Promise<UserLoginStreak | undefined>;
+  updateUserLoginStreak(userId: number, data?: Partial<UserLoginStreak>): Promise<{ loginStreak: UserLoginStreak; newAwards: UserAward[]; }>;
+  getUserAwards(userId: number): Promise<UserAward[]>;
+  getUserAwards(limit: number, offset: number, status?: string): Promise<{ awards: (UserAward & { user: User; awardSetting: AwardSetting })[]; total: number; }>;
+  getUserLoginStreaks(limit: number, offset: number): Promise<{ streaks: (UserLoginStreak & { user: User })[]; total: number; }>;
+  getUserAwardsHistory(userId: number, limit: number, offset: number): Promise<{ awards: UserAward[]; total: number; }>;
+  createUserAward(award: InsertUserAward): Promise<UserAward>;
+  updateUserAward(id: number, updates: Partial<UserAward>): Promise<void>;
+  getAwardStatistics(): Promise<{ totalUsers: number; totalAwards: number; totalTokensAwarded: number; }>;
+  getUserAwardsDashboard(userId: number): Promise<{ streak: UserLoginStreak | null; awards: UserAward[]; nextReward: AwardSetting | null; }>;
+  claimUserAward(userId: number, awardId: number): Promise<{ success: boolean; message: string; tokensAwarded?: number; }>;
 
 }
 
@@ -2604,6 +2637,532 @@ export class DatabaseStorage implements IStorage {
   async getCustomCreditsName(): Promise<string> {
     // TODO: Implement actual DB query
     throw new Error('Not implemented: getCustomCreditsName');
+  }
+
+  // --- Awards System Operations ---
+  async getAllAwardSettings(): Promise<AwardSetting[]> {
+    return await db.select({
+      id: awardSettings.id,
+      name: awardSettings.name,
+      description: awardSettings.description,
+      loginDaysRequired: awardSettings.loginDaysRequired,
+      virtFusionTokens: awardSettings.virtFusionTokens,
+      isActive: awardSettings.isActive,
+      createdAt: awardSettings.createdAt,
+      updatedAt: awardSettings.updatedAt
+    }).from(awardSettings).orderBy(awardSettings.loginDaysRequired);
+  }
+
+  async getAwardSetting(id: number): Promise<AwardSetting | undefined> {
+    const [setting] = await db.select({
+      id: awardSettings.id,
+      name: awardSettings.name,
+      description: awardSettings.description,
+      loginDaysRequired: awardSettings.loginDaysRequired,
+      virtFusionTokens: awardSettings.virtFusionTokens,
+      isActive: awardSettings.isActive,
+      createdAt: awardSettings.createdAt,
+      updatedAt: awardSettings.updatedAt
+    }).from(awardSettings).where(eq(awardSettings.id, id));
+    return setting;
+  }
+
+  async createAwardSetting(setting: InsertAwardSetting): Promise<AwardSetting> {
+    const [newSetting] = await db.insert(awardSettings).values(setting).returning();
+    return newSetting;
+  }
+
+  async updateAwardSetting(id: number, updates: Partial<AwardSetting>): Promise<void> {
+    await db.update(awardSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(awardSettings.id, id));
+  }
+
+  async deleteAwardSetting(id: number): Promise<boolean> {
+    const result = await db.delete(awardSettings).where(eq(awardSettings.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getUserLoginStreak(userId: number): Promise<UserLoginStreak | undefined> {
+    const [streak] = await db.select({
+      id: userLoginStreaks.id,
+      userId: userLoginStreaks.userId,
+      currentStreak: userLoginStreaks.currentStreak,
+      longestStreak: userLoginStreaks.longestStreak,
+      totalLoginDays: userLoginStreaks.totalLoginDays,
+      lastLoginDate: userLoginStreaks.lastLoginDate,
+      createdAt: userLoginStreaks.createdAt,
+      updatedAt: userLoginStreaks.updatedAt
+    }).from(userLoginStreaks).where(eq(userLoginStreaks.userId, userId));
+    return streak;
+  }
+
+  async updateUserLoginStreak(userId: number, data?: Partial<UserLoginStreak>): Promise<{ loginStreak: UserLoginStreak; newAwards: UserAward[]; }> {
+    const existing = await this.getUserLoginStreak(userId);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let totalLoginDays = 0;
+    
+    if (existing) {
+      const lastLogin = existing.lastLoginDate ? new Date(existing.lastLoginDate) : null;
+      if (lastLogin) {
+        lastLogin.setHours(0, 0, 0, 0);
+        const daysDiff = Math.floor((today.getTime() - lastLogin.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff === 0) {
+          // Same day login, no streak change
+          return { loginStreak: existing, newAwards: [] };
+        } else if (daysDiff === 1) {
+          // Consecutive day, increment streak
+          currentStreak = existing.currentStreak + 1;
+        } else {
+          // Streak broken, reset to 1
+          currentStreak = 1;
+        }
+      } else {
+        currentStreak = 1;
+      }
+      
+      totalLoginDays = existing.totalLoginDays + 1;
+      longestStreak = Math.max(existing.longestStreak, currentStreak);
+      
+      await db.update(userLoginStreaks)
+        .set({ 
+          currentStreak,
+          longestStreak,
+          totalLoginDays,
+          lastLoginDate: today,
+          updatedAt: new Date(),
+          ...data 
+        })
+        .where(eq(userLoginStreaks.userId, userId));
+    } else {
+      currentStreak = 1;
+      longestStreak = 1;
+      totalLoginDays = 1;
+      
+      await db.insert(userLoginStreaks).values({
+        userId,
+        currentStreak,
+        longestStreak,
+        totalLoginDays,
+        lastLoginDate: today,
+        ...data
+      });
+    }
+    
+    // Check for new awards
+    const newAwards: UserAward[] = [];
+    const availableAwards = await db.select()
+      .from(awardSettings)
+      .where(and(
+        eq(awardSettings.isActive, true),
+        lte(awardSettings.loginDaysRequired, currentStreak)
+      ));
+    
+    for (const award of availableAwards) {
+      // For awards that require exactly 1 day, give them every day
+      // For awards that require multiple days, only give once when streak is reached
+      let shouldAward = false;
+      
+      if (award.loginDaysRequired === 1) {
+        // Daily awards: check if user already has an award for today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const todaysAward = await db.select()
+          .from(userAwards)
+          .where(and(
+            eq(userAwards.userId, userId),
+            eq(userAwards.awardSettingId, award.id),
+            gte(userAwards.createdAt, today),
+            lt(userAwards.createdAt, tomorrow)
+          ))
+          .limit(1);
+        
+        shouldAward = todaysAward.length === 0;
+      } else {
+        // Multi-day awards: only award when streak exactly matches requirement
+        if (currentStreak === award.loginDaysRequired) {
+          const existingAward = await db.select()
+            .from(userAwards)
+            .where(and(
+              eq(userAwards.userId, userId),
+              eq(userAwards.awardSettingId, award.id)
+            ))
+            .limit(1);
+          
+          shouldAward = existingAward.length === 0;
+        }
+      }
+      
+      if (shouldAward) {
+        const newAward = await this.createUserAward({
+          userId,
+          awardSettingId: award.id,
+          virtFusionTokens: award.virtFusionTokens,
+          streakDay: currentStreak,
+          status: 'pending'
+        });
+        newAwards.push(newAward);
+      }
+    }
+    
+    const updatedStreak = await this.getUserLoginStreak(userId);
+    return { 
+      loginStreak: updatedStreak!, 
+      newAwards 
+    };
+  }
+
+  async getUserAwards(userIdOrLimit: number, offsetOrUndefined?: number, status?: string): Promise<UserAward[] | { awards: (UserAward & { user: User; awardSetting: AwardSetting })[]; total: number; }> {
+    // If offsetOrUndefined is provided, this is the admin version with pagination
+    if (offsetOrUndefined !== undefined) {
+      const limit = userIdOrLimit;
+      const offset = offsetOrUndefined;
+      
+      let whereConditions = [];
+      if (status) {
+        whereConditions.push(eq(userAwards.status, status));
+      }
+      
+      const [totalResult] = await db.select({ count: sql<number>`count(*)` })
+        .from(userAwards)
+        .where(whereConditions.length > 0 ? and(...whereConditions) : undefined);
+      
+      const awards = await db.select({
+        id: userAwards.id,
+        userId: userAwards.userId,
+        awardSettingId: userAwards.awardSettingId,
+        virtFusionTokens: userAwards.virtFusionTokens,
+        streakDay: userAwards.streakDay,
+        status: userAwards.status,
+        claimedAt: userAwards.claimedAt,
+        expiresAt: userAwards.expiresAt,
+        createdAt: userAwards.createdAt,
+        user: {
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          password: users.password,
+          fullName: users.fullName,
+          role: users.role,
+          virtFusionId: users.virtFusionId,
+          isVerified: users.isVerified,
+          isActive: users.isActive,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt
+        },
+        awardSetting: {
+          id: awardSettings.id,
+          name: awardSettings.name,
+          description: awardSettings.description,
+          loginDaysRequired: awardSettings.loginDaysRequired,
+          virtFusionTokens: awardSettings.virtFusionTokens,
+          isActive: awardSettings.isActive,
+          createdAt: awardSettings.createdAt,
+          updatedAt: awardSettings.updatedAt
+        }
+      })
+      .from(userAwards)
+      .leftJoin(users, eq(userAwards.userId, users.id))
+      .leftJoin(awardSettings, eq(userAwards.awardSettingId, awardSettings.id))
+      .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+      .orderBy(desc(userAwards.createdAt))
+      .limit(limit)
+      .offset(offset);
+      
+      return {
+        awards,
+        total: totalResult?.count || 0
+      };
+    }
+    
+    // This is the user version
+    const userId = userIdOrLimit;
+    return await db.select({
+      id: userAwards.id,
+      userId: userAwards.userId,
+      awardSettingId: userAwards.awardSettingId,
+      virtFusionTokens: userAwards.virtFusionTokens,
+      streakDay: userAwards.streakDay,
+      status: userAwards.status,
+      claimedAt: userAwards.claimedAt,
+      expiresAt: userAwards.expiresAt,
+      createdAt: userAwards.createdAt,
+      awardSetting: {
+        id: awardSettings.id,
+        name: awardSettings.name,
+        description: awardSettings.description,
+        loginDaysRequired: awardSettings.loginDaysRequired,
+        virtFusionTokens: awardSettings.virtFusionTokens,
+        isActive: awardSettings.isActive,
+        createdAt: awardSettings.createdAt,
+        updatedAt: awardSettings.updatedAt
+      }
+    })
+    .from(userAwards)
+    .leftJoin(awardSettings, eq(userAwards.awardSettingId, awardSettings.id))
+    .where(eq(userAwards.userId, userId))
+    .orderBy(desc(userAwards.createdAt));
+  }
+
+  async createUserAward(award: InsertUserAward): Promise<UserAward> {
+    const [newAward] = await db.insert(userAwards).values(award).returning();
+    return newAward;
+  }
+
+  async updateUserAward(id: number, updates: Partial<UserAward>): Promise<void> {
+    await db.update(userAwards)
+      .set(updates)
+      .where(eq(userAwards.id, id));
+  }
+
+  async getAwardStatistics(): Promise<{ totalUsers: number; totalAwards: number; totalTokensAwarded: number; }> {
+    const [userCount] = await db.select({ count: sql<number>`count(distinct ${userLoginStreaks.userId})` })
+      .from(userLoginStreaks);
+    
+    const [awardCount] = await db.select({ count: sql<number>`count(*)` })
+      .from(userAwards);
+    
+    const [tokenSum] = await db.select({ sum: sql<number>`coalesce(sum(${userAwards.virtFusionTokens}), 0)` })
+      .from(userAwards)
+      .where(eq(userAwards.status, 'claimed'));
+    
+    return {
+      totalUsers: userCount?.count || 0,
+      totalAwards: awardCount?.count || 0,
+      totalTokensAwarded: tokenSum?.sum || 0
+    };
+  }
+
+  async getUserAwardsDashboard(userId: number): Promise<{ loginStreak: UserLoginStreak | null; awards: UserAward[]; availableAwards: AwardSetting[]; totalTokensEarned: number; nextRewardProgress: { nextReward: AwardSetting | null; daysUntilNext: number; progressPercentage: number; }; }> {
+    const loginStreak = await this.getUserLoginStreak(userId);
+    const awards = await this.getUserAwards(userId) as UserAward[];
+    
+    // Get all available award settings
+    const availableAwards = await db.select({
+      id: awardSettings.id,
+      name: awardSettings.name,
+      description: awardSettings.description,
+      loginDaysRequired: awardSettings.loginDaysRequired,
+      virtFusionTokens: awardSettings.virtFusionTokens,
+      isActive: awardSettings.isActive,
+      createdAt: awardSettings.createdAt,
+      updatedAt: awardSettings.updatedAt
+    })
+      .from(awardSettings)
+      .where(eq(awardSettings.isActive, true))
+      .orderBy(awardSettings.loginDaysRequired);
+    
+    // Calculate total tokens earned from claimed awards
+    const totalTokensEarned = awards
+      .filter(award => award.status === 'claimed')
+      .reduce((total, award) => total + award.virtFusionTokens, 0);
+    
+    // Find next available reward
+    const currentStreak = loginStreak?.currentStreak || 0;
+    const [nextReward] = await db.select({
+      id: awardSettings.id,
+      name: awardSettings.name,
+      description: awardSettings.description,
+      loginDaysRequired: awardSettings.loginDaysRequired,
+      virtFusionTokens: awardSettings.virtFusionTokens,
+      isActive: awardSettings.isActive,
+      createdAt: awardSettings.createdAt,
+      updatedAt: awardSettings.updatedAt
+    })
+      .from(awardSettings)
+      .where(and(
+        eq(awardSettings.isActive, true),
+        gte(awardSettings.loginDaysRequired, currentStreak + 1)
+      ))
+      .orderBy(awardSettings.loginDaysRequired)
+      .limit(1);
+    
+    // Calculate progress to next reward
+    const daysUntilNext = nextReward ? Math.max(0, nextReward.loginDaysRequired - currentStreak) : 0;
+    const progressPercentage = nextReward ? Math.min(100, (currentStreak / nextReward.loginDaysRequired) * 100) : 100;
+    
+    return {
+      loginStreak: loginStreak || null,
+      awards,
+      availableAwards,
+      totalTokensEarned,
+      nextRewardProgress: {
+        nextReward: nextReward || null,
+        daysUntilNext,
+        progressPercentage
+      }
+    };
+  }
+
+  async getUserLoginStreaks(limit: number, offset: number): Promise<{ streaks: (UserLoginStreak & { user: User })[]; total: number; }> {
+    const [totalResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(userLoginStreaks);
+    
+    const streaks = await db.select({
+      id: userLoginStreaks.id,
+      userId: userLoginStreaks.userId,
+      currentStreak: userLoginStreaks.currentStreak,
+      longestStreak: userLoginStreaks.longestStreak,
+      totalLoginDays: userLoginStreaks.totalLoginDays,
+      lastLoginDate: userLoginStreaks.lastLoginDate,
+      createdAt: userLoginStreaks.createdAt,
+      updatedAt: userLoginStreaks.updatedAt,
+      user: {
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        password: users.password,
+        fullName: users.fullName,
+        role: users.role,
+        virtFusionId: users.virtFusionId,
+        isVerified: users.isVerified,
+        isActive: users.isActive,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt
+      }
+    })
+    .from(userLoginStreaks)
+    .leftJoin(users, eq(userLoginStreaks.userId, users.id))
+    .orderBy(desc(userLoginStreaks.currentStreak))
+    .limit(limit)
+    .offset(offset);
+    
+    return {
+      streaks,
+      total: totalResult?.count || 0
+    };
+  }
+
+  async getUserAwardsHistory(userId: number, limit: number, offset: number): Promise<{ awards: UserAward[]; total: number; }> {
+    const [totalResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(userAwards)
+      .where(eq(userAwards.userId, userId));
+    
+    const awards = await this.getUserAwards(userId);
+    const paginatedAwards = awards.slice(offset, offset + limit);
+    
+    return {
+      awards: paginatedAwards,
+      total: totalResult?.count || 0
+    };
+  }
+
+  async claimUserAward(userId: number, awardId: number): Promise<{ success: boolean; message: string; tokensAwarded?: number; }> {
+    // Verify the award belongs to the user and is claimable
+    const [award] = await db.select()
+      .from(userAwards)
+      .where(and(
+        eq(userAwards.id, awardId),
+        eq(userAwards.userId, userId),
+        eq(userAwards.status, 'pending')
+      ));
+    
+    if (!award) {
+      return {
+        success: false,
+        message: 'Award not found or already claimed'
+      };
+    }
+    
+    // Check if award has expired
+    if (award.expiresAt && new Date() > award.expiresAt) {
+      return {
+        success: false,
+        message: 'Award has expired'
+      };
+    }
+
+    // Get user to check VirtFusion ID
+    const user = await this.getUser(userId);
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not found'
+      };
+    }
+
+    if (!user.virtFusionId) {
+      return {
+        success: false,
+        message: 'User is not linked to VirtFusion'
+      };
+    }
+
+    try {
+      // Add tokens to VirtFusion account using the existing API integration
+      const { virtFusionApi } = await import('./virtfusion-api');
+      
+      await virtFusionApi.updateSettings();
+      
+      if (!virtFusionApi.isConfigured()) {
+        return {
+          success: false,
+          message: 'VirtFusion API is not configured'
+        };
+      }
+
+      // Add credits to VirtFusion account using the correct virtFusionId
+      const creditData = {
+        tokens: award.virtFusionTokens,
+        reference_1: awardId,
+        reference_2: `Daily Login Award - ${new Date().toISOString()}`
+      };
+
+      console.log(`Adding ${award.virtFusionTokens} tokens to VirtFusion user ${user.virtFusionId} for award ${awardId}`);
+      const result = await virtFusionApi.addCreditToUser(user.virtFusionId, creditData);
+      console.log('VirtFusion API response:', result);
+      
+      if (!result || !result.data || !result.data.id) {
+        return {
+          success: false,
+          message: 'Failed to add tokens to VirtFusion account'
+        };
+      }
+
+      // Update award status
+      await db.update(userAwards)
+        .set({ 
+          status: 'claimed',
+          claimedAt: new Date()
+        })
+        .where(eq(userAwards.id, awardId));
+
+      // Create a transaction record for the award
+      const transactionAmount = Number((award.virtFusionTokens / 100).toFixed(2));
+      console.log(`Creating transaction: userId=${userId}, amount=${transactionAmount}, tokens=${award.virtFusionTokens}`);
+      
+      const transaction = await this.createTransaction({
+        userId: userId,
+        amount: transactionAmount, // Convert tokens to dollars (100 tokens = $1.00)
+        description: `Daily Login Award - ${award.virtFusionTokens} tokens`,
+        type: 'credit',
+        status: 'completed',
+        paymentMethod: 'Daily Login Award',
+        virtFusionCreditId: String(result.data.id)
+      });
+      
+      console.log('Transaction created:', transaction);
+      
+      return {
+        success: true,
+        message: 'Award claimed successfully and tokens added to your VirtFusion account',
+        tokensAwarded: award.virtFusionTokens
+      };
+    } catch (error) {
+      console.error('Error adding tokens to VirtFusion account:', error);
+      return {
+        success: false,
+        message: 'Failed to add tokens to VirtFusion account'
+      };
+    }
   }
 
 }

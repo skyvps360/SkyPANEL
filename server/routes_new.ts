@@ -40,6 +40,7 @@ import transactionRoutes from "./routes/transaction-routes";
 import userRoutes from "./routes/user-routes";
 import settingsRoutes from "./routes/settings-routes";
 import monitoringRoutes from "./routes/monitoring-routes";
+import awardsRoutes from "./routes/awards-routes";
 import {chatService} from "./chat-service";
 import {departmentMigrationService} from "./services/department-migration";
 import {cronService} from "./services/cron-service";
@@ -11134,7 +11135,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register Settings routes
   app.use("/api/settings", settingsRoutes);
 
-  // Register Monitoring routes
+  // Awards routes
+  app.use("/api/awards", awardsRoutes);
+
+  // Monitoring routes
   app.use("/api/monitoring", monitoringRoutes);
 
   // Admin settings routes are defined directly in this file instead of using the separate router

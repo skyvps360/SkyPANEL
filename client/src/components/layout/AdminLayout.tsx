@@ -26,6 +26,7 @@ import {
   Download,
   Server,
   MessageCircle,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ui/theme-toggle";
@@ -43,6 +44,7 @@ const adminMenuItems = [
   { href: "/admin/users", icon: Users, label: "Users" },
   { href: "/admin/billing", icon: DollarSign, label: "Billing" },
   { href: "/admin/servers", icon: Server, label: "Servers" },
+  { href: "/admin/user-awards", icon: Gift, label: "User Awards" },
   // { href: "/admin/dns", icon: Globe, label: "DNS Management" }, // DNS disabled
   { href: "/admin/mail", icon: Mail, label: "Email Logs" },
   { href: "/admin/blog", icon: PenTool, label: "Company Blog" },

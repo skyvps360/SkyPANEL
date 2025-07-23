@@ -28,6 +28,7 @@ import {
   MessageSquare,
   Globe,
   Shield,
+  Gift,
 } from "lucide-react";
 import { UseQueryOptions } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -358,6 +359,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: "Billing & Payments",
       href: "/billing",
       icon: <CreditCard className="h-5 w-5 mr-3" />,
+      children: [
+        {
+          name: "Daily Login Awards",
+          href: "/billing/awards",
+          icon: <Gift className="h-4 w-4 mr-3" />,
+        },
+      ],
     }, {
       name: `${companyName}'s Blog`,
       href: "/dashboard/blog",

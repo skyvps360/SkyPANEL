@@ -70,8 +70,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
-    onSuccess: (user: SelectUser) => {
+    onSuccess: async (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Update login streak and check for new awards after successful login
+      try {
+        await apiRequest("/api/awards/user/login-streak/update", {
+          method: "POST"
+        });
+        
+        // Invalidate awards queries to refresh the dashboard
+        queryClient.invalidateQueries({ queryKey: ["/api/awards/user/awards"] });
+      } catch (error) {
+        console.error("Failed to update login streak:", error);
+        // Don't fail the login if streak update fails
+      }
     },
     onError: (error: Error) => {
       // Skip toast notification for verification errors - they're handled by the auth page

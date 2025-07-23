@@ -21,6 +21,7 @@ import {
   ArrowRight,
   Server,
   MessageCircle,
+  Gift,
 } from "lucide-react";
 
 type AdminMenuSection = {
@@ -159,6 +160,14 @@ export default function AdminPage() {
       description: "Manage billing and view transaction history",
       color: "bg-green-50 dark:bg-green-950",
       accentColor: "text-green-600 dark:text-green-400"
+    },
+    {
+      title: "User Awards",
+      icon: Gift,
+      href: "/admin/user-awards",
+      description: "Manage daily login rewards and award settings",
+      color: "bg-rose-50 dark:bg-rose-950",
+      accentColor: "text-rose-600 dark:text-rose-400"
     },
     // TEMPORARILY HIDDEN - DNS Management section
     // {

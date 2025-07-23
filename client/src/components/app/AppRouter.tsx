@@ -62,6 +62,8 @@ import LiveChat from "@/pages/LiveChat";
 import DnsDomainsPage from "@/pages/dns-domains-page"; // DNS feature enabled
 import DnsRecordsPage from "@/pages/dns-records-page"; // DNS feature enabled
 import DnsPlansPage from "@/pages/dns-plans-page"; // DNS feature enabled
+import UserAwardsPage from "@/pages/admin/user-awards";
+import BillingAwardsPage from "@/pages/billing/awards";
 
 import {AdminProtectedRoute, ProtectedRoute} from "@/lib/protected-route-new";
 
@@ -117,6 +119,7 @@ export function AppRouter() {
                 </Route>
                 <ProtectedRoute path="/servers/:id" component={UserServerDetailPage}/>
                 <ProtectedRoute path="/billing" component={BillingPage} allowSuspended={true}/>
+                <ProtectedRoute path="/billing/awards" component={BillingAwardsPage} allowSuspended={true}/>
                 <ProtectedRoute path="/billing/transactions/:id" component={TransactionDetailPage}
                                 allowSuspended={true}/>
                 <ProtectedRoute path="/tickets" component={TicketsPage} allowSuspended={true}/>
@@ -175,6 +178,7 @@ export function AppRouter() {
                 <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage}/>
                 <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage}/>
                 <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage}/>
+                <AdminProtectedRoute path="/admin/user-awards" component={UserAwardsPage}/>
                 <AdminProtectedRoute path="/admin/chat" component={AdminChatManagement}/>
 
                 {/* Catch-all route for 404 pages */}

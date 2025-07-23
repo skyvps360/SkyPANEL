@@ -93,11 +93,15 @@ export async function apiRequest<T = any>(
                           url.includes('/download') || 
                           url.endsWith('.pdf');
   
-  // Create headers with content type for JSON requests
+  // Create headers with content type for JSON requests only when there's a payload
   const headers = {
-    ...(payload ? { "Content-Type": "application/json" } : {}),
     ...customHeaders
   };
+  
+  // Only add Content-Type header if we have a payload to send
+  if (payload) {
+    headers["Content-Type"] = "application/json";
+  }
   
   const res = await fetch(url, {
     method,
