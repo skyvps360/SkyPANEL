@@ -159,13 +159,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   // Update company name when settings are loaded
   useEffect(() => {
     if (brandingSettings?.company_name) {
-      if (companyName !== brandingSettings.company_name) {
-        setCompanyName(brandingSettings.company_name);
-      }
+      setCompanyName(brandingSettings.company_name);
     } else if (settings?.company_name) {
-      if (companyName !== settings.company_name) {
-        setCompanyName(settings.company_name);
-      }
+      setCompanyName(settings.company_name);
     }
   }, [brandingSettings?.company_name, settings?.company_name]);
 
