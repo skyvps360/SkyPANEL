@@ -407,9 +407,10 @@ export default function UsersPage() {
   </>
 );
 
-  // Filter users by role
+  // Filter users by role and status
   const admins = users.filter(user => user.role === "admin");
-  const clients = users.filter(user => user.role !== "admin");
+  const activeClients = users.filter(user => user.role !== "admin" && user.isActive !== false);
+  const suspendedClients = users.filter(user => user.role !== "admin" && user.isActive === false);
 
   return (
     <AdminLayout>
@@ -451,7 +452,7 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Active Users Table */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="text-lg">Users</CardTitle>
@@ -464,7 +465,7 @@ export default function UsersPage() {
             </div>
           ) : (
             <DataTable
-              data={clients}
+              data={activeClients}
               columns={columns}
               searchKey="fullName"
               actions={renderActions}
@@ -477,7 +478,7 @@ export default function UsersPage() {
       </Card>
 
       {/* Admins Table */}
-      <Card>
+      <Card className="mb-8">
         <CardHeader>
           <CardTitle className="text-lg">Admins</CardTitle>
         </CardHeader>
@@ -490,6 +491,31 @@ export default function UsersPage() {
           ) : (
             <DataTable
               data={admins}
+              columns={columns}
+              searchKey="fullName"
+              actions={renderActions}
+              enableSearch={false}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Suspended Clients Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Suspended Clients</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="ml-2">Loading users...</p>
+            </div>
+          ) : (
+            <DataTable
+              data={suspendedClients}
               columns={columns}
               searchKey="fullName"
               actions={renderActions}
