@@ -9,7 +9,17 @@ import { DocumentTitle } from "@/components/DocumentTitle";
 import {PageLoadingProvider} from "@/components/loading/PageLoadingProvider";
 import {AppRouter} from "@/components/app/AppRouter";
 import {BrandThemeProvider} from "@/components/app/BrandThemeProvider";
+import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 
+
+/**
+ * Session timeout monitoring component
+ * Handles automatic logout when session expires
+ */
+function SessionTimeoutProvider({ children }: { children: React.ReactNode }) {
+  useSessionTimeout();
+  return <>{children}</>;
+}
 
 function App() {
   // PayPal configuration
@@ -27,19 +37,21 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <PayPalScriptProvider options={paypalOptions}>
         <AuthProvider>
-          <TooltipProvider>
-            <DocumentTitle>
-              <Toaster />
-              {/* Global SSO handler for VirtFusion redirects */}
-              <VirtFusionSsoHandler />
-              {/* Wrap the router with PageLoadingProvider to enable loading screen */}
-              <PageLoadingProvider>
-                <BrandThemeProvider>
-                    <AppRouter/>
-                </BrandThemeProvider>
-              </PageLoadingProvider>
-            </DocumentTitle>
-          </TooltipProvider>
+          <SessionTimeoutProvider>
+            <TooltipProvider>
+              <DocumentTitle>
+                <Toaster />
+                {/* Global SSO handler for VirtFusion redirects */}
+                <VirtFusionSsoHandler />
+                {/* Wrap the router with PageLoadingProvider to enable loading screen */}
+                <PageLoadingProvider>
+                  <BrandThemeProvider>
+                      <AppRouter/>
+                  </BrandThemeProvider>
+                </PageLoadingProvider>
+              </DocumentTitle>
+            </TooltipProvider>
+          </SessionTimeoutProvider>
         </AuthProvider>
       </PayPalScriptProvider>
     </QueryClientProvider>

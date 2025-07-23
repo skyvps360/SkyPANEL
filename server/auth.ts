@@ -106,6 +106,12 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    cookie: {
+      maxAge: 60 * 60 * 1000, // 1 hour in milliseconds (3600000ms)
+      httpOnly: true, // Prevent XSS attacks by making cookie inaccessible to JavaScript
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      sameSite: 'lax' // CSRF protection
+    }
   };
 
   app.set("trust proxy", 1);
