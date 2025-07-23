@@ -24,7 +24,7 @@ import {
   Download,
   FileText,
   BookOpen,
-  Activity,  Zap,
+  Activity, Zap,
   MessageSquare,
   Globe,
   Shield,
@@ -143,7 +143,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       queryKey: ["/api/settings/branding"],
       enabled: !!user,
       staleTime: 1000 * 60 * 5, // 5 minutes
-      
+
     }
   );
 
@@ -152,7 +152,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     {
       queryKey: ["/api/settings/public"],
       enabled: !!user,
-      
+
     }
   );
 
@@ -167,8 +167,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         setCompanyName(settings.company_name);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandingSettings?.company_name, settings?.company_name, companyName]);
+  }, [brandingSettings?.company_name, settings?.company_name]);
 
   // Get brand colors using the new color system with appropriate fallbacks
   const brandColors = useMemo(() => getBrandColors({
@@ -176,12 +175,12 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     secondaryColor: brandingSettings?.secondary_color || '10b981',
     accentColor: brandingSettings?.accent_color || 'f59e0b'
   }),
-   [
-    brandingSettings?.primary_color,
-    brandingSettings?.company_color,
-    brandingSettings?.secondary_color,
-    brandingSettings?.accent_color
-  ]);
+    [
+      brandingSettings?.primary_color,
+      brandingSettings?.company_color,
+      brandingSettings?.secondary_color,
+      brandingSettings?.accent_color
+    ]);
 
   // Apply brand colors to CSS variables and Shadcn theme
   useEffect(() => {
@@ -250,8 +249,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const tickets = ticketsResponse?.data || [];
   const transactions = transactionsData;
   // Extract servers from response - handle both paginated admin response and direct user response
-  const servers = Array.isArray(serversResponse) 
-    ? serversResponse 
+  const servers = Array.isArray(serversResponse)
+    ? serversResponse
     : (serversResponse?.data || []);
 
 
@@ -311,7 +310,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: "Status",
       description: "Check system status",
       url: "/status",
-      icon: <Activity className="h-4 w-4" />    
+      icon: <Activity className="h-4 w-4" />
     },
     {
       id: "dns",
@@ -354,7 +353,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       href: "/servers",
       icon: <Server className="h-5 w-5 mr-3" />,
     },
-    {      name: "Server Plans",
+    {
+      name: "Server Plans",
       href: "/packages",
       icon: <HardDrive className="h-5 w-5 mr-3" />,
     },
@@ -362,7 +362,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       name: "Billing & Payments",
       href: "/billing",
       icon: <CreditCard className="h-5 w-5 mr-3" />,
-    },    {
+    }, {
       name: `${companyName}'s Blog`,
       href: "/dashboard/blog",
       icon: <FileText className="h-5 w-5 mr-3" />,
@@ -384,11 +384,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         },
       ],
     },
-   // {
-   //   name: "API Documentation",
-   //   href: "/api-docs",
-   //   icon: <Code className="h-5 w-5 mr-3" />,
-   // },
+    // {
+    //   name: "API Documentation",
+    //   href: "/api-docs",
+    //   icon: <Code className="h-5 w-5 mr-3" />,
+    // },
   ], [companyName]);
 
   // Admin navigation items - empty as admin link is in dropdown
@@ -412,7 +412,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         // Add admin navigation shortcuts
         adminShortcuts.forEach(shortcut => {
           if (shortcut.name.toLowerCase().includes(cleanQuery) ||
-              shortcut.description.toLowerCase().includes(cleanQuery)) {
+            shortcut.description.toLowerCase().includes(cleanQuery)) {
             results.push({
               id: `shortcut-${shortcut.id}`,
               type: "user", // We reuse the existing types for compatibility
@@ -431,7 +431,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
           // Match by exact ticket ID or subject contains query
           if (ticket.id.toString() === cleanQuery ||
-              (ticket.subject || "").toLowerCase().includes(cleanQuery)) {
+            (ticket.subject || "").toLowerCase().includes(cleanQuery)) {
             // Route to /tickets/{id} if admin is the ticket creator, otherwise to /admin/tickets/{id}
             const ticketUrl = ticket.userId === user?.id
               ? `/tickets/${ticket.id}`
@@ -478,11 +478,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
           // Search by description, type, transaction ID, payment ID, or invoice number
           if (description.includes(cleanQuery) ||
-              type.includes(cleanQuery) ||
-              txIdString === cleanQuery ||
-              paymentId.includes(cleanQuery) ||
-              invoiceNumber.includes(cleanQuery) ||
-              'transaction'.includes(cleanQuery)) {
+            type.includes(cleanQuery) ||
+            txIdString === cleanQuery ||
+            paymentId.includes(cleanQuery) ||
+            invoiceNumber.includes(cleanQuery) ||
+            'transaction'.includes(cleanQuery)) {
 
             const txType = tx.type ? (tx.type.charAt(0).toUpperCase() + tx.type.slice(1)) : 'Transaction';
             // For admin view, show which user the transaction belongs to
@@ -532,14 +532,14 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
           // Search by server name, ID, IP address, or status
           if (serverName.includes(cleanQuery) ||
-              serverIdString === cleanQuery ||
-              serverIp.includes(cleanQuery) ||
-              serverStatus.includes(cleanQuery) ||
-              'server'.includes(cleanQuery)) {
+            serverIdString === cleanQuery ||
+            serverIp.includes(cleanQuery) ||
+            serverStatus.includes(cleanQuery) ||
+            'server'.includes(cleanQuery)) {
 
             // For admin view, show which user the server belongs to if available
             const serverOwner = users.find(u => u.id === (server as any).userId)?.fullName || 'System';
-            
+
             // Create server status badge info
             const statusInfo = server.status ? ` | Status: ${server.status}` : '';
             const ipInfo = server.ipAddress ? ` | IP: ${server.ipAddress}` : '';
@@ -557,8 +557,8 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
         // System settings search for admins
         if ("system settings".includes(cleanQuery) ||
-            "configure".includes(cleanQuery) ||
-            "admin settings".includes(cleanQuery)) {
+          "configure".includes(cleanQuery) ||
+          "admin settings".includes(cleanQuery)) {
           results.push({
             id: `settings-system`,
             type: "user",
@@ -579,7 +579,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
           // Match by exact ticket ID or subject contains query
           if (ticket.id.toString() === cleanQuery ||
-              (ticket.subject || "").toLowerCase().includes(cleanQuery)) {
+            (ticket.subject || "").toLowerCase().includes(cleanQuery)) {
             results.push({
               id: ticket.id,
               type: "ticket",
@@ -603,11 +603,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
           // Search by description, type, transaction ID, payment ID, or invoice number
           if (description.includes(cleanQuery) ||
-              type.includes(cleanQuery) ||
-              txIdString === cleanQuery ||
-              paymentId.includes(cleanQuery) ||
-              invoiceNumber.includes(cleanQuery) ||
-              'transaction'.includes(cleanQuery)) {
+            type.includes(cleanQuery) ||
+            txIdString === cleanQuery ||
+            paymentId.includes(cleanQuery) ||
+            invoiceNumber.includes(cleanQuery) ||
+            'transaction'.includes(cleanQuery)) {
 
             const txType = tx.type ? (tx.type.charAt(0).toUpperCase() + tx.type.slice(1)) : 'Transaction';
 
@@ -658,10 +658,10 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
           // Search by server name, ID, IP address, or status
           if (serverName.includes(cleanQuery) ||
-              serverIdString === cleanQuery ||
-              serverIp.includes(cleanQuery) ||
-              serverStatus.includes(cleanQuery) ||
-              'server'.includes(cleanQuery)) {
+            serverIdString === cleanQuery ||
+            serverIp.includes(cleanQuery) ||
+            serverStatus.includes(cleanQuery) ||
+            'server'.includes(cleanQuery)) {
 
             // Create server status badge info
             const statusInfo = server.status ? ` | Status: ${server.status}` : '';
@@ -680,9 +680,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
         // Add user profile search for regular users
         if ("profile".includes(cleanQuery) ||
-            "account".includes(cleanQuery) ||
-            "settings".includes(cleanQuery) ||
-            (user?.fullName || "").toLowerCase().includes(cleanQuery)) {
+          "account".includes(cleanQuery) ||
+          "settings".includes(cleanQuery) ||
+          (user?.fullName || "").toLowerCase().includes(cleanQuery)) {
           results.push({
             id: `profile-user`,
             type: "user",
@@ -791,7 +791,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const toggleNavItem = (href: string | null) => {
     // Use a fallback identifier if href is null
     const identifier = href || "no-href";
-      setExpandedNavItems(prev => {
+    setExpandedNavItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(identifier)) {
         newSet.delete(identifier);
@@ -882,7 +882,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                       isActive
                         ? "bg-primary text-primary-foreground shadow-lg"
                         : "text-gray-300 hover:bg-gray-800 hover:text-white",
-                    )}                    onClick={() => {
+                    )} onClick={() => {
                       // Only navigate if href exists
                       if (item.href) {
                         navigate(item.href);
@@ -1304,7 +1304,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 style={activeResultIndex === index ? { backgroundColor: brandColors.primary.lighter } : undefined}
                               >
                                 <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center"
-                                 style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                  style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
                                   {result.icon}
                                 </div>
                                 <div>
@@ -1338,7 +1338,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                   style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
                                 >
                                   <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-md flex items-center justify-center"
-                                   style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                    style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
                                     {result.icon}
                                   </div>
                                   <div>
@@ -1375,7 +1375,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
                               >
                                 <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
-                                 style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                  style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
                                   <Ticket className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -1427,7 +1427,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
                               >
                                 <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
-                                 style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                  style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
                                   <Server className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">
@@ -1465,7 +1465,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                                 style={activeResultIndex === overallIndex ? { backgroundColor: brandColors.primary.lighter } : undefined}
                               >
                                 <div className="mr-3 flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
-                                 style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
+                                  style={{ backgroundColor: brandColors.primary.lighter, color: brandColors.primary.full }}>
                                   <CreditCard className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0 flex-1">

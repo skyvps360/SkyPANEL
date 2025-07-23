@@ -137,6 +137,8 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
                 tagline: false, // Remove "Pay in 4" tagline for digital services
                 height: 45, // Consistent button height
               }}
+              // Explicitly disable Pay Later and Credit funding sources
+              disableFunding={["paylater", "credit"]}
             disabled={isProcessing}
             forceReRender={[amount]} // Re-render when amount changes
             createOrder={(data, actions) => {

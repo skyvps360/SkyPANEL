@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Globe, Trash2, Settings, AlertCircle, Server, Copy } from "lucide-react";
+import { Plus, Globe, Trash2, Settings, AlertCircle, Server, Copy, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -54,6 +54,33 @@ export default function DnsDomainsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  /**
+   * Refreshes DNS data by invalidating cache and refetching from InterServer API
+   */
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      // Invalidate and refetch DNS domains data
+      await queryClient.invalidateQueries({ queryKey: ["dns-domains"] });
+      // Invalidate and refetch DNS plan limits data
+      await queryClient.invalidateQueries({ queryKey: ["dns-plan-limits"] });
+      
+      toast({
+        title: "Success",
+        description: "DNS data refreshed successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh DNS data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Fetch branding data for consistent theming
   const { data: brandingData } = useQuery<{
@@ -264,7 +291,19 @@ export default function DnsDomainsPage() {
                   </div>
                 </div>
               </div>
-              <div className="mt-6 lg:mt-0">
+              <div className="mt-6 lg:mt-0 flex items-center gap-3">
+                {/* Refresh Button */}
+                <Button
+                  onClick={handleRefreshData}
+                  variant="outline"
+                  size="sm"
+                  disabled={isRefreshing || isLoading}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </Button>
+                
                 {planLimits?.canAddDomain ? (
                   <Button
                     onClick={() => setIsAddDialogOpen(true)}
@@ -449,15 +488,29 @@ export default function DnsDomainsPage() {
 
         {/* Domains Table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            DNS Domains ({domainsData?.domains?.length || 0})
-          </CardTitle>
-          <CardDescription>
-            Manage your DNS domains and their records
-          </CardDescription>
-        </CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  DNS Domains ({domainsData?.domains?.length || 0})
+                </CardTitle>
+                <CardDescription>
+                  Manage your DNS domains and their records
+                </CardDescription>
+              </div>
+              <Button
+                onClick={handleRefreshData}
+                variant="ghost"
+                size="sm"
+                disabled={isRefreshing || isLoading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh Data
+              </Button>
+            </div>
+          </CardHeader>
         <CardContent>
           {domainsData?.domains?.length === 0 ? (
             <div className="text-center py-8">

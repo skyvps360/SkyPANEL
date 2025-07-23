@@ -19,6 +19,8 @@ function App() {
       : import.meta.env.VITE_PAYPAL_CLIENT_ID,
     currency: import.meta.env.VITE_PAYPAL_CURRENCY || "USD",
     intent: "capture",
+    // Disable Pay Later and Credit funding sources for digital services
+    "disable-funding": "paylater,credit",
   };
 
   return (
