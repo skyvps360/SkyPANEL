@@ -1,8 +1,8 @@
-import {Switch, Route, useLocation} from "wouter";
-import {lazy, Suspense, useEffect} from "react";
-import {usePageLoading} from "@/components/loading/PageLoadingProvider";
-import {useThemeManager} from "@/hooks/useThemeManager";
-import {MaintenanceGuard} from "./MaintenanceGuard";
+import { Switch, Route, useLocation } from "wouter";
+import { lazy, Suspense, useEffect } from "react";
+import { usePageLoading } from "@/components/loading/PageLoadingProvider";
+import { useThemeManager } from "@/hooks/useThemeManager";
+import { MaintenanceGuard } from "./MaintenanceGuard";
 
 // Page imports
 import NotFound from "@/pages/not-found";
@@ -20,7 +20,7 @@ import TicketsPage from "@/pages/tickets-page";
 import TicketDetailPage from "@/pages/ticket-detail-page";
 import NotificationsPage from "@/pages/notifications-page";
 import ProfilePage from "@/pages/profile-page";
-import {MaintenancePage} from "@/pages/maintenance-page";
+import { MaintenancePage } from "@/pages/maintenance-page";
 import TermsOfServicePage from "@/pages/tos-page";
 import PrivacyPolicyPage from "@/pages/privacy-page";
 import SLAPage from "@/pages/sla-page";
@@ -65,9 +65,8 @@ import DnsPlansPage from "@/pages/dns-plans-page"; // DNS feature enabled
 import UserAwardsPage from "@/pages/admin/user-awards";
 import BillingAwardsPage from "@/pages/billing/awards";
 
-import {AdminProtectedRoute, ProtectedRoute} from "@/lib/protected-route-new";
+import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { useQuery } from "@tanstack/react-query";
-import NotFound from "@/pages/not-found";
 
 // Lazy load the landing page to avoid issues with direct file redirect
 const SLAPublicPlansPage = lazy(() => import("@/pages/sla-plans-page"));
@@ -75,22 +74,22 @@ const LandingPage = lazy(() => import("@/pages/landing-page"));
 
 // Conditional Awards Route Component
 function ConditionalAwardsRoute() {
-  const { data: awardSystemStatus } = useQuery<{ enabled: boolean }>({
-    queryKey: ["/api/settings/award-system-status"],
-    staleTime: 60 * 1000, // 1 minute
-  });
+    const { data: awardSystemStatus } = useQuery<{ enabled: boolean }>({
+        queryKey: ["/api/settings/award-system-status"],
+        staleTime: 60 * 1000, // 1 minute
+    });
 
-  // If award system is disabled, show 404
-  if (awardSystemStatus?.enabled === false) {
-    return <NotFound />;
-  }
+    // If award system is disabled, show 404
+    if (awardSystemStatus?.enabled === false) {
+        return <NotFound />;
+    }
 
-  // Otherwise, render the awards page
-  return <BillingAwardsPage />;
+    // Otherwise, render the awards page
+    return <BillingAwardsPage />;
 }
 
 export function AppRouter() {
-    const {showLoading} = usePageLoading();
+    const { showLoading } = usePageLoading();
     const [location] = useLocation();
 
     // Initialize global theme manager
@@ -112,19 +111,19 @@ export function AppRouter() {
                             <p className="ml-4 text-lg text-gray-700">Loading...</p>
                         </div>
                     }>
-                        <LandingPage/>
+                        <LandingPage />
                     </Suspense>
                 </Route>
-                <Route path="/maintenance" component={MaintenancePage}/>
-                <ProtectedRoute path="/dashboard" component={HomePage}/>
-                <ProtectedRoute path="/dashboard/blog" component={DashboardBlogPage}/>
-                <ProtectedRoute path="/dashboard/sla" component={DashboardSLAPage}/>
-                <Route path="/auth" component={AuthPage}/>
-                <Route path="/auth/verify" component={VerifyPage}/>
-                <Route path="/auth/forgot-username" component={ForgotUsernamePage}/>
-                <Route path="/auth/reset-password" component={ResetPasswordPage}/>
-                <ProtectedRoute path="/packages" component={PackagesPage}/>
-                <ProtectedRoute path="/servers" component={UserServersPage}/>
+                <Route path="/maintenance" component={MaintenancePage} />
+                <ProtectedRoute path="/dashboard" component={HomePage} />
+                <ProtectedRoute path="/dashboard/blog" component={DashboardBlogPage} />
+                <ProtectedRoute path="/dashboard/sla" component={DashboardSLAPage} />
+                <Route path="/auth" component={AuthPage} />
+                <Route path="/auth/verify" component={VerifyPage} />
+                <Route path="/auth/forgot-username" component={ForgotUsernamePage} />
+                <Route path="/auth/reset-password" component={ResetPasswordPage} />
+                <ProtectedRoute path="/packages" component={PackagesPage} />
+                <ProtectedRoute path="/servers" component={UserServersPage} />
                 <Route path="/servers/create">
                     {() => {
                         // Redirect from /servers/create to /servers
@@ -135,40 +134,40 @@ export function AppRouter() {
                         return null;
                     }}
                 </Route>
-                <ProtectedRoute path="/servers/:id" component={UserServerDetailPage}/>
-                <ProtectedRoute path="/billing" component={BillingPage} allowSuspended={true}/>
-                <ProtectedRoute path="/billing/awards" component={ConditionalAwardsRoute} allowSuspended={true}/>
+                <ProtectedRoute path="/servers/:id" component={UserServerDetailPage} />
+                <ProtectedRoute path="/billing" component={BillingPage} allowSuspended={true} />
+                <ProtectedRoute path="/billing/awards" component={ConditionalAwardsRoute} allowSuspended={true} />
                 <ProtectedRoute path="/billing/transactions/:id" component={TransactionDetailPage}
-                                allowSuspended={true}/>
-                <ProtectedRoute path="/tickets" component={TicketsPage} allowSuspended={true}/>
-                <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} allowSuspended={true}/>
-                <ProtectedRoute path="/notifications" component={NotificationsPage}/>
-                <ProtectedRoute path="/profile" component={ProfilePage}/>
-                <ProtectedRoute path="/live-chat" component={LiveChat}/>
+                    allowSuspended={true} />
+                <ProtectedRoute path="/tickets" component={TicketsPage} allowSuspended={true} />
+                <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} allowSuspended={true} />
+                <ProtectedRoute path="/notifications" component={NotificationsPage} />
+                <ProtectedRoute path="/profile" component={ProfilePage} />
+                <ProtectedRoute path="/live-chat" component={LiveChat} />
 
                 {/* Public standalone blog and docs pages */}
-                <Route path="/blog" component={BlogListPage}/>
-                <Route path="/blog/:slug" component={BlogListPage}/>                <Route path="/docs" component={DocsListPage}/>
-                <Route path="/docs/:slug" component={DocsListPage}/>
-                <Route path="/status" component={StatusPage}/>
+                <Route path="/blog" component={BlogListPage} />
+                <Route path="/blog/:slug" component={BlogListPage} />                <Route path="/docs" component={DocsListPage} />
+                <Route path="/docs/:slug" component={DocsListPage} />
+                <Route path="/status" component={StatusPage} />
                 {/* <Route path="/speed-test" component={SpeedTestPage}/> */} {/* Temporarily hidden for fixes */}
-                <Route path="/plans" component={PlansPage}/>
-                <Route path="/team" component={TeamsPage}/>
-                <Route path="/tos" component={TermsOfServicePage}/>
-                <Route path="/privacy" component={PrivacyPolicyPage}/>
-                <Route path="/sla-plans" component={SLAPublicPlansPage}/>
-                <Route path="/sla" component={SLAPage}/>                {/* VNC Console - User access allowed */}
-                <ProtectedRoute path="/vnc-console" component={VNCConsole}/>
+                <Route path="/plans" component={PlansPage} />
+                <Route path="/team" component={TeamsPage} />
+                <Route path="/tos" component={TermsOfServicePage} />
+                <Route path="/privacy" component={PrivacyPolicyPage} />
+                <Route path="/sla-plans" component={SLAPublicPlansPage} />
+                <Route path="/sla" component={SLAPage} />                {/* VNC Console - User access allowed */}
+                <ProtectedRoute path="/vnc-console" component={VNCConsole} />
 
-                <ProtectedRoute path="/dns" component={DnsDomainsPage}/>
-                <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage}/>
-                <ProtectedRoute path="/dns-plans" component={DnsPlansPage}/>
+                <ProtectedRoute path="/dns" component={DnsDomainsPage} />
+                <ProtectedRoute path="/dns/domains/:id/records" component={DnsRecordsPage} />
+                <ProtectedRoute path="/dns-plans" component={DnsPlansPage} />
 
                 {/* Admin Routes */}
-                <AdminProtectedRoute path="/admin" component={AdminDashboard}/>
-                <AdminProtectedRoute path="/admin/users/:id" component={UserEditPage}/>
-                <AdminProtectedRoute path="/admin/users" component={UsersPage}/>
-                <AdminProtectedRoute path="/admin/settings" component={SettingsPage}/>
+                <AdminProtectedRoute path="/admin" component={AdminDashboard} />
+                <AdminProtectedRoute path="/admin/users/:id" component={UserEditPage} />
+                <AdminProtectedRoute path="/admin/users" component={UsersPage} />
+                <AdminProtectedRoute path="/admin/settings" component={SettingsPage} />
 
                 {/* Routes for admin/tickets/ are accessible but we redirect users to admin/settings
             since we use the unified department system - tickets tab is hidden but still functional */}
@@ -181,26 +180,26 @@ export function AppRouter() {
                         return null;
                     }}
                 </Route>
-                <AdminProtectedRoute path="/admin/tickets/:id" component={AdminTicketDetailPage}/>
-                <AdminProtectedRoute path="/admin/tickets" component={AdminTicketsPage}/>
-                <AdminProtectedRoute path="/admin/mail" component={EmailLogsPage}/>
-                <AdminProtectedRoute path="/admin/docs" component={AdminDocsPage}/>
-                <AdminProtectedRoute path="/admin/blog" component={AdminBlogPage}/>
-                <AdminProtectedRoute path="/admin/datacenter-locations" component={DatacenterLocationsPage}/>
-                <AdminProtectedRoute path="/admin/plan-features" component={PlanFeaturesPage}/>
-                <AdminProtectedRoute path="/admin/package-pricing" component={PackagePricingPage}/>
-                <AdminProtectedRoute path="/admin/faq-management" component={FaqManagementPage}/>
-                <AdminProtectedRoute path="/admin/legal" component={LegalEditorPage}/>
-                <AdminProtectedRoute path="/admin/servers" component={ServersListPage}/>                <AdminProtectedRoute path="/admin/servers/:id" component={ServerDetailPage}/>
-                <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage}/>
-                <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage}/>
-                <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage}/>
-                <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage}/>
-                <AdminProtectedRoute path="/admin/user-awards" component={UserAwardsPage}/>
-                <AdminProtectedRoute path="/admin/chat" component={AdminChatManagement}/>
+                <AdminProtectedRoute path="/admin/tickets/:id" component={AdminTicketDetailPage} />
+                <AdminProtectedRoute path="/admin/tickets" component={AdminTicketsPage} />
+                <AdminProtectedRoute path="/admin/mail" component={EmailLogsPage} />
+                <AdminProtectedRoute path="/admin/docs" component={AdminDocsPage} />
+                <AdminProtectedRoute path="/admin/blog" component={AdminBlogPage} />
+                <AdminProtectedRoute path="/admin/datacenter-locations" component={DatacenterLocationsPage} />
+                <AdminProtectedRoute path="/admin/plan-features" component={PlanFeaturesPage} />
+                <AdminProtectedRoute path="/admin/package-pricing" component={PackagePricingPage} />
+                <AdminProtectedRoute path="/admin/faq-management" component={FaqManagementPage} />
+                <AdminProtectedRoute path="/admin/legal" component={LegalEditorPage} />
+                <AdminProtectedRoute path="/admin/servers" component={ServersListPage} />                <AdminProtectedRoute path="/admin/servers/:id" component={ServerDetailPage} />
+                <AdminProtectedRoute path="/admin/api-docs" component={ApiDocsAdminPage} />
+                <AdminProtectedRoute path="/admin/billing" component={AdminBillingPage} />
+                <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage} />
+                <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage} />
+                <AdminProtectedRoute path="/admin/user-awards" component={UserAwardsPage} />
+                <AdminProtectedRoute path="/admin/chat" component={AdminChatManagement} />
 
                 {/* Catch-all route for 404 pages */}
-                <Route path="*" component={NotFound}/>
+                <Route path="*" component={NotFound} />
             </Switch>
         </MaintenanceGuard>
     );

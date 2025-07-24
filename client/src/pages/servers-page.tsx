@@ -380,13 +380,13 @@ export default function ServersPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="hidden lg:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-                    <span>Location</span>
-                    <span>Status</span>
-                    <span>CPU</span>
-                    <span>RAM</span>
-                    <span>Storage</span>
-                    <span>Actions</span>
+                  <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+                    <span className="min-w-[140px]">Location</span>
+                    <span className="min-w-[100px]">Status</span>
+                    <span className="min-w-[70px]">CPU</span>
+                    <span className="min-w-[80px]">RAM</span>
+                    <span className="min-w-[90px]">Storage</span>
+                    <span className="min-w-[100px]">Actions</span>
                   </div>
                 </div>
               </div>
@@ -443,10 +443,10 @@ export default function ServersPage() {
                           </div>
                         </div>
 
-                        {/* Server Stats & Actions */}
-                        <div className="flex items-center gap-8 flex-shrink-0">
-                          {/* Location */}
-                          <div className="hidden lg:block text-sm font-medium text-muted-foreground min-w-[120px]">
+                        {/* Server Stats & Actions - Individual Columns */}
+                        <div className="flex items-center gap-6 flex-shrink-0">
+                          {/* Location Column */}
+                          <div className="hidden lg:block text-sm font-medium text-muted-foreground min-w-[140px]">
                             {server.hypervisor?.name ? (
                               <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4" />
@@ -457,8 +457,8 @@ export default function ServersPage() {
                             )}
                           </div>
                           
-                          {/* Status Badge */}
-                          <div className="min-w-[90px]">
+                          {/* Status Column */}
+                          <div className="min-w-[100px]">
                             <Badge
                               variant={getStatusBadgeVariant(status)}
                               className={`text-xs font-medium px-3 py-1.5 rounded-full ${
@@ -476,61 +476,63 @@ export default function ServersPage() {
                             </Badge>
                           </div>
                           
-                          {/* Resource Stats */}
-                          <div className="hidden lg:flex items-center gap-6 text-sm font-medium">
-                            <div className="flex items-center gap-2 text-muted-foreground min-w-[60px]">
-                              <Cpu className="h-4 w-4" />
-                              <span>
-                                {server.cpu?.cores !== undefined && server.cpu?.cores !== null ? `${server.cpu.cores}c` : '—'}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-muted-foreground min-w-[70px]">
-                              <MemoryStick className="h-4 w-4" />
-                              <span>
-                                {(() => {
-                                  const memoryMb = server?.settings?.resources?.memory;
-                                  const legacyMemory = server.memory;
-                                  if (typeof memoryMb === 'number' && !isNaN(memoryMb)) {
-                                    return `${(memoryMb / 1024).toFixed(0)}GB`;
-                                  } else if (legacyMemory && !isNaN(parseInt(legacyMemory, 10))) {
-                                    return `${(parseInt(legacyMemory, 10) / 1024).toFixed(0)}GB`;
-                                  } else {
-                                    return '—';
-                                  }
-                                })()}
-                              </span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-muted-foreground min-w-[80px]">
-                              <HardDrive className="h-4 w-4" />
-                              <span>
-                                {server.storage?.length > 0 && server.storage[0]?.capacity !== undefined && server.storage[0]?.capacity !== null
-                                  ? `${server.storage[0].capacity}GB`
-                                  : '—'}
-                              </span>
-                            </div>
+                          {/* CPU Column */}
+                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-muted-foreground min-w-[70px]">
+                            <Cpu className="h-4 w-4" />
+                            <span>
+                              {server.cpu?.cores !== undefined && server.cpu?.cores !== null ? `${server.cpu.cores}c` : '—'}
+                            </span>
                           </div>
                           
-                          {/* Action Button */}
-                          <Link href={`/servers/${server.id}`}>
-                            <Button
-                              size="sm"
-                              className="text-white shadow-md transition-all duration-300 group-hover:scale-105 hover:shadow-lg min-w-[90px]"
-                              style={{
-                                backgroundColor: brandColors.primary.full,
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = `${brandColors.primary.full}dd`;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = brandColors.primary.full;
-                              }}
-                            >
-                              <Settings className="mr-2 h-4 w-4" />
-                              Manage
-                            </Button>
-                          </Link>
+                          {/* RAM Column */}
+                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-muted-foreground min-w-[80px]">
+                            <MemoryStick className="h-4 w-4" />
+                            <span>
+                              {(() => {
+                                const memoryMb = server?.settings?.resources?.memory;
+                                const legacyMemory = server.memory;
+                                if (typeof memoryMb === 'number' && !isNaN(memoryMb)) {
+                                  return `${(memoryMb / 1024).toFixed(0)}GB`;
+                                } else if (legacyMemory && !isNaN(parseInt(legacyMemory, 10))) {
+                                  return `${(parseInt(legacyMemory, 10) / 1024).toFixed(0)}GB`;
+                                } else {
+                                  return '—';
+                                }
+                              })()}
+                            </span>
+                          </div>
+                          
+                          {/* Storage Column */}
+                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-muted-foreground min-w-[90px]">
+                            <HardDrive className="h-4 w-4" />
+                            <span>
+                              {server.storage?.length > 0 && server.storage[0]?.capacity !== undefined && server.storage[0]?.capacity !== null
+                                ? `${server.storage[0].capacity}GB`
+                                : '—'}
+                            </span>
+                          </div>
+                          
+                          {/* Actions Column */}
+                          <div className="min-w-[100px]">
+                            <Link href={`/servers/${server.id}`}>
+                              <Button
+                                size="sm"
+                                className="text-white shadow-md transition-all duration-300 group-hover:scale-105 hover:shadow-lg w-full"
+                                style={{
+                                  backgroundColor: brandColors.primary.full,
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.backgroundColor = `${brandColors.primary.full}dd`;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = brandColors.primary.full;
+                                }}
+                              >
+                                <Settings className="mr-2 h-4 w-4" />
+                                Manage
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     </div>
