@@ -117,3 +117,5 @@
    - **Health Checks**: `/api/health` endpoint
    - **Logging**: Structured logging with rotation
    - **Docker**: Containerization support available
+   - **Port**: Found in the `.env`
+   - **NEVER**: Use `npm run db:push` as this applicaiton is attached to a live postgres neon.tech database
