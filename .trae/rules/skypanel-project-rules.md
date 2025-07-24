@@ -117,3 +117,7 @@
    - **Health Checks**: `/api/health` endpoint
    - **Logging**: Structured logging with rotation
    - **Docker**: Containerization support available
+
+## 13. Always Use
+   - **brand-theme.md** is our main brand theme guidlines and should be used so you do not make mistakes
+   - **md-docs** contains all the documentation for the project some of these are not proper or accurate but do give a general guidline on how to use the project
