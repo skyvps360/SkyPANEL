@@ -676,9 +676,9 @@ Configure your white-labeled nameservers to point to InterServer's infrastructur
 
 ```dns
 ; White-labeled nameserver DNS records
-cdns.ns1.skyvps360.xyz.    IN    A    208.73.210.202
-cdns.ns2.skyvps360.xyz.    IN    A    208.73.210.203
-cdns.ns3.skyvps360.xyz.    IN    A    208.73.210.204
+cdns.ns1.skyvps360.xyz.    IN    A    216.158.228.164
+cdns.ns2.skyvps360.xyz.    IN    A    216.158.234.243
+cdns.ns3.skyvps360.xyz.    IN    A    199.231.191.75
 ```
 
 #### SOA Record Configuration
