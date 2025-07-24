@@ -413,4 +413,16 @@ router.post('/email/test', async (req, res) => {
   }
 });
 
+// Get award system status (no auth required for navigation)
+router.get('/award-system-status', async (req, res) => {
+  try {
+    const { SettingsService } = await import('../settings-service');
+    const enabled = await SettingsService.isAwardSystemEnabled();
+    res.json({ enabled });
+  } catch (error) {
+    console.error('Error fetching award system status:', error);
+    res.status(500).json({ error: 'Failed to fetch award system status' });
+  }
+});
+
 export default router;

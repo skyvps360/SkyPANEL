@@ -66,10 +66,28 @@ import UserAwardsPage from "@/pages/admin/user-awards";
 import BillingAwardsPage from "@/pages/billing/awards";
 
 import {AdminProtectedRoute, ProtectedRoute} from "@/lib/protected-route-new";
+import { useQuery } from "@tanstack/react-query";
+import NotFound from "@/pages/not-found";
 
 // Lazy load the landing page to avoid issues with direct file redirect
 const SLAPublicPlansPage = lazy(() => import("@/pages/sla-plans-page"));
 const LandingPage = lazy(() => import("@/pages/landing-page"));
+
+// Conditional Awards Route Component
+function ConditionalAwardsRoute() {
+  const { data: awardSystemStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/settings/award-system-status"],
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  // If award system is disabled, show 404
+  if (awardSystemStatus?.enabled === false) {
+    return <NotFound />;
+  }
+
+  // Otherwise, render the awards page
+  return <BillingAwardsPage />;
+}
 
 export function AppRouter() {
     const {showLoading} = usePageLoading();
@@ -119,7 +137,7 @@ export function AppRouter() {
                 </Route>
                 <ProtectedRoute path="/servers/:id" component={UserServerDetailPage}/>
                 <ProtectedRoute path="/billing" component={BillingPage} allowSuspended={true}/>
-                <ProtectedRoute path="/billing/awards" component={BillingAwardsPage} allowSuspended={true}/>
+                <ProtectedRoute path="/billing/awards" component={ConditionalAwardsRoute} allowSuspended={true}/>
                 <ProtectedRoute path="/billing/transactions/:id" component={TransactionDetailPage}
                                 allowSuspended={true}/>
                 <ProtectedRoute path="/tickets" component={TicketsPage} allowSuspended={true}/>

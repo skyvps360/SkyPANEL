@@ -64,6 +64,52 @@ router.post('/api/admin/settings', isAdmin, async (req, res) => {
   }
 });
 
+// Update a setting
+router.put('/api/admin/settings/:key', isAdmin, async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value } = req.body;
+    
+    if (!value) {
+      return res.status(400).json({ error: 'Value is required' });
+    }
+    
+    await SettingsService.setSetting(key, value);
+    return res.json({ message: 'Setting updated successfully' });
+  } catch (error) {
+    console.error('Error updating setting:', error);
+    return res.status(500).json({ error: 'Failed to update setting' });
+  }
+});
+
+// Get award system status
+router.get('/api/admin/settings/award-system/status', isAdmin, async (req, res) => {
+  try {
+    const enabled = await SettingsService.isAwardSystemEnabled();
+    return res.json({ enabled });
+  } catch (error) {
+    console.error('Error getting award system status:', error);
+    return res.status(500).json({ error: 'Failed to get award system status' });
+  }
+});
+
+// Toggle award system
+router.put('/api/admin/settings/award-system/toggle', isAdmin, async (req, res) => {
+  try {
+    const { enabled } = req.body;
+    
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'Enabled must be a boolean value' });
+    }
+    
+    await SettingsService.setAwardSystemEnabled(enabled);
+    return res.json({ message: 'Award system status updated successfully', enabled });
+  } catch (error) {
+    console.error('Error toggling award system:', error);
+    return res.status(500).json({ error: 'Failed to toggle award system' });
+  }
+});
+
 // Get public settings (accessible without authentication)
 router.get('/api/settings/public', async (req, res) => {
   try {

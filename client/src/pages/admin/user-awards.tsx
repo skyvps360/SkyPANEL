@@ -69,6 +69,11 @@ interface AwardStats {
   averageStreak: number;
 }
 
+// Award system status interface
+interface AwardSystemStatus {
+  enabled: boolean;
+}
+
 // Form schema for award settings
 const awardSettingSchema = z.object({
   name: z.string().min(1, { message: "Award name is required" }),
@@ -110,6 +115,12 @@ export default function UserAwardsPage() {
   // Fetch award statistics
   const { data: awardStats, isLoading: statsLoading } = useQuery<AwardStats>({
     queryKey: ["/api/awards/admin/award-stats"],
+    retry: false,
+  });
+
+  // Fetch award system status
+  const { data: awardSystemStatus, isLoading: statusLoading } = useQuery<AwardSystemStatus>({
+    queryKey: ["/api/admin/settings/award-system/status"],
     retry: false,
   });
 
@@ -189,6 +200,30 @@ export default function UserAwardsPage() {
     },
   });
 
+  // Toggle award system mutation
+  const toggleAwardSystemMutation = useMutation({
+    mutationFn: (enabled: boolean) =>
+      apiRequest("/api/admin/settings/award-system/toggle", {
+        method: "PUT",
+        body: { enabled },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/award-system/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/award-system-status"] });
+      toast({
+        title: "Success",
+        description: "Award system status updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update award system status",
+        variant: "destructive",
+      });
+    },
+  });
+
   /**
    * Handle form submission for creating or updating award settings
    */
@@ -239,6 +274,13 @@ export default function UserAwardsPage() {
     }
   };
 
+  /**
+   * Handle toggling the award system
+   */
+  const handleToggleAwardSystem = (enabled: boolean) => {
+    toggleAwardSystemMutation.mutate(enabled);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -250,10 +292,23 @@ export default function UserAwardsPage() {
               Manage daily login rewards and award settings
             </p>
           </div>
-          <Button onClick={handleCreate} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create Award
-          </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="award-system-toggle" className="text-sm font-medium">
+                Award System
+              </Label>
+              <Switch
+                id="award-system-toggle"
+                checked={awardSystemStatus?.enabled ?? true}
+                onCheckedChange={handleToggleAwardSystem}
+                disabled={statusLoading || toggleAwardSystemMutation.isPending}
+              />
+            </div>
+            <Button onClick={handleCreate} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Create Award
+            </Button>
+          </div>
         </div>
 
         {/* Statistics Cards */}

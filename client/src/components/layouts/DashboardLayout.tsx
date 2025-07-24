@@ -241,6 +241,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     enabled: !!user,
   });
 
+  // Fetch award system status
+  const { data: awardSystemStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/settings/award-system-status"],
+    staleTime: 60 * 1000, // 1 minute
+    enabled: !!user,
+  });
+
   // Use API data without sample data fallbacks
   const users = usersData;
   const tickets = ticketsResponse?.data || [];
@@ -360,11 +367,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       href: "/billing",
       icon: <CreditCard className="h-5 w-5 mr-3" />,
       children: [
-        {
+        ...(awardSystemStatus?.enabled !== false ? [{
           name: "Daily Login Awards",
           href: "/billing/awards",
           icon: <Gift className="h-4 w-4 mr-3" />,
-        },
+        }] : []),
       ],
     }, {
       name: `${companyName}'s Blog`,

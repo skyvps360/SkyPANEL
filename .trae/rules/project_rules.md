@@ -119,3 +119,6 @@
    - **Docker**: Containerization support available
    - **Port**: Found in the `.env`
    - **NEVER**: Use `npm run db:push` as this applicaiton is attached to a live postgres neon.tech database
+   - **APPLICATION PORT**: The port of this application is 3333
+   - **BRAND**: The brand name of this application is actually defined in the `/admin/settings` page as this is a saas application same with colors please abide by the `brand-theme.md` file.
+   - **Comments**: Always comment when writing code

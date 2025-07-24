@@ -91,4 +91,52 @@ export class SettingsService {
     const num = Number(value);
     return isNaN(num) ? defaultValue : num;
   }
+
+  /**
+   * Set a setting value
+   * @param key Setting key
+   * @param value Setting value
+   * @returns Promise<void>
+   */
+  static async setSetting(key: string, value: string): Promise<void> {
+    try {
+      await db.insert(settings)
+        .values({ key, value })
+        .onConflictDoUpdate({
+          target: settings.key,
+          set: { value, updatedAt: new Date() }
+        });
+    } catch (error) {
+      console.error(`Error setting ${key}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if award system is enabled
+   * @returns Promise<boolean>
+   */
+  static async isAwardSystemEnabled(): Promise<boolean> {
+    try {
+      const setting = await this.getSetting('award_system_enabled');
+      return setting === 'true';
+    } catch (error) {
+      console.error('Error checking award system status:', error);
+      return true; // Default to enabled
+    }
+  }
+
+  /**
+   * Enable or disable the award system
+   * @param enabled Whether to enable the award system
+   * @returns Promise<void>
+   */
+  static async setAwardSystemEnabled(enabled: boolean): Promise<void> {
+    try {
+      await this.setSetting('award_system_enabled', enabled.toString());
+    } catch (error) {
+      console.error('Error setting award system status:', error);
+      throw error;
+    }
+  }
 }
