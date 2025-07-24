@@ -198,8 +198,8 @@ export default function DnsDomainsPage() {
         return (
           <div className="flex flex-col gap-1">
             <span className={`text-sm font-medium ${isAtLimit ? 'text-red-600' :
-                isNearLimit ? 'text-yellow-600' :
-                  'text-green-600'
+              isNearLimit ? 'text-yellow-600' :
+                'text-green-600'
               }`}>
               {usage.userCreated}/{maxRecords}
             </span>
@@ -366,7 +366,7 @@ export default function DnsDomainsPage() {
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
-                <div className="font-mono text-sm">208.73.210.202</div>
+                <div className="font-mono text-sm">cdns.ns1.skyvps360.xyz</div>
                 <div className="text-xs text-muted-foreground">216.158.228.164</div>
               </div>
               <div className="space-y-2">
