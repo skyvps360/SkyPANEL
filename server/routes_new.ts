@@ -297,8 +297,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {} as Record<number, any>);
 
-      // Include ALL packages (both enabled and disabled) with category and SLA information and sort by memory size
+      // Filter out disabled packages and include only enabled ones with category and SLA information
       const allPackages = packages
+        .filter(pkg => pkg.enabled === true) // Only include enabled packages
         .map(pkg => {
           const pricingRecord = pricingMap[pkg.id];
           return {
@@ -311,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .sort((a: any, b: any) => a.memory - b.memory);
 
-      console.log(`Returning ${allPackages.length} packages from VirtFusion API with category information`);
+      console.log(`Returning ${allPackages.length} enabled packages from VirtFusion API with category information`);
       res.json(allPackages);
     } catch (error: any) {
       console.error("Error fetching public packages:", error);
@@ -587,6 +588,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errorDetail: 'The VirtFusion API returned an invalid response format'
         });
       }
+
+      // Filter out disabled packages
+      packagesArray = packagesArray.filter((pkg: any) => pkg.enabled !== false);
 
       // Get all our package pricing records with category and SLA information
       const pricingRecords = await db
