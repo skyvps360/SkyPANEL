@@ -249,6 +249,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     enabled: !!user,
   });
 
+  // Debug: Log award system status
+  useEffect(() => {
+    console.log('Award System Status:', awardSystemStatus);
+  }, [awardSystemStatus]);
+
   // Use API data without sample data fallbacks
   const users = usersData;
   const tickets = ticketsResponse?.data || [];

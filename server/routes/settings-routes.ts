@@ -31,6 +31,18 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get award system status (no auth required for navigation)
+router.get('/award-system-status', async (req, res) => {
+  try {
+    const { SettingsService } = await import('../settings-service');
+    const enabled = await SettingsService.isAwardSystemEnabled();
+    res.json({ enabled });
+  } catch (error) {
+    console.error('Error fetching award system status:', error);
+    res.status(500).json({ error: 'Failed to fetch award system status' });
+  }
+});
+
 // Get setting by key
 router.get('/:key', async (req, res) => {
   try {
@@ -410,18 +422,6 @@ router.post('/email/test', async (req, res) => {
       message: 'An error occurred while sending test email',
       error: error.message
     });
-  }
-});
-
-// Get award system status (no auth required for navigation)
-router.get('/award-system-status', async (req, res) => {
-  try {
-    const { SettingsService } = await import('../settings-service');
-    const enabled = await SettingsService.isAwardSystemEnabled();
-    res.json({ enabled });
-  } catch (error) {
-    console.error('Error fetching award system status:', error);
-    res.status(500).json({ error: 'Failed to fetch award system status' });
   }
 });
 
