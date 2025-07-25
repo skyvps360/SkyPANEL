@@ -39,6 +39,7 @@ import publicSlaRoutes from "./routes/public-sla-routes";
 import transactionRoutes from "./routes/transaction-routes";
 import userRoutes from "./routes/user-routes";
 import settingsRoutes from "./routes/settings-routes";
+import adminSettingsRoutes from "./routes/admin-settings";
 import monitoringRoutes from "./routes/monitoring-routes";
 import awardsRoutes from "./routes/awards-routes";
 import {chatService} from "./chat-service";
@@ -11134,6 +11135,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register Settings routes
   app.use("/api/settings", settingsRoutes);
+
+  // Register Admin Settings routes
+  app.use("/api/admin", adminSettingsRoutes);
 
   // Awards routes
   app.use("/api/awards", awardsRoutes);

@@ -367,7 +367,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       href: "/billing",
       icon: <CreditCard className="h-5 w-5 mr-3" />,
       children: [
-        ...(awardSystemStatus?.enabled !== false ? [{
+        ...(awardSystemStatus?.enabled === true ? [{
           name: "Daily Login Awards",
           href: "/billing/awards",
           icon: <Gift className="h-4 w-4 mr-3" />,

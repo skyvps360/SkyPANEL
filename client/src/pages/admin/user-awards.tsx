@@ -299,7 +299,7 @@ export default function UserAwardsPage() {
               </Label>
               <Switch
                 id="award-system-toggle"
-                checked={awardSystemStatus?.enabled ?? true}
+                checked={awardSystemStatus?.enabled ?? false}
                 onCheckedChange={handleToggleAwardSystem}
                 disabled={statusLoading || toggleAwardSystemMutation.isPending}
               />

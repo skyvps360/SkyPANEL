@@ -15,7 +15,7 @@ function isAdmin(req: any, res: any, next: any) {
 }
 
 // Get all admin settings
-router.get('/api/admin/settings', isAdmin, async (req, res) => {
+router.get('/settings', isAdmin, async (req, res) => {
   try {
     const allSettings = await SettingsService.getAllSettings();
     return res.json(allSettings);
@@ -26,7 +26,7 @@ router.get('/api/admin/settings', isAdmin, async (req, res) => {
 });
 
 // Get a specific setting
-router.get('/api/admin/settings/:key', isAdmin, async (req, res) => {
+router.get('/settings/:key', isAdmin, async (req, res) => {
   try {
     const { key } = req.params;
     const value = await SettingsService.getSetting(key);
@@ -43,7 +43,7 @@ router.get('/api/admin/settings/:key', isAdmin, async (req, res) => {
 });
 
 // Update a setting
-router.post('/api/admin/settings', isAdmin, async (req, res) => {
+router.post('/settings', isAdmin, async (req, res) => {
   try {
     const { key, value } = req.body;
     
@@ -65,7 +65,7 @@ router.post('/api/admin/settings', isAdmin, async (req, res) => {
 });
 
 // Update a setting
-router.put('/api/admin/settings/:key', isAdmin, async (req, res) => {
+router.put('/settings/:key', isAdmin, async (req, res) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
@@ -83,7 +83,7 @@ router.put('/api/admin/settings/:key', isAdmin, async (req, res) => {
 });
 
 // Get award system status
-router.get('/api/admin/settings/award-system/status', isAdmin, async (req, res) => {
+router.get('/settings/award-system/status', isAdmin, async (req, res) => {
   try {
     const enabled = await SettingsService.isAwardSystemEnabled();
     return res.json({ enabled });
@@ -94,7 +94,7 @@ router.get('/api/admin/settings/award-system/status', isAdmin, async (req, res) 
 });
 
 // Toggle award system
-router.put('/api/admin/settings/award-system/toggle', isAdmin, async (req, res) => {
+router.put('/settings/award-system/toggle', isAdmin, async (req, res) => {
   try {
     const { enabled } = req.body;
     
@@ -107,33 +107,6 @@ router.put('/api/admin/settings/award-system/toggle', isAdmin, async (req, res) 
   } catch (error) {
     console.error('Error toggling award system:', error);
     return res.status(500).json({ error: 'Failed to toggle award system' });
-  }
-});
-
-// Get public settings (accessible without authentication)
-router.get('/api/settings/public', async (req, res) => {
-  try {
-    // Add the keys for settings that should be publicly accessible
-    const publicSettingKeys = [
-      'loading_screen_enabled',
-      'loading_screen_duration',
-      'loading_screen_always_show',
-      // Add other public setting keys as needed
-    ];
-    
-    const publicSettings: Record<string, any> = {};
-    
-    for (const key of publicSettingKeys) {
-      const value = await SettingsService.getSetting(key);
-      if (value !== null) {
-        publicSettings[key] = value;
-      }
-    }
-    
-    return res.json(publicSettings);
-  } catch (error) {
-    console.error('Error fetching public settings:', error);
-    return res.status(500).json({ error: 'Failed to fetch public settings' });
   }
 });
 

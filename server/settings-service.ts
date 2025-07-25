@@ -119,10 +119,12 @@ export class SettingsService {
   static async isAwardSystemEnabled(): Promise<boolean> {
     try {
       const setting = await this.getSetting('award_system_enabled');
-      return setting === 'true';
+      // If no setting exists, default to enabled (true)
+      // If setting exists, return the actual value
+      return setting === null ? true : setting === 'true';
     } catch (error) {
       console.error('Error checking award system status:', error);
-      return true; // Default to enabled
+      return true; // Default to enabled on error
     }
   }
 
