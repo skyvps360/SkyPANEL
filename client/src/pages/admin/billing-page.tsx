@@ -245,10 +245,10 @@ export default function AdminBillingPage() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-8 space-y-8">
+      <div className="space-y-8">
         {/* Modern Hero Header */}
         <div className="rounded-2xl bg-card border border-border shadow-md">
-          <div className="p-8 md:p-12">
+          <div className="p-4 sm:p-6 md:p-8 lg:p-12">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-4">
@@ -259,17 +259,17 @@ export default function AdminBillingPage() {
                     <DollarSign className="h-6 w-6" />
                   </div>
                   <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground tracking-tight">
                       Billing Administration
                     </h1>
-                    <p className="text-muted-foreground text-lg mt-1">
+                    <p className="text-muted-foreground text-sm sm:text-base md:text-lg mt-1">
                       Manage billing, transactions, and VirtFusion token operations
                     </p>
                   </div>
                 </div>
 
                 {/* Billing Stats Summary */}
-                <div className="flex flex-wrap gap-6 mt-6">
+                <div className="flex flex-wrap gap-3 sm:gap-4 md:gap-6 mt-4 sm:mt-6">
                   <div className="flex items-center space-x-2">
                     <div
                       className="w-3 h-3 rounded-full"
@@ -296,7 +296,7 @@ export default function AdminBillingPage() {
         </div>
 
         {/* Enhanced Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {/* Total Revenue Card */}
           <Card className="overflow-hidden bg-card border border-border shadow-sm hover:shadow-md transition-all duration-200">
             <div className="px-6 py-4 flex items-center justify-between border-b border-border">

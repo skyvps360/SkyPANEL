@@ -5215,8 +5215,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid role" });
       }
 
+      const user = await storage.getUser(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user is trying to modify their own account
+      if (req.user && (req.user as any).id === userId) {
+        return res.status(403).json({ error: "You cannot modify your own account role" });
+      }
+
+      // Update role in local database
       await storage.updateUserRole(userId, role);
-      res.json({ success: true });
+      console.log(`Successfully updated user role in local database. User ID: ${userId}, New Role: ${role}`);
+
+      // VirtFusion API Integration Note:
+      // The VirtFusion API does not support changing admin/client roles via API.
+      // The PUT /users/{extRelationId}/byExtRelation endpoint only supports:
+      // - name, email, selfService, selfServiceHourlyCredit, enabled, etc.
+      // - but does NOT include an 'admin' field in the request body schema
+      // Therefore, role changes are only applied to the local SkyPANEL database.
+      
+      if (user.virtFusionId) {
+        console.log(`Note: User ${userId} has VirtFusion ID ${user.virtFusionId}, but VirtFusion API does not support role changes.`);
+        console.log(`Role change from '${user.role}' to '${role}' applied locally only.`);
+        
+        // Send notification email about role change
+        try {
+          const adminUser = req.user as any;
+          const adminName = adminUser?.fullName || 'System Administrator';
+          
+          if (role === 'admin') {
+            // User promoted to admin
+            await emailService.sendNotificationEmail(
+              user.email,
+              "Your Account Role Has Been Updated",
+              `<p>Hello ${user.fullName},</p>
+              <p>Your account role has been updated to <strong>Administrator</strong> by ${adminName}.</p>
+              <p>You now have full access to all administrative features and settings.</p>
+              <p>If you have any questions, please contact our support team.</p>
+              <p>Best regards,<br>The Support Team</p>`
+            );
+          } else {
+            // User demoted to client
+            await emailService.sendNotificationEmail(
+              user.email,
+              "Your Account Role Has Been Updated",
+              `<p>Hello ${user.fullName},</p>
+              <p>Your account role has been updated to <strong>Client</strong> by ${adminName}.</p>
+              <p>Your access has been adjusted accordingly. If you believe this is in error, please contact our support team.</p>
+              <p>Best regards,<br>The Support Team</p>`
+            );
+          }
+          console.log(`Role change notification email sent to user ${userId}`);
+        } catch (emailError) {
+          console.error(`Error sending role change notification email:`, emailError);
+          // Continue anyway since this is just a notification
+        }
+      }
+
+      res.json({ 
+        success: true,
+        message: "Role updated successfully",
+        virtFusionNote: user.virtFusionId ? "Role change applied locally only - VirtFusion API does not support role modifications" : undefined
+      });
     } catch (error: any) {
       console.error(`Error updating user role:`, error);
       res.status(500).json({ error: error.message });

@@ -312,9 +312,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
     });
 
-    // Search transactions
+    // Search transactions - Enhanced to support transaction ID searching
     transactionsData?.forEach((transaction) => {
       if (
+        transaction.id.toString() === lowerQuery || // Exact match for transaction ID
         transaction.description?.toLowerCase().includes(lowerQuery) ||
         transaction.type?.toLowerCase().includes(lowerQuery) ||
         transaction.paymentId?.toLowerCase().includes(lowerQuery)
@@ -322,7 +323,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         results.push({
           id: transaction.id,
           type: "billing",
-          name: `Payment ${transaction.type}`,
+          name: `Transaction #${transaction.id}`,
           description: `${transaction.description} - $${transaction.amount}`,
           url: `/admin/billing/transactions/${transaction.id}`,
           icon: <CreditCard className="h-4 w-4" />,

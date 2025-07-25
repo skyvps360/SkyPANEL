@@ -46,7 +46,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Check, DollarSign, Info, RefreshCw, X } from 'lucide-react';
+import { AlertCircle, ArrowUpDown, Check, DollarSign, Info, RefreshCw, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -139,6 +139,10 @@ export default function PackagePricingPage() {
   const [slaDialogOpen, setSlaDialogOpen] = useState(false);
   const [selectedSlaPlan, setSelectedSlaPlan] = useState<SlaPlan | null>(null);
   const [slaFormMode, setSlaFormMode] = useState<'create' | 'edit'>('create');
+  
+  // Category table sorting state
+  const [categorySortField, setCategorySortField] = useState<keyof PackageCategory>('updatedAt');
+  const [categorySortDirection, setCategorySortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Fetch packages and pricing data
   const { data: packages, isLoading, error, refetch } = useQuery<VirtFusionPackage[]>({
@@ -554,6 +558,37 @@ export default function PackagePricingPage() {
     }
   };
 
+  // Category sorting functionality
+  const handleCategorySort = (field: keyof PackageCategory) => {
+    if (categorySortField === field) {
+      setCategorySortDirection(categorySortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setCategorySortField(field);
+      setCategorySortDirection('asc');
+    }
+  };
+
+  // Sort categories based on current sort field and direction
+  const sortedCategories = categories ? [...categories].sort((a, b) => {
+    const aValue = a[categorySortField];
+    const bValue = b[categorySortField];
+    
+    // Handle different data types
+    let comparison = 0;
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      comparison = aValue.localeCompare(bValue);
+    } else if (typeof aValue === 'number' && typeof bValue === 'number') {
+      comparison = aValue - bValue;
+    } else if (aValue instanceof Date || typeof aValue === 'string') {
+      // Handle dates (both Date objects and ISO strings)
+      const dateA = new Date(aValue);
+      const dateB = new Date(bValue);
+      comparison = dateA.getTime() - dateB.getTime();
+    }
+    
+    return categorySortDirection === 'asc' ? comparison : -comparison;
+  }) : [];
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -742,21 +777,52 @@ export default function PackagePricingPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {categories && categories.length > 0 ? (
+          {sortedCategories && sortedCategories.length > 0 ? (
             <div className="overflow-x-auto w-full">
               <Table className="w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden md:table-cell">
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleCategorySort('displayOrder')}
+                        className="h-auto p-0 font-medium hover:bg-transparent"
+                      >
+                        Order
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleCategorySort('name')}
+                        className="h-auto p-0 font-medium hover:bg-transparent"
+                      >
+                        Name
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
                     <TableHead className="hidden sm:table-cell">Description</TableHead>
-                    <TableHead className="hidden md:table-cell">Display Order</TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        onClick={() => handleCategorySort('updatedAt')}
+                        className="h-auto p-0 font-medium hover:bg-transparent"
+                      >
+                        Updated
+                        <ArrowUpDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {categories.map((category) => (
+                  {sortedCategories.map((category) => (
                     <TableRow key={category.id}>
+                      <TableCell className="hidden md:table-cell">
+                        {category.displayOrder}
+                      </TableCell>
                       <TableCell className="font-medium">
                         {category.name}
                       </TableCell>
@@ -765,8 +831,10 @@ export default function PackagePricingPage() {
                           <span className="text-muted-foreground italic">No description</span>
                         )}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {category.displayOrder}
+                      <TableCell>
+                        <div className="text-sm text-muted-foreground">
+                          {new Date(category.updatedAt).toLocaleDateString()}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge
