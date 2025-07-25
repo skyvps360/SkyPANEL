@@ -135,6 +135,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   const [activeResultIndex, setActiveResultIndex] = useState(-1);
   const [showSearchPopup, setShowSearchPopup] = useState(false);
   const [expandedNavItems, setExpandedNavItems] = useState<Set<string>>(new Set());
+  const [navigationUpdateTrigger, setNavigationUpdateTrigger] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchResultsRef = useRef<HTMLDivElement>(null);
 
@@ -201,7 +202,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     { id: "tickets", label: "Support Tickets", icon: <Ticket className="h-4 w-4" /> },
     { id: "users", label: "Users", icon: <Users className="h-4 w-4" />, adminOnly: true },
     { id: "billing", label: "Billing & Transactions", icon: <CreditCard className="h-4 w-4" /> },
-    { id: "packages", label: "Packages", icon: <Server className="h-4 w-4" /> },
+    { id: "packages", label: "Server Plans", icon: <Server className="h-4 w-4" /> },
     { id: "settings", label: "Settings", icon: <SettingsIcon className="h-4 w-4" />, adminOnly: true },
     { id: "api", label: "API Documentation", icon: <Code className="h-4 w-4" /> },
   ];
@@ -244,7 +245,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   // Fetch award system status
   const { data: awardSystemStatus } = useQuery<{ enabled: boolean }>({
     queryKey: ["/api/settings/award-system-status"],
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 5 * 1000, // 5 seconds - reduced for more responsive updates
     enabled: !!user,
   });
 
@@ -283,7 +284,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     },
     {
       id: "packages",
-      name: "Packages",
+      name: "Server Plans",
       description: "Browse available packages",
       url: "/packages",
       icon: <Server className="h-4 w-4" />
@@ -346,61 +347,70 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
   // Main navigation items (removed Support Tickets and Live Support - they'll be under VirtFusion Panel)
   // Memoize to prevent infinite re-renders in useEffect
-  const mainNavigation: NavigationItem[] = useMemo(() => [
-    {
-      name: "Dashboard",
-      href: "/dashboard",
-      icon: <Gauge className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "My Servers",
-      href: "/servers",
-      icon: <Server className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "Server Plans",
-      href: "/packages",
-      icon: <HardDrive className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "Billing & Payments",
-      href: "/billing",
-      icon: <CreditCard className="h-5 w-5 mr-3" />,
-      children: [
-        ...(awardSystemStatus?.enabled === true ? [{
+  const mainNavigation: NavigationItem[] = useMemo(() => {
+    const nav: NavigationItem[] = [
+      {
+        name: "Dashboard",
+        href: "/dashboard",
+        icon: <Gauge className="h-5 w-5 mr-3" />,
+      },
+      {
+        name: "My Servers",
+        href: "/servers",
+        icon: <Server className="h-5 w-5 mr-3" />,
+      },
+      {
+        name: "Server Plans",
+        href: "/packages",
+        icon: <HardDrive className="h-5 w-5 mr-3" />,
+      },
+      {
+        name: "Billing & Payments",
+        href: "/billing",
+        icon: <CreditCard className="h-5 w-5 mr-3" />,
+        children: [],
+      },
+      {
+        name: `${companyName}'s Blog`,
+        href: "/dashboard/blog",
+        icon: <FileText className="h-5 w-5 mr-3" />,
+      },
+      {
+        name: "Service Level Agreement",
+        href: "/dashboard/sla",
+        icon: <Shield className="h-5 w-5 mr-3" />,
+      },
+      {
+        name: "DNS Management",
+        href: "/dns",
+        icon: <Globe className="h-5 w-5 mr-3" />,
+        children: [
+          {
+            name: "DNS Plans",
+            href: "/dns-plans",
+            icon: <CreditCard className="h-4 w-4 mr-3" />,
+          },
+        ],
+      },
+      // {
+      //   name: "API Documentation",
+      //   href: "/api-docs",
+      //   icon: <Code className="h-5 w-5 mr-3" />,
+      // },
+    ];
+    // Only add the awards child if enabled
+    if (awardSystemStatus?.enabled === true) {
+      const billingNav = nav.find(item => item.name === "Billing & Payments");
+      if (billingNav) {
+        billingNav.children?.push({
           name: "Daily Login Awards",
           href: "/billing/awards",
           icon: <Gift className="h-4 w-4 mr-3" />,
-        }] : []),
-      ],
-    }, {
-      name: `${companyName}'s Blog`,
-      href: "/dashboard/blog",
-      icon: <FileText className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "Service Level Agreement",
-      href: "/dashboard/sla",
-      icon: <Shield className="h-5 w-5 mr-3" />,
-    },
-    {
-      name: "DNS Management",
-      href: "/dns",
-      icon: <Globe className="h-5 w-5 mr-3" />,
-      children: [
-        {
-          name: "DNS Plans",
-          href: "/dns-plans",
-          icon: <CreditCard className="h-4 w-4 mr-3" />,
-        },
-      ],
-    },
-    // {
-    //   name: "API Documentation",
-    //   href: "/api-docs",
-    //   icon: <Code className="h-5 w-5 mr-3" />,
-    // },
-  ], [companyName]);
+        });
+      }
+    }
+    return nav;
+  }, [companyName, awardSystemStatus?.enabled, navigationUpdateTrigger]);
 
   // Admin navigation items - empty as admin link is in dropdown
   const adminNavigation: NavigationItem[] = [];
@@ -838,6 +848,18 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       });
     }
   };
+
+  // Debug log for award system status changes
+  useEffect(() => {
+    console.log("Award system status changed:", awardSystemStatus?.enabled);
+  }, [awardSystemStatus?.enabled]);
+
+  // Ensure the navigation menu updates instantly
+  useEffect(() => {
+    if (awardSystemStatus?.enabled !== undefined) {
+      setNavigationUpdateTrigger(prev => !prev);
+    }
+  }, [awardSystemStatus?.enabled]);
 
   return (
     <div className="flex h-screen overflow-hidden text-textColor">

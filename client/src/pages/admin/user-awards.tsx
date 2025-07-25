@@ -210,6 +210,8 @@ export default function UserAwardsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings/award-system/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/award-system-status"] });
+      // Force refetch for dashboard navigation
+      queryClient.refetchQueries({ queryKey: ["/api/settings/award-system-status"] });
       toast({
         title: "Success",
         description: "Award system status updated successfully",
