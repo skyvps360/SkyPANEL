@@ -240,11 +240,13 @@ export class CouponService {
       }
 
       // Create transaction record first
+      // Convert tokens to USD (100 tokens = $1 USD)
+      const usdAmount = coupon.tokensAmount / 100;
       const [transaction] = await db
         .insert(transactions)
         .values({
           userId: userId,
-          amount: coupon.tokensAmount,
+          amount: usdAmount,
           type: 'credit',
           description: `Coupon redeemed: ${coupon.code}`,
           status: 'pending',
