@@ -29,6 +29,7 @@ import {
     UserSelectMenuInteraction
 } from 'discord.js';
 import {storage} from '../storage';
+import {discordTodoService} from './discord-todo-service';
 
 /**
  * Core service for managing Discord bot operations
@@ -45,6 +46,7 @@ export class DiscordBotCore {
     private statusService: any;
     private helpService: any;
     private aiService: any;
+    private todoService: any;
 
     private constructor() {
     }
@@ -75,6 +77,7 @@ export class DiscordBotCore {
         this.statusService = statusService;
         this.helpService = helpService;
         this.aiService = aiService;
+        this.todoService = discordTodoService;
     }
 
     /**
@@ -162,6 +165,10 @@ export class DiscordBotCore {
                     else if (interaction.commandName === 'ask') {
                         await this.aiService.handleAICommand(interaction);
                     }
+                    // Check if it's a todo command
+                    else if (interaction.commandName.startsWith('todo-')) {
+                        await this.todoService.handleTodoCommand(interaction);
+                    }
                     // Check if it's a moderation command
                     else if (this.moderationService.isModerationCommand(interaction.commandName)) {
                         await this.moderationService.handleModerationCommand(interaction);
@@ -235,8 +242,13 @@ export class DiscordBotCore {
                 // AI commands
                 this.aiService.getAIChatCommands(),
 
+                // Todo commands
+                ...this.todoService.getTodoCommands(),
+
                 // Moderation commands
-                ...this.moderationService.getModerationCommands(),                // Ticket commands
+                ...this.moderationService.getModerationCommands(),
+
+                // Ticket commands
                 ...this.commandHandler.getTicketCommands(),
             ];
 
@@ -274,6 +286,12 @@ export class DiscordBotCore {
             // Help button
             if (customId.startsWith('help:')) {  
                 await this.helpService.handleHelpButton(interaction);
+                return;
+            }
+
+            // Todo buttons
+            if (customId.startsWith('todo_')) {
+                await this.todoService.handleTodoButton(interaction);
                 return;
             }
 
