@@ -627,9 +627,9 @@ export default function CouponManagementPage() {
                             title={coupon.isActive ? "Deactivate coupon" : "Activate coupon"}
                           >
                             {coupon.isActive ? (
-                              <Power className="h-4 w-4 text-green-500" />
+                              <Power className="h-4 w-4" />
                             ) : (
-                              <PowerOff className="h-4 w-4 text-gray-400" />
+                              <PowerOff className="h-4 w-4" />
                             )}
                           </Button>
                           <Button
