@@ -1,34 +1,40 @@
-# Coupon Transaction Amount Fix
+# Fix Ticket Sorting by ID Issue
 
-## Issue
-- [X] **Identified Problem**: Coupon claiming system showing incorrect USD amounts in transactions
-- [X] **Root Cause**: Transaction amount was set to raw token amount instead of USD equivalent
-- [X] **Exchange Rate**: 100 tokens = $1 USD (confirmed from billing page)
+## Problem
+The `/admin/tickets` page does not properly sort tickets by ID for both open and closed tickets. Currently, tickets are being sorted by `createdAt` timestamp instead of by ID.
 
-## Fix Applied
-- [X] **Updated coupon-service.ts**: Added token-to-USD conversion in transaction creation
-- [X] **Added Conversion Logic**: `const usdAmount = coupon.tokensAmount / 100;`
-- [X] **Updated Transaction Amount**: Changed from `coupon.tokensAmount` to `usdAmount`
+## Root Cause Analysis
+1. **Backend Issue**: The `getAllTicketsPaginated` function in `storage.ts` sorts tickets by `desc(tickets.createdAt)` (newest first)
+2. **Frontend Issue**: The `tickets-page.tsx` component sorts tickets again by `createdAt` in ascending order (oldest first)
+3. **Expected Behavior**: Tickets should be sorted by ID for proper ordering
 
-## Testing Required
-- [X] **Server Restarted**: Applied fix and restarted development server
-- [X] **Fix Deployed**: Coupon service now converts tokens to USD (÷100) for transactions
-- [ ] **Test Coupon Claiming**: Verify 1000 tokens now shows as $10.00 in transactions
-- [ ] **Check Billing Page**: Confirm transaction displays correct USD amount
-- [ ] **Check Admin Billing**: Verify admin billing page shows correct amounts
-- [ ] **Verify Token Balance**: Ensure user still receives correct token amount
+## Tasks to Complete
 
-## Expected Results
-- 1000 token coupon should create $10.00 transaction (not $1000.00)
-- User should still receive 1000 tokens in their VirtFusion account
-- Transaction history should show proper USD amounts
-- Exchange rate consistency maintained across system
+### Backend Changes
+- [X] Update `getAllTicketsPaginated` function in `storage.ts` to sort by ticket ID instead of `createdAt`
+- [X] Change from `orderBy(desc(tickets.createdAt))` to `orderBy(desc(tickets.id))` for newest tickets first by ID
+- [X] Verify other ticket-related functions maintain consistent ID-based sorting
+  - [X] Updated `getUserTickets` to sort by ID
+  - [X] Updated `getAllTickets` to sort by ID
+  - [X] Updated `getUserTicketsPaginated` to sort by ID
+  - [X] Updated `getTicketsByStatus` to sort by ID
 
-## Files Modified
-- `server/services/coupon-service.ts` - Fixed transaction amount calculation
+### Frontend Changes
+- [X] Update `tickets-page.tsx` to sort by ticket ID instead of `createdAt`
+- [X] Change the sorting logic from `new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()` to `b.id - a.id` for descending ID order
+- [X] Ensure the sorting is consistent with backend ordering
 
-## Next Steps
-1. Test the fix with a coupon redemption
-2. Verify transaction amounts in both user and admin billing pages
-3. Confirm user receives correct token balance
-4. Mark as complete once verified
+### Testing
+- [X] Test open tickets sorting by ID
+- [X] Test closed tickets sorting by ID
+- [X] Verify pagination works correctly with ID-based sorting
+- [X] Confirm search functionality still works with new sorting
+- [X] Development server restarted successfully
+- [X] Admin tickets page accessible at http://localhost:3000/admin/tickets
+
+## Files to Modify
+1. `c:\Users\Administrator\Documents\SkyPANEL\server\storage.ts` (line 989)
+2. `c:\Users\Administrator\Documents\SkyPANEL\client\src\pages\admin\tickets-page.tsx` (lines 134-137)
+
+## Expected Outcome
+Tickets will be properly sorted by ID in descending order (highest ID first) on the `/admin/tickets` page for both open and closed ticket tabs.

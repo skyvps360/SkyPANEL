@@ -131,9 +131,9 @@ export default function AdminTicketsPage() {
     }
   };
 
-  // Sort tickets by creation date (oldest first - FIFO order)
+  // Sort tickets by ID (newest first - highest ID first)
   const sortedTickets = [...tickets].sort((a, b) => {
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    return b.id - a.id;
   });
 
   // Filter tickets by search query (tickets are already filtered by status from API)

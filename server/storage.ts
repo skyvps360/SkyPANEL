@@ -886,7 +886,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(tickets)
       .where(eq(tickets.userId, userId))
-      .orderBy(desc(tickets.createdAt));
+      .orderBy(desc(tickets.id));
   }
 
   async getUserTicketsCount(userId: number, status?: string): Promise<number> {
@@ -922,7 +922,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(tickets)
       .where(and(...filters))
-      .orderBy(desc(tickets.createdAt))
+      .orderBy(desc(tickets.id))
       .limit(limit)
       .offset(offset);
   }
@@ -955,7 +955,7 @@ export class DatabaseStorage implements IStorage {
   async getAllTickets(): Promise<Ticket[]> {
     return await db.select()
       .from(tickets)
-      .orderBy(desc(tickets.createdAt));
+      .orderBy(desc(tickets.id));
   }
 
   async getAllTicketsCount(status?: string): Promise<number> {
@@ -987,7 +987,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     return await query
-      .orderBy(desc(tickets.createdAt))
+      .orderBy(desc(tickets.id))
       .limit(limit)
       .offset(offset);
   }
@@ -998,7 +998,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(tickets)
       .where(inArray(tickets.status, statuses))
-      .orderBy(desc(tickets.createdAt));
+      .orderBy(desc(tickets.id));
   }
 
   async getRecentOpenTickets(limit: number = 10): Promise<Ticket[]> {
