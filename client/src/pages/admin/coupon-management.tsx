@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -51,6 +51,11 @@ import {
   TrendingUp,
   RefreshCw,
   Eye,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -102,6 +107,9 @@ export default function CouponManagementPage() {
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
   const [selectedCouponUsage, setSelectedCouponUsage] = useState<number | null>(null);
   const [isUsageDialogOpen, setIsUsageDialogOpen] = useState(false);
+  const [usageSearchTerm, setUsageSearchTerm] = useState("");
+  const [usageCurrentPage, setUsageCurrentPage] = useState(1);
+  const usageItemsPerPage = 5;
 
   // Form setup
   const form = useForm<CouponFormData>({
@@ -143,6 +151,31 @@ export default function CouponManagementPage() {
     enabled: !!selectedCouponUsage,
     retry: false,
   });
+
+  // Filter and paginate coupon usage data
+  const filteredAndPaginatedUsage = useMemo(() => {
+    if (!couponUsage) return { data: [], totalPages: 0, totalItems: 0 };
+
+    // Filter by search term
+    const filtered = couponUsage.filter(usage =>
+      usage.username.toLowerCase().includes(usageSearchTerm.toLowerCase()) ||
+      usage.email.toLowerCase().includes(usageSearchTerm.toLowerCase()) ||
+      usage.transactionId?.toString().includes(usageSearchTerm)
+    );
+
+    // Calculate pagination
+    const totalItems = filtered.length;
+    const totalPages = Math.ceil(totalItems / usageItemsPerPage);
+    const startIndex = (usageCurrentPage - 1) * usageItemsPerPage;
+    const endIndex = startIndex + usageItemsPerPage;
+    const paginatedData = filtered.slice(startIndex, endIndex);
+
+    return {
+      data: paginatedData,
+      totalPages,
+      totalItems
+    };
+  }, [couponUsage, usageSearchTerm, usageCurrentPage]);
 
   // Generate coupon code mutation
   const generateCodeMutation = useMutation({
@@ -282,6 +315,19 @@ export default function CouponManagementPage() {
   const handleViewUsage = (couponId: number) => {
     setSelectedCouponUsage(couponId);
     setIsUsageDialogOpen(true);
+    setUsageSearchTerm("");
+    setUsageCurrentPage(1);
+  };
+
+  // Handle usage search
+  const handleUsageSearch = (term: string) => {
+    setUsageSearchTerm(term);
+    setUsageCurrentPage(1); // Reset to first page when searching
+  };
+
+  // Handle usage pagination
+  const handleUsagePageChange = (page: number) => {
+    setUsageCurrentPage(page);
   };
 
   const handleCloseDialog = () => {
@@ -317,7 +363,14 @@ export default function CouponManagementPage() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingCoupon(null)}>
+              <Button
+                onClick={() => setEditingCoupon(null)}
+                style={{
+                  backgroundColor: brandColors?.primary?.full || 'var(--brand-primary)',
+                  color: 'white'
+                }}
+                className="hover:opacity-90 transition-opacity"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Create Coupon
               </Button>
@@ -353,6 +406,7 @@ export default function CouponManagementPage() {
                         variant="outline"
                         onClick={() => generateCodeMutation.mutate()}
                         disabled={generateCodeMutation.isPending}
+                        className="hover:bg-primary hover:text-primary-foreground"
                       >
                         {generateCodeMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -442,12 +496,22 @@ export default function CouponManagementPage() {
                   />
 
                   <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={handleCloseDialog}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCloseDialog}
+                      className="hover:bg-primary hover:text-primary-foreground"
+                    >
                       Cancel
                     </Button>
                     <Button
                       type="submit"
                       disabled={createCouponMutation.isPending || updateCouponMutation.isPending}
+                      style={{
+                        backgroundColor: brandColors?.primary?.full || 'var(--brand-primary)',
+                        color: 'white'
+                      }}
+                      className="hover:opacity-90 transition-opacity"
                     >
                       {createCouponMutation.isPending || updateCouponMutation.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -551,7 +615,7 @@ export default function CouponManagementPage() {
                           </Button>
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
                             onClick={() =>
                               toggleStatusMutation.mutate({
                                 id: coupon.id,
@@ -559,31 +623,14 @@ export default function CouponManagementPage() {
                               })
                             }
                             disabled={toggleStatusMutation.isPending}
-                            className={`
-                              relative px-4 py-2 rounded-full font-medium text-xs transition-all duration-300 ease-in-out
-                              border-2 min-w-[80px] hover:scale-105 hover:shadow-md
-                              ${coupon.isActive
-                                ? 'bg-green-500 hover:bg-green-600 text-white border-green-500 shadow-green-200'
-                                : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600'
-                              }
-                            `}
-                            style={{
-                              boxShadow: coupon.isActive ? '0 4px 12px rgba(34, 197, 94, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.1)'
-                            }}
+                            className="hover:bg-primary hover:text-primary-foreground"
+                            title={coupon.isActive ? "Deactivate coupon" : "Activate coupon"}
                           >
-                            <span className="flex items-center gap-1">
-                              {coupon.isActive ? (
-                                <>
-                                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                                  Active
-                                </>
-                              ) : (
-                                <>
-                                  <div className="w-2 h-2 bg-gray-400 rounded-full" />
-                                  Inactive
-                                </>
-                              )}
-                            </span>
+                            {coupon.isActive ? (
+                              <Power className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <PowerOff className="h-4 w-4 text-gray-400" />
+                            )}
                           </Button>
                           <Button
                             variant="ghost"
@@ -606,55 +653,142 @@ export default function CouponManagementPage() {
 
         {/* Coupon Usage Dialog */}
         <Dialog open={isUsageDialogOpen} onOpenChange={setIsUsageDialogOpen}>
-          <DialogContent className="sm:max-w-[800px]">
+          <DialogContent className="sm:max-w-[900px]">
             <DialogHeader>
               <DialogTitle>Coupon Usage History</DialogTitle>
               <DialogDescription>
                 View all users who have used this coupon and their transaction details.
               </DialogDescription>
             </DialogHeader>
+
+            {/* Search and Stats */}
+            {couponUsage && couponUsage.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search by user, email, or transaction ID..."
+                      value={usageSearchTerm}
+                      onChange={(e) => handleUsageSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {filteredAndPaginatedUsage.totalItems} total usage{filteredAndPaginatedUsage.totalItems !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="max-h-[400px] overflow-y-auto">
               {usageLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
               ) : couponUsage && couponUsage.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Tokens Received</TableHead>
-                      <TableHead>Used At</TableHead>
-                      <TableHead>Transaction ID</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {couponUsage.map((usage) => (
-                      <TableRow key={usage.id}>
-                        <TableCell>{usage.username}</TableCell>
-                        <TableCell>{usage.email}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Coins className="h-3 w-3" />
-                            {usage.tokensReceived}
-                          </div>
-                        </TableCell>
-                        <TableCell>{formatDate(usage.usedAt)}</TableCell>
-                        <TableCell>
-                          {usage.transactionId ? (
-                            <span className="font-mono text-sm">#{usage.transactionId}</span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Tokens Received</TableHead>
+                        <TableHead>Used At</TableHead>
+                        <TableHead>Transaction ID</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAndPaginatedUsage.data.map((usage) => (
+                        <TableRow key={usage.id}>
+                          <TableCell>{usage.username}</TableCell>
+                          <TableCell>{usage.email}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Coins className="h-3 w-3" />
+                              {usage.tokensReceived}
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatDate(usage.usedAt)}</TableCell>
+                          <TableCell>
+                            {usage.transactionId ? (
+                              <span className="font-mono text-sm">#{usage.transactionId}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pagination */}
+                  {filteredAndPaginatedUsage.totalPages > 1 && (
+                    <div className="flex items-center justify-between px-2 py-4">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {((usageCurrentPage - 1) * usageItemsPerPage) + 1} to {Math.min(usageCurrentPage * usageItemsPerPage, filteredAndPaginatedUsage.totalItems)} of {filteredAndPaginatedUsage.totalItems} entries
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUsagePageChange(usageCurrentPage - 1)}
+                          disabled={usageCurrentPage <= 1}
+                          className="hover:bg-primary hover:text-primary-foreground"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                          Previous
+                        </Button>
+
+                        <div className="flex items-center space-x-1">
+                          {Array.from({ length: filteredAndPaginatedUsage.totalPages }, (_, i) => i + 1).map((page) => (
+                            <Button
+                              key={page}
+                              variant={page === usageCurrentPage ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleUsagePageChange(page)}
+                              style={page === usageCurrentPage ? {
+                                backgroundColor: brandColors?.primary?.full || 'var(--brand-primary)',
+                                color: 'white'
+                              } : {}}
+                              className={page === usageCurrentPage ? "" : "hover:bg-primary hover:text-primary-foreground"}
+                            >
+                              {page}
+                            </Button>
+                          ))}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUsagePageChange(usageCurrentPage + 1)}
+                          disabled={usageCurrentPage >= filteredAndPaginatedUsage.totalPages}
+                          className="hover:bg-primary hover:text-primary-foreground"
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No usage history found for this coupon.
+                  {usageSearchTerm ? (
+                    <>
+                      <Search className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+                      <p>No usage history found matching "{usageSearchTerm}".</p>
+                      <Button
+                        variant="link"
+                        onClick={() => setUsageSearchTerm("")}
+                        className="mt-2"
+                      >
+                        Clear search
+                      </Button>
+                    </>
+                  ) : (
+                    "No usage history found for this coupon."
+                  )}
                 </div>
               )}
             </div>
