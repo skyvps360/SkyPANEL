@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { getBrandColors } from "@/lib/brand-theme";
 import {
   Table,
   TableBody,
@@ -118,6 +119,22 @@ export default function CouponManagementPage() {
   const { data: coupons, isLoading: couponsLoading } = useQuery<Coupon[]>({
     queryKey: ["/api/admin/coupons"],
     retry: false,
+  });
+
+  // Fetch branding data for brand colors
+  const { data: brandingData } = useQuery<{
+    primary_color: string;
+    secondary_color: string;
+    accent_color: string;
+  }>({
+    queryKey: ["/api/settings/branding"],
+  });
+
+  // Get brand colors for styling
+  const brandColors = getBrandColors({
+    primaryColor: brandingData?.primary_color || '',
+    secondaryColor: brandingData?.secondary_color || '',
+    accentColor: brandingData?.accent_color || '',
   });
 
   // Fetch coupon usage for selected coupon
@@ -517,21 +534,23 @@ export default function CouponManagementPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleViewUsage(coupon.id)}
+                            className="hover:bg-primary hover:text-primary-foreground"
                           >
-                            <Eye className="h-3 w-3" />
+                            <Eye className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleEdit(coupon)}
+                            className="hover:bg-primary hover:text-primary-foreground"
                           >
-                            <Edit className="h-3 w-3" />
+                            <Edit className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() =>
                               toggleStatusMutation.mutate({
@@ -540,16 +559,40 @@ export default function CouponManagementPage() {
                               })
                             }
                             disabled={toggleStatusMutation.isPending}
+                            className={`
+                              relative px-4 py-2 rounded-full font-medium text-xs transition-all duration-300 ease-in-out
+                              border-2 min-w-[80px] hover:scale-105 hover:shadow-md
+                              ${coupon.isActive
+                                ? 'bg-green-500 hover:bg-green-600 text-white border-green-500 shadow-green-200'
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-300 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600'
+                              }
+                            `}
+                            style={{
+                              boxShadow: coupon.isActive ? '0 4px 12px rgba(34, 197, 94, 0.3)' : '0 2px 8px rgba(0, 0, 0, 0.1)'
+                            }}
                           >
-                            <Switch className="h-3 w-3" />
+                            <span className="flex items-center gap-1">
+                              {coupon.isActive ? (
+                                <>
+                                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                                  Active
+                                </>
+                              ) : (
+                                <>
+                                  <div className="w-2 h-2 bg-gray-400 rounded-full" />
+                                  Inactive
+                                </>
+                              )}
+                            </span>
                           </Button>
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => deleteCouponMutation.mutate(coupon.id)}
                             disabled={deleteCouponMutation.isPending}
+                            className="hover:bg-destructive hover:text-destructive-foreground"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
