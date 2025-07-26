@@ -126,6 +126,12 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: 'Invalid username or password' });
         }
         
+        // Check if user account is suspended
+        if (!user.isActive) {
+          console.log(`Suspended user attempted to login: ${username} (ID: ${user.id})`);
+          return done(null, false, { message: 'Your account has been suspended. Please contact support for assistance.' });
+        }
+        
         // Verify password
         const isValidPassword = await comparePasswords(password, user.password);
         if (!isValidPassword) {
@@ -154,6 +160,13 @@ export function setupAuth(app: Express) {
         // User no longer exists in the database
         return done(null, false);
       }
+      
+      // Check if user account is suspended - force logout if so
+      if (!user.isActive) {
+        console.log(`Forcing logout for suspended user: ${user.username} (ID: ${user.id})`);
+        return done(null, false);
+      }
+      
       done(null, user);
     } catch (error) {
       console.error("Error deserializing user:", error);

@@ -421,6 +421,16 @@ export default function AuthPage() {
         description: "Your email address needs to be verified before you can log in.",
         variant: "default",
       });
+    } else if (error) {
+      // Handle all other login errors (including suspension)
+      const errorMessage = error.message || "Login failed. Please try again.";
+      
+      // Show error toast for login failures
+      toast({
+        title: "Login Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
     }
     
     // Clear the error data to prevent duplicate processing
