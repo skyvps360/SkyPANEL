@@ -34,6 +34,7 @@ import StatusPage from "@/pages/status/index";
 import PlansPage from "@/pages/plans/index";
 import TeamsPage from "@/pages/teams-page";
 import DashboardBlogPage from "@/pages/dashboard-blog-page";
+import DashboardApiDocsPage from "@/pages/dashboard/api-docs-page";
 
 // Admin pages
 import AdminDashboard from "@/pages/admin/index";
@@ -119,6 +120,7 @@ export function AppRouter() {
                 <ProtectedRoute path="/dashboard" component={HomePage} />
                 <ProtectedRoute path="/dashboard/blog" component={DashboardBlogPage} />
                 <ProtectedRoute path="/dashboard/sla" component={DashboardSLAPage} />
+                <ProtectedRoute path="/dashboard/api-docs" component={DashboardApiDocsPage} />
                 <Route path="/auth" component={AuthPage} />
                 <Route path="/auth/verify" component={VerifyPage} />
                 <Route path="/auth/forgot-username" component={ForgotUsernamePage} />

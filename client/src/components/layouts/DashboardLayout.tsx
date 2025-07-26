@@ -386,6 +386,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         icon: <Shield className="h-5 w-5 mr-3" />,
       },
       {
+        name: "API Documentation",
+        href: "/dashboard/api-docs",
+        icon: <Code className="h-5 w-5 mr-3" />,
+      },
+      {
         name: "DNS Management",
         href: "/dns",
         icon: <Globe className="h-5 w-5 mr-3" />,
@@ -397,11 +402,6 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           },
         ],
       },
-      // {
-      //   name: "API Documentation",
-      //   href: "/api-docs",
-      //   icon: <Code className="h-5 w-5 mr-3" />,
-      // },
     ];
     // Only add the awards child if enabled
     if (awardSystemStatus?.enabled === true) {
