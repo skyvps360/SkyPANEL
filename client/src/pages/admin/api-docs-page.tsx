@@ -585,6 +585,168 @@ const userEndpoints: ApiEndpoint[] = [
     }, null, 2),
     requiresAuth: true,
     tags: ["user", "notifications"]
+  },
+  {
+    method: "PUT",
+    path: "/api/user/me",
+    description: "Update current user profile information",
+    parameters: [
+      { name: "name", type: "string", required: false, description: "User's full name", example: "John Doe" },
+      { name: "email", type: "string", required: false, description: "User's email address", example: "john@example.com" },
+      { name: "phone", type: "string", required: false, description: "User's phone number", example: "+1234567890" },
+      { name: "address", type: "string", required: false, description: "User's address", example: "123 Main St" },
+      { name: "city", type: "string", required: false, description: "User's city", example: "New York" },
+      { name: "state", type: "string", required: false, description: "User's state", example: "NY" },
+      { name: "zip", type: "string", required: false, description: "User's zip code", example: "10001" },
+      { name: "country", type: "string", required: false, description: "User's country", example: "USA" },
+      { name: "company", type: "string", required: false, description: "User's company", example: "Acme Corp" }
+    ],
+    responseExample: JSON.stringify({
+      id: 1,
+      name: "John Doe",
+      email: "john@example.com",
+      phone: "+1234567890",
+      address: "123 Main St",
+      city: "New York",
+      state: "NY",
+      zip: "10001",
+      country: "USA",
+      company: "Acme Corp"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["user", "profile"]
+  },
+  {
+    method: "POST",
+    path: "/api/user/change-password",
+    description: "Change user password",
+    parameters: [
+      { name: "currentPassword", type: "string", required: true, description: "Current password", example: "oldpassword123" },
+      { name: "newPassword", type: "string", required: true, description: "New password (min 8 characters)", example: "newpassword123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["user", "authentication", "password"]
+  },
+  {
+    method: "POST",
+    path: "/api/user/forgot-password",
+    description: "Request password reset email",
+    parameters: [
+      { name: "email", type: "string", required: true, description: "Email address", example: "user@example.com" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: false,
+    tags: ["user", "authentication", "password"]
+  },
+  {
+    method: "POST",
+    path: "/api/user/reset-password",
+    description: "Reset password using token",
+    parameters: [
+      { name: "token", type: "string", required: true, description: "Password reset token", example: "abc123def456" },
+      { name: "newPassword", type: "string", required: true, description: "New password (min 8 characters)", example: "newpassword123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: false,
+    tags: ["user", "authentication", "password"]
+  },
+  {
+    method: "POST",
+    path: "/api/user/register",
+    description: "Register a new user account",
+    parameters: [
+      { name: "name", type: "string", required: true, description: "User's full name", example: "John Doe" },
+      { name: "email", type: "string", required: true, description: "Email address", example: "john@example.com" },
+      { name: "password", type: "string", required: true, description: "Password (min 8 characters)", example: "password123" },
+      { name: "company", type: "string", required: false, description: "Company name", example: "Acme Corp" },
+      { name: "phone", type: "string", required: false, description: "Phone number", example: "+1234567890" }
+    ],
+    responseExample: JSON.stringify({
+      id: 2,
+      name: "John Doe",
+      email: "john@example.com",
+      company: "Acme Corp",
+      phone: "+1234567890",
+      isAdmin: false,
+      isActive: true
+    }, null, 2),
+    requiresAuth: false,
+    tags: ["user", "authentication", "registration"]
+  },
+  {
+    method: "POST",
+    path: "/api/user/verify-email",
+    description: "Verify email address using token",
+    parameters: [
+      { name: "token", type: "string", required: true, description: "Email verification token", example: "abc123def456" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: false,
+    tags: ["user", "authentication", "email"]
+  },
+  {
+    method: "POST",
+    path: "/api/user/resend-verification",
+    description: "Resend email verification",
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["user", "authentication", "email"]
+  },
+  {
+    method: "GET",
+    path: "/api/user/ssh-keys",
+    description: "Get user's SSH keys",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "My SSH Key",
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ...",
+        createdAt: "2025-01-01T00:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["user", "ssh", "keys"]
+  },
+  {
+    method: "POST",
+    path: "/api/user/ssh-keys",
+    description: "Add a new SSH key",
+    parameters: [
+      { name: "name", type: "string", required: true, description: "SSH key name", example: "My Laptop Key" },
+      { name: "publicKey", type: "string", required: true, description: "SSH public key", example: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ..." }
+    ],
+    responseExample: JSON.stringify({
+      id: 2,
+      name: "My Laptop Key",
+      publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ...",
+      createdAt: "2025-01-01T00:00:00Z"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["user", "ssh", "keys"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/user/ssh-keys/:id",
+    description: "Delete an SSH key",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "SSH key ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["user", "ssh", "keys"]
   }
 ];
 
@@ -799,6 +961,114 @@ const serverEndpoints: ApiEndpoint[] = [
     requiresAuth: true,
     requiresAdmin: true,
     tags: ["servers", "vnc", "admin"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/boot",
+    description: "Boot a server",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "power"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/restart",
+    description: "Restart a server",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "power"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/shutdown",
+    description: "Shutdown a server",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "power"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/poweroff",
+    description: "Power off a server",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "power"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/reset-password",
+    description: "Reset server password",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" },
+      { name: "password", type: "string", required: true, description: "New password (min 8 characters)", example: "newpassword123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Password reset successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "password"]
+  },
+  {
+    method: "GET",
+    path: "/api/servers/:id/templates",
+    description: "Get available templates for a server",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "Ubuntu 22.04 LTS",
+        description: "Ubuntu 22.04 Long Term Support",
+        category: "linux"
+      },
+      {
+        id: 2,
+        name: "CentOS 8",
+        description: "CentOS 8 Server",
+        category: "linux"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["servers", "templates"]
+  },
+  {
+    method: "GET",
+    path: "/api/servers/:id/traffic",
+    description: "Get server traffic statistics",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify({
+      inbound: 1024000,
+      outbound: 512000,
+      total: 1536000,
+      period: "monthly",
+      limit: 10240000
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "traffic", "statistics"]
   }
 ];
 
@@ -919,6 +1189,25 @@ const billingEndpoints: ApiEndpoint[] = [
     }, null, 2),
     requiresAuth: true,
     tags: ["billing", "payments"]
+  },
+  {
+    method: "GET",
+    path: "/api/transactions/:id/pdf",
+    description: "Download transaction receipt as PDF",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Transaction ID", example: "1" }
+    ],
+    responseExample: "PDF file download",
+    requiresAuth: true,
+    tags: ["billing", "transactions", "pdf"]
+  },
+  {
+    method: "GET",
+    path: "/api/transactions/pdf",
+    description: "Download all transactions as PDF statement",
+    responseExample: "PDF file download",
+    requiresAuth: true,
+    tags: ["billing", "transactions", "pdf"]
   }
 ];
 
@@ -971,6 +1260,19 @@ const apiKeyEndpoints: ApiEndpoint[] = [
     responseExample: JSON.stringify({
       success: true,
       message: "API key deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["api-keys"]
+  },
+  {
+    method: "PUT",
+    path: "/api/user/api-keys/:id/revoke",
+    description: "Revoke an API key",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "API key ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
     }, null, 2),
     requiresAuth: true,
     tags: ["api-keys"]
@@ -1719,6 +2021,199 @@ const adminEndpoints: ApiEndpoint[] = [
     requiresAdmin: true,
     tags: ["admin", "documentation", "categories"]
   },
+  {
+    method: "GET",
+    path: "/api/admin/coupons",
+    description: "Get all coupons (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        code: "WELCOME10",
+        description: "Welcome bonus",
+        tokensAmount: 1000,
+        maxUses: 100,
+        currentUses: 25,
+        isActive: true,
+        createdAt: "2025-01-01T00:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "coupons"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/coupons",
+    description: "Create a new coupon (admin only)",
+    parameters: [
+      { name: "code", type: "string", required: true, description: "Coupon code", example: "SAVE20" },
+      { name: "description", type: "string", required: true, description: "Coupon description", example: "20% discount" },
+      { name: "tokensAmount", type: "number", required: true, description: "Token amount", example: "2000" },
+      { name: "maxUses", type: "number", required: false, description: "Maximum uses (0 for unlimited)", example: "50" }
+    ],
+    responseExample: JSON.stringify({
+      id: 2,
+      code: "SAVE20",
+      description: "20% discount",
+      tokensAmount: 2000,
+      maxUses: 50,
+      currentUses: 0,
+      isActive: true,
+      createdAt: "2025-01-01T00:00:00Z"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "coupons"]
+  },
+  {
+    method: "PUT",
+    path: "/api/admin/coupons/:id",
+    description: "Update a coupon (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Coupon ID", example: "1" },
+      { name: "description", type: "string", required: false, description: "Coupon description", example: "Updated description" },
+      { name: "tokensAmount", type: "number", required: false, description: "Token amount", example: "1500" },
+      { name: "maxUses", type: "number", required: false, description: "Maximum uses", example: "75" },
+      { name: "isActive", type: "boolean", required: false, description: "Active status", example: "false" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      coupon: {
+        id: 1,
+        code: "WELCOME10",
+        description: "Updated description",
+        tokensAmount: 1500,
+        maxUses: 75,
+        isActive: false
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "coupons"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/admin/coupons/:id",
+    description: "Delete a coupon (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Coupon ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "coupons"]
+  }
+];
+
+// Coupon endpoints (user-facing)
+const couponEndpoints: ApiEndpoint[] = [
+  {
+    method: "POST",
+    path: "/api/coupons/claim",
+    description: "Claim a coupon code",
+    parameters: [
+      { name: "code", type: "string", required: true, description: "Coupon code to claim", example: "WELCOME10" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Coupon claimed successfully",
+      tokensReceived: 1000,
+      transactionId: 123
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["coupons", "user"]
+  },
+  {
+    method: "GET",
+    path: "/api/coupons/history",
+    description: "Get user's coupon usage history",
+    responseExample: JSON.stringify({
+      history: [
+        {
+          id: 1,
+          couponCode: "WELCOME10",
+          tokensReceived: 1000,
+          claimedAt: "2025-01-01T00:00:00Z"
+        }
+      ]
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["coupons", "user", "history"]
+  },
+  {
+    method: "POST",
+    path: "/api/coupons/validate",
+    description: "Validate a coupon code without claiming it",
+    parameters: [
+      { name: "code", type: "string", required: true, description: "Coupon code to validate", example: "WELCOME10" }
+    ],
+    responseExample: JSON.stringify({
+      valid: true,
+      coupon: {
+        code: "WELCOME10",
+        description: "Welcome bonus",
+        tokensAmount: 1000,
+        maxUses: 100,
+        currentUses: 25
+      }
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["coupons", "validation"]
+  }
+];
+
+// API v1 endpoints (API key authentication)
+const apiV1Endpoints: ApiEndpoint[] = [
+  {
+    method: "GET",
+    path: "/api/v1/me",
+    description: "Get current user information (API key auth)",
+    responseExample: JSON.stringify({
+      id: 1,
+      username: "exampleuser",
+      email: "user@example.com",
+      fullName: "Example User",
+      role: "user",
+      isVerified: true,
+      isActive: true
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["api-v1", "user", "api-key"]
+  },
+  {
+    method: "GET",
+    path: "/api/v1/servers",
+    description: "Get user's servers (API key auth)",
+    responseExample: JSON.stringify({
+      servers: [
+        {
+          id: 123,
+          name: "web-server-01",
+          status: "running",
+          ip: "192.168.1.1",
+          plan: "standard",
+          location: "nyc1",
+          created_at: "2025-04-01T12:00:00Z"
+        }
+      ]
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["api-v1", "servers", "api-key"]
+  },
+  {
+    method: "GET",
+    path: "/api/v1/balance",
+    description: "Get user's credit balance (API key auth)",
+    responseExample: JSON.stringify({
+      virtFusionCredits: 125.00,
+      virtFusionTokens: 12500.00,
+      currency: "USD"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["api-v1", "billing", "balance", "api-key"]
+  }
 ];
 
 // Public endpoints
@@ -2383,7 +2878,7 @@ export default function ApiDocsAdminPage() {
   const getAllTags = (): string[] => {
     const allTags = new Set<string>();
 
-    [...userEndpoints, ...serverEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...adminEndpoints, ...publicEndpoints].forEach(endpoint => {
+    [...userEndpoints, ...serverEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...adminEndpoints, ...couponEndpoints, ...apiV1Endpoints, ...publicEndpoints].forEach(endpoint => {
       endpoint.tags?.forEach(tag => allTags.add(tag));
     });
 
@@ -2450,12 +2945,14 @@ export default function ApiDocsAdminPage() {
                     <SelectItem value="api-keys">API Keys</SelectItem>
                     <SelectItem value="manage-keys">Manage Keys</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="coupons">Coupons</SelectItem>
+                    <SelectItem value="api-v1">API v1</SelectItem>
                     <SelectItem value="public">Public</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             ) : (
-              <TabsList className="grid grid-cols-4 lg:grid-cols-8 h-auto">
+              <TabsList className="grid grid-cols-5 lg:grid-cols-10 h-auto">
                 <TabsTrigger value="overview" className="py-2">Overview</TabsTrigger>
                 <TabsTrigger value="users" className="py-2">User</TabsTrigger>
                 <TabsTrigger value="servers" className="py-2">Servers</TabsTrigger>
@@ -2463,6 +2960,8 @@ export default function ApiDocsAdminPage() {
                 <TabsTrigger value="api-keys" className="py-2">API Keys</TabsTrigger>
                 <TabsTrigger value="manage-keys" className="py-2">Manage Keys</TabsTrigger>
                 <TabsTrigger value="admin" className="py-2">Admin</TabsTrigger>
+                <TabsTrigger value="coupons" className="py-2">Coupons</TabsTrigger>
+                <TabsTrigger value="api-v1" className="py-2">API v1</TabsTrigger>
                 <TabsTrigger value="public" className="py-2">Public</TabsTrigger>
               </TabsList>
             )}
@@ -2540,6 +3039,26 @@ export default function ApiDocsAdminPage() {
                 title="Admin Endpoints"
                 description="Endpoints for administrative tasks (admin access required)."
                 endpoints={getFilteredEndpoints(adminEndpoints)}
+                onTagSelect={handleTagSelect}
+                selectedTags={selectedTags}
+              />
+            </TabsContent>
+
+            <TabsContent value="coupons" className="space-y-6">
+              <ApiCategory
+                title="Coupon Endpoints"
+                description="Endpoints for managing and using coupons."
+                endpoints={getFilteredEndpoints(couponEndpoints)}
+                onTagSelect={handleTagSelect}
+                selectedTags={selectedTags}
+              />
+            </TabsContent>
+
+            <TabsContent value="api-v1" className="space-y-6">
+              <ApiCategory
+                title="API v1 Endpoints"
+                description="Version 1 API endpoints that require API key authentication."
+                endpoints={getFilteredEndpoints(apiV1Endpoints)}
                 onTagSelect={handleTagSelect}
                 selectedTags={selectedTags}
               />
