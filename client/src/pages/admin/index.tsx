@@ -169,6 +169,14 @@ export default function AdminPage() {
       color: "bg-rose-50 dark:bg-rose-950",
       accentColor: "text-rose-600 dark:text-rose-400"
     },
+    {
+      title: "Coupon Management",
+      icon: Ticket,
+      href: "/admin/coupon",
+      description: "Create and manage discount coupons and promotional codes",
+      color: "bg-yellow-50 dark:bg-yellow-950",
+      accentColor: "text-yellow-600 dark:text-yellow-400"
+    },
     // TEMPORARILY HIDDEN - DNS Management section
     // {
     //   title: "DNS Management",
@@ -276,23 +284,23 @@ export default function AdminPage() {
             </div>
           </div>
 
-        {/* Cards for mobile */}
-        <div className="block md:hidden">
-          <div className="grid grid-cols-1 gap-4">
-            {adminSections.map((section) => (
-              <AdminSectionCard key={section.href} section={section} />
-            ))}
+          {/* Cards for mobile */}
+          <div className="block md:hidden">
+            <div className="grid grid-cols-1 gap-4">
+              {adminSections.map((section) => (
+                <AdminSectionCard key={section.href} section={section} />
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Rows for desktop */}
-        <div className="hidden md:block">
-          <div className="space-y-3">
-            {adminSections.map((section) => (
-              <AdminSectionRow key={section.href} section={section} />
-            ))}
+          {/* Rows for desktop */}
+          <div className="hidden md:block">
+            <div className="space-y-3">
+              {adminSections.map((section) => (
+                <AdminSectionRow key={section.href} section={section} />
+              ))}
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </AdminLayout>
