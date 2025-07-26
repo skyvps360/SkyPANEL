@@ -39,7 +39,7 @@ export const userAwards = pgTable("user_awards", {
 });
 
 // Coupons - General coupon system
-export const coupons = pgTable("coupons", {
+export const awardCoupons = pgTable("award_coupons", {
   id: serial("id").primaryKey(),
   code: text("code").notNull().unique(), // Coupon code
   name: text("name").notNull(),
@@ -60,7 +60,7 @@ export const coupons = pgTable("coupons", {
 export const userCouponUsage = pgTable("user_coupon_usage", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  couponId: integer("coupon_id").notNull().references(() => coupons.id, { onDelete: 'cascade' }),
+  couponId: integer("coupon_id").notNull().references(() => awardCoupons.id, { onDelete: 'cascade' }),
   usedAt: timestamp("used_at").defaultNow(),
 });
 
@@ -82,7 +82,7 @@ export const insertUserAwardSchema = createInsertSchema(userAwards).omit({
   createdAt: true,
 });
 
-export const insertCouponSchema = createInsertSchema(coupons).omit({
+export const insertAwardCouponSchema = createInsertSchema(awardCoupons).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -104,8 +104,8 @@ export type UserLoginStreak = typeof userLoginStreaks.$inferSelect;
 export type InsertUserAward = z.infer<typeof insertUserAwardSchema>;
 export type UserAward = typeof userAwards.$inferSelect;
 
-export type InsertCoupon = z.infer<typeof insertCouponSchema>;
-export type Coupon = typeof coupons.$inferSelect;
+export type InsertAwardCoupon = z.infer<typeof insertAwardCouponSchema>;
+export type AwardCoupon = typeof awardCoupons.$inferSelect;
 
 export type InsertUserCouponUsage = z.infer<typeof insertUserCouponUsageSchema>;
 export type UserCouponUsage = typeof userCouponUsage.$inferSelect;

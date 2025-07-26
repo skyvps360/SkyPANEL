@@ -6,6 +6,7 @@
   "description": "SkyPANEL - A modern web panel for managing your servers and applications.",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
+    "check-db": "tsx check-coupons-table.js",
     "dev:clean": "npm run clean && npm run dev",
     "clean": "rimraf node_modules/.vite",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",

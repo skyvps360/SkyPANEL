@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,12 +10,15 @@ import { DataTable } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
-import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, Eye, Receipt, FileText, Edit3, Search, ChevronDown } from "lucide-react";
+import { PlusCircle, MinusCircle, Download, CreditCard, DollarSign, History, Eye, Receipt, FileText, Edit3, Search, ChevronDown, Ticket } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PayPalCheckout } from "@/components/billing/PayPalCheckout";
 
 import { useAuth } from "@/hooks/use-auth";
 import { getBrandColors, getButtonStyles } from "@/lib/brand-theme";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface Transaction {
   id: number;
@@ -35,6 +37,8 @@ interface Transaction {
 
 export default function BillingPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [creditAmount, setCreditAmount] = useState(50);
   const [customAmount, setCustomAmount] = useState("");
   const [isCustomAmount, setIsCustomAmount] = useState(false);
@@ -42,6 +46,10 @@ export default function BillingPage() {
   const [activeTab, setActiveTab] = useState("transactions");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState("");
 
 
 
@@ -90,7 +98,7 @@ export default function BillingPage() {
         const searchInCreditId = (transaction as any).virtFusionCreditId?.toLowerCase?.() || '';
         const searchInCreditIdNoHyphens = searchInCreditId.replace(/-/g, '');
         const queryNoHyphens = query.replace(/-/g, '');
-        
+
         return (
           transaction.description.toLowerCase().includes(query) ||
           transaction.id.toString().includes(query) ||
@@ -114,6 +122,52 @@ export default function BillingPage() {
     virtFusionTokens: number
   }>({
     queryKey: ["/api/billing/balance"],
+  });
+
+  // Fetch user's coupon history
+  const { data: couponHistoryResponse } = useQuery<{
+    history: Array<{
+      id: number;
+      couponCode: string;
+      couponDescription: string | null;
+      tokensReceived: number;
+      virtfusionCreditId: string | null;
+      transactionId: number | null;
+      usedAt: string;
+    }>;
+  }>({
+    queryKey: ["/api/coupons/history"],
+  });
+
+  // Extract the history array from the response
+  const couponHistory = couponHistoryResponse?.history || [];
+
+  // Coupon claim mutation
+  const claimCouponMutation = useMutation({
+    mutationFn: (code: string) => apiRequest("/api/coupons/claim", {
+      method: "POST",
+      body: { code },
+    }),
+    onSuccess: (data: any) => {
+      toast({
+        title: "Success!",
+        description: data.message,
+      });
+      setCouponCode("");
+      setCouponError("");
+      // Refresh relevant data
+      queryClient.invalidateQueries({ queryKey: ["/api/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/billing/balance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/coupons/history"] });
+    },
+    onError: (error: any) => {
+      setCouponError(error.message || "Failed to claim coupon");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to claim coupon",
+        variant: "destructive",
+      });
+    },
   });
 
   // Fetch VirtFusion usage data for last 30 days
@@ -225,19 +279,19 @@ export default function BillingPage() {
   // Helper function to determine if a transaction is a credit/addition
   const isCredit = (transaction: Transaction) => {
     return transaction.type === 'virtfusion_credit' ||
-           transaction.type === 'admin_credit_add' ||
-           transaction.amount > 0; // Also include any transaction with positive amount as credit
+      transaction.type === 'admin_credit_add' ||
+      transaction.amount > 0; // Also include any transaction with positive amount as credit
   };
 
   // Helper function to determine if a transaction is a debit/removal
   const isDebit = (transaction: Transaction) => {
     return transaction.type === 'debit' ||
-           transaction.type === 'virtfusion_credit_removal' ||
-           transaction.type === 'virtfusion_deduction' ||
-           transaction.type === 'dns_plan_purchase' ||
-           transaction.type === 'dns_plan_upgrade' ||
-           transaction.type === 'admin_credit_remove' ||
-           transaction.amount < 0; // Also include any transaction with negative amount as spending
+      transaction.type === 'virtfusion_credit_removal' ||
+      transaction.type === 'virtfusion_deduction' ||
+      transaction.type === 'dns_plan_purchase' ||
+      transaction.type === 'dns_plan_upgrade' ||
+      transaction.type === 'admin_credit_remove' ||
+      transaction.amount < 0; // Also include any transaction with negative amount as spending
   };
 
   // Calculate billing summary for VirtFusion data
@@ -397,7 +451,48 @@ export default function BillingPage() {
       }
     } else {
       setCustomAmountError("");
-      setIsCustomAmount(false);
+    }
+  };
+
+  // Handle coupon code validation
+  const validateCoupon = async (code: string) => {
+    if (!code.trim()) {
+      setCouponError("Please enter a coupon code");
+      return false;
+    }
+
+    try {
+      await apiRequest("/api/coupons/validate", {
+        method: "POST",
+        body: { code: code.trim() },
+      });
+      setCouponError("");
+      return true;
+    } catch (error: any) {
+      setCouponError(error.message || "Invalid coupon code");
+      return false;
+    }
+  };
+
+  // Handle coupon claim
+  const handleClaimCoupon = async () => {
+    const code = couponCode.trim();
+    if (!code) {
+      setCouponError("Please enter a coupon code");
+      return;
+    }
+
+    const isValid = await validateCoupon(code);
+    if (isValid) {
+      claimCouponMutation.mutate(code);
+    }
+  };
+
+  // Handle coupon code input change
+  const handleCouponCodeChange = (value: string) => {
+    setCouponCode(value);
+    if (couponError) {
+      setCouponError("");
     }
   };
 
@@ -490,11 +585,11 @@ export default function BillingPage() {
           </div>
           {/* Abstract background shapes */}
           <div className="absolute top-0 left-0 w-full h-full z-0">
-              <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
-                   style={{ backgroundColor: brandColors.primary.full }}></div>
-              <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
-                   style={{ backgroundColor: brandColors.secondary.full }}></div>
-            </div>
+            <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
+              style={{ backgroundColor: brandColors.primary.full }}></div>
+            <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
+              style={{ backgroundColor: brandColors.secondary.full }}></div>
+          </div>
         </div>
 
         {/* Billing Summary - Modern Card Layout */}
@@ -517,7 +612,7 @@ export default function BillingPage() {
                 </div>
               </div>
               <div className="text-sm text-muted-foreground">
-                <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</span>
+                <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
                 <br />
                 <span className="text-xs">For KVM VPS & DKVM Servers</span>
               </div>
@@ -565,7 +660,7 @@ export default function BillingPage() {
           </Card>
         </div>
 
-      {/* Add Credits Button under the 3 cards has been removed as requested. */}
+        {/* Add Credits Button under the 3 cards has been removed as requested. */}
 
         {/* Tabs: Transactions, Add Credits, Invoices */}
         <Card className="bg-card border border-border shadow-sm overflow-hidden">
@@ -585,6 +680,13 @@ export default function BillingPage() {
                   <TabsTrigger value="addCredits" className="data-[state=active]:bg-background rounded-md">
                     <PlusCircle className="h-4 w-4 mr-2" />
                     VirtFusion Tokens
+                  </TabsTrigger>
+                )}
+                {/* Add Coupons tab */}
+                {user?.isActive && (
+                  <TabsTrigger value="coupons" className="data-[state=active]:bg-background rounded-md">
+                    <Ticket className="h-4 w-4 mr-2" />
+                    Coupons
                   </TabsTrigger>
                 )}
 
@@ -635,8 +737,8 @@ export default function BillingPage() {
                         <FileText className="h-8 w-8 text-primary" />
                       </div>
                       <h3 className="text-lg font-medium mb-2 text-foreground">
-                        {searchQuery || statusFilter !== 'all' 
-                          ? 'No matching transactions found' 
+                        {searchQuery || statusFilter !== 'all'
+                          ? 'No matching transactions found'
                           : 'No Transactions Found'}
                       </h3>
                       <p className="text-muted-foreground mb-6 max-w-md mx-auto">
@@ -672,141 +774,139 @@ export default function BillingPage() {
                         </Button>
                       )}
                     </div>
-                ) : (
-                  <DataTable
-                    data={filteredTransactions}
-                    columns={[
-                      {
-                        accessorKey: "description" as keyof Transaction,
-                        header: "Transaction",
-                        cell: (transaction) => (
-                          <div className="flex items-center">
-                            <Avatar className="h-9 w-9 mr-3 shadow-sm">
-                              <AvatarFallback
-                                className={`rounded-full flex items-center justify-center ${
-                                  isCredit(transaction)
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'bg-destructive/10 text-destructive'
-                                }`}
-                              >
-                                {isCredit(transaction) ? <PlusCircle className="h-4 w-4" /> : <MinusCircle className="h-4 w-4" />}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="text-sm font-medium text-foreground">{formatTransactionDescription(transaction)}</div>
-                              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                <span>ID: #{transaction.id}</span>
+                  ) : (
+                    <DataTable
+                      data={filteredTransactions}
+                      columns={[
+                        {
+                          accessorKey: "description" as keyof Transaction,
+                          header: "Transaction",
+                          cell: (transaction) => (
+                            <div className="flex items-center">
+                              <Avatar className="h-9 w-9 mr-3 shadow-sm">
+                                <AvatarFallback
+                                  className={`rounded-full flex items-center justify-center ${isCredit(transaction)
+                                      ? 'bg-primary/10 text-primary'
+                                      : 'bg-destructive/10 text-destructive'
+                                    }`}
+                                >
+                                  {isCredit(transaction) ? <PlusCircle className="h-4 w-4" /> : <MinusCircle className="h-4 w-4" />}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">{formatTransactionDescription(transaction)}</div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                  <span>ID: #{transaction.id}</span>
 
-                                {/* Transaction Type Badge */}
-                                <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
-                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  transaction.type === 'virtfusion_credit'
-                                    ? 'bg-blue-100 text-blue-700'
+                                  {/* Transaction Type Badge */}
+                                  <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${transaction.type === 'virtfusion_credit'
+                                      ? 'bg-blue-100 text-blue-700'
 
-                                    : transaction.type === 'credit'
-                                    ? 'bg-blue-100 text-blue-700'
-                                    : 'bg-gray-100 text-gray-700'
-                                }`}>
-                                  {transaction.type === 'virtfusion_credit'
-                                    ? 'VirtFusion Credit'
+                                      : transaction.type === 'credit'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'bg-gray-100 text-gray-700'
+                                    }`}>
+                                    {transaction.type === 'virtfusion_credit'
+                                      ? 'VirtFusion Credit'
 
-                                    : transaction.type === 'credit'
-                                    ? 'VirtFusion Credit'
-                                    : transaction.type}
-                                </span>
+                                      : transaction.type === 'credit'
+                                        ? 'VirtFusion Credit'
+                                        : transaction.type}
+                                  </span>
 
-                                {transaction.virtFusionCreditId && (
-                                  <>
-                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
-                                    <span className="text-primary font-medium">Credit ID: {transaction.virtFusionCreditId}</span>
-                                  </>
-                                )}
-                                {transaction.paymentMethod && (
-                                  <>
-                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
-                                    <span className="capitalize flex items-center">
-                                      {transaction.paymentMethod === 'paypal' &&
-                                        <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@develop/icons/paypal.svg"
-                                             className="h-3 w-3 mr-1 inline opacity-70" alt="PayPal" />}
-                                      {transaction.paymentMethod}
-                                    </span>
-                                  </>
-                                )}
+                                  {transaction.virtFusionCreditId && (
+                                    <>
+                                      <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
+                                      <span className="text-primary font-medium">Credit ID: {transaction.virtFusionCreditId}</span>
+                                    </>
+                                  )}
+                                  {transaction.paymentMethod && (
+                                    <>
+                                      <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
+                                      <span className="capitalize flex items-center">
+                                        {transaction.paymentMethod === 'paypal' &&
+                                          <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@develop/icons/paypal.svg"
+                                            className="h-3 w-3 mr-1 inline opacity-70" alt="PayPal" />}
+                                        {transaction.paymentMethod}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ),
-                      },
-                      {
-                        accessorKey: "createdAt" as keyof Transaction,
-                        header: "Date",
-                        cell: (transaction) => (
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium text-foreground">
-                              {format(new Date(transaction.createdAt), 'MMM d, yyyy')}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(transaction.createdAt), 'h:mm a')}
-                            </span>
-                          </div>
-                        ),
-                      },
-                      {
-                        accessorKey: "status" as keyof Transaction,
-                        header: "Status",
-                        cell: (transaction) => {
-                          const status = transaction.status.toLowerCase();
-                          let variant = "default";
-
-                          switch (status) {
-                            case "completed":
-                              variant = "success";
-                              break;
-                            case "pending":
-                              variant = "outline";
-                              break;
-                            case "failed":
-                              variant = "destructive";
-                              break;
-                          }
-
-                          return (
-                            <Badge variant={variant as any} className="capitalize font-normal">
-                              {transaction.status}
-                            </Badge>
-                          );
+                          ),
                         },
-                      },
-                      {
-                        accessorKey: "amount" as keyof Transaction,
-                        header: "Amount",
-                        cell: (transaction) => (
-                          <div className={`font-medium ${isCredit(transaction) ? 'text-secondary' : 'text-destructive'}`}>
-                            <span className="mr-1">{isCredit(transaction) ? '+' : '-'}</span>
-                            ${Math.abs(transaction.amount).toFixed(2)}
-                          </div>
-                        ),
-                      },
-                      {
-                        id: "actions",
-                        header: "",
-                        cell: (transaction) => (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.location.href = `/billing/transactions/${transaction.id}`}
-                            className="hover:bg-primary hover:text-primary-foreground text-primary transition-colors"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View
-                          </Button>
-                        ),
-                      },
-                    ]}
-                  />
-                )}
-              </div>
-            </TabsContent>
+                        {
+                          accessorKey: "createdAt" as keyof Transaction,
+                          header: "Date",
+                          cell: (transaction) => (
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-foreground">
+                                {format(new Date(transaction.createdAt), 'MMM d, yyyy')}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(transaction.createdAt), 'h:mm a')}
+                              </span>
+                            </div>
+                          ),
+                        },
+                        {
+                          accessorKey: "status" as keyof Transaction,
+                          header: "Status",
+                          cell: (transaction) => {
+                            const status = transaction.status.toLowerCase();
+                            let variant = "default";
+
+                            switch (status) {
+                              case "completed":
+                                variant = "success";
+                                break;
+                              case "pending":
+                                variant = "outline";
+                                break;
+                              case "failed":
+                                variant = "destructive";
+                                break;
+                            }
+
+                            return (
+                              <Badge variant={variant as any} className="capitalize font-normal">
+                                {transaction.status}
+                              </Badge>
+                            );
+                          },
+                        },
+                        {
+                          accessorKey: "amount" as keyof Transaction,
+                          header: "Amount",
+                          cell: (transaction) => (
+                            <div className={`font-medium ${isCredit(transaction) ? 'text-secondary' : 'text-destructive'}`}>
+                              <span className="mr-1">{isCredit(transaction) ? '+' : '-'}</span>
+                              ${Math.abs(transaction.amount).toFixed(2)}
+                            </div>
+                          ),
+                        },
+                        {
+                          id: "actions",
+                          header: "",
+                          cell: (transaction) => (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => window.location.href = `/billing/transactions/${transaction.id}`}
+                              className="hover:bg-primary hover:text-primary-foreground text-primary transition-colors"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          ),
+                        },
+                      ]}
+                    />
+                  )}
+                </div>
+              </TabsContent>
 
               <TabsContent value="addCredits" className="mt-0">
                 <div className="max-w-2xl mx-auto">
@@ -835,11 +935,10 @@ export default function BillingPage() {
                           key={amount}
                           variant={!isCustomAmount && creditAmount === amount ? "default" : "outline"}
                           onClick={() => handlePredefinedAmountSelect(amount)}
-                          className={`font-medium transition-all duration-150 ${
-                            !isCustomAmount && creditAmount === amount
+                          className={`font-medium transition-all duration-150 ${!isCustomAmount && creditAmount === amount
                               ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg'
                               : 'hover:bg-primary/30 text-primary border-primary/80 hover:border-primary hover:shadow-lg hover:scale-[1.04] focus-visible:ring-2 focus-visible:ring-primary/50'
-                          }`}
+                            }`}
                         >
                           ${amount}
                         </Button>
@@ -910,7 +1009,106 @@ export default function BillingPage() {
                 </div>
               </TabsContent>
 
+              <TabsContent value="coupons" className="mt-0">
+                <div className="max-w-4xl mx-auto">
+                  {/* Coupon Claiming Section */}
+                  <div className="mb-8 bg-primary/5 p-6 rounded-lg border border-primary/20">
+                    <h3 className="text-xl font-medium mb-2 flex items-center gap-2 text-foreground">
+                      <div className="p-2 rounded-full bg-primary/10">
+                        <Ticket className="h-5 w-5 text-primary" />
+                      </div>
+                      Claim Coupon
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      Enter a coupon code to claim VirtFusion tokens or credits. Coupons can only be used once per account.
+                    </p>
 
+                    <div className="flex flex-col sm:flex-row gap-3 max-w-md">
+                      <div className="flex-1">
+                        <Input
+                          type="text"
+                          placeholder="Enter coupon code"
+                          value={couponCode}
+                          onChange={(e) => handleCouponCodeChange(e.target.value)}
+                          className={couponError ? 'border-destructive' : ''}
+                          disabled={claimCouponMutation.isPending}
+                        />
+                        {couponError && (
+                          <p className="text-sm text-destructive mt-1">{couponError}</p>
+                        )}
+                      </div>
+                      <Button
+                        onClick={handleClaimCoupon}
+                        disabled={!couponCode.trim() || claimCouponMutation.isPending}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        {claimCouponMutation.isPending ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Claiming...
+                          </>
+                        ) : (
+                          <>
+                            <Ticket className="h-4 w-4 mr-2" />
+                            Claim Coupon
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Coupon History Section */}
+                  <div>
+                    <h4 className="text-lg font-medium mb-4 flex items-center gap-2 text-foreground">
+                      <History className="h-5 w-5 text-primary" />
+                      Coupon History
+                    </h4>
+
+                    {couponHistory.length === 0 ? (
+                      <div className="text-center py-12 bg-muted/5 rounded-lg border border-border px-6">
+                        <div className="p-4 rounded-full mx-auto w-16 h-16 mb-4 bg-primary/10 flex items-center justify-center">
+                          <Ticket className="h-8 w-8 text-primary" />
+                        </div>
+                        <h3 className="text-lg font-medium mb-2 text-foreground">No Coupons Claimed Yet</h3>
+                        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                          You haven't claimed any coupons yet. Enter a coupon code above to get started.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {couponHistory.map((usage) => (
+                          <div key={usage.id} className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-full bg-secondary/10">
+                                  <Ticket className="h-4 w-4 text-secondary" />
+                                </div>
+                                <div>
+                                  <div className="font-medium text-foreground">{usage.couponCode}</div>
+                                  {usage.couponDescription && (
+                                    <div className="text-sm text-muted-foreground">{usage.couponDescription}</div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium text-secondary">+{usage.tokensReceived.toLocaleString()} tokens</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {format(new Date(usage.usedAt), 'MMM d, yyyy')}
+                                </div>
+                              </div>
+                            </div>
+                            {usage.virtfusionCreditId && (
+                              <div className="mt-2 text-xs text-muted-foreground">
+                                VirtFusion Credit ID: {usage.virtfusionCreditId}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
 
             </Tabs>
           </CardContent>

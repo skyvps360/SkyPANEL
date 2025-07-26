@@ -1,25 +1,25 @@
-import type {Express, Request, Response} from "express";
-import {createServer, type Server} from "http";
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
 import https from "https";
 import axios from "axios";
 import * as net from "net";
-import {WebSocketServer} from "ws";
-import {storage} from "./storage";
-import {db, pool} from "./db";
-import {hashPassword, setupAuth} from "./auth";
-import {AuthService} from "./services/auth/auth-service";
-import {EmailVerificationService} from "./email-verification-service";
-import {discordService} from "./discord-service";
-import {discordBotService} from "./discord-bot-service";
-import {virtFusionService} from "./virtfusion-service";
-import {VirtFusionApi as ImportedVirtFusionApi, virtFusionApi, VirtFusionApi} from "./virtfusion-api";
+import { WebSocketServer } from "ws";
+import { storage } from "./storage";
+import { db, pool } from "./db";
+import { hashPassword, setupAuth } from "./auth";
+import { AuthService } from "./services/auth/auth-service";
+import { EmailVerificationService } from "./email-verification-service";
+import { discordService } from "./discord-service";
+import { discordBotService } from "./discord-bot-service";
+import { virtFusionService } from "./virtfusion-service";
+import { VirtFusionApi as ImportedVirtFusionApi, virtFusionApi, VirtFusionApi } from "./virtfusion-api";
 // Remove duplicate import of InsertTransaction
 // import { InsertTransaction } from "@shared/schema";
-import {emailService} from "./email";
-import {betterStackService} from "./betterstack-service";
-import {geminiService} from "./gemini-service";
-import {cacheService} from "./cache-service";
-import {serverLoggingService} from "./server-logging-service";
+import { emailService } from "./email";
+import { betterStackService } from "./betterstack-service";
+import { geminiService } from "./gemini-service";
+import { cacheService } from "./cache-service";
+import { serverLoggingService } from "./server-logging-service";
 import {
   getMaintenanceStatus,
   getMaintenanceToken,
@@ -27,7 +27,7 @@ import {
   toggleMaintenanceMode,
   validateMaintenanceToken
 } from "./middleware";
-import {apiKeyAuth, requireScope} from "./middleware/auth-middleware";
+import { apiKeyAuth, requireScope } from "./middleware/auth-middleware";
 import apiKeysRoutes from "./routes/api-keys";
 import apiOnlyRoutes from "./routes/api-only-routes";
 import chatRoutes from "./routes/chat";
@@ -42,13 +42,15 @@ import settingsRoutes from "./routes/settings-routes";
 import adminSettingsRoutes from "./routes/admin-settings";
 import monitoringRoutes from "./routes/monitoring-routes";
 import awardsRoutes from "./routes/awards-routes";
-import {chatService} from "./chat-service";
-import {departmentMigrationService} from "./services/department-migration";
-import {cronService} from "./services/cron-service";
-import {dnsBillingService} from "./services/dns-billing-service";
-import {and, desc, eq, inArray, sql} from "drizzle-orm";
+import adminCouponsRoutes from "./routes/admin-coupons";
+import couponRoutes from "./routes/coupon-routes";
+import { chatService } from "./chat-service";
+import { departmentMigrationService } from "./services/department-migration";
+import { cronService } from "./services/cron-service";
+import { dnsBillingService } from "./services/dns-billing-service";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import PDFDocument from "pdfkit";
-import {formatTicketPdf} from "./ticket-download";
+import { formatTicketPdf } from "./ticket-download";
 import * as schema from "../shared/schema";
 import {
   dnsDomains as dnsDomainsTable,
@@ -60,8 +62,8 @@ import {
   InsertTransaction,
   transactions
 } from "@shared/schema";
-import {z, ZodError} from "zod";
-import {fromZodError} from "zod-validation-error";
+import { z, ZodError } from "zod";
+import { fromZodError } from "zod-validation-error";
 // Location status manager already imported above
 
 // Handle all ZodError validations consistently
@@ -2051,7 +2053,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Row 3 - For description, use the full width
     doc.fontSize(10).font('Helvetica-Bold').text('Description:', leftColX, currentY);
     doc.font('Helvetica').text(
-        formatTransactionDescriptionForPdf(transaction.description),
+      formatTransactionDescriptionForPdf(transaction.description),
       leftColX + labelWidth,
       currentY,
       { width: 380, ellipsis: true }
@@ -2083,11 +2085,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     doc.moveDown(2);
     doc.fontSize(14).font('Helvetica-Bold').text('Amount:', 50, doc.y);
     doc.fillColor(isCredit ? '#4CAF50' : '#FF5252')
-       .fontSize(16)
-       .text(
-         `${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(2)}`,
-         150, doc.y - 14
-       );
+      .fontSize(16)
+      .text(
+        `${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(2)}`,
+        150, doc.y - 14
+      );
 
     // Reset fill color
     doc.fillColor('#000000');
@@ -2224,11 +2226,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Amount with color based on type
       doc.fillColor(isCredit ? '#4CAF50' : '#FF5252')
-         .text(
-           `${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(2)}`,
-           490, y,
-           { width: 60, align: 'right' }
-         );
+        .text(
+          `${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(2)}`,
+          490, y,
+          { width: 60, align: 'right' }
+        );
 
       doc.fillColor('#000000'); // Reset color
 
@@ -2500,41 +2502,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Calculate the expected balance increase
             const expectedBalance = initialBalance + amount;
             console.log(`Expected balance after adding $${amount}: $${expectedBalance.toFixed(2)}`);
-               // Check if there was a negative balance deduction
-          if (initialBalance < 0) {
-            // When initial balance is negative, calculate how much was actually deducted
-            // If the user had -$3.50 and added $5.00, they should have $1.50
-            // But if VirtFusion deducted the negative balance, they might have less
-            const expectedBalance = initialBalance + amount;
+            // Check if there was a negative balance deduction
+            if (initialBalance < 0) {
+              // When initial balance is negative, calculate how much was actually deducted
+              // If the user had -$3.50 and added $5.00, they should have $1.50
+              // But if VirtFusion deducted the negative balance, they might have less
+              const expectedBalance = initialBalance + amount;
 
-            // Force the deduction amount to be at least the absolute value of the negative balance
-            // This ensures we always show the proper amount that was deducted to cover the negative balance
-            const deductionAmount = Math.abs(initialBalance); // Use the actual negative balance amount
+              // Force the deduction amount to be at least the absolute value of the negative balance
+              // This ensures we always show the proper amount that was deducted to cover the negative balance
+              const deductionAmount = Math.abs(initialBalance); // Use the actual negative balance amount
 
-            console.log(`Initial balance: $${initialBalance.toFixed(2)}`);
-            console.log(`Added amount: $${amount.toFixed(2)}`);
-            console.log(`Expected balance: $${expectedBalance.toFixed(2)}`);
-            console.log(`Actual balance: $${updatedBalance.toFixed(2)}`);
-            console.log(`Deduction amount: $${deductionAmount.toFixed(2)}`);
+              console.log(`Initial balance: $${initialBalance.toFixed(2)}`);
+              console.log(`Added amount: $${amount.toFixed(2)}`);
+              console.log(`Expected balance: $${expectedBalance.toFixed(2)}`);
+              console.log(`Actual balance: $${updatedBalance.toFixed(2)}`);
+              console.log(`Deduction amount: $${deductionAmount.toFixed(2)}`);
 
-            // Always create the deduction transaction when there was a negative balance
-            if (deductionAmount > 0) {
-              const deductionTransaction: InsertTransaction = {
-                userId: req.user!.id,
-                amount: deductionAmount * -1, // Store as negative amount
-                type: "virtfusion_deduction",
-                description: `Automatic deduction to cover negative balance (linked to transaction #${createdTransaction.id})`,
-                status: "completed", // This is an automatic process that's already completed
-                paymentMethod: "paypal", // Same as the original transaction
-                paymentId: paymentId, // Same as the original transaction
-              };
+              // Always create the deduction transaction when there was a negative balance
+              if (deductionAmount > 0) {
+                const deductionTransaction: InsertTransaction = {
+                  userId: req.user!.id,
+                  amount: deductionAmount * -1, // Store as negative amount
+                  type: "virtfusion_deduction",
+                  description: `Automatic deduction to cover negative balance (linked to transaction #${createdTransaction.id})`,
+                  status: "completed", // This is an automatic process that's already completed
+                  paymentMethod: "paypal", // Same as the original transaction
+                  paymentId: paymentId, // Same as the original transaction
+                };
 
-              console.log("Creating deduction transaction record:", deductionTransaction);
-              const createdDeductionTransaction = await storage.createTransaction(deductionTransaction);
-              console.log("Deduction transaction created with ID:", createdDeductionTransaction.id);
-            } else {
-              console.log("No significant negative balance deduction detected");
-            }
+                console.log("Creating deduction transaction record:", deductionTransaction);
+                const createdDeductionTransaction = await storage.createTransaction(deductionTransaction);
+                console.log("Deduction transaction created with ID:", createdDeductionTransaction.id);
+              } else {
+                console.log("No significant negative balance deduction detected");
+              }
             } else {
               console.log("No negative balance deduction detected");
             }
@@ -3291,8 +3293,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Include domain deletion results if any domains were processed
         if (domainDeletionResults.successful.length > 0 ||
-            domainDeletionResults.failed.length > 0 ||
-            domainDeletionResults.skippedNoInterServerId.length > 0) {
+          domainDeletionResults.failed.length > 0 ||
+          domainDeletionResults.skippedNoInterServerId.length > 0) {
           domainDeletionSummary = domainDeletionResults;
         }
       }
@@ -3573,8 +3575,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Parse the monthlyTotal.value from the response data based on API documentation
       if (response.data &&
-          response.data.monthlyTotal &&
-          response.data.monthlyTotal.value) {
+        response.data.monthlyTotal &&
+        response.data.monthlyTotal.value) {
         // The value might be returned as a string, so we parse it as a float
         const monthlyValue = parseFloat(response.data.monthlyTotal.value);
         if (!isNaN(monthlyValue)) {
@@ -4253,7 +4255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 type: 'ipv6'
               }));
 
-              const allIps = [...ipv4s.map(ip => ({...ip, type: 'ipv4'})), ...formattedIpv6s];
+              const allIps = [...ipv4s.map(ip => ({ ...ip, type: 'ipv4' })), ...formattedIpv6s];
 
               // Format server data
               server = {
@@ -4482,11 +4484,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...message,
             user: user
               ? {
-                  id: user.id,
-                  fullName: user.fullName,
-                  email: user.email,
-                  role: user.role,
-                }
+                id: user.id,
+                fullName: user.fullName,
+                email: user.email,
+                role: user.role,
+              }
               : undefined,
           };
         }),
@@ -4725,8 +4727,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Debug the server data structure
             console.log('Server network info available:',
               server.network &&
-              server.network.interfaces &&
-              server.network.interfaces.length > 0 ? 'Yes' : 'No'
+                server.network.interfaces &&
+                server.network.interfaces.length > 0 ? 'Yes' : 'No'
             );
 
             if (server.network && server.network.interfaces) {
@@ -5131,10 +5133,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...ticket,
             user: user
               ? {
-                  id: user.id,
-                  fullName: user.fullName,
-                  email: user.email,
-                }
+                id: user.id,
+                fullName: user.fullName,
+                email: user.email,
+              }
               : undefined,
           };
         }),
@@ -5240,16 +5242,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // - name, email, selfService, selfServiceHourlyCredit, enabled, etc.
       // - but does NOT include an 'admin' field in the request body schema
       // Therefore, role changes are only applied to the local SkyPANEL database.
-      
+
       if (user.virtFusionId) {
         console.log(`Note: User ${userId} has VirtFusion ID ${user.virtFusionId}, but VirtFusion API does not support role changes.`);
         console.log(`Role change from '${user.role}' to '${role}' applied locally only.`);
-        
+
         // Send notification email about role change
         try {
           const adminUser = req.user as any;
           const adminName = adminUser?.fullName || 'System Administrator';
-          
+
           if (role === 'admin') {
             // User promoted to admin
             await emailService.sendNotificationEmail(
@@ -5279,7 +5281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      res.json({ 
+      res.json({
         success: true,
         message: "Role updated successfully",
         virtFusionNote: user.virtFusionId ? "Role change applied locally only - VirtFusion API does not support role modifications" : undefined
@@ -6428,7 +6430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/ssh-keys/user/:userId", isAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      
+
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
@@ -6845,7 +6847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // Server was booted/started successfully
                   await storage.upsertServerPowerStatus(serverId, "RUNNING");
                 } else if (queueType.includes("shutdown") || queueType.includes("stop") ||
-                          queueType === "powerOff" || queueType === "restart") {
+                  queueType === "powerOff" || queueType === "restart") {
                   // For restart, we initially mark as STOPPED (the next boot command will update to RUNNING)
                   await storage.upsertServerPowerStatus(serverId, "STOPPED");
                 }
@@ -6951,9 +6953,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Special handling for 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('423') ||
-          error.message.toLowerCase().includes('pending tasks in queue')
-        )) {
+        error.message.includes('423') ||
+        error.message.toLowerCase().includes('pending tasks in queue')
+      )) {
         return res.json({
           success: true,
           pending: true,
@@ -7006,9 +7008,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Special handling for 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('423') ||
-          error.message.toLowerCase().includes('pending tasks in queue')
-        )) {
+        error.message.includes('423') ||
+        error.message.toLowerCase().includes('pending tasks in queue')
+      )) {
         return res.json({
           success: true,
           pending: true,
@@ -7061,9 +7063,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Special handling for 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('423') ||
-          error.message.toLowerCase().includes('pending tasks in queue')
-        )) {
+        error.message.includes('423') ||
+        error.message.toLowerCase().includes('pending tasks in queue')
+      )) {
         return res.json({
           success: true,
           pending: true,
@@ -7116,9 +7118,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Special handling for 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('423') ||
-          error.message.toLowerCase().includes('pending tasks in queue')
-        )) {
+        error.message.includes('423') ||
+        error.message.toLowerCase().includes('pending tasks in queue')
+      )) {
         return res.json({
           success: true,
           pending: true,
@@ -7151,11 +7153,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Special handling for 409 "action is currently scheduled" and 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('409') ||
-          error.message.includes('423') ||
-          error.message.toLowerCase().includes('pending tasks in queue') ||
-          error.message.toLowerCase().includes('action is currently scheduled')
-        )) {
+        error.message.includes('409') ||
+        error.message.includes('423') ||
+        error.message.toLowerCase().includes('pending tasks in queue') ||
+        error.message.toLowerCase().includes('action is currently scheduled')
+      )) {
         return res.json({
           success: true,
           pending: true,
@@ -7266,12 +7268,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Special handling for 409 "action is currently scheduled" and 423 "pending tasks in queue" responses
       if (error.message && (
-          error.message.includes('409') ||
-          error.message.includes('423') ||
-          error.message.toLowerCase().includes('pending tasks in queue') ||
-          error.message.toLowerCase().includes('action is currently scheduled') ||
-          error.message.toLowerCase().includes('suspend action is currently scheduled')
-        )) {
+        error.message.includes('409') ||
+        error.message.includes('423') ||
+        error.message.toLowerCase().includes('pending tasks in queue') ||
+        error.message.toLowerCase().includes('action is currently scheduled') ||
+        error.message.toLowerCase().includes('suspend action is currently scheduled')
+      )) {
         return res.json({
           success: true,
           pending: true,
@@ -9012,7 +9014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyLogo = await storage.getSetting('company_logo') || { value: '' };
 
       // Get custom credits branding
-      const customCreditsName = await storage.getSetting('custom_credits_name') || {value: 'Custom Credits'};
+      const customCreditsName = await storage.getSetting('custom_credits_name') || { value: 'Custom Credits' };
 
       // Create a new buffer array to collect PDF data
       const chunks: Buffer[] = [];
@@ -11212,6 +11214,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Monitoring routes
   app.use("/api/monitoring", monitoringRoutes);
 
+  // Coupon routes
+  app.use("/api/coupons", isAuthenticated, couponRoutes);
+  app.use("/api/admin/coupons", isAuthenticated, isAdmin, adminCouponsRoutes);
+
   // Admin settings routes are defined directly in this file instead of using the separate router
 
   // Register API-only routes (authenticated via API keys)
@@ -11249,7 +11255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Failed to retrieve user information'
         });
       }
-  });
+    });
 
   // Servers endpoint
   app.get("/api/servers",
@@ -11279,7 +11285,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Failed to retrieve server information'
         });
       }
-  });
+    });
 
   // Balance endpoint
   app.get("/api/balance",
@@ -11310,7 +11316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'Failed to retrieve balance information'
         });
       }
-  });
+    });
 
   // ----- Team Management Routes -----
 

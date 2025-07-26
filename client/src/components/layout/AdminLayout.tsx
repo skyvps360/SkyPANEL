@@ -45,6 +45,7 @@ const adminMenuItems = [
   { href: "/admin/billing", icon: DollarSign, label: "Billing" },
   { href: "/admin/servers", icon: Server, label: "Servers" },
   { href: "/admin/user-awards", icon: Gift, label: "User Awards" },
+  { href: "/admin/coupon", icon: Ticket, label: "Coupon Management" },
   // { href: "/admin/dns", icon: Globe, label: "DNS Management" }, // DNS disabled
   { href: "/admin/mail", icon: Mail, label: "Email Logs" },
   { href: "/admin/blog", icon: PenTool, label: "Company Blog" },
@@ -273,8 +274,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       if (
         !user.deletedAt &&
         (user.fullName?.toLowerCase().includes(lowerQuery) ||
-        user.username?.toLowerCase().includes(lowerQuery) ||
-        user.email?.toLowerCase().includes(lowerQuery))
+          user.username?.toLowerCase().includes(lowerQuery) ||
+          user.email?.toLowerCase().includes(lowerQuery))
       ) {
         results.push({
           id: user.id,
@@ -347,8 +348,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         // First check power status if available
         if (server.powerStatus && server.powerStatus.powerState) {
           statusText = server.powerStatus.powerState === "RUNNING" ? "Running" :
-                       server.powerStatus.powerState === "STOPPED" ? "Stopped" :
-                       server.powerStatus.powerState;
+            server.powerStatus.powerState === "STOPPED" ? "Stopped" :
+              server.powerStatus.powerState;
         }
         // Fall back to server.state or status
         else if (server.state) {
@@ -500,8 +501,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       } as React.CSSProperties}
                       onClick={() => { window.location.href = '/dashboard'; }}
                     >
-                      <Home className={cn("h-4 w-4 group-hover:!text-white", !isSidebarCollapsed && "mr-2")} 
-                            style={{ color: brandColors.primary.full }} />
+                      <Home className={cn("h-4 w-4 group-hover:!text-white", !isSidebarCollapsed && "mr-2")}
+                        style={{ color: brandColors.primary.full }} />
                       <span className={cn("group-hover:!text-white", isSidebarCollapsed && "sr-only")}>Return to Dashboard</span>
                     </Button>
                   </TooltipTrigger>
@@ -533,9 +534,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           style={{
                             ...(isActive
                               ? {
-                                  backgroundColor: brandColors.primary?.lighter,
-                                  color: brandColors.primary?.full
-                                }
+                                backgroundColor: brandColors.primary?.lighter,
+                                color: brandColors.primary?.full
+                              }
                               : {}),
                             "--hover-bg": brandColors.primary?.full,
                             "--hover-color": "white"
@@ -548,7 +549,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                               !isSidebarCollapsed && "mr-2",
                               !isActive && "group-hover:text-[var(--hover-color)]"
                             )}
-                            style={isActive ? { color: brandColors.primary?.full } : undefined} />
+                              style={isActive ? { color: brandColors.primary?.full } : undefined} />
                             <span className={cn(
                               !isActive ? "group-hover:text-[var(--hover-color)]" : "",
                               isSidebarCollapsed && "sr-only"
@@ -659,9 +660,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       style={{
                         ...(isActive
                           ? {
-                              backgroundColor: brandColors.primary?.lighter,
-                              color: brandColors.primary?.full
-                            }
+                            backgroundColor: brandColors.primary?.lighter,
+                            color: brandColors.primary?.full
+                          }
                           : {}),
                         "--hover-bg": brandColors.primary?.full,
                         "--hover-color": "white"
@@ -673,7 +674,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                           "mr-2 h-4 w-4",
                           !isActive && "group-hover:text-[var(--hover-color)]"
                         )}
-                        style={isActive ? { color: brandColors.primary?.full } : undefined} />
+                          style={isActive ? { color: brandColors.primary?.full } : undefined} />
                         {item.label}
                       </Link>
                     </Button>

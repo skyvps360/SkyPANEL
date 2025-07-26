@@ -64,6 +64,7 @@ import DnsRecordsPage from "@/pages/dns-records-page"; // DNS feature enabled
 import DnsPlansPage from "@/pages/dns-plans-page"; // DNS feature enabled
 import UserAwardsPage from "@/pages/admin/user-awards";
 import BillingAwardsPage from "@/pages/billing/awards";
+import CouponManagementPage from "@/pages/admin/coupon-management";
 
 import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { useQuery } from "@tanstack/react-query";
@@ -196,6 +197,7 @@ export function AppRouter() {
                 <AdminProtectedRoute path="/admin/billing/transactions/:id" component={AdminTransactionDetailPage} />
                 <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage} />
                 <AdminProtectedRoute path="/admin/user-awards" component={UserAwardsPage} />
+                <AdminProtectedRoute path="/admin/coupon" component={CouponManagementPage} />
                 <AdminProtectedRoute path="/admin/chat" component={AdminChatManagement} />
 
                 {/* Catch-all route for 404 pages */}
