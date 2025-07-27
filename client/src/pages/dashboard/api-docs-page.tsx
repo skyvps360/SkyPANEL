@@ -1336,122 +1336,9 @@ export default function DashboardApiDocsPage() {
   ];
 
   const billingEndpoints: ApiEndpoint[] = [
-    {
-      method: "GET",
-      path: "/api/billing/balance",
-      description: "Get account balance information",
-      responseExample: JSON.stringify({
-        credits: 125.50,
-        virtFusionCredits: 125.00,
-        virtFusionTokens: 12500.00
-      }, null, 2),
-      requiresAuth: true,
-      tags: ["billing", "balance"]
-    },
-    {
-      method: "GET",
-      path: "/api/billing/usage/last30days",
-      description: "Get usage data for the last 30 days",
-      responseExample: JSON.stringify({
-        usage: 12.34,
-        rawData: {
-          periodId: 0,
-          period: "May 2025",
-          previousPeriod: "April 2025",
-          nextPeriod: "June 2025",
-          monthlyTotal: {
-            hours: 1234,
-            tokens: "12.3456",
-            value: "12.34"
-          },
-          servers: 2,
-          credit: {
-            tokens: "12345.6789",
-            value: "123.45"
-          },
-          currency: {
-            code: "USD",
-            prefix: "$",
-            suffix: "",
-            value: "0.0100000000",
-            currentValue: "0.0100000000"
-          }
-        }
-      }, null, 2),
-      requiresAuth: true,
-      tags: ["billing", "usage"]
-    },
-    {
-      method: "GET",
-      path: "/api/transactions",
-      description: "Get transaction history",
-      responseExample: JSON.stringify([
-        {
-          id: 1,
-          userId: 1,
-          amount: 20.00,
-          type: "credit",
-          description: "Account credit purchase",
-          status: "completed",
-          createdAt: "2025-04-01T10:00:00Z"
-        },
-        {
-          id: 2,
-          userId: 1,
-          amount: 5.25,
-          type: "debit",
-          description: "Server usage charges",
-          status: "completed",
-          createdAt: "2025-04-15T14:30:00Z"
-        }
-      ], null, 2),
-      requiresAuth: true,
-      tags: ["billing", "transactions"]
-    },
-    {
-      method: "GET",
-      path: "/api/transactions/:id",
-      description: "Get details for a specific transaction",
-      parameters: [
-        { name: "id", type: "string", required: true, description: "Transaction ID", example: "1" }
-      ],
-      responseExample: JSON.stringify({
-        id: 1,
-        userId: 1,
-        amount: 20.00,
-        type: "credit",
-        description: "Account credit purchase",
-        status: "completed",
-        paymentMethod: "credit_card",
-        cardLast4: "1234",
-        createdAt: "2025-04-01T10:00:00Z"
-      }, null, 2),
-      requiresAuth: true,
-      tags: ["billing", "transactions"]
-    },
-    {
-      method: "POST",
-      path: "/api/billing/add-credits",
-      description: "Add credits to account",
-      parameters: [
-        { name: "amount", type: "string", required: true, description: "Amount to add in USD", example: "50" },
-        { name: "paymentMethodId", type: "string", required: true, description: "Payment method ID", example: "pm_card_visa" }
-      ],
-      responseExample: JSON.stringify({
-        success: true,
-        transaction: {
-          id: 3,
-          amount: 50.00,
-          type: "credit",
-          description: "Account credit purchase",
-          status: "completed",
-          createdAt: "2025-04-20T11:15:00Z"
-        },
-        newBalance: 175.50
-      }, null, 2),
-      requiresAuth: true,
-      tags: ["billing", "payments"]
-    }
+    // Removed sensitive billing endpoints that should not be exposed to clients
+    // These endpoints contain sensitive billing and payment information
+    // and should only be accessible through the admin interface or secure API calls
   ];
 
   const apiKeyEndpoints: ApiEndpoint[] = [
@@ -1570,7 +1457,7 @@ export default function DashboardApiDocsPage() {
   // Get all unique tags from endpoints
   const allTags = useMemo(() => {
     const tags = new Set<string>();
-    [...userEndpoints, ...serverEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...couponEndpoints].forEach(endpoint => {
+    [...userEndpoints, ...serverEndpoints, ...apiKeyEndpoints, ...couponEndpoints].forEach(endpoint => {
       endpoint.tags?.forEach(tag => tags.add(tag));
     });
     return Array.from(tags).sort();
@@ -1653,7 +1540,7 @@ export default function DashboardApiDocsPage() {
                 <div className="flex gap-3">
                   {/* Quick Filter Tags */}
                   <div className="flex flex-wrap gap-2">
-                    {['user', 'servers', 'billing', 'api-keys'].map((quickTag) => (
+                    {['user', 'servers', 'api-keys'].map((quickTag) => (
                       <Button
                         key={quickTag}
                         variant={selectedTags.includes(quickTag) ? "default" : "outline"}
@@ -1729,7 +1616,7 @@ export default function DashboardApiDocsPage() {
               
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className="text-sm px-3 py-1">
-                  {[...userEndpoints, ...serverEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...couponEndpoints].length} Total Endpoints
+                  {[...userEndpoints, ...serverEndpoints, ...apiKeyEndpoints, ...couponEndpoints].length} Total Endpoints
                 </Badge>
               </div>
             </div>
@@ -1758,14 +1645,7 @@ export default function DashboardApiDocsPage() {
                   toast={toast}
                 />
                 
-                <ApiCategory
-                  title="Billing & Transactions"
-                  description="Endpoints for managing account billing, credits, and transaction history"
-                  endpoints={billingEndpoints}
-                  onTagSelect={handleTagSelect}
-                  selectedTags={selectedTags}
-                  toast={toast}
-                />
+
                 
                 <ApiCategory
                   title="API Keys"
