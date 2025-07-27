@@ -277,6 +277,27 @@ export default function PackagesPage() {
           </div>
         </div>
 
+        {/* Token Requirement Notice */}
+        <Card className="border-amber-200 bg-amber-50/50 shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-amber-600" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-amber-800 mb-2">
+                  Add Tokens Before Purchasing
+                </h3>
+                <p className="text-amber-700">
+                  To purchase a server, you must first add VirtFusion tokens to your account. Tokens are used to pay for server creation and ongoing costs.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Loading State */}
         {isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
