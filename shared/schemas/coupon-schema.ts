@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, real, timestamp, boolean, createInsertSchema, z } from "./common-imports";
+import { pgTable, text, serial, integer, real, timestamp, boolean, createInsertSchema, z, unique } from "./common-imports";
 import { users } from "./user-schema";
 import { transactions } from "./transaction-schema";
 
@@ -31,7 +31,10 @@ export const couponUsage = pgTable("coupon_usage", {
   virtfusionCreditId: text("virtfusion_credit_id"), // VirtFusion credit ID from API
   transactionId: integer("transaction_id").references(() => transactions.id, { onDelete: 'set null' }),
   usedAt: timestamp("used_at").defaultNow(),
-});
+}, (table) => ({
+  // Unique constraint to prevent duplicate coupon usage by the same user
+  uniqueUserCoupon: unique().on(table.userId, table.couponId),
+}));
 
 // Zod schemas for validation
 export const insertCouponSchema = createInsertSchema(coupons).omit({

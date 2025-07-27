@@ -8,6 +8,7 @@ import {
     json,
     real,
     uniqueIndex,
+    unique,
     foreignKey,
     doublePrecision,
     date
@@ -27,6 +28,7 @@ export {
     json,
     real,
     uniqueIndex,
+    unique,
     foreignKey,
     doublePrecision,
     date,
