@@ -505,38 +505,55 @@ export function TicketForm({ onSubmit, defaultValues, isLoading = false }: Ticke
                         {/* IP Addresses */}
                         {selectedServer.allIps && selectedServer.allIps.length > 0 ? (
                           <div className="mt-2 space-y-2">
-                            {selectedServer.allIps.map((ip, index) => (
-                              <div key={index} className="p-2 bg-background rounded-md text-xs">
-                                <div className="font-semibold mb-1 flex items-center">
-                                  <ExternalLink className="h-3 w-3 mr-1" />
-                                  IP Address: {ip.address}
-                                  {ip.type && (
-                                    <Badge
-                                      variant="outline"
-                                      className={`ml-1 text-[10px] py-0 px-1 h-4 ${
-                                        ip.type === 'ipv4' ? 'bg-blue-500/10' : 'bg-purple-500/10'
-                                      }`}
-                                    >
-                                      {ip.type === 'ipv4' ? 'IPv4' : 'IPv6'}
-                                    </Badge>
-                                  )}
-                                  {ip.enabled && (
-                                    <Badge
-                                      variant="outline"
-                                      className="ml-1 text-[10px] py-0 px-1 h-4 bg-green-500/10"
-                                    >
-                                      Active
-                                    </Badge>
-                                  )}
+                            {/* Get first IPv4 and first IPv6 */}
+                            {(() => {
+                              const firstIpv4 = selectedServer.allIps.find(ip => ip.type === 'ipv4');
+                              const firstIpv6 = selectedServer.allIps.find(ip => ip.type === 'ipv6');
+                              const displayIps = [];
+                              
+                              if (firstIpv4) displayIps.push(firstIpv4);
+                              if (firstIpv6) displayIps.push(firstIpv6);
+                              
+                              return displayIps.map((ip, index) => (
+                                <div key={index} className="p-2 bg-background rounded-md text-xs">
+                                  <div className="font-semibold mb-1 flex items-center">
+                                    <ExternalLink className="h-3 w-3 mr-1" />
+                                    IP Address: {ip.address}
+                                    {ip.type && (
+                                      <Badge
+                                        variant="outline"
+                                        className={`ml-1 text-[10px] py-0 px-1 h-4 ${
+                                          ip.type === 'ipv4' ? 'bg-blue-500/10' : 'bg-purple-500/10'
+                                        }`}
+                                      >
+                                        {ip.type === 'ipv4' ? 'IPv4' : 'IPv6'}
+                                      </Badge>
+                                    )}
+                                    {ip.enabled && (
+                                      <Badge
+                                        variant="outline"
+                                        className="ml-1 text-[10px] py-0 px-1 h-4 bg-green-500/10"
+                                      >
+                                        Active
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2 text-muted-foreground mt-1">
+                                    <div>Gateway: {ip.gateway}</div>
+                                    <div>Netmask: {ip.netmask}</div>
+                                    <div>DNS 1: {ip.resolver1}</div>
+                                    <div>DNS 2: {ip.resolver2}</div>
+                                  </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-2 text-muted-foreground mt-1">
-                                  <div>Gateway: {ip.gateway}</div>
-                                  <div>Netmask: {ip.netmask}</div>
-                                  <div>DNS 1: {ip.resolver1}</div>
-                                  <div>DNS 2: {ip.resolver2}</div>
-                                </div>
+                              ));
+                            })()}
+                            
+                            {/* Show count of additional IPs if there are more */}
+                            {selectedServer.allIps.length > 2 && (
+                              <div className="text-xs text-muted-foreground italic">
+                                +{selectedServer.allIps.length - 2} additional IP addresses
                               </div>
-                            ))}
+                            )}
                           </div>
                         ) : (
                           <div className="mt-2 text-xs text-muted-foreground">

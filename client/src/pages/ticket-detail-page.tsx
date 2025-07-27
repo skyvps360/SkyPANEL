@@ -682,31 +682,47 @@ export default function TicketDetailPage() {
                   {server.allIps && server.allIps.length > 0 && (
                     <div>
                       <p className="text-sm font-medium mt-2 mb-1">IP Addresses</p>
-                      {server.allIps.map((ip, index) => (
-                        <div key={index} className="border rounded p-2 mb-2 text-xs">
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium">{ip.type?.toUpperCase()}</span>
-                            {ip.enabled && (
-                              <Badge 
-                                variant="outline" 
-                                className="text-[10px] h-4"
-                                style={{ 
-                                  backgroundColor: colors.secondary.light,
-                                  borderColor: colors.secondary.border,
-                                  color: colors.secondary.dark
-                                }}
-                              >
-                                <Wifi className="h-3 w-3 mr-1" /> Active
-                              </Badge>
-                            )}
+                      {(() => {
+                        const firstIpv4 = server.allIps.find(ip => ip.type === 'ipv4');
+                        const firstIpv6 = server.allIps.find(ip => ip.type === 'ipv6');
+                        const displayIps = [];
+                        
+                        if (firstIpv4) displayIps.push(firstIpv4);
+                        if (firstIpv6) displayIps.push(firstIpv6);
+                        
+                        return displayIps.map((ip, index) => (
+                          <div key={index} className="border rounded p-2 mb-2 text-xs">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">{ip.type?.toUpperCase()}</span>
+                              {ip.enabled && (
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-[10px] h-4"
+                                  style={{ 
+                                    backgroundColor: colors.secondary.light,
+                                    borderColor: colors.secondary.border,
+                                    color: colors.secondary.dark
+                                  }}
+                                >
+                                  <Wifi className="h-3 w-3 mr-1" /> Active
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="mt-1 mb-1">{ip.address}</p>
+                            <div className="text-gray-500 space-y-1">
+                              <p>Gateway: {ip.gateway}</p>
+                              <p>Netmask: {ip.netmask}</p>
+                            </div>
                           </div>
-                          <p className="mt-1 mb-1">{ip.address}</p>
-                          <div className="text-gray-500 space-y-1">
-                            <p>Gateway: {ip.gateway}</p>
-                            <p>Netmask: {ip.netmask}</p>
-                          </div>
+                        ));
+                      })()}
+                      
+                      {/* Show count of additional IPs if there are more */}
+                      {server.allIps.length > 2 && (
+                        <div className="text-xs text-gray-500 italic mt-2">
+                          +{server.allIps.length - 2} additional IP addresses
                         </div>
-                      ))}
+                      )}
                     </div>
                   )}
                 </div>
