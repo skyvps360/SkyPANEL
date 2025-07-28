@@ -3196,7 +3196,8 @@ export class DatabaseStorage implements IStorage {
       // Update existing settings
       const [updated] = await db.update(discordVerificationSettings)
         .set({
-          roleId: settings.roleId,
+          verifiedRoleId: settings.verifiedRoleId,
+          unverifiedRoleId: settings.unverifiedRoleId,
           channelId: settings.channelId,
           isEnabled: settings.isEnabled,
           updatedAt: new Date()

@@ -49,6 +49,7 @@ export class DiscordBotCore {
     private helpService: any;
     private aiService: any;
     private todoService: any;
+    private verificationService: any;
 
     private constructor() {
     }
@@ -71,7 +72,8 @@ export class DiscordBotCore {
         moderationService: any,
         statusService: any,
         helpService: any,
-        aiService: any
+        aiService: any,
+        verificationService: any
     ): void {
         this.ticketService = ticketService;
         this.commandHandler = commandHandler;
@@ -80,6 +82,7 @@ export class DiscordBotCore {
         this.helpService = helpService;
         this.aiService = aiService;
         this.todoService = discordTodoService;
+        this.verificationService = verificationService;
     }
 
     /**
@@ -184,6 +187,12 @@ export class DiscordBotCore {
                 } else if (interaction.isStringSelectMenu()) {
                     await this.handleSelectMenu(interaction);
                 }
+            });
+
+            // Handle new member joins
+            this.client.on(Events.GuildMemberAdd, async (member) => {
+                console.log(`New member joined: ${member.user.username} in guild ${member.guild.name}`);
+                await this.verificationService.handleNewMemberJoin(member);
             });
 
             // Handle messages in threads

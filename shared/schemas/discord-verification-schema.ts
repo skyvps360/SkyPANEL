@@ -12,7 +12,8 @@ import { pgTable, text, serial, boolean, timestamp, createInsertSchema, z } from
 export const discordVerificationSettings = pgTable("discord_verification_settings", {
     id: serial("id").primaryKey(),
     guildId: text("guild_id").notNull().unique(), // Discord guild/server ID
-    roleId: text("role_id").notNull(), // Role to assign upon verification
+    verifiedRoleId: text("verified_role_id").notNull(), // Role to assign upon verification
+    unverifiedRoleId: text("unverified_role_id").notNull(), // Role to assign to new users
     channelId: text("channel_id"), // Channel where verification message is posted
     messageId: text("message_id"), // Message ID of the verification message
     isEnabled: boolean("is_enabled").default(false), // Whether verification is enabled

@@ -8,7 +8,8 @@ import {
     TextChannel,
     GuildMember,
     PermissionFlagsBits,
-    BaseGuildTextChannel
+    BaseGuildTextChannel,
+    Events
 } from 'discord.js';
 import { storage } from '../storage';
 import { discordBotCore } from './discord-bot-core';
@@ -44,8 +45,14 @@ export class DiscordVerificationService {
                 .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
                 .addRoleOption(option =>
                     option
-                        .setName('role')
+                        .setName('verified_role')
                         .setDescription('Role to assign upon verification')
+                        .setRequired(true)
+                )
+                .addRoleOption(option =>
+                    option
+                        .setName('unverified_role')
+                        .setDescription('Role to assign to new users (auto-assigned)')
                         .setRequired(true)
                 )
                 .addChannelOption(option =>
@@ -83,7 +90,8 @@ export class DiscordVerificationService {
             }
 
             // Get command options
-            const role = interaction.options.getRole('role', true);
+            const verifiedRole = interaction.options.getRole('verified_role', true);
+            const unverifiedRole = interaction.options.getRole('unverified_role', true);
             const channel = interaction.options.getChannel('channel', false);
             const enabled = interaction.options.getBoolean('enabled', false) ?? true;
 
@@ -100,7 +108,8 @@ export class DiscordVerificationService {
             // Save verification settings
             const settings = {
                 guildId,
-                roleId: role.id,
+                verifiedRoleId: verifiedRole.id,
+                unverifiedRoleId: unverifiedRole.id,
                 channelId: channel?.id ?? null,
                 isEnabled: enabled
             };
@@ -143,7 +152,7 @@ export class DiscordVerificationService {
 
             // Reply to command
             await interaction.reply({
-                content: `Verification system configured successfully! ${enabled ? 'Enabled' : 'Disabled'}.`,
+                content: `Verification system configured successfully! ${enabled ? 'Enabled' : 'Disabled'}.\n\n**Roles:**\n• Verified: ${verifiedRole.name}\n• Unverified: ${unverifiedRole.name}\n\nNew users will automatically receive the unverified role and need to verify to access the server.`,
                 ephemeral: true
             });
 
@@ -194,6 +203,47 @@ export class DiscordVerificationService {
                 content: 'An error occurred while resetting verification settings.',
                 ephemeral: true
             });
+        }
+    }
+
+    /**
+     * Handle new member join event
+     * @param member The guild member that joined
+     */
+    public async handleNewMemberJoin(member: GuildMember): Promise<void> {
+        try {
+            const guildId = member.guild.id;
+            
+            // Get verification settings
+            const settings = await storage.getDiscordVerificationSettings(guildId);
+            if (!settings || !settings.isEnabled) {
+                console.log(`Verification not enabled for guild ${guildId}`);
+                return;
+            }
+
+            // Check if user is already verified
+            const isAlreadyVerified = await storage.isDiscordUserVerified(member.user.id, guildId);
+            if (isAlreadyVerified) {
+                console.log(`User ${member.user.username} is already verified, skipping unverified role assignment`);
+                return;
+            }
+
+            // Assign unverified role
+            try {
+                const unverifiedRole = await member.guild.roles.fetch(settings.unverifiedRoleId);
+                if (!unverifiedRole) {
+                    console.error(`Unverified role not found for guild ${guildId}`);
+                    return;
+                }
+
+                await member.roles.add(unverifiedRole);
+                console.log(`Assigned unverified role to ${member.user.username} in guild ${guildId}`);
+            } catch (roleError: any) {
+                console.error('Error assigning unverified role:', roleError.message);
+            }
+
+        } catch (error: any) {
+            console.error('Error handling new member join:', error.message);
         }
     }
 
@@ -251,19 +301,28 @@ export class DiscordVerificationService {
                 return;
             }
 
-            // Assign role
+            // Remove unverified role and assign verified role
             try {
-                const role = await interaction.guild?.roles.fetch(settings.roleId);
-                if (!role) {
+                // Remove unverified role if it exists
+                if (settings.unverifiedRoleId) {
+                    const unverifiedRole = await interaction.guild?.roles.fetch(settings.unverifiedRoleId);
+                    if (unverifiedRole && member.roles.cache.has(unverifiedRole.id)) {
+                        await member.roles.remove(unverifiedRole);
+                    }
+                }
+
+                // Assign verified role
+                const verifiedRole = await interaction.guild?.roles.fetch(settings.verifiedRoleId);
+                if (!verifiedRole) {
                     await interaction.editReply({
                         content: 'Verification role not found. Please contact an administrator.'
                     });
                     return;
                 }
 
-                await member.roles.add(role);
+                await member.roles.add(verifiedRole);
             } catch (roleError: any) {
-                console.error('Error assigning role:', roleError.message);
+                console.error('Error managing roles:', roleError.message);
                 await interaction.editReply({
                     content: 'Failed to assign verification role. Please contact an administrator.'
                 });
@@ -279,7 +338,7 @@ export class DiscordVerificationService {
 
             // Send success message
             await interaction.editReply({
-                content: '✅ You have been successfully verified!'
+                content: '✅ You have been successfully verified! You now have access to all channels.'
             });
 
         } catch (error: any) {
