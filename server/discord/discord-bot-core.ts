@@ -30,6 +30,7 @@ import {
 } from 'discord.js';
 import {storage} from '../storage';
 import {discordTodoService} from './discord-todo-service';
+import {discordVerificationService} from './discord-verification-service';
 
 /**
  * Core service for managing Discord bot operations
@@ -338,6 +339,12 @@ export class DiscordBotCore {
                         console.error('Failed to edit deferred reply:', editError);
                     }
                 }
+            }
+
+            // Verification button
+            if (customId === 'verify') {
+                await discordVerificationService.handleVerificationButton(interaction);
+                return;
             }
         } catch (error: any) {
             console.error('Error handling button interaction:', error.message);

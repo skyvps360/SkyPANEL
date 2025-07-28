@@ -69,7 +69,7 @@ export class DiscordHelpService {
             .addFields(
                 {name: '🎫 Tickets', value: 'Commands for managing support tickets', inline: true},
                 {name: '🛡️ Moderation', value: 'Commands for server moderation', inline: true},
-
+                {name: '✅ Verification', value: 'Commands for Discord verification system', inline: true},
                 {name: '📊 Status', value: 'Commands for checking system status', inline: true},
                 {name: '🤖 AI', value: 'Commands for interacting with AI', inline: true},
                 {name: '❓ Help', value: 'Commands for getting help', inline: true}
@@ -202,7 +202,16 @@ export class DiscordHelpService {
                     );
                 break;
 
-
+            case 'verification':
+                embed = new EmbedBuilder()
+                    .setColor(0x0099FF)
+                    .setTitle('✅ Verification Commands')
+                    .setDescription('Commands for Discord verification system (Admin only)')
+                    .addFields(
+                        {name: '/verify-setup', value: 'Setup Discord verification system with role and channel', inline: true},
+                        {name: '/verify-reset', value: 'Reset verification settings for this server', inline: true}
+                    );
+                break;
 
             case 'status':
                 embed = new EmbedBuilder()
@@ -315,7 +324,7 @@ export class DiscordHelpService {
                     .addChoices(
                         {name: 'Tickets', value: 'tickets'},
                         {name: 'Moderation', value: 'moderation'},
-
+                        {name: 'Verification', value: 'verification'},
                         {name: 'Status', value: 'status'},
                         {name: 'AI', value: 'ai'},
                         {name: 'Help', value: 'help'}

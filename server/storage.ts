@@ -103,6 +103,8 @@ import {
   userAwards,
   coupons,
   userCouponUsage,
+  discordVerificationSettings,
+  discordVerifiedUsers,
   type AwardSetting,
   type InsertAwardSetting,
   type UserLoginStreak,
@@ -113,6 +115,10 @@ import {
   type InsertCoupon,
   type UserCouponUsage,
   type InsertUserCouponUsage,
+  type DiscordVerificationSettings,
+  type InsertDiscordVerificationSettings,
+  type DiscordVerifiedUser,
+  type InsertDiscordVerifiedUser,
 
 } from "@shared/schema";
 import { db } from "./db";
@@ -205,6 +211,14 @@ export interface IStorage {
   createDiscordTicketThread(thread: InsertDiscordTicketThread): Promise<DiscordTicketThread>;
   updateDiscordTicketThread(ticketId: number, updates: Partial<DiscordTicketThread>): Promise<void>;
   deleteDiscordTicketThread(ticketId: number): Promise<void>;
+
+  // Discord verification operations
+  getDiscordVerificationSettings(guildId: string): Promise<DiscordVerificationSettings | null>;
+  saveDiscordVerificationSettings(settings: InsertDiscordVerificationSettings): Promise<DiscordVerificationSettings>;
+  updateDiscordVerificationMessageId(guildId: string, messageId: string): Promise<void>;
+  resetDiscordVerificationSettings(guildId: string): Promise<void>;
+  isDiscordUserVerified(userId: string, guildId: string): Promise<boolean>;
+  saveDiscordVerifiedUser(user: InsertDiscordVerifiedUser): Promise<DiscordVerifiedUser>;
 
   // Package pricing operations
   getAllPackagePricing(): Promise<PackagePricing[]>;
@@ -3163,6 +3177,76 @@ export class DatabaseStorage implements IStorage {
         message: 'Failed to add tokens to VirtFusion account'
       };
     }
+  }
+
+  // Discord verification operations
+  async getDiscordVerificationSettings(guildId: string): Promise<DiscordVerificationSettings | null> {
+    const [settings] = await db.select()
+      .from(discordVerificationSettings)
+      .where(eq(discordVerificationSettings.guildId, guildId));
+    
+    return settings || null;
+  }
+
+  async saveDiscordVerificationSettings(settings: InsertDiscordVerificationSettings): Promise<DiscordVerificationSettings> {
+    // Check if settings already exist for this guild
+    const existing = await this.getDiscordVerificationSettings(settings.guildId);
+    
+    if (existing) {
+      // Update existing settings
+      const [updated] = await db.update(discordVerificationSettings)
+        .set({
+          roleId: settings.roleId,
+          channelId: settings.channelId,
+          isEnabled: settings.isEnabled,
+          updatedAt: new Date()
+        })
+        .where(eq(discordVerificationSettings.guildId, settings.guildId))
+        .returning();
+      
+      return updated;
+    } else {
+      // Create new settings
+      const [created] = await db.insert(discordVerificationSettings)
+        .values(settings)
+        .returning();
+      
+      return created;
+    }
+  }
+
+  async updateDiscordVerificationMessageId(guildId: string, messageId: string): Promise<void> {
+    await db.update(discordVerificationSettings)
+      .set({
+        messageId: messageId,
+        updatedAt: new Date()
+      })
+      .where(eq(discordVerificationSettings.guildId, guildId));
+  }
+
+  async resetDiscordVerificationSettings(guildId: string): Promise<void> {
+    await db.delete(discordVerificationSettings)
+      .where(eq(discordVerificationSettings.guildId, guildId));
+  }
+
+  async isDiscordUserVerified(userId: string, guildId: string): Promise<boolean> {
+    const [verifiedUser] = await db.select()
+      .from(discordVerifiedUsers)
+      .where(and(
+        eq(discordVerifiedUsers.discordUserId, userId),
+        eq(discordVerifiedUsers.guildId, guildId)
+      ));
+    
+    return !!verifiedUser;
+  }
+
+  async saveDiscordVerifiedUser(user: InsertDiscordVerifiedUser): Promise<DiscordVerifiedUser> {
+    const [created] = await db.insert(discordVerifiedUsers)
+      .values(user)
+      .onConflictDoNothing()
+      .returning();
+    
+    return created;
   }
 
 }
