@@ -73,7 +73,7 @@ export class DiscordStatusService {
             .setDescription(statusMessage)
             .setColor(statusColor)
             .setTimestamp()
-            .setFooter({ text: 'Status updated • Auto-refreshes every 5 minutes' });
+            .setFooter({ text: 'Status updated • Auto-refreshes every 1 minute' });
 
         statusEmbed.addFields({
             name: '📊 Overall Status',
@@ -282,7 +282,7 @@ export class DiscordStatusService {
                 .setDescription(statusMessage)
                 .setColor(statusColor)
                 .setTimestamp()
-                .setFooter({ text: 'Status updated • Auto-refreshes every 5 minutes' });
+                .setFooter({ text: 'Status updated • Auto-refreshes every 1 minute' });
 
             // Add overall status field
             statusEmbed.addFields({
@@ -421,7 +421,7 @@ export class DiscordStatusService {
                         .setDescription(refreshedStatusMessage)
                         .setColor(refreshedStatusColor)
                         .setTimestamp()
-                        .setFooter({ text: 'Status auto-updated • Refreshes every 5 minutes' });
+                        .setFooter({ text: 'Status auto-updated • Refreshes every 1 minute' });
 
                     // Add overall status field
                     updatedStatusEmbed.addFields({
@@ -463,28 +463,13 @@ export class DiscordStatusService {
                 }
             };
 
-            // Set up the refresh timer, but limit to 1 hour max (60 refreshes)
-            const maxRefreshes = 60; // 60 minutes
-            let refreshCount = 0;
-
+            // Set up the refresh timer to run forever
             const timer = setInterval(() => {
-                refreshCount++;
                 refreshStatusEmbed();
-
-                if (refreshCount >= maxRefreshes) {
-                    clearInterval(timer);
-                    this.activeStatusTimers.delete(reply.id);
-                }
             }, refreshInterval);
 
             // Track the timer so we can clean it up later
             this.activeStatusTimers.set(reply.id, timer);
-
-            // Clean up timer after 1 hour
-            setTimeout(() => {
-                clearInterval(timer);
-                this.activeStatusTimers.delete(reply.id);
-            }, maxRefreshes * refreshInterval);
 
         } catch (error: any) {
             console.error('Error handling status command:', error);
