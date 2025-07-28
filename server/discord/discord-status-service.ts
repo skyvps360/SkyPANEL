@@ -175,9 +175,9 @@ export class DiscordStatusService {
             await message.edit({ embeds, components });
         } catch (error) {
             console.error(`Error auto-refreshing status for message ${messageId}:`, error);
-            if (this.activeStatusTimers.has(channelId)) {
-                clearInterval(this.activeStatusTimers.get(channelId)!);
-                this.activeStatusTimers.delete(channelId);
+            if (this.activeStatusTimers.has(messageId)) {
+                clearInterval(this.activeStatusTimers.get(messageId)!);
+                this.activeStatusTimers.delete(messageId);
             }
         }
     }
@@ -374,8 +374,8 @@ export class DiscordStatusService {
                     fetchReply: true
                 });
 
-            // Set up auto-refresh timer for 5 minutes
-            const refreshInterval = 5 * 60 * 1000; // 5 minutes in milliseconds
+            // Set up auto-refresh timer for 1 minute
+            const refreshInterval = 60 * 1000; // 1 minute in milliseconds
 
             // Store the refresh function so we can call it periodically
             const refreshStatusEmbed = async () => {
@@ -463,8 +463,8 @@ export class DiscordStatusService {
                 }
             };
 
-            // Set up the refresh timer, but limit to 1 hour max (12 refreshes)
-            const maxRefreshes = 12;
+            // Set up the refresh timer, but limit to 1 hour max (60 refreshes)
+            const maxRefreshes = 60; // 60 minutes
             let refreshCount = 0;
 
             const timer = setInterval(() => {
@@ -473,12 +473,17 @@ export class DiscordStatusService {
 
                 if (refreshCount >= maxRefreshes) {
                     clearInterval(timer);
+                    this.activeStatusTimers.delete(reply.id);
                 }
             }, refreshInterval);
+
+            // Track the timer so we can clean it up later
+            this.activeStatusTimers.set(reply.id, timer);
 
             // Clean up timer after 1 hour
             setTimeout(() => {
                 clearInterval(timer);
+                this.activeStatusTimers.delete(reply.id);
             }, maxRefreshes * refreshInterval);
 
         } catch (error: any) {
