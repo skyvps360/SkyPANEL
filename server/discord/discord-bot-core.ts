@@ -26,7 +26,8 @@ import {
     ComponentType,
     VoiceChannel,
     CategoryChannel,
-    UserSelectMenuInteraction
+    UserSelectMenuInteraction,
+    StringSelectMenuInteraction
 } from 'discord.js';
 import {storage} from '../storage';
 import {discordTodoService} from './discord-todo-service';
@@ -177,8 +178,11 @@ export class DiscordBotCore {
                     // Handle ticket commands (require thread context)
                     else {
                         await this.commandHandler.handleCommand(interaction);
-                    }                } else if (interaction.isButton()) {
+                    }
+                } else if (interaction.isButton()) {
                     await this.handleButton(interaction);
+                } else if (interaction.isStringSelectMenu()) {
+                    await this.handleSelectMenu(interaction);
                 }
             });
 
@@ -342,13 +346,42 @@ export class DiscordBotCore {
             }
 
             // Verification button
-            if (customId === 'verify') {
+            if (customId === 'verify_user') {
                 await discordVerificationService.handleVerificationButton(interaction);
                 return;
             }
         } catch (error: any) {
             console.error('Error handling button interaction:', error.message);
             await interaction.reply({content: 'An error occurred while processing this button', ephemeral: true});
+        }
+    }
+
+    /**
+     * Handle select menu interactions
+     * @param interaction The select menu interaction
+     */
+    public async handleSelectMenu(interaction: StringSelectMenuInteraction): Promise<void> {
+        try {
+            const customId = interaction.customId;
+
+            // Help select menu
+            if (customId.startsWith('help:')) {
+                await this.helpService.handleHelpSelectMenu(interaction);
+                return;
+            }
+
+            // Add other select menu handlers here as needed
+            console.log(`Unhandled select menu interaction: ${customId}`);
+        } catch (error: any) {
+            console.error('Error handling select menu:', error.message);
+            try {
+                await interaction.reply({
+                    content: `Failed to process selection: ${error.message}`,
+                    ephemeral: true
+                });
+            } catch (replyError) {
+                console.error('Error replying to select menu:', replyError);
+            }
         }
     }
 

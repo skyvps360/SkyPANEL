@@ -5,7 +5,10 @@ import {
     EmbedBuilder,
     ActionRowBuilder,
     ButtonBuilder,
-    ButtonStyle
+    ButtonStyle,
+    StringSelectMenuBuilder,
+    StringSelectMenuOptionBuilder,
+    StringSelectMenuInteraction
 } from 'discord.js';
 import {discordBotCore} from './discord-bot-core';
 import {discordModerationService} from './discord-moderation-service';
@@ -74,47 +77,52 @@ export class DiscordHelpService {
                 {name: '🤖 AI', value: 'Commands for interacting with AI', inline: true},
                 {name: '❓ Help', value: 'Commands for getting help', inline: true}
             )
-            .setFooter({text: 'Use the buttons below to view commands for each category'});
+            .setFooter({text: 'Use the dropdown menu below to view commands for each category'});
 
-        // Create the category buttons
-        const row = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('help:tickets')
+        // Create the category dropdown menu
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('help:category')
+            .setPlaceholder('Select a category to view commands')
+            .addOptions(
+                new StringSelectMenuOptionBuilder()
                     .setLabel('Tickets')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for managing support tickets')
+                    .setValue('tickets')
                     .setEmoji('🎫'),
-                new ButtonBuilder()
-                    .setCustomId('help:moderation')
+                new StringSelectMenuOptionBuilder()
                     .setLabel('Moderation')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for server moderation')
+                    .setValue('moderation')
                     .setEmoji('🛡️'),
-
-            );
-
-        const row2 = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('help:status')
+                new StringSelectMenuOptionBuilder()
+                    .setLabel('Verification')
+                    .setDescription('Commands for Discord verification system')
+                    .setValue('verification')
+                    .setEmoji('✅'),
+                new StringSelectMenuOptionBuilder()
                     .setLabel('Status')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for checking system status')
+                    .setValue('status')
                     .setEmoji('📊'),
-                new ButtonBuilder()
-                    .setCustomId('help:ai')
+                new StringSelectMenuOptionBuilder()
                     .setLabel('AI')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for interacting with AI')
+                    .setValue('ai')
                     .setEmoji('🤖'),
-                new ButtonBuilder()
-                    .setCustomId('help:help')
+                new StringSelectMenuOptionBuilder()
                     .setLabel('Help')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for getting help')
+                    .setValue('help')
                     .setEmoji('❓')
             );
+
+        const row = new ActionRowBuilder<StringSelectMenuBuilder>()
+            .addComponents(selectMenu);
 
         // Reply with the help message
         await interaction.reply({
             embeds: [embed],
-            components: [row, row2]
+            components: [row]
         });
     }
 
@@ -159,12 +167,41 @@ export class DiscordHelpService {
     }
 
     /**
+     * Handle help select menu
+     * @param interaction The select menu interaction
+     */
+    public async handleHelpSelectMenu(interaction: StringSelectMenuInteraction): Promise<void> {
+        try {
+            // Get the category from the select menu
+            const category = interaction.values[0];
+
+            // Update the help message with the selected category
+            await this.updateHelpMessage(interaction, category);
+        } catch (error: any) {
+            console.error('Error handling help select menu:', error.message);
+
+            // Reply with an error message
+            try {
+                await interaction.reply({
+                    content: `Failed to show help: ${error.message}`,
+                    ephemeral: true
+                });
+            } catch {
+                await interaction.followUp({
+                    content: `Failed to show help: ${error.message}`,
+                    ephemeral: true
+                });
+            }
+        }
+    }
+
+    /**
      * Update the help message with the selected category
      * @param interaction The interaction
      * @param category The category to show help for
      */
     private async updateHelpMessage(
-        interaction: ChatInputCommandInteraction | ButtonInteraction,
+        interaction: ChatInputCommandInteraction | ButtonInteraction | StringSelectMenuInteraction,
         category: string
     ): Promise<void> {
         // Create the embed based on the category
@@ -257,53 +294,63 @@ export class DiscordHelpService {
         }
 
         // Add a footer
-        embed.setFooter({text: 'Use the buttons below to view commands for other categories'});
+        embed.setFooter({text: 'Use the dropdown menu below to view commands for other categories'});
 
-        // Create the category buttons
-        const row = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('help:tickets')
+        // Create the category dropdown menu
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('help:category')
+            .setPlaceholder('Select a category to view commands')
+            .addOptions(
+                new StringSelectMenuOptionBuilder()
                     .setLabel('Tickets')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for managing support tickets')
+                    .setValue('tickets')
                     .setEmoji('🎫'),
-                new ButtonBuilder()
-                    .setCustomId('help:moderation')
+                new StringSelectMenuOptionBuilder()
                     .setLabel('Moderation')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for server moderation')
+                    .setValue('moderation')
                     .setEmoji('🛡️'),
-
-            );
-
-        const row2 = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId('help:status')
+                new StringSelectMenuOptionBuilder()
+                    .setLabel('Verification')
+                    .setDescription('Commands for Discord verification system')
+                    .setValue('verification')
+                    .setEmoji('✅'),
+                new StringSelectMenuOptionBuilder()
                     .setLabel('Status')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for checking system status')
+                    .setValue('status')
                     .setEmoji('📊'),
-                new ButtonBuilder()
-                    .setCustomId('help:ai')
+                new StringSelectMenuOptionBuilder()
                     .setLabel('AI')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for interacting with AI')
+                    .setValue('ai')
                     .setEmoji('🤖'),
-                new ButtonBuilder()
-                    .setCustomId('help:help')
+                new StringSelectMenuOptionBuilder()
                     .setLabel('Help')
-                    .setStyle(ButtonStyle.Primary)
+                    .setDescription('Commands for getting help')
+                    .setValue('help')
                     .setEmoji('❓')
             );
 
+        const row = new ActionRowBuilder<StringSelectMenuBuilder>()
+            .addComponents(selectMenu);
+
         // Update or reply with the help message
-        if (interaction instanceof ButtonInteraction) {
+        if (interaction instanceof StringSelectMenuInteraction) {
             await interaction.update({
                 embeds: [embed],
-                components: [row, row2]
+                components: [row]
+            });
+        } else if (interaction instanceof ButtonInteraction) {
+            await interaction.update({
+                embeds: [embed],
+                components: [row]
             });
         } else {
             await interaction.reply({
                 embeds: [embed],
-                components: [row, row2]
+                components: [row]
             });
         }
     }
