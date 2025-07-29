@@ -23,7 +23,8 @@ import {
   CreditCard,
   ShoppingCart,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
 
 interface SupportDepartment {
@@ -185,7 +186,7 @@ export function UnifiedDepartmentManager() {
   if (isLoading || isLoadingStatus) {
     return (
       <div className="flex items-center justify-center p-8">
-        <RefreshCw className="h-6 w-6 animate-spin" />
+        <Loader2 className="h-6 w-6 animate-spin" />
         <span className="ml-2">Loading departments...</span>
       </div>
     );
@@ -505,7 +506,7 @@ function DepartmentForm({ department, onSubmit, onCancel, isLoading }: Departmen
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (
               <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 {department ? 'Updating...' : 'Creating...'}
               </>
             ) : (
