@@ -27,12 +27,7 @@ import {
   supportDepartments,
   supportDepartmentAdmins,
   teamMembers,
-  chatSessions,
-  chatMessages,
-  adminChatStatus,
-  chatTypingIndicators,
-  chatDepartments,
-  chatDepartmentAdmins,
+
   dnsDomains,
   dnsRecords,
   type User,
@@ -87,17 +82,7 @@ import {
   type InsertServerLog,
   type ServerNote,
   type InsertServerNote,
-  type ChatSession,
-  type InsertChatSession,
-  type ChatMessage,
-  type InsertChatMessage,
-  type AdminChatStatus,
-  type InsertAdminChatStatus,
-  type ChatTypingIndicator,
-  type InsertChatTypingIndicator,
-  type ChatDepartment,
-  type InsertChatDepartment,  type ChatDepartmentAdmin,
-  type InsertChatDepartmentAdmin,
+
   awardSettings,
   userLoginStreaks,
   userAwards,
@@ -364,39 +349,15 @@ export interface IStorage {
   updateTeamMember(id: number, updates: Partial<TeamMember>): Promise<void>;
   deleteTeamMember(id: number): Promise<void>;
 
-  // Chat session operations
-  createChatSession(session: InsertChatSession): Promise<ChatSession>;
-  getChatSession(id: number): Promise<ChatSession | undefined>;
-  updateChatSession(id: number, updates: Partial<ChatSession>): Promise<void>;
-  getActiveChatSessions(): Promise<ChatSession[]>;
-  getUserActiveChatSession(userId: number): Promise<ChatSession | undefined>;
-  getAdminChatSessions(adminId: number): Promise<ChatSession[]>;
-  getChatSessionsWithUsers(): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]>;
 
-  // Chat message operations
-  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
-  getChatMessages(sessionId: number): Promise<ChatMessage[]>;
-  getChatMessagesWithUsers(sessionId: number): Promise<(ChatMessage & { user: User })[]>;
-  markChatMessageAsRead(messageId: number): Promise<void>;
 
-  // Admin chat status operations
-  getAdminChatStatus(userId: number): Promise<AdminChatStatus | undefined>;
-  upsertAdminChatStatus(userId: number, status: InsertAdminChatStatus): Promise<AdminChatStatus>;
-  getAvailableAdmins(): Promise<AdminChatStatus[]>;
-  updateAdminLastSeen(userId: number): Promise<void>;
 
-  // Chat typing indicator operations
-  upsertChatTypingIndicator(indicator: InsertChatTypingIndicator): Promise<ChatTypingIndicator>;
-  getChatTypingIndicators(sessionId: number): Promise<ChatTypingIndicator[]>;
-  clearChatTypingIndicator(sessionId: number, userId: number): Promise<void>;
 
-  // Chat department operations
-  createChatDepartment(department: InsertChatDepartment): Promise<ChatDepartment>;
-  getChatDepartment(id: number): Promise<ChatDepartment | undefined>;
-  getChatDepartments(): Promise<ChatDepartment[]>;
-  getActiveChatDepartments(): Promise<ChatDepartment[]>;
-  updateChatDepartment(id: number, updates: Partial<ChatDepartment>): Promise<void>;
-  deleteChatDepartment(id: number): Promise<void>;
+
+
+
+
+
 
   // Unified support department operations
   createSupportDepartment(department: InsertSupportDepartment): Promise<SupportDepartment>;
@@ -406,12 +367,7 @@ export interface IStorage {
   updateSupportDepartment(id: number, updates: Partial<SupportDepartment>): Promise<void>;
   deleteSupportDepartment(id: number): Promise<void>;
 
-  // Chat department admin operations
-  assignAdminToDepartment(assignment: InsertChatDepartmentAdmin): Promise<ChatDepartmentAdmin>;
-  removeAdminFromDepartment(departmentId: number, adminId: number): Promise<void>;
-  getDepartmentAdmins(departmentId: number): Promise<(ChatDepartmentAdmin & { admin: User })[]>;
-  getAdminDepartments(adminId: number): Promise<(ChatDepartmentAdmin & { department: ChatDepartment })[]>;
-  updateDepartmentAdminPermissions(departmentId: number, adminId: number, updates: Partial<ChatDepartmentAdmin>): Promise<void>;
+
 
   // Unified support department operations
   getSupportDepartments(): Promise<SupportDepartment[]>;
@@ -429,10 +385,7 @@ export interface IStorage {
   getAdminSupportDepartments(adminId: number): Promise<Array<SupportDepartmentAdmin & { department: SupportDepartment | null }>>;
   updateSupportDepartmentAdminPermissions(departmentId: number, adminId: number, updates: Partial<SupportDepartmentAdmin>): Promise<void>;
 
-  // Enhanced chat session operations with departments
-  getChatSessionsWithDepartments(): Promise<(ChatSession & { user: User; assignedAdmin?: User; department?: ChatDepartment })[]>;
-  getChatSessionsByDepartment(departmentId: number): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]>;
-  getUserChatHistory(userId: number, limit?: number, offset?: number): Promise<(ChatSession & { department?: ChatDepartment })[]>;
+
 
   // Awards system operations
   getAllAwardSettings(): Promise<AwardSetting[]>;
@@ -1920,411 +1873,17 @@ export class DatabaseStorage implements IStorage {
     await db.delete(teamMembers).where(eq(teamMembers.id, id));
   }
 
-  // Chat session operations
-  async createChatSession(session: InsertChatSession): Promise<ChatSession> {
-    const [createdSession] = await db.insert(chatSessions).values(session).returning();
-    return createdSession;
-  }
 
-  async getChatSession(id: number): Promise<ChatSession | undefined> {
-    const [session] = await db.select().from(chatSessions).where(eq(chatSessions.id, id));
-    return session;
-  }
 
-  async updateChatSession(id: number, updates: Partial<ChatSession>): Promise<void> {
-    await db.update(chatSessions)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(chatSessions.id, id));
-  }
 
-  async getActiveChatSessions(): Promise<ChatSession[]> {
-    return await db.select()
-      .from(chatSessions)
-      .where(inArray(chatSessions.status, ['waiting', 'active']))
-      .orderBy(desc(chatSessions.lastActivityAt));
-  }
 
-  async getUserActiveChatSession(userId: number): Promise<ChatSession | undefined> {
-    const [session] = await db.select()
-      .from(chatSessions)
-      .where(and(
-        eq(chatSessions.userId, userId),
-        inArray(chatSessions.status, ['waiting', 'active'])
-      ))
-      .orderBy(desc(chatSessions.lastActivityAt))
-      .limit(1);
-    return session;
-  }
 
-  async getAdminChatSessions(adminId: number): Promise<ChatSession[]> {
-    return await db.select()
-      .from(chatSessions)
-      .where(eq(chatSessions.assignedAdminId, adminId))
-      .orderBy(desc(chatSessions.lastActivityAt));
-  }
 
-  async getChatSessionsWithUsers(): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]> {
-    const sessions = await db.select({
-      id: chatSessions.id,
-      userId: chatSessions.userId,
-      assignedAdminId: chatSessions.assignedAdminId,
-      status: chatSessions.status,
-      priority: chatSessions.priority,
-      subject: chatSessions.subject,
-      department: chatSessions.department,
-      metadata: chatSessions.metadata,
-      startedAt: chatSessions.startedAt,
-      endedAt: chatSessions.endedAt,
-      lastActivityAt: chatSessions.lastActivityAt,
-      createdAt: chatSessions.createdAt,
-      updatedAt: chatSessions.updatedAt,
-      user: {
-        id: users.id,
-        email: users.email,
-        username: users.username,
-        password: users.password,
-        fullName: users.fullName,
-        role: users.role,
-        virtFusionId: users.virtFusionId,
-        isVerified: users.isVerified,
-        isActive: users.isActive,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
-      }
-    })
-    .from(chatSessions)
-    .leftJoin(users, eq(chatSessions.userId, users.id))
-    .orderBy(desc(chatSessions.lastActivityAt));
 
-    // Get assigned admins separately to avoid complex joins
-    const result = [];
-    for (const session of sessions) {
-      let assignedAdmin = undefined;
-      if (session.assignedAdminId) {
-        assignedAdmin = await this.getUser(session.assignedAdminId);
-      }
-      result.push({
-        ...session,
-        assignedAdmin
-      });
-    }
 
-    return result;
-  }
 
-  // Chat message operations
-  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
-    const [createdMessage] = await db.insert(chatMessages).values(message).returning();
-    return createdMessage;
-  }
 
-  async getChatMessages(sessionId: number): Promise<ChatMessage[]> {
-    return await db.select()
-      .from(chatMessages)
-      .where(eq(chatMessages.sessionId, sessionId))
-      .orderBy(chatMessages.createdAt);
-  }
 
-  async getChatMessagesWithUsers(sessionId: number): Promise<(ChatMessage & { user: User })[]> {
-    return await db.select({
-      id: chatMessages.id,
-      sessionId: chatMessages.sessionId,
-      userId: chatMessages.userId,
-      message: chatMessages.message,
-      messageType: chatMessages.messageType,
-      isFromAdmin: chatMessages.isFromAdmin,
-      readAt: chatMessages.readAt,
-      metadata: chatMessages.metadata,
-      createdAt: chatMessages.createdAt,
-      user: {
-        id: users.id,
-        email: users.email,
-        username: users.username,
-        password: users.password,
-        fullName: users.fullName,
-        role: users.role,
-        virtFusionId: users.virtFusionId,
-        isVerified: users.isVerified,
-        isActive: users.isActive,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
-      }
-    })
-    .from(chatMessages)
-    .leftJoin(users, eq(chatMessages.userId, users.id))
-    .where(eq(chatMessages.sessionId, sessionId))
-    .orderBy(chatMessages.createdAt);
-  }
-
-  async markChatMessageAsRead(messageId: number): Promise<void> {
-    await db.update(chatMessages)
-      .set({ readAt: new Date() })
-      .where(eq(chatMessages.id, messageId));
-  }
-
-  // Admin chat status operations
-  async getAdminChatStatus(userId: number): Promise<AdminChatStatus | undefined> {
-    const [status] = await db.select()
-      .from(adminChatStatus)
-      .where(eq(adminChatStatus.userId, userId));
-    return status;
-  }
-
-  async upsertAdminChatStatus(userId: number, statusData: InsertAdminChatStatus): Promise<AdminChatStatus> {
-    console.log(`Upserting admin chat status for user ${userId}:`, statusData);
-    const existingStatus = await this.getAdminChatStatus(userId);
-
-    if (existingStatus) {
-      console.log(`Updating existing status for user ${userId}`);
-      const [updatedStatus] = await db.update(adminChatStatus)
-        .set({ ...statusData, updatedAt: new Date() })
-        .where(eq(adminChatStatus.userId, userId))
-        .returning();
-      console.log(`Updated status:`, updatedStatus);
-      return updatedStatus;
-    } else {
-      console.log(`Creating new status for user ${userId}`);
-      const [newStatus] = await db.insert(adminChatStatus)
-        .values({ ...statusData, userId })
-        .returning();
-      console.log(`Created status:`, newStatus);
-      return newStatus;
-    }
-  }
-
-  async getAvailableAdmins(): Promise<AdminChatStatus[]> {
-    return await db.select()
-      .from(adminChatStatus)
-      .where(and(
-        eq(adminChatStatus.status, 'online'),
-        eq(adminChatStatus.autoAssign, true)
-      ))
-      .orderBy(adminChatStatus.lastSeenAt);
-  }
-
-  async updateAdminLastSeen(userId: number): Promise<void> {
-    await db.update(adminChatStatus)
-      .set({ lastSeenAt: new Date(), updatedAt: new Date() })
-      .where(eq(adminChatStatus.userId, userId));
-  }
-
-  // Chat typing indicator operations
-  async upsertChatTypingIndicator(indicator: InsertChatTypingIndicator): Promise<ChatTypingIndicator> {
-    const existing = await db.select()
-      .from(chatTypingIndicators)
-      .where(and(
-        eq(chatTypingIndicators.sessionId, indicator.sessionId),
-        eq(chatTypingIndicators.userId, indicator.userId)
-      ))
-      .limit(1);
-
-    if (existing.length > 0) {
-      await db.update(chatTypingIndicators)
-        .set({
-          isTyping: indicator.isTyping,
-          lastTypingAt: new Date(),
-          updatedAt: new Date()
-        })
-        .where(and(
-          eq(chatTypingIndicators.sessionId, indicator.sessionId),
-          eq(chatTypingIndicators.userId, indicator.userId)
-        ));
-      return { ...existing[0], ...indicator };
-    } else {
-      const [newIndicator] = await db.insert(chatTypingIndicators)
-        .values(indicator)
-        .returning();
-      return newIndicator;
-    }
-  }
-
-  async getChatTypingIndicators(sessionId: number): Promise<ChatTypingIndicator[]> {
-    return await db.select()
-      .from(chatTypingIndicators)
-      .where(and(
-        eq(chatTypingIndicators.sessionId, sessionId),
-        eq(chatTypingIndicators.isTyping, true)
-      ));
-  }
-
-  async clearChatTypingIndicator(sessionId: number, userId: number): Promise<void> {
-    await db.update(chatTypingIndicators)
-      .set({ isTyping: false, updatedAt: new Date() })
-      .where(and(
-        eq(chatTypingIndicators.sessionId, sessionId),
-        eq(chatTypingIndicators.userId, userId)
-      ));
-  }
-
-  // Chat department operations
-  async createChatDepartment(department: InsertChatDepartment): Promise<ChatDepartment> {
-    const [createdDepartment] = await db.insert(chatDepartments).values(department).returning();
-    return createdDepartment;
-  }
-
-  async getChatDepartment(id: number): Promise<ChatDepartment | undefined> {
-    // After migration, chat departments are unified in support_departments table
-    // This method now looks up in the unified table but returns in ChatDepartment format for compatibility
-    const [supportDept] = await db.select().from(supportDepartments).where(eq(supportDepartments.id, id));
-    if (!supportDept) {
-      return undefined;
-    }
-
-    // Convert SupportDepartment to ChatDepartment format for backward compatibility
-    return {
-      id: supportDept.id,
-      name: supportDept.name,
-      description: supportDept.description || '',
-      isDefault: supportDept.isDefault || false,
-      isActive: supportDept.isActive || true,
-      displayOrder: supportDept.displayOrder || 0,
-      color: supportDept.color || '#3b82f6',
-      icon: supportDept.icon || 'MessageCircle',
-      createdAt: supportDept.createdAt || new Date(),
-      updatedAt: supportDept.updatedAt || new Date(),
-    };
-  }
-
-  async getChatDepartments(): Promise<ChatDepartment[]> {
-    // After migration, chat departments are unified in support_departments table
-    // This method now looks up in the unified table but returns in ChatDepartment format for compatibility
-    const supportDepts = await db.select()
-      .from(supportDepartments)
-      .orderBy(supportDepartments.displayOrder, supportDepartments.name);
-
-    // Convert SupportDepartment[] to ChatDepartment[] format for backward compatibility
-    return supportDepts.map(supportDept => ({
-      id: supportDept.id,
-      name: supportDept.name,
-      description: supportDept.description || '',
-      isDefault: supportDept.isDefault || false,
-      isActive: supportDept.isActive || true,
-      displayOrder: supportDept.displayOrder || 0,
-      color: supportDept.color || '#3b82f6',
-      icon: supportDept.icon || 'MessageCircle',
-      createdAt: supportDept.createdAt || new Date(),
-      updatedAt: supportDept.updatedAt || new Date(),
-    }));
-  }
-
-  async getActiveChatDepartments(): Promise<ChatDepartment[]> {
-    // After migration, chat departments are unified in support_departments table
-    // This method now looks up in the unified table but returns in ChatDepartment format for compatibility
-    const supportDepts = await db.select()
-      .from(supportDepartments)
-      .where(eq(supportDepartments.isActive, true))
-      .orderBy(supportDepartments.displayOrder, supportDepartments.name);
-
-    // Convert SupportDepartment[] to ChatDepartment[] format for backward compatibility
-    return supportDepts.map(supportDept => ({
-      id: supportDept.id,
-      name: supportDept.name,
-      description: supportDept.description || '',
-      isDefault: supportDept.isDefault || false,
-      isActive: supportDept.isActive || true,
-      displayOrder: supportDept.displayOrder || 0,
-      color: supportDept.color || '#3b82f6',
-      icon: supportDept.icon || 'MessageCircle',
-      createdAt: supportDept.createdAt || new Date(),
-      updatedAt: supportDept.updatedAt || new Date(),
-    }));
-  }
-
-  async updateChatDepartment(id: number, updates: Partial<ChatDepartment>): Promise<void> {
-    await db.update(chatDepartments)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(chatDepartments.id, id));
-  }
-
-  async deleteChatDepartment(id: number): Promise<void> {
-    await db.delete(chatDepartments).where(eq(chatDepartments.id, id));
-  }
-
-  // Chat department admin operations
-  async assignAdminToDepartment(assignment: InsertChatDepartmentAdmin): Promise<ChatDepartmentAdmin> {
-    const [createdAssignment] = await db.insert(chatDepartmentAdmins).values(assignment).returning();
-    return createdAssignment;
-  }
-
-  async removeAdminFromDepartment(departmentId: number, adminId: number): Promise<void> {
-    await db.delete(chatDepartmentAdmins)
-      .where(and(
-        eq(chatDepartmentAdmins.departmentId, departmentId),
-        eq(chatDepartmentAdmins.adminId, adminId)
-      ));
-  }
-
-  async getDepartmentAdmins(departmentId: number): Promise<(ChatDepartmentAdmin & { admin: User })[]> {
-    return await db.select({
-      id: chatDepartmentAdmins.id,
-      departmentId: chatDepartmentAdmins.departmentId,
-      adminId: chatDepartmentAdmins.adminId,
-      canManage: chatDepartmentAdmins.canManage,
-      isActive: chatDepartmentAdmins.isActive,
-      createdAt: chatDepartmentAdmins.createdAt,
-      updatedAt: chatDepartmentAdmins.updatedAt,
-      admin: {
-        id: users.id,
-        email: users.email,
-        username: users.username,
-        password: users.password,
-        fullName: users.fullName,
-        role: users.role,
-        virtFusionId: users.virtFusionId,
-        isVerified: users.isVerified,
-        isActive: users.isActive,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
-      }
-    })
-    .from(chatDepartmentAdmins)
-    .leftJoin(users, eq(chatDepartmentAdmins.adminId, users.id))
-    .where(and(
-      eq(chatDepartmentAdmins.departmentId, departmentId),
-      eq(chatDepartmentAdmins.isActive, true)
-    ));
-  }
-
-  async getAdminDepartments(adminId: number): Promise<(ChatDepartmentAdmin & { department: ChatDepartment })[]> {
-    return await db.select({
-      id: chatDepartmentAdmins.id,
-      departmentId: chatDepartmentAdmins.departmentId,
-      adminId: chatDepartmentAdmins.adminId,
-      canManage: chatDepartmentAdmins.canManage,
-      isActive: chatDepartmentAdmins.isActive,
-      createdAt: chatDepartmentAdmins.createdAt,
-      updatedAt: chatDepartmentAdmins.updatedAt,
-      department: {
-        id: chatDepartments.id,
-        name: chatDepartments.name,
-        description: chatDepartments.description,
-        isDefault: chatDepartments.isDefault,
-        isActive: chatDepartments.isActive,
-        displayOrder: chatDepartments.displayOrder,
-        color: chatDepartments.color,
-        icon: chatDepartments.icon,
-        createdAt: chatDepartments.createdAt,
-        updatedAt: chatDepartments.updatedAt,
-      }
-    })
-    .from(chatDepartmentAdmins)
-    .leftJoin(chatDepartments, eq(chatDepartmentAdmins.departmentId, chatDepartments.id))
-    .where(and(
-      eq(chatDepartmentAdmins.adminId, adminId),
-      eq(chatDepartmentAdmins.isActive, true),
-      eq(chatDepartments.isActive, true)
-    ))
-    .orderBy(chatDepartments.displayOrder, chatDepartments.name);
-  }
-
-  async updateDepartmentAdminPermissions(departmentId: number, adminId: number, updates: Partial<ChatDepartmentAdmin>): Promise<void> {
-    await db.update(chatDepartmentAdmins)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(and(
-        eq(chatDepartmentAdmins.departmentId, departmentId),
-        eq(chatDepartmentAdmins.adminId, adminId)
-      ));
-  }
 
   // Unified Support Department operations
   async getSupportDepartments(): Promise<SupportDepartment[]> {
@@ -2354,28 +1913,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSupportDepartment(department: InsertSupportDepartment): Promise<SupportDepartment> {
-    // Use the migration service to create unified department with legacy sync
-    const { DepartmentMigrationService } = await import('./services/department-migration');
-    const migrationService = new DepartmentMigrationService();
-
-    return await migrationService.createUnifiedDepartment({
-      name: department.name,
-      description: department.description || undefined,
-      isDefault: department.isDefault || undefined,
-      requiresVps: department.requiresVps || undefined,
-      isActive: department.isActive ?? undefined,
-      displayOrder: department.displayOrder || undefined,
-      color: department.color || undefined,
-      icon: department.icon || undefined
-    });
+    const [createdDepartment] = await db.insert(supportDepartments).values({
+      ...department,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return createdDepartment;
   }
 
   async updateSupportDepartment(id: number, updates: Partial<SupportDepartment>): Promise<void> {
-    // Use the migration service to update unified department with legacy sync
-    const { DepartmentMigrationService } = await import('./services/department-migration');
-    const migrationService = new DepartmentMigrationService();
-
-    await migrationService.updateUnifiedDepartment(id, updates);
+    await db.update(supportDepartments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(supportDepartments.id, id));
   }
 
   async deleteSupportDepartment(id: number): Promise<void> {
@@ -2450,166 +1999,11 @@ export class DatabaseStorage implements IStorage {
       ));
   }
 
-  // Enhanced chat session operations with departments
-  async getChatSessionsWithDepartments(): Promise<(ChatSession & { user: User; assignedAdmin?: User; department?: ChatDepartment })[]> {
-    const sessions = await db.select({
-      id: chatSessions.id,
-      userId: chatSessions.userId,
-      assignedAdminId: chatSessions.assignedAdminId,
-      departmentId: chatSessions.departmentId,
-      status: chatSessions.status,
-      priority: chatSessions.priority,
-      subject: chatSessions.subject,
-      department: chatSessions.department,
-      metadata: chatSessions.metadata,
-      startedAt: chatSessions.startedAt,
-      endedAt: chatSessions.endedAt,
-      lastActivityAt: chatSessions.lastActivityAt,
-      createdAt: chatSessions.createdAt,
-      updatedAt: chatSessions.updatedAt,
-      user: {
-        id: users.id,
-        email: users.email,
-        username: users.username,
-        password: users.password,
-        fullName: users.fullName,
-        role: users.role,
-        virtFusionId: users.virtFusionId,
-        isVerified: users.isVerified,
-        isActive: users.isActive,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
-      },
-      chatDepartment: {
-        id: chatDepartments.id,
-        name: chatDepartments.name,
-        description: chatDepartments.description,
-        isDefault: chatDepartments.isDefault,
-        isActive: chatDepartments.isActive,
-        displayOrder: chatDepartments.displayOrder,
-        color: chatDepartments.color,
-        icon: chatDepartments.icon,
-        createdAt: chatDepartments.createdAt,
-        updatedAt: chatDepartments.updatedAt,
-      }
-    })
-    .from(chatSessions)
-    .leftJoin(users, eq(chatSessions.userId, users.id))
-    .leftJoin(chatDepartments, eq(chatSessions.departmentId, chatDepartments.id))
-    .orderBy(desc(chatSessions.lastActivityAt));
 
-    // Get assigned admins separately to avoid complex joins
-    const result = [];
-    for (const session of sessions) {
-      let assignedAdmin = undefined;
-      if (session.assignedAdminId) {
-        assignedAdmin = await this.getUser(session.assignedAdminId);
-      }
 
-      // Handle department data properly - chatDepartment might be null if no department is assigned
-      const department = session.chatDepartment && session.chatDepartment.id ? session.chatDepartment : null;
 
-      result.push({
-        ...session,
-        assignedAdmin,
-        department
-      });
-    }
 
-    return result;
-  }
 
-  async getChatSessionsByDepartment(departmentId: number): Promise<(ChatSession & { user: User; assignedAdmin?: User })[]> {
-    const sessions = await db.select({
-      id: chatSessions.id,
-      userId: chatSessions.userId,
-      assignedAdminId: chatSessions.assignedAdminId,
-      departmentId: chatSessions.departmentId,
-      status: chatSessions.status,
-      priority: chatSessions.priority,
-      subject: chatSessions.subject,
-      department: chatSessions.department,
-      metadata: chatSessions.metadata,
-      startedAt: chatSessions.startedAt,
-      endedAt: chatSessions.endedAt,
-      lastActivityAt: chatSessions.lastActivityAt,
-      createdAt: chatSessions.createdAt,
-      updatedAt: chatSessions.updatedAt,
-      user: {
-        id: users.id,
-        email: users.email,
-        username: users.username,
-        password: users.password,
-        fullName: users.fullName,
-        role: users.role,
-        virtFusionId: users.virtFusionId,
-        isVerified: users.isVerified,
-        isActive: users.isActive,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
-      }
-    })
-    .from(chatSessions)
-    .leftJoin(users, eq(chatSessions.userId, users.id))
-    .where(eq(chatSessions.departmentId, departmentId))
-    .orderBy(desc(chatSessions.lastActivityAt));
-
-    // Get assigned admins separately
-    const result = [];
-    for (const session of sessions) {
-      let assignedAdmin = undefined;
-      if (session.assignedAdminId) {
-        assignedAdmin = await this.getUser(session.assignedAdminId);
-      }
-      result.push({
-        ...session,
-        assignedAdmin
-      });
-    }
-
-    return result;
-  }
-
-  async getUserChatHistory(userId: number, limit: number = 50, offset: number = 0): Promise<(ChatSession & { department?: ChatDepartment })[]> {
-    return await db.select({
-      id: chatSessions.id,
-      userId: chatSessions.userId,
-      assignedAdminId: chatSessions.assignedAdminId,
-      departmentId: chatSessions.departmentId,
-      status: chatSessions.status,
-      priority: chatSessions.priority,
-      subject: chatSessions.subject,
-      department: chatSessions.department,
-      metadata: chatSessions.metadata,
-      startedAt: chatSessions.startedAt,
-      endedAt: chatSessions.endedAt,
-      lastActivityAt: chatSessions.lastActivityAt,
-      createdAt: chatSessions.createdAt,
-      updatedAt: chatSessions.updatedAt,
-      chatDepartment: {
-        id: chatDepartments.id,
-        name: chatDepartments.name,
-        description: chatDepartments.description,
-        isDefault: chatDepartments.isDefault,
-        isActive: chatDepartments.isActive,
-        displayOrder: chatDepartments.displayOrder,
-        color: chatDepartments.color,
-        icon: chatDepartments.icon,
-        createdAt: chatDepartments.createdAt,
-        updatedAt: chatDepartments.updatedAt,
-      }
-    })
-    .from(chatSessions)
-    .leftJoin(chatDepartments, eq(chatSessions.departmentId, chatDepartments.id))
-    .where(eq(chatSessions.userId, userId))
-    .orderBy(desc(chatSessions.startedAt))
-    .limit(limit)
-    .offset(offset)
-    .then(sessions => sessions.map(session => ({
-      ...session,
-      department: session.chatDepartment
-    })));
-  }
 
   // --- Package Pricing Operations ---
   async getAllPackagePricing(): Promise<PackagePricing[]> {

@@ -1044,12 +1044,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                       Support Tickets
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/live-chat" className="flex items-center w-full hover:bg-primary hover:text-primary-foreground">
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Live Support
-                    </Link>
-                  </DropdownMenuItem>
+
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

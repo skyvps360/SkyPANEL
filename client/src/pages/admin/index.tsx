@@ -145,14 +145,7 @@ export default function AdminPage() {
       color: "bg-amber-50 dark:bg-amber-950",
       accentColor: "text-amber-600 dark:text-amber-400"
     },
-    {
-      title: "Live Chat",
-      icon: MessageCircle,
-      href: "/admin/chat",
-      description: "Manage real-time chat support sessions",
-      color: "bg-teal-50 dark:bg-teal-950",
-      accentColor: "text-teal-600 dark:text-teal-400"
-    },
+
     {
       title: "Billing",
       icon: DollarSign,

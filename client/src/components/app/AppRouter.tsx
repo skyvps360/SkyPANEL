@@ -51,7 +51,6 @@ import PlanFeaturesPage from "@/pages/admin/plan-features";
 import FaqManagementPage from "@/pages/admin/faq-management";
 import PackagePricingPage from "@/pages/admin/package-pricing";
 import LegalEditorPage from "@/pages/admin/legal-editor";
-import AdminChatManagement from "@/pages/admin/AdminChatManagement";
 import ServerDetailPage from "@/pages/admin/server-detail-page";
 import ServersListPage from "@/pages/admin/servers-page";
 import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
@@ -59,7 +58,6 @@ import AdminDnsPage from "@/pages/admin/dns-page"; // DNS feature enabled
 import UsersPage from "@/pages/admin/users-page";
 import UserEditPage from "@/pages/admin/user-edit-page";
 import VNCConsole from "@/pages/vnc-console";
-import LiveChat from "@/pages/LiveChat";
 import DnsDomainsPage from "@/pages/dns-domains-page"; // DNS feature enabled
 import DnsRecordsPage from "@/pages/dns-records-page"; // DNS feature enabled
 import DnsPlansPage from "@/pages/dns-plans-page"; // DNS feature enabled
@@ -147,7 +145,6 @@ export function AppRouter() {
                 <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} allowSuspended={true} />
                 <ProtectedRoute path="/notifications" component={NotificationsPage} />
                 <ProtectedRoute path="/profile" component={ProfilePage} />
-                <ProtectedRoute path="/live-chat" component={LiveChat} />
 
                 {/* Public standalone blog and docs pages */}
                 <Route path="/blog" component={BlogListPage} />
@@ -202,7 +199,6 @@ export function AppRouter() {
                 <AdminProtectedRoute path="/admin/user-awards" component={UserAwardsPage} />
                 <AdminProtectedRoute path="/admin/coupon" component={CouponManagementPage} />
                 <AdminProtectedRoute path="/admin/oauth-settings" component={OAuthSettingsPage} />
-                <AdminProtectedRoute path="/admin/chat" component={AdminChatManagement} />
 
                 {/* Catch-all route for 404 pages */}
                 <Route path="*" component={NotFound} />

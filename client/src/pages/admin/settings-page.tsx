@@ -126,30 +126,18 @@ interface TicketDepartment {
   displayOrder: number;
 }
 
-// Chat Department interface
-interface ChatDepartment {
-  id: number;
-  name: string;
-  description: string;
-  isActive: boolean;
-  isDefault: boolean;
-  displayOrder: number;
-  color?: string;
-  icon?: string;
-}
+
 
 // Department Migration interfaces
 interface SyncStatus {
   needsSync: boolean;
   newTicketDepartments: TicketDepartment[];
-  newChatDepartments: ChatDepartment[];
   totalNewDepartments: number;
 }
 
 interface MigrationStatus {
   needsMigration: boolean;
   ticketDepartmentCount: number;
-  chatDepartmentCount: number;
   supportDepartmentCount: number;
   syncStatus?: SyncStatus;
 }
@@ -160,9 +148,7 @@ interface MigrationResult {
   details: {
     supportDepartmentsCreated: number;
     ticketDepartmentsMigrated: number;
-    chatDepartmentsMigrated: number;
     ticketsMigrated: number;
-    chatSessionsMigrated: number;
     adminAssignmentsMigrated: number;
     conflicts: Array<{
       type: 'name_conflict' | 'default_conflict';
@@ -946,7 +932,7 @@ export default function SettingsPage() {
     }
 
     const confirmed = confirm(
-      `This will merge ${migrationStatus.ticketDepartmentCount} ticket departments and ${migrationStatus.chatDepartmentCount} chat departments into a unified system. This action cannot be undone. Continue?`
+              `This will merge ${migrationStatus.ticketDepartmentCount} ticket departments into a unified system. This action cannot be undone. Continue?`
     );
 
     if (!confirmed) return;
@@ -976,8 +962,7 @@ export default function SettingsPage() {
 
     const syncStatus = migrationStatus.syncStatus;
     const newDeptNames = [
-      ...syncStatus.newTicketDepartments.map(d => d.name),
-      ...syncStatus.newChatDepartments.map(d => d.name)
+              ...syncStatus.newTicketDepartments.map(d => d.name)
     ];
 
     const confirmed = confirm(
@@ -3239,7 +3224,7 @@ export default function SettingsPage() {
                             {migrationStatus.needsMigration ? (
                               <>
                                 <p className="mb-3">
-                                  Your system currently has separate department systems for tickets and live chat.
+                                  Your system currently has separate department systems for tickets.
                                   You can consolidate them into a unified department system for easier management.
                                 </p>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -3252,22 +3237,14 @@ export default function SettingsPage() {
                                       {migrationStatus.ticketDepartmentCount}
                                     </p>
                                   </div>
-                                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
-                                    <div className="flex items-center space-x-2">
-                                      <Users className="h-4 w-4 text-green-500" />
-                                      <span className="font-medium">Chat Departments</span>
-                                    </div>
-                                    <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
-                                      {migrationStatus.chatDepartmentCount}
-                                    </p>
-                                  </div>
+
                                   <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
                                     <div className="flex items-center space-x-2">
                                       <Merge className="h-4 w-4 text-purple-500" />
                                       <span className="font-medium">Will Create</span>
                                     </div>
                                     <p className="text-lg font-bold text-purple-600 dark:text-purple-400 mt-1">
-                                      {Math.max(migrationStatus.ticketDepartmentCount, migrationStatus.chatDepartmentCount)} unified
+                                      {migrationStatus.ticketDepartmentCount} unified
                                     </p>
                                   </div>
                                 </div>
@@ -3277,8 +3254,8 @@ export default function SettingsPage() {
                                     <div className="text-sm text-amber-800 dark:text-amber-200">
                                       <p className="font-medium mb-1">What this migration does:</p>
                                       <ul className="list-disc list-inside space-y-1 text-xs">
-                                        <li>Merges ticket and chat departments with the same name</li>
-                                        <li>Preserves all existing tickets and chat sessions</li>
+                                        <li>Merges ticket departments with the same name</li>
+                                        <li>Preserves all existing tickets</li>
                                         <li>Maintains admin assignments and permissions</li>
                                         <li>Creates a single unified department management interface</li>
                                         <li>Handles conflicts automatically (e.g., multiple default departments)</li>
@@ -3289,7 +3266,7 @@ export default function SettingsPage() {
                               </>
                             ) : (
                               <p>
-                                Your department system is already unified. Both tickets and live chat use the same department system
+                                Your department system is already unified. Tickets use the unified department system
                                 with {migrationStatus.supportDepartmentCount} departments configured.
                               </p>
                             )}
@@ -3375,12 +3352,7 @@ export default function SettingsPage() {
                                   {migrationResult.details.ticketsMigrated}
                                 </span>
                               </div>
-                              <div className="bg-white dark:bg-gray-800 rounded p-2 border">
-                                <span className="font-medium">Chat Sessions:</span>
-                                <span className="ml-1 text-purple-600 dark:text-purple-400 font-bold">
-                                  {migrationResult.details.chatSessionsMigrated}
-                                </span>
-                              </div>
+
                             </div>
                           )}
 
@@ -3445,20 +3417,7 @@ export default function SettingsPage() {
                                   </div>
                                 </div>
                               )}
-                              {migrationStatus.syncStatus.newChatDepartments.length > 0 && (
-                                <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
-                                  <div className="flex items-center space-x-2">
-                                    <Users className="h-4 w-4 text-green-500" />
-                                    <span className="font-medium">New Chat Departments</span>
-                                  </div>
-                                  <p className="text-lg font-bold text-green-600 dark:text-green-400 mt-1">
-                                    {migrationStatus.syncStatus.newChatDepartments.length}
-                                  </p>
-                                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                                    {migrationStatus.syncStatus.newChatDepartments.map(dept => dept.name).join(', ')}
-                                  </div>
-                                </div>
-                              )}
+
                             </div>
                             <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
                               <div className="flex items-start space-x-2">
@@ -3467,9 +3426,9 @@ export default function SettingsPage() {
                                   <p className="font-medium mb-1">What syncing does:</p>
                                   <ul className="list-disc list-inside space-y-1 text-xs">
                                     <li>Adds new departments to the unified system</li>
-                                    <li>Migrates any tickets/chat sessions using these departments</li>
+                                    <li>Migrates any tickets using these departments</li>
                                     <li>Preserves all existing data and settings</li>
-                                    <li>Maintains admin assignments for chat departments</li>
+                                    <li>Maintains admin assignments for departments</li>
                                   </ul>
                                 </div>
                               </div>
@@ -3554,12 +3513,7 @@ export default function SettingsPage() {
                                   {syncResult.details.ticketsMigrated}
                                 </span>
                               </div>
-                              <div className="bg-white dark:bg-gray-800 rounded p-2 border">
-                                <span className="font-medium">Chat Sessions:</span>
-                                <span className="ml-1 text-purple-600 dark:text-purple-400 font-bold">
-                                  {syncResult.details.chatSessionsMigrated}
-                                </span>
-                              </div>
+
                             </div>
                           )}
 

@@ -30,8 +30,7 @@ import {
 import { apiKeyAuth, requireScope } from "./middleware/auth-middleware";
 import apiKeysRoutes from "./routes/api-keys";
 import apiOnlyRoutes from "./routes/api-only-routes";
-import chatRoutes from "./routes/chat";
-import chatDepartmentsRoutes from "./routes/chat-departments";
+
 import dnsRoutes from "./routes/dns";
 import adminDnsRoutes from "./routes/admin-dns";
 import serverRoutes from "./routes/server-routes";
@@ -45,8 +44,8 @@ import awardsRoutes from "./routes/awards-routes";
 import adminCouponsRoutes from "./routes/admin-coupons";
 import couponRoutes from "./routes/coupon-routes";
 import oauthRoutes from "./routes/oauth-routes";
-import { chatService } from "./chat-service";
-import { departmentMigrationService } from "./services/department-migration";
+
+
 import { cronService } from "./services/cron-service";
 import { dnsBillingService } from "./services/dns-billing-service";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -3784,11 +3783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           departments: [],
           note: "Legacy table - all departments unified in support_departments"
         },
-        chatDepartments: {
-          count: 0,
-          departments: [],
-          note: "Legacy table - all departments unified in support_departments"
-        }
+
       });
     } catch (error: any) {
       console.error("Error checking department counts:", error);
@@ -3805,7 +3800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const constraintsResult = await db.execute(sql`
         SELECT constraint_name, table_name, column_name
         FROM information_schema.key_column_usage
-        WHERE table_name IN ('tickets', 'chat_sessions')
+        WHERE table_name IN ('tickets')
         AND constraint_name LIKE '%department%'
         ORDER BY table_name, constraint_name
       `);
@@ -3831,15 +3826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           DROP CONSTRAINT IF EXISTS "tickets_department_id_support_departments_id_fk"
         `);
 
-        await tx.execute(sql`
-          ALTER TABLE "chat_sessions"
-          DROP CONSTRAINT IF EXISTS "chat_sessions_department_id_chat_departments_id_fk"
-        `);
 
-        await tx.execute(sql`
-          ALTER TABLE "chat_sessions"
-          DROP CONSTRAINT IF EXISTS "chat_sessions_department_id_support_departments_id_fk"
-        `);
 
         // Step 2: Check if department_id_new column exists and handle column swap
         const ticketsTableInfo = await tx.execute(sql`
@@ -3886,11 +3873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           FOREIGN KEY ("department_id") REFERENCES "support_departments"("id") ON DELETE SET NULL
         `);
 
-        await tx.execute(sql`
-          ALTER TABLE "chat_sessions"
-          ADD CONSTRAINT "chat_sessions_department_id_support_departments_id_fk"
-          FOREIGN KEY ("department_id") REFERENCES "support_departments"("id") ON DELETE SET NULL
-        `);
+
 
         console.log('Migration finalization completed successfully');
       });
@@ -3905,57 +3888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/department-migration/migrate", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const result = await departmentMigrationService.migrateDepartments();
-      if (result.success) {
-        res.json(result);
-      } else {
-        res.status(500).json(result);
-      }
-    } catch (error: any) {
-      console.error("Error performing migration:", error);
-      res.status(500).json({
-        success: false,
-        message: `Migration failed: ${error.message}`,
-        details: {
-          supportDepartmentsCreated: 0,
-          ticketDepartmentsMigrated: 0,
-          chatDepartmentsMigrated: 0,
-          ticketsMigrated: 0,
-          chatSessionsMigrated: 0,
-          adminAssignmentsMigrated: 0,
-          conflicts: []
-        }
-      });
-    }
-  });
 
-  app.post("/api/admin/department-migration/sync", isAuthenticated, isAdmin, async (req, res) => {
-    try {
-      const result = await departmentMigrationService.syncNewDepartments();
-      if (result.success) {
-        res.json(result);
-      } else {
-        res.status(500).json(result);
-      }
-    } catch (error: any) {
-      console.error("Error performing department sync:", error);
-      res.status(500).json({
-        success: false,
-        message: `Department sync failed: ${error.message}`,
-        details: {
-          supportDepartmentsCreated: 0,
-          ticketDepartmentsMigrated: 0,
-          chatDepartmentsMigrated: 0,
-          ticketsMigrated: 0,
-          chatSessionsMigrated: 0,
-          adminAssignmentsMigrated: 0,
-          conflicts: []
-        }
-      });
-    }
-  });
 
   // Unified Department Management Routes
   app.get("/api/admin/unified-departments", isAuthenticated, isAdmin, async (req, res) => {
@@ -11173,22 +11106,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Docs AI chat endpoint has been removed
-  app.post("/api/ai/docs-chat", async (req, res) => {
-    return res.status(404).json({
-      success: false,
-      response: "The AI documentation assistant has been deprecated."
-    });
-  });
+
 
   // Register API Keys routes
   app.use("/api/user/api-keys", isAuthenticated, apiKeysRoutes);
 
-  // Register Chat routes
-  app.use("/api/chat", chatRoutes);
 
-  // Register Chat Departments routes
-  app.use("/api/chat", chatDepartmentsRoutes);
 
   // Register DNS routes
   app.use("/api/dns", isAuthenticated, dnsRoutes);
@@ -11702,10 +11625,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
 
-  // Initialize chat service (no longer creates its own WebSocket server)
-  chatService.initialize(httpServer);
 
-  // Create a manual WebSocket server for VNC to avoid conflicts with chat WebSocket
+
+  // Create a manual WebSocket server for VNC
   const vncWebSocketServer = new WebSocketServer({ noServer: true });
 
   // Attach WebSocket handlers to HTTP server - Handle routing manually
@@ -11720,14 +11642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (url.pathname === '/vnc-proxy') {
       console.log('Handling VNC WebSocket upgrade directly');
       handleWebSocketUpgrade(request, socket, head);
-    } else if (url.pathname === '/chat-ws') {
-      // Handle chat WebSocket requests manually to avoid conflicts
-      console.log('Handling chat WebSocket upgrade manually');
-      const chatWss = new WebSocketServer({ noServer: true });
-      chatWss.handleUpgrade(request, socket, head, (ws) => {
-        // Pass the WebSocket to the chat service
-        chatService.handleWebSocketConnection(ws, request);
-      });
+
     } else if (url.pathname === '/' && process.env.NODE_ENV === 'development') {
       // Allow Vite HMR WebSocket connections in development
       console.log('Vite HMR WebSocket request - allowing passthrough');

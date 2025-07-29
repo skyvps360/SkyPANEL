@@ -364,15 +364,7 @@ export default function HomePage() {
                     </Button>
                   </Link>
 
-                  <Link href="/live-chat">
-                    <Button
-                      variant="outline"
-                      className="w-full h-20 flex flex-col items-center justify-center text-center hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-md transition-all duration-200 group"
-                    >
-                      <MessageSquare className="h-6 w-6 mb-1 text-primary group-hover:text-primary-foreground" />
-                      <span className="text-sm font-medium">Live Chat</span>
-                    </Button>
-                  </Link>
+
 
                   <Link href="/dashboard/blog">
                     <Button

@@ -231,7 +231,7 @@ export function UnifiedDepartmentManager() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Unified Department Management</h2>
           <p className="text-muted-foreground">
-            Manage departments for both tickets and live chat from a single interface.
+            Manage departments for tickets from a single interface.
           </p>
         </div>
         <div className="flex items-center space-x-4">
@@ -489,8 +489,8 @@ function DepartmentForm({ department, onSubmit, onCancel, isLoading }: Departmen
         </DialogTitle>
         <DialogDescription>
           {department 
-            ? 'Update the department settings. Changes will be applied to both tickets and live chat.'
-            : 'Create a new department for both tickets and live chat support.'
+            ? 'Update the department settings. Changes will be applied to tickets.'
+            : 'Create a new department for ticket support.'
           }
         </DialogDescription>
       </DialogHeader>
