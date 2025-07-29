@@ -2505,7 +2505,7 @@ export default function SettingsPage() {
                         <Switch
                           id="hubspotEnabled"
                           checked={hubspotForm.watch("hubspotEnabled")}
-                          onCheckedChange={(checked) => hubspotForm.setValue("hubspotEnabled", checked)}
+                          onCheckedChange={(checked) => hubspotForm.setValue("hubspotEnabled", checked, { shouldDirty: true })}
                         />
                       </div>
 
@@ -2571,7 +2571,7 @@ export default function SettingsPage() {
                                 <Switch
                                   id="hubspotChatEnabled"
                                   checked={hubspotForm.watch("hubspotChatEnabled")}
-                                  onCheckedChange={(checked) => hubspotForm.setValue("hubspotChatEnabled", checked)}
+                                  onCheckedChange={(checked) => hubspotForm.setValue("hubspotChatEnabled", checked, { shouldDirty: true })}
                                 />
                               </div>
 
@@ -2600,7 +2600,7 @@ export default function SettingsPage() {
                                 <Switch
                                   id="hubspotTicketEnabled"
                                   checked={hubspotForm.watch("hubspotTicketEnabled")}
-                                  onCheckedChange={(checked) => hubspotForm.setValue("hubspotTicketEnabled", checked)}
+                                  onCheckedChange={(checked) => hubspotForm.setValue("hubspotTicketEnabled", checked, { shouldDirty: true })}
                                 />
                               </div>
 
