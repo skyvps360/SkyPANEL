@@ -42,6 +42,7 @@ If you find my work helpful, consider supporting me:
 - [VNC Console](#-vnc-console)
 - [Billing & Transaction System](#-billing--transaction-system)
 - [User Management](#-user-management)
+- [OAuth SSO System](#-oauth-sso-system)
 - [Content Management](#-content-management)
 - [Monitoring & Analytics](#-monitoring--analytics)
 - [API Key Management](#-api-key-management)
@@ -1190,6 +1191,106 @@ if (serversResponse?.data?.length > 0) {
 1. **Manage Servers First**: All user servers must be deleted or transferred
 2. **Verify No Servers**: System automatically verifies user has no active servers
 3. **Safe Deletion**: Only then can the user account be safely removed
+
+---
+
+## 🔐 OAuth SSO System
+
+SkyPANEL implements a comprehensive OAuth Single Sign-On (SSO) system that allows existing users to link their social accounts and login using OAuth providers (Discord, GitHub, Google, LinkedIn). This system is separate from the existing VirtFusion SSO and focuses on enhancing user authentication options.
+
+### Core Features
+
+#### User Roles
+| Role | Registration Method | Core Permissions |
+|------|---------------------|------------------|
+| Administrator | Existing admin accounts | Can configure OAuth provider settings, view OAuth analytics |
+| Client User | Existing user accounts | Can link/unlink social accounts, login via OAuth providers |
+
+#### Feature Modules
+The OAuth SSO system consists of the following main pages:
+
+1. **Admin OAuth Settings Page**: OAuth provider configuration, application credentials management, OAuth analytics dashboard
+2. **User Profile Social Linking Tab**: Social account linking/unlinking, linked accounts overview, account status management
+3. **Enhanced Auth Login Page**: OAuth login buttons, provider selection, seamless authentication flow
+
+#### Page Details
+| Page Name | Module Name | Feature description |
+|-----------|-------------|---------------------|
+| Admin OAuth Settings | Provider Configuration | Configure OAuth application credentials (Client ID, Client Secret, Redirect URLs) for Discord, GitHub, Google, LinkedIn |
+| Admin OAuth Settings | OAuth Analytics | View OAuth login statistics, linked accounts count, provider usage metrics |
+| Admin OAuth Settings | Provider Status Management | Enable/disable OAuth providers, test OAuth connections, manage provider settings |
+| User Profile | Social Linking Tab | Link existing user accounts to OAuth providers (Discord, GitHub, Google, LinkedIn) |
+| User Profile | Linked Accounts Management | View linked social accounts, unlink accounts, manage account preferences |
+| User Profile | Account Security | View OAuth login history, manage OAuth permissions, security notifications |
+| Auth Login Page | OAuth Login Buttons | Display enabled OAuth provider login buttons with proper branding |
+| Auth Login Page | OAuth Authentication Flow | Handle OAuth callback, user authentication, account linking validation |
+| Auth Login Page | Login Method Selection | Allow users to choose between traditional login and OAuth providers |
+
+### Core Process Flows
+
+#### Administrator Flow
+1. Admin navigates to Admin Settings → OAuth SSO Settings
+2. Admin configures OAuth provider credentials (Client ID, Secret, etc.)
+3. Admin enables/disables specific OAuth providers
+4. Admin monitors OAuth usage analytics and user linking statistics
+
+#### User Account Linking Flow
+1. User navigates to Profile → Social Linking tab
+2. User selects OAuth provider to link (Discord, GitHub, Google, LinkedIn)
+3. User is redirected to OAuth provider for authorization
+4. User authorizes SkyPANEL to access their account information
+5. User can manage linked accounts and unlink if needed
+
+#### OAuth Login Flow
+1. User visits login page and sees enabled OAuth provider buttons
+2. User clicks on preferred OAuth provider button
+3. User is redirected to OAuth provider for authentication
+4. OAuth provider validates user credentials and redirects back to SkyPANEL
+5. SkyPANEL validates OAuth response and creates/updates user session
+6. User is logged in and redirected to dashboard
+
+### User Interface Design
+
+#### Design Style
+- **Primary Colors**: Follow SkyPANEL brand theme (configurable via admin settings)
+- **Button Style**: Rounded corners with provider-specific branding colors
+- **Font**: Inter font family with 14px base size for OAuth elements
+- **Layout Style**: Card-based design with clear visual hierarchy
+- **OAuth Provider Icons**: Official brand icons for Discord, GitHub, Google, LinkedIn
+- **Animation**: Subtle hover effects and loading states for OAuth interactions
+
+#### Page Design Overview
+| Page Name | Module Name | UI Elements |
+|-----------|-------------|-------------|
+| Admin OAuth Settings | Provider Configuration | Card layout with provider logos, toggle switches for enable/disable, secure input fields for credentials, test connection buttons |
+| Admin OAuth Settings | Analytics Dashboard | Statistics cards showing login counts, charts for provider usage, recent OAuth activity table |
+| User Profile | Social Linking Tab | Provider cards with link/unlink buttons, connection status indicators, linked account information display |
+| Auth Login Page | OAuth Buttons | Branded provider buttons with icons, "Continue with [Provider]" text, proper spacing and alignment |
+| Auth Login Page | Login Options | Clear separation between traditional login and OAuth options, "OR" divider element |
+
+#### Responsiveness
+The OAuth SSO system is designed mobile-first with responsive breakpoints. OAuth provider buttons stack vertically on mobile devices, and admin configuration forms adapt to smaller screens with collapsible sections. Touch interaction is optimized for mobile OAuth authentication flows.
+
+### Technical Implementation
+
+#### Database Schema Requirements
+- **oauth_providers table**: Store OAuth provider configurations (provider_name, client_id, client_secret, enabled, etc.)
+- **user_oauth_accounts table**: Link users to their OAuth accounts (user_id, provider_name, provider_user_id, etc.)
+- **oauth_login_logs table**: Track OAuth login attempts and success rates
+
+#### Security Considerations
+- OAuth credentials stored securely with encryption
+- CSRF protection for OAuth flows
+- State parameter validation for OAuth callbacks
+- Rate limiting for OAuth login attempts
+- Secure redirect URL validation
+
+#### Integration Points
+- Express.js routes for OAuth callbacks
+- Passport.js strategies for each OAuth provider
+- React components for OAuth UI elements
+- Database migrations for OAuth schema
+- Admin middleware for OAuth settings access
 
 ---
 
