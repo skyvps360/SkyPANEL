@@ -2118,6 +2118,63 @@ export default function SettingsPage() {
                       </p>
                     </div>
 
+                    {/* Setup Documentation */}
+                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">📋 Setup Instructions</h4>
+                      <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+                        <div>
+                          <strong>Step 1: Get Your HubSpot Portal ID</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Log into your HubSpot account</li>
+                            <li>Go to Settings → Account Setup → Account and Portal</li>
+                            <li>Your Portal ID is displayed in the top right (e.g., "123456")</li>
+                            <li>This is a 6-digit number unique to your HubSpot account</li>
+                          </ul>
+                        </div>
+                        
+                        <div>
+                          <strong>Step 2: Create HubSpot API Key</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>In HubSpot, go to Settings → Account Setup → Integrations → API Keys</li>
+                            <li>Click "Create API Key"</li>
+                            <li>Give it a name like "SkyPANEL Integration"</li>
+                            <li>Copy the generated API key (starts with "pat-")</li>
+                            <li>⚠️ Store this securely - you won't see it again</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <strong>Step 3: Enable Live Chat (Optional)</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Go to Settings → Inbox → Chat → Chat Widget</li>
+                            <li>Enable the chat widget for your website</li>
+                            <li>The widget will automatically load using your Portal ID</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <strong>Step 4: Get Form IDs (For Ticket Support)</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li><strong>Ticket Form ID:</strong> Go to Settings → Objects → Tickets → Forms</li>
+                            <li>Create or select a ticket form, copy the Form ID from the URL</li>
+                            <li><strong>Contact Form ID:</strong> Go to Settings → Objects → Contacts → Forms</li>
+                            <li>Create or select a contact form, copy the Form ID from the URL</li>
+                            <li>Form IDs look like: "12345678-1234-1234-1234-123456789012"</li>
+                          </ul>
+                        </div>
+
+                        <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded p-2 mt-3">
+                          <strong>💡 Pro Tips:</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Test your connection after setup to verify everything works</li>
+                            <li>Use the same HubSpot account for all integrations</li>
+                            <li>Keep your API key secure and don't share it publicly</li>
+                            <li>Monitor your HubSpot API usage to avoid rate limits</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
@@ -2150,6 +2207,10 @@ export default function SettingsPage() {
                               )}
                               <p className="text-sm text-muted-foreground mt-1">
                                 Your HubSpot portal ID (found in your HubSpot account settings)
+                                <br />
+                                <span className="text-xs text-blue-600 dark:text-blue-400">
+                                  💡 Found in Settings → Account Setup → Account and Portal
+                                </span>
                               </p>
                             </div>
 
@@ -2168,6 +2229,10 @@ export default function SettingsPage() {
                               )}
                               <p className="text-sm text-muted-foreground mt-1">
                                 Your HubSpot API key for authentication
+                                <br />
+                                <span className="text-xs text-blue-600 dark:text-blue-400">
+                                  💡 Found in Settings → Account Setup → Integrations → API Keys
+                                </span>
                               </p>
                             </div>
                           </div>
@@ -2231,6 +2296,10 @@ export default function SettingsPage() {
                                     />
                                     <p className="text-sm text-muted-foreground mt-1">
                                       The form ID for creating support tickets in HubSpot
+                                      <br />
+                                      <span className="text-xs text-blue-600 dark:text-blue-400">
+                                        💡 Found in Settings → Objects → Tickets → Forms
+                                      </span>
                                     </p>
                                   </div>
 
@@ -2243,6 +2312,10 @@ export default function SettingsPage() {
                                     />
                                     <p className="text-sm text-muted-foreground mt-1">
                                       The form ID for creating contacts in HubSpot
+                                      <br />
+                                      <span className="text-xs text-blue-600 dark:text-blue-400">
+                                        💡 Found in Settings → Objects → Contacts → Forms
+                                      </span>
                                     </p>
                                   </div>
                                 </div>

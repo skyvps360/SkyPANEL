@@ -16,7 +16,7 @@ logs/
 .cursor/
 .windsurf/
 .codacy/
-
+.trae/
 
 # DotFiles & Directories
 .env
