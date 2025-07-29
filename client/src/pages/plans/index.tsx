@@ -13,6 +13,7 @@ import { PlanFAQ } from '@/components/plans/PlanFAQ';
 import { usePlanFilters } from '@/hooks/use-plan-filters';
 import { PlanFeature } from '@shared/schema';
 import { getBrandColors } from '@/lib/brand-theme';
+import HubSpotChat from '@/components/HubSpotChat';
 
 interface PackageCategory {
   id: number;
@@ -361,6 +362,9 @@ export default function PlansPage() {
           isLoading={faqsLoading}
           brandColors={brandColors}
         />
+
+        {/* HubSpot Chat Widget */}
+        <HubSpotChat />
       </div>
     </PublicLayout>
   );
