@@ -23,10 +23,7 @@ import {
   CreditCard,
   ShoppingCart,
   AlertTriangle,
-  CheckCircle,
-  RefreshCw,
-  Eye,
-  EyeOff
+  CheckCircle
 } from 'lucide-react';
 
 interface SupportDepartment {
@@ -76,7 +73,6 @@ export function UnifiedDepartmentManager() {
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<SupportDepartment | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
 
   // Fetch unified departments
   const { data: departments = [], isLoading, refetch } = useQuery({
@@ -179,9 +175,7 @@ export function UnifiedDepartmentManager() {
     }
   };
 
-  const filteredDepartments = departments.filter((dept: SupportDepartment) =>
-    showInactive || dept.isActive
-  );
+  const filteredDepartments = departments;
 
   const getIconComponent = (iconName: string) => {
     const iconOption = iconOptions.find(option => option.value === iconName);
@@ -207,37 +201,6 @@ export function UnifiedDepartmentManager() {
           </p>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="show-inactive"
-              checked={showInactive}
-              onCheckedChange={setShowInactive}
-            />
-            <Label htmlFor="show-inactive" className="flex items-center space-x-1">
-              {showInactive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-              <span>Show inactive</span>
-            </Label>
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              refetch();
-              refetchStatus();
-            }}
-            disabled={isLoading || isLoadingStatus}
-          >
-            {isLoading || isLoadingStatus ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Refreshing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Refresh
-              </>
-            )}
-          </Button>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -261,7 +224,7 @@ export function UnifiedDepartmentManager() {
         <Card className={cn(
           "border-l-4",
           migrationStatus.needsMigration ? "border-l-yellow-500 bg-yellow-50" :
-          "border-l-green-500 bg-green-50"
+          "border-l-blue-500 bg-blue-50"
         )}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -269,7 +232,7 @@ export function UnifiedDepartmentManager() {
                 {migrationStatus.needsMigration ? (
                   <AlertTriangle className="h-5 w-5 text-yellow-600" />
                 ) : (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
                 )}
                 <div>
                   <h3 className="font-medium">
@@ -362,10 +325,7 @@ export function UnifiedDepartmentManager() {
             <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No departments found</h3>
             <p className="text-muted-foreground mb-4">
-              {showInactive 
-                ? "No departments exist yet. Create your first department to get started."
-                : "No active departments found. Try showing inactive departments or create a new one."
-              }
+              No departments exist yet. Create your first department to get started.
             </p>
             <Button onClick={() => setIsCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
