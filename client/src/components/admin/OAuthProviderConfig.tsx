@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Loader2, CheckCircle, XCircle, Settings, Eye, EyeOff, Info, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getProviderIcon, getProviderColor } from '@/lib/oauth-providers';
 
 interface OAuthProvider {
   id: number;
@@ -171,35 +172,7 @@ export function OAuthProviderConfig({ provider, onUpdate }: OAuthProviderConfigP
     }
   };
 
-  const getProviderIcon = (providerName: string) => {
-    switch (providerName) {
-      case 'discord':
-        return '🎮';
-      case 'github':
-        return '🐙';
-      case 'google':
-        return '🔍';
-      case 'linkedin':
-        return '💼';
-      default:
-        return '🔗';
-    }
-  };
-
-  const getProviderColor = (providerName: string) => {
-    switch (providerName) {
-      case 'discord':
-        return 'bg-[#5865F2]';
-      case 'github':
-        return 'bg-[#333]';
-      case 'google':
-        return 'bg-[#4285F4]';
-      case 'linkedin':
-        return 'bg-[#0077B5]';
-      default:
-        return 'bg-gray-500';
-    }
-  };
+  // Provider icon and color functions now imported from oauth-providers utility
 
   return (
     <Card className="w-full">
@@ -207,7 +180,7 @@ export function OAuthProviderConfig({ provider, onUpdate }: OAuthProviderConfigP
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white ${getProviderColor(provider.providerName)}`}>
-              <span className="text-lg">{getProviderIcon(provider.providerName)}</span>
+              {getProviderIcon(provider.providerName, "h-6 w-6")}
             </div>
             <div>
               <CardTitle className="text-lg">{provider.displayName}</CardTitle>

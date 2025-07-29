@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
 import { getBrandColors } from '@/lib/brand-theme';
+import { getProviderIcon, getProviderDisplayName, oauthProviders } from '@/lib/oauth-providers';
 
 interface OAuthProvider {
   providerName: string;
@@ -19,23 +20,6 @@ interface OAuthProvider {
   createdAt: string;
   updatedAt: string;
 }
-
-const getProviderIcon = (providerName: string) => {
-  switch (providerName) {
-    case 'discord':
-      return '🎮';
-    case 'github':
-      return '🐙';
-    case 'google':
-      return '🔍';
-    case 'linkedin':
-      return '💼';
-    default:
-      return '🔗';
-  }
-};
-
-
 
 export function OAuthLoginButtons() {
   const { toast } = useToast();
@@ -122,7 +106,7 @@ export function OAuthLoginButtons() {
             {loadingProvider === provider.providerName ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <span className="text-xl">{getProviderIcon(provider.providerName)}</span>
+              getProviderIcon(provider.providerName, "h-5 w-5")
             )}
             <span className="font-medium">
               Continue with {provider.displayName}

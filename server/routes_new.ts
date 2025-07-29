@@ -12,6 +12,7 @@ import { EmailVerificationService } from "./email-verification-service";
 import { discordService } from "./discord-service";
 import { discordBotService } from "./discord-bot-service";
 import { virtFusionService } from "./virtfusion-service";
+import { hubspotService } from "./services/communication/hubspot-service";
 import { VirtFusionApi as ImportedVirtFusionApi, virtFusionApi, VirtFusionApi } from "./virtfusion-api";
 // Remove duplicate import of InsertTransaction
 // import { InsertTransaction } from "@shared/schema";
@@ -353,7 +354,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate the request body
       const updateSchema = z.object({
         fullName: z.string().min(1).optional(),
+        firstName: z.string().min(1).optional(),
+        lastName: z.string().min(1).optional(),
         email: z.string().email().optional(),
+        phone: z.string().optional(),
+        company: z.string().optional(),
+        address: z.string().optional(),
       });
 
       let validatedData;
@@ -384,20 +390,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If user is linked to VirtFusion, sync the changes
       if (user.virtFusionId) {
         try {
-          console.log(`Syncing user ${userId} with VirtFusion ID ${user.virtFusionId}`);
+          console.log(`Syncing user ${userId} with VirtFusion using external relation ID`);
 
-          // Use the VirtFusion service to update profile (username and email only)
-          const result = await virtFusionService.updateUserProfile(
-            user.virtFusionId,
-            validatedData.fullName || user.fullName,
-            validatedData.email || user.email
-          );
+          // Use the VirtFusion API to update profile using external relation ID (same as admin endpoint)
+          await virtFusionApi.modifyUserByExtRelationId(userId, {
+            name: validatedData.fullName || user.fullName,
+            email: validatedData.email || user.email,
+          });
 
-          if (result.success) {
-            console.log(`Successfully synced user ${userId} with VirtFusion`);
-          } else {
-            console.error(`Failed to sync user with VirtFusion: ${result.message}`);
-          }
+          console.log(`Successfully synced user ${userId} with VirtFusion`);
         } catch (virtFusionError: any) {
           console.error("Error syncing with VirtFusion:", virtFusionError);
           // We don't fail the request if VirtFusion sync fails, just log the error
@@ -4382,6 +4383,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (webhookError: any) {
         // Log but don't fail the request if webhook fails
         console.error("Error sending Discord notification for new ticket:", webhookError.message);
+      }
+
+      // Sync client data to HubSpot
+      try {
+        await hubspotService.initialize();
+        
+        if (await hubspotService.isEnabled() && user) {
+          console.log(`Syncing client data to HubSpot for ticket ${ticket.id}`);
+          
+          // Create or update contact in HubSpot using firstName and lastName fields
+          await hubspotService.createOrUpdateContact({
+            email: user.email,
+            firstname: user.firstName || user.fullName?.split(' ')[0] || '',
+            lastname: user.lastName || user.fullName?.split(' ').slice(1).join(' ') || ''
+          });
+          
+          console.log(`Successfully synced client data to HubSpot for ticket ${ticket.id}`);
+        }
+      } catch (hubspotError: any) {
+        // Log but don't fail the request if HubSpot sync fails
+        console.error("Error syncing client data to HubSpot:", hubspotError.message);
       }
 
       res.status(201).json(ticket);

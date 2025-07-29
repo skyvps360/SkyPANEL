@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,12 @@ import OAuthAccountLinking from "@/components/profile/OAuthAccountLinking";
 // Profile schema
 const profileSchema = z.object({
   fullName: z.string().min(1, "FullName is required"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
+  company: z.string().optional(),
+  address: z.string().optional(),
 });
 
 // Password reset schema (only needs current password)
@@ -42,6 +47,17 @@ export default function ProfilePage() {
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [copied, setCopied] = useState(false);
   
+  // Fetch branding information for company name
+  const { data: branding } = useQuery<{ company_name: string }>({
+    queryKey: ["/api/settings/branding"]
+  });
+
+  // Fetch HubSpot settings to conditionally show HubSpot references
+  const { data: hubspotSettings } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/admin/settings/hubspot/config"],
+    enabled: true, // Enable to fetch HubSpot settings
+  });
+  
   // Brand colors for styling
   const brandColors = getBrandColors({
     primaryColor: '2563eb',
@@ -54,9 +70,29 @@ export default function ProfilePage() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       fullName: user?.fullName || "",
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
       email: user?.email || "",
+      phone: user?.phone || "",
+      company: user?.company || "",
+      address: user?.address || "",
     },
   });
+
+  // Reset form when user data changes
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        fullName: user.fullName || "",
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        company: user.company || "",
+        address: user.address || "",
+      });
+    }
+  }, [user, profileForm]);
 
   // Password reset form
   const passwordResetForm = useForm<PasswordResetFormData>({
@@ -83,13 +119,14 @@ export default function ProfilePage() {
         body: data
       });
     },
-    onSuccess: () => {
+    onSuccess: (updatedUser) => {
+      const companyName = branding?.company_name || "SkyPANEL";
       toast({
         title: "Profile updated",
-        description: "Your username has been updated successfully and synced with VirtFusion.",
+        description: `Your ${companyName} account has been synced with VirtFusion.`,
       });
-      // Invalidate the user query to reflect changes
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      // Update the user data in the cache with the response
+      queryClient.setQueryData(["/api/user"], updatedUser);
     },
     onError: (error: any) => {
       toast({
@@ -198,6 +235,36 @@ export default function ProfilePage() {
 
           <TabsContent value="profile" className="m-0">
             <CardContent className="p-6">
+              {/* Profile Information Section */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium">Profile Information</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Manage your account details and preferences. Changes are automatically synchronized across all connected services.
+                </p>
+                
+                {/* Enhanced explanation about profile fields */}
+                <div className="mt-4 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <UserCheck className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-green-800 dark:text-green-200">
+                      <p className="font-medium mb-1">Profile Field Types</p>
+                      <p className="mb-2">
+                        Your profile contains different types of information that serve various purposes across the platform.
+                      </p>
+                      <ul className="list-disc list-inside space-y-1 text-xs">
+                        <li><strong>Full Name:</strong> Synchronized with VirtFusion VPS management account</li>
+                        <li><strong>First/Last Name:</strong> {hubspotSettings?.enabled 
+                          ? "Used for HubSpot CRM integration and internal tracking"
+                          : "Used for internal CRM and account management"
+                        }</li>
+                        <li><strong>Email Address:</strong> Primary contact method and login credential</li>
+                        <li><strong>Profile Picture:</strong> Managed through Gravatar for consistency across services</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* User Avatar with Gravatar */}
               <div className="flex flex-col items-center mb-6">
                 <Avatar className="h-24 w-24 mb-3">
@@ -223,6 +290,7 @@ export default function ProfilePage() {
 
               <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
                 <div className="space-y-6">
+                  {/* Full Name - Syncs with VirtFusion */}
                   <div className="space-y-2">
                     <Label htmlFor="fullName">Full Name</Label>
                     <Input 
@@ -232,6 +300,46 @@ export default function ProfilePage() {
                     {profileForm.formState.errors.fullName && (
                       <p className="text-sm text-destructive">{profileForm.formState.errors.fullName.message}</p>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                      This field syncs with your VirtFusion account
+                    </p>
+                  </div>
+
+                  {/* First Name and Last Name - Internal/HubSpot use */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input 
+                        id="firstName"
+                        {...profileForm.register("firstName")}
+                      />
+                      {profileForm.formState.errors.firstName && (
+                        <p className="text-sm text-destructive">{profileForm.formState.errors.firstName.message}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {hubspotSettings?.enabled 
+                          ? "Used for HubSpot integration and internal CRM"
+                          : "Used for internal CRM and account management"
+                        }
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input 
+                        id="lastName"
+                        {...profileForm.register("lastName")}
+                      />
+                      {profileForm.formState.errors.lastName && (
+                        <p className="text-sm text-destructive">{profileForm.formState.errors.lastName.message}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {hubspotSettings?.enabled 
+                          ? "Used for HubSpot integration and internal CRM"
+                          : "Used for internal CRM and account management"
+                        }
+                      </p>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -244,6 +352,64 @@ export default function ProfilePage() {
                     {profileForm.formState.errors.email && (
                       <p className="text-sm text-destructive">{profileForm.formState.errors.email.message}</p>
                     )}
+                  </div>
+
+                  {/* Additional Contact Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone Number</Label>
+                      <Input 
+                        id="phone"
+                        type="tel"
+                        placeholder="+1 (555) 123-4567"
+                        {...profileForm.register("phone")}
+                      />
+                      {profileForm.formState.errors.phone && (
+                        <p className="text-sm text-destructive">{profileForm.formState.errors.phone.message}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {hubspotSettings?.enabled 
+                          ? "Used for HubSpot contact sync and support"
+                          : "Used for account support and notifications"
+                        }
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="company">Company</Label>
+                      <Input 
+                        id="company"
+                        placeholder="Your Company Name"
+                        {...profileForm.register("company")}
+                      />
+                      {profileForm.formState.errors.company && (
+                        <p className="text-sm text-destructive">{profileForm.formState.errors.company.message}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {hubspotSettings?.enabled 
+                          ? "Used for HubSpot contact sync and billing"
+                          : "Used for billing and account management"
+                        }
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input 
+                      id="address"
+                      placeholder="123 Main St, City, State 12345"
+                      {...profileForm.register("address")}
+                    />
+                    {profileForm.formState.errors.address && (
+                      <p className="text-sm text-destructive">{profileForm.formState.errors.address.message}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      {hubspotSettings?.enabled 
+                        ? "Used for HubSpot contact sync and billing"
+                        : "Used for billing and account management"
+                      }
+                    </p>
                   </div>
 
                   <div className="flex justify-end">
@@ -276,6 +442,26 @@ export default function ProfilePage() {
                 <p className="text-sm text-gray-500 mt-1">
                   Let the system generate a secure password for you. This will update your password for both this dashboard and VirtFusion.
                 </p>
+                
+                {/* Enhanced explanation about dual password system */}
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800 dark:text-blue-200">
+                      <p className="font-medium mb-1">Dual Password System</p>
+                      <p className="mb-2">
+                        Your password is synchronized between your {branding?.company_name || "SkyPANEL"} account and your VirtFusion VPS management account. 
+                        When you reset your password here, it will be updated in both systems simultaneously.
+                      </p>
+                      <ul className="list-disc list-inside space-y-1 text-xs">
+                        <li>Use the same password to log into this dashboard</li>
+                        <li>Use the same password to access your VirtFusion VPS control panel</li>
+                        <li>Password changes are automatically synchronized between both systems</li>
+                        <li>This ensures consistent access across all your hosting services</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <form onSubmit={passwordResetForm.handleSubmit(onPasswordReset)}>
@@ -322,6 +508,26 @@ export default function ProfilePage() {
                 <p className="text-sm text-gray-500 mt-1">
                   Link your social accounts to enable OAuth login. You can link multiple accounts and use any of them to sign in.
                 </p>
+                
+                {/* Enhanced explanation about OAuth SSO system */}
+                <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-purple-800 dark:text-purple-200">
+                      <p className="font-medium mb-1">OAuth Single Sign-On (SSO) System</p>
+                      <p className="mb-2">
+                        Connect your social accounts to enable secure, password-free authentication. This system allows you to sign in using your existing social media accounts.
+                      </p>
+                      <ul className="list-disc list-inside space-y-1 text-xs">
+                        <li><strong>Multiple Providers:</strong> Link Discord, GitHub, Google, and LinkedIn accounts</li>
+                        <li><strong>Flexible Login:</strong> Use any linked account to sign in to your dashboard</li>
+                        <li><strong>Secure Authentication:</strong> OAuth provides secure, token-based authentication</li>
+                        <li><strong>Account Management:</strong> Link and unlink accounts at any time</li>
+                        <li><strong>Fallback Access:</strong> Always maintain email/password access as backup</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </div>
               
               <OAuthAccountLinking />

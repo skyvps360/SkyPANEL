@@ -7,6 +7,11 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
+  firstName: text("first_name"), // New field for HubSpot and internal CRM
+  lastName: text("last_name"), // New field for HubSpot and internal CRM
+  phone: text("phone"), // Phone number for HubSpot integration
+  company: text("company"), // Company name for HubSpot integration
+  address: text("address"), // Address for HubSpot integration
   role: text("role").notNull().default("client"),
   virtFusionId: integer("virtfusion_id"),
   isVerified: boolean("is_verified").notNull().default(false),

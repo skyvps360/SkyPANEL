@@ -321,6 +321,9 @@ const hubspotSchema = z.object({
   hubspotTicketEnabled: z.boolean().default(false),
   hubspotTicketFormId: z.string().optional(),
   hubspotContactFormId: z.string().optional(),
+  hubspotPhoneField: z.string().optional(),
+  hubspotCompanyField: z.string().optional(),
+  hubspotAddressField: z.string().optional(),
 });
 
 type HubspotFormData = z.infer<typeof hubspotSchema>;
@@ -499,6 +502,9 @@ export default function SettingsPage() {
       hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
       hubspotTicketFormId: getSettingValue("hubspot_ticket_form_id", ""),
       hubspotContactFormId: getSettingValue("hubspot_contact_form_id", ""),
+      hubspotPhoneField: getSettingValue("hubspot_phone_field", ""),
+      hubspotCompanyField: getSettingValue("hubspot_company_field", ""),
+      hubspotAddressField: getSettingValue("hubspot_address_field", ""),
     },
   });
 
@@ -1264,6 +1270,9 @@ export default function SettingsPage() {
         hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
         hubspotTicketFormId: getSettingValue("hubspot_ticket_form_id", ""),
         hubspotContactFormId: getSettingValue("hubspot_contact_form_id", ""),
+        hubspotPhoneField: getSettingValue("hubspot_phone_field", ""),
+        hubspotCompanyField: getSettingValue("hubspot_company_field", ""),
+        hubspotAddressField: getSettingValue("hubspot_address_field", ""),
       });
 
       // Update VirtFusion form with all settings
@@ -1578,10 +1587,13 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "hubspot_enabled", value: data.hubspotEnabled.toString() });
       await updateSettingMutation.mutateAsync({ key: "hubspot_portal_id", value: data.hubspotPortalId || "" });
       await updateSettingMutation.mutateAsync({ key: "hubspot_api_key", value: data.hubspotApiKey || "" });
-          await updateSettingMutation.mutateAsync({ key: "hubspot_chat_enabled", value: data.hubspotChatEnabled.toString() });
-    await updateSettingMutation.mutateAsync({ key: "hubspot_ticket_enabled", value: data.hubspotTicketEnabled.toString() });
-    await updateSettingMutation.mutateAsync({ key: "hubspot_ticket_form_id", value: data.hubspotTicketFormId || "" });
-    await updateSettingMutation.mutateAsync({ key: "hubspot_contact_form_id", value: data.hubspotContactFormId || "" });
+      await updateSettingMutation.mutateAsync({ key: "hubspot_chat_enabled", value: data.hubspotChatEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "hubspot_ticket_enabled", value: data.hubspotTicketEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "hubspot_ticket_form_id", value: data.hubspotTicketFormId || "" });
+      await updateSettingMutation.mutateAsync({ key: "hubspot_contact_form_id", value: data.hubspotContactFormId || "" });
+      await updateSettingMutation.mutateAsync({ key: "hubspot_phone_field", value: data.hubspotPhoneField || "" });
+      await updateSettingMutation.mutateAsync({ key: "hubspot_company_field", value: data.hubspotCompanyField || "" });
+      await updateSettingMutation.mutateAsync({ key: "hubspot_address_field", value: data.hubspotAddressField || "" });
 
       toast({
         title: "Settings saved",
@@ -2153,13 +2165,12 @@ export default function SettingsPage() {
                         </div>
 
                         <div>
-                          <strong>Step 4: Get Form IDs (For Ticket Support)</strong>
+                          <strong>Step 4: Client Data Sync (Automatic)</strong>
                           <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li><strong>Ticket Form ID:</strong> Go to Settings → Objects → Tickets → Forms</li>
-                            <li>Create or select a ticket form, copy the Form ID from the URL</li>
-                            <li><strong>Contact Form ID:</strong> Go to Settings → Objects → Contacts → Forms</li>
-                            <li>Create or select a contact form, copy the Form ID from the URL</li>
-                            <li>Form IDs look like: "12345678-1234-1234-1234-123456789012"</li>
+                            <li>Once configured, SkyPANEL automatically syncs client data to HubSpot</li>
+                            <li>Client information is sent when users create tickets, use live chat, or make purchases</li>
+                            <li>No additional setup required - works automatically with your existing HubSpot account</li>
+                            <li>Client data includes: name, email, company, phone, and account details</li>
                           </ul>
                         </div>
 
@@ -2291,9 +2302,14 @@ export default function SettingsPage() {
                                     <Label htmlFor="hubspotTicketFormId">Ticket Form ID</Label>
                                     <Input
                                       id="hubspotTicketFormId"
-                                      placeholder="Enter your HubSpot ticket form ID"
+                                      placeholder="12345678-1234-1234-1234-123456789012"
                                       {...hubspotForm.register("hubspotTicketFormId")}
                                     />
+                                    {hubspotForm.formState.errors.hubspotTicketFormId && (
+                                      <p className="text-sm text-destructive mt-1">
+                                        {hubspotForm.formState.errors.hubspotTicketFormId.message}
+                                      </p>
+                                    )}
                                     <p className="text-sm text-muted-foreground mt-1">
                                       The form ID for creating support tickets in HubSpot
                                       <br />
@@ -2307,9 +2323,14 @@ export default function SettingsPage() {
                                     <Label htmlFor="hubspotContactFormId">Contact Form ID</Label>
                                     <Input
                                       id="hubspotContactFormId"
-                                      placeholder="Enter your HubSpot contact form ID"
+                                      placeholder="12345678-1234-1234-1234-123456789012"
                                       {...hubspotForm.register("hubspotContactFormId")}
                                     />
+                                    {hubspotForm.formState.errors.hubspotContactFormId && (
+                                      <p className="text-sm text-destructive mt-1">
+                                        {hubspotForm.formState.errors.hubspotContactFormId.message}
+                                      </p>
+                                    )}
                                     <p className="text-sm text-muted-foreground mt-1">
                                       The form ID for creating contacts in HubSpot
                                       <br />
@@ -2320,6 +2341,101 @@ export default function SettingsPage() {
                                   </div>
                                 </div>
                               )}
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          <div>
+                            <h4 className="text-md font-medium mb-4">Client Data Sync</h4>
+                            <div className="space-y-4">
+                              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                                <h5 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">🔄 Automatic Contact Sync</h5>
+                                <p className="text-sm text-green-800 dark:text-green-200">
+                                  When enabled, SkyPANEL will automatically sync client information to HubSpot when:
+                                </p>
+                                <ul className="list-disc list-inside mt-2 text-sm text-green-800 dark:text-green-200 space-y-1">
+                                  <li>Users create support tickets</li>
+                                  <li>Users interact with live chat</li>
+                                  <li>Users make purchases or transactions</li>
+                                  <li>Users register or update their profile</li>
+                                </ul>
+                                <p className="text-xs text-green-700 dark:text-green-300 mt-2">
+                                  💡 Client data includes: name, email, company, phone, and account details
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          <div>
+                            <h4 className="text-md font-medium mb-4">Additional Contact Fields</h4>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="hubspotPhoneField">Phone Field</Label>
+                                  <Input
+                                    id="hubspotPhoneField"
+                                    placeholder="phone"
+                                    {...hubspotForm.register("hubspotPhoneField")}
+                                  />
+                                  {hubspotForm.formState.errors.hubspotPhoneField && (
+                                    <p className="text-sm text-destructive mt-1">
+                                      {hubspotForm.formState.errors.hubspotPhoneField.message}
+                                    </p>
+                                  )}
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    HubSpot contact property for phone number
+                                    <br />
+                                    <span className="text-xs text-blue-600 dark:text-blue-400">
+                                      💡 Default: "phone"
+                                    </span>
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor="hubspotCompanyField">Company Field</Label>
+                                  <Input
+                                    id="hubspotCompanyField"
+                                    placeholder="company"
+                                    {...hubspotForm.register("hubspotCompanyField")}
+                                  />
+                                  {hubspotForm.formState.errors.hubspotCompanyField && (
+                                    <p className="text-sm text-destructive mt-1">
+                                      {hubspotForm.formState.errors.hubspotCompanyField.message}
+                                    </p>
+                                  )}
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    HubSpot contact property for company name
+                                    <br />
+                                    <span className="text-xs text-blue-600 dark:text-blue-400">
+                                      💡 Default: "company"
+                                    </span>
+                                  </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor="hubspotAddressField">Address Field</Label>
+                                  <Input
+                                    id="hubspotAddressField"
+                                    placeholder="address"
+                                    {...hubspotForm.register("hubspotAddressField")}
+                                  />
+                                  {hubspotForm.formState.errors.hubspotAddressField && (
+                                    <p className="text-sm text-destructive mt-1">
+                                      {hubspotForm.formState.errors.hubspotAddressField.message}
+                                    </p>
+                                  )}
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    HubSpot contact property for address
+                                    <br />
+                                    <span className="text-xs text-blue-600 dark:text-blue-400">
+                                      💡 Default: "address"
+                                    </span>
+                                  </p>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </>

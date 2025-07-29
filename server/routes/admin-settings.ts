@@ -4,6 +4,7 @@ import { settings } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { SettingsService } from '../settings-service';
 import { storage } from '../storage';
+import { hubspotService } from '../services/communication/hubspot-service';
 
 const router = Router();
 
@@ -98,6 +99,38 @@ router.get('/settings/award-system/status', isAdmin, async (req, res) => {
 router.put('/settings/award-system/toggle', isAdmin, async (req, res) => {
   try {
     const { enabled } = req.body;
+
+// HubSpot sync endpoint for live chat interactions
+router.post('/settings/hubspot/sync-user', async (req, res) => {
+  try {
+    const { email, firstname, lastname } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    
+    await hubspotService.initialize();
+    
+    if (await hubspotService.isEnabled()) {
+      console.log(`Syncing user data to HubSpot from live chat: ${email}`);
+      
+      // Create or update contact in HubSpot
+      await hubspotService.createOrUpdateContact({
+        email,
+        firstname: firstname || '',
+        lastname: lastname || ''
+      });
+      
+      console.log(`Successfully synced user data to HubSpot from live chat: ${email}`);
+      return res.json({ success: true, message: 'User data synced to HubSpot' });
+    } else {
+      return res.status(400).json({ error: 'HubSpot integration is not enabled' });
+    }
+  } catch (error: any) {
+    console.error('Error syncing user data to HubSpot:', error);
+    return res.status(500).json({ error: 'Failed to sync user data to HubSpot' });
+  }
+});
     
     if (typeof enabled !== 'boolean') {
       return res.status(400).json({ error: 'Enabled must be a boolean value' });
