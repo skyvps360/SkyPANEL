@@ -65,7 +65,6 @@ import UserAwardsPage from "@/pages/admin/user-awards";
 import BillingAwardsPage from "@/pages/billing/awards";
 import CouponManagementPage from "@/pages/admin/coupon-management";
 import OAuthSettingsPage from "@/pages/admin/oauth-settings-page";
-import { AdminChatManagement } from "@/components/admin/AdminChatManagement";
 
 import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { useQuery } from "@tanstack/react-query";
@@ -200,7 +199,6 @@ export function AppRouter() {
                 <AdminProtectedRoute path="/admin/user-awards" component={UserAwardsPage} />
                 <AdminProtectedRoute path="/admin/coupon" component={CouponManagementPage} />
 <AdminProtectedRoute path="/admin/oauth-settings" component={OAuthSettingsPage} />
-<AdminProtectedRoute path="/admin/chat" component={AdminChatManagement} />
 
                 {/* Catch-all route for 404 pages */}
                 <Route path="*" component={NotFound} />
