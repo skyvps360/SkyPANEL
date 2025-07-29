@@ -310,12 +310,20 @@ router.get('/callback/:providerName', async (req, res) => {
         delete req.session.oauthState;
         delete req.session.oauthRedirect;
 
-        // Add success parameter for OAuth login
-        const finalRedirectUrl = redirectUrl.includes('?') 
-          ? `${redirectUrl}&success=oauth_login` 
-          : `${redirectUrl}?success=oauth_login`;
+        // Save session before redirecting to ensure it persists
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Error saving session:', saveErr);
+            return res.redirect('/auth?error=session_save_failed');
+          }
 
-        return res.redirect(finalRedirectUrl);
+          // Add success parameter for OAuth login
+          const finalRedirectUrl = redirectUrl.includes('?') 
+            ? `${redirectUrl}&success=oauth_login` 
+            : `${redirectUrl}?success=oauth_login`;
+
+          return res.redirect(finalRedirectUrl);
+        });
       });
     } else {
       // User needs to link their account

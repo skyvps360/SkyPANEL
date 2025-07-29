@@ -112,6 +112,9 @@ export default function AuthPage() {
         case 'login_failed':
           errorMessage = 'Failed to log in after OAuth authentication. Please try again.';
           break;
+        case 'session_save_failed':
+          errorMessage = 'Failed to save session after OAuth authentication. Please try again.';
+          break;
         default:
           errorMessage = `Authentication error: ${error}`;
       }
