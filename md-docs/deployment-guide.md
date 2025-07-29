@@ -357,3 +357,75 @@ For additional support, please contact:
 - Email: support@skyvps360.com
 - Documentation: [docs.skyvps360.com](#)
 - Status Page: [status.skyvps360.com](#)
+
+## Deployment Options
+
+### Docker Deployment
+- **Containerized**: Full application containerization
+- **Scalable**: Easy horizontal scaling
+- **Portable**: Deploy anywhere Docker runs
+- **Isolated**: Separate environments for each component
+
+### PM2 Deployment
+- **Process Management**: Node.js process management
+- **Cluster Mode**: Multi-core utilization
+- **Auto-restart**: Automatic recovery from crashes
+- **Monitoring**: Built-in monitoring and logging
+
+### Cloudflare Wrangler Deployment
+- **Edge Computing**: Global edge distribution
+- **Low Latency**: Serve from 200+ locations worldwide
+- **Automatic Scaling**: Handle traffic spikes automatically
+- **DDoS Protection**: Built-in security and protection
+- **Cost Effective**: Pay only for actual usage
+
+## Cloudflare Wrangler Deployment
+
+### Prerequisites
+1. **Cloudflare Account**: Sign up at [cloudflare.com](https://cloudflare.com)
+2. **Wrangler CLI**: Install with `npm install -g wrangler`
+3. **Domain**: Add your domain to Cloudflare
+4. **Workers Enabled**: Enable Workers in your Cloudflare dashboard
+
+### Configuration
+1. **Environment Variables**:
+   ```bash
+   CLOUDFLARE_ACCOUNT_ID=your_account_id
+   CLOUDFLARE_ZONE_ID=your_zone_id
+   CLOUDFLARE_ROUTE=your-domain.com/*
+   ```
+
+2. **Vite Configuration** (`vite.config.ts`):
+   ```typescript
+   export default defineConfig({
+     // ... other config
+     wrangler: {
+       account_id: process.env.CLOUDFLARE_ACCOUNT_ID,
+       zone_id: process.env.CLOUDFLARE_ZONE_ID,
+       route: process.env.CLOUDFLARE_ROUTE,
+     },
+   });
+   ```
+
+### Deployment Steps
+1. **Build Application**:
+   ```bash
+   npm run build
+   ```
+
+2. **Deploy to Cloudflare**:
+   ```bash
+   npm run wrangler:deploy
+   ```
+
+3. **Verify Deployment**:
+   ```bash
+   wrangler whoami
+   npm run wrangler:tail
+   ```
+
+### Benefits
+- **Global Distribution**: Deploy to 200+ edge locations
+- **Automatic Scaling**: Handle traffic spikes without manual intervention
+- **Built-in Security**: DDoS protection and SSL certificates
+- **Cost Optimization**: Pay only for actual requests processed

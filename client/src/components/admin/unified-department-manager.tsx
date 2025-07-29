@@ -163,29 +163,7 @@ export function UnifiedDepartmentManager() {
     }
   });
 
-  // Sync departments mutation
-  const syncDepartmentsMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('/api/admin/department-migration/sync', {
-        method: 'POST'
-      });
-    },
-    onSuccess: (result) => {
-      toast({
-        title: 'Departments synchronized',
-        description: result.message || 'Departments have been synchronized successfully.',
-      });
-      refetch();
-      refetchStatus();
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error synchronizing departments',
-        description: error.message || 'An error occurred while synchronizing departments.',
-        variant: 'destructive',
-      });
-    }
-  });
+
 
   const handleCreateDepartment = (data: DepartmentFormData) => {
     createDepartmentMutation.mutate(data);
@@ -198,12 +176,6 @@ export function UnifiedDepartmentManager() {
   const handleDeleteDepartment = (id: number, name: string) => {
     if (confirm(`Are you sure you want to delete the department "${name}"? This action cannot be undone.`)) {
       deleteDepartmentMutation.mutate(id);
-    }
-  };
-
-  const handleSyncDepartments = () => {
-    if (confirm('This will synchronize departments from legacy tables. Continue?')) {
-      syncDepartmentsMutation.mutate();
     }
   };
 
@@ -266,25 +238,6 @@ export function UnifiedDepartmentManager() {
               </>
             )}
           </Button>
-          {migrationStatus?.syncStatus?.needsSync && (
-            <Button
-              variant="outline"
-              onClick={handleSyncDepartments}
-              disabled={syncDepartmentsMutation.isPending}
-            >
-              {syncDepartmentsMutation.isPending ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Sync Departments
-                </>
-              )}
-            </Button>
-          )}
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -308,7 +261,6 @@ export function UnifiedDepartmentManager() {
         <Card className={cn(
           "border-l-4",
           migrationStatus.needsMigration ? "border-l-yellow-500 bg-yellow-50" :
-          migrationStatus.syncStatus?.needsSync ? "border-l-blue-500 bg-blue-50" :
           "border-l-green-500 bg-green-50"
         )}>
           <CardContent className="p-4">
@@ -316,46 +268,20 @@ export function UnifiedDepartmentManager() {
               <div className="flex items-center space-x-3">
                 {migrationStatus.needsMigration ? (
                   <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                ) : migrationStatus.syncStatus?.needsSync ? (
-                  <RefreshCw className="h-5 w-5 text-blue-600" />
                 ) : (
                   <CheckCircle className="h-5 w-5 text-green-600" />
                 )}
                 <div>
                   <h3 className="font-medium">
-                    {migrationStatus.needsMigration ? 'Migration Required' :
-                     migrationStatus.syncStatus?.needsSync ? 'Sync Available' :
-                     'System Unified'}
+                    {migrationStatus.needsMigration ? 'Migration Required' : 'System Unified'}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     {migrationStatus.needsMigration ?
                       'Legacy departments need to be migrated to the unified system.' :
-                     migrationStatus.syncStatus?.needsSync ?
-                      `${migrationStatus.syncStatus.totalNewDepartments || (migrationStatus.syncStatus.newTicketDepartments?.length || 0) + (migrationStatus.syncStatus.newChatDepartments?.length || 0)} new departments can be synchronized.` :
                       'All departments are unified and synchronized.'}
                   </p>
                 </div>
               </div>
-              {migrationStatus.syncStatus?.needsSync && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSyncDepartments}
-                  disabled={syncDepartmentsMutation.isPending}
-                >
-                  {syncDepartmentsMutation.isPending ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Sync Now
-                    </>
-                  )}
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>

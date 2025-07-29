@@ -273,6 +273,63 @@ PUT /admin/users/{id}
 }
 ```
 
+### Billing Endpoints
+
+#### Transaction Management
+```http
+GET /api/transactions                    # List user transactions
+GET /api/transactions/:id                # Get transaction details (includes user info for admins)
+GET /api/transactions/export             # Export transactions as PDF
+POST /api/billing/add-credits           # Add credits to account
+GET /api/billing/balance                # Get account balance
+GET /api/billing/usage/last30days       # Get 30-day usage statistics
+```
+
+#### Transaction Details Response (Admin)
+When an admin requests transaction details, the response includes user information:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "userId": 456,
+    "amount": 50.00,
+    "type": "credit_purchase",
+    "description": "Credit purchase via PayPal",
+    "status": "completed",
+    "paymentMethod": "paypal",
+    "paymentId": "PAY-123456789",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "user": {
+      "id": 456,
+      "username": "john_doe",
+      "email": "john@example.com"
+    }
+  }
+}
+```
+
+#### Transaction Details Response (User)
+When a regular user requests their own transaction details:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": 123,
+    "userId": 456,
+    "amount": 50.00,
+    "type": "credit_purchase",
+    "description": "Credit purchase via PayPal",
+    "status": "completed",
+    "paymentMethod": "paypal",
+    "paymentId": "PAY-123456789",
+    "createdAt": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
 ## Webhooks
 
 ### Events

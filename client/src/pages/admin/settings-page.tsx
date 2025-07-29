@@ -140,7 +140,6 @@ interface MigrationStatus {
   needsMigration: boolean;
   ticketDepartmentCount: number;
   supportDepartmentCount: number;
-  syncStatus?: SyncStatus;
 }
 
 interface MigrationResult {
@@ -902,33 +901,7 @@ export default function SettingsPage() {
     }
   });
 
-  // Department sync mutation
-  const syncDepartmentsMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('/api/admin/department-migration/sync', {
-        method: 'POST'
-      });
-    },
-    onSuccess: (result: MigrationResult) => {
-      setSyncResult(result);
-      toast({
-        title: 'Sync completed',
-        description: result.message,
-        duration: 8000,
-      });
-      // Refresh migration status and departments
-      refetchMigrationStatus();
-      queryClient.invalidateQueries({ queryKey: ['/api/ticket-departments'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Sync failed',
-        description: error.message || 'An error occurred during sync',
-        variant: 'destructive',
-        duration: 8000,
-      });
-    }
-  });
+
 
   // Handle department form submission
   const onDepartmentSubmit = async (data: TicketDepartmentFormData) => {
@@ -2273,6 +2246,44 @@ export default function SettingsPage() {
                     </p>
                   </div>
 
+                  {/* DNS Overview Documentation */}
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center">
+                      <Info className="h-4 w-4 mr-2" />
+                      DNS Management Overview
+                    </h4>
+                    <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+                      <div>
+                        <strong>What is DNS Management?</strong>
+                        <p className="mt-1">
+                          DNS (Domain Name System) management allows your customers to manage their domain names and DNS records through your platform. 
+                          This includes creating, editing, and deleting DNS records like A, CNAME, MX, TXT, and more.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <strong>How it works:</strong>
+                        <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                          <li>Customers purchase DNS plans with specific limits (domains, records)</li>
+                          <li>They can add domains and manage DNS records through the user dashboard</li>
+                          <li>Automated billing charges customers monthly for their DNS subscriptions</li>
+                          <li>DNS records are managed through InterServer's API infrastructure</li>
+                        </ul>
+                      </div>
+
+                      <div>
+                        <strong>Key Features:</strong>
+                        <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                          <li>White-labeled DNS management service</li>
+                          <li>Automated monthly billing with VirtFusion integration</li>
+                          <li>Real-time DNS record management</li>
+                          <li>Plan-based limits and restrictions</li>
+                          <li>Professional nameservers (cdns.ns1.skyvps360.xyz, etc.)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* DNS Billing Automation Section */}
                   <div className="space-y-4">
                     <div>
@@ -2288,6 +2299,9 @@ export default function SettingsPage() {
                           <Label className="text-sm font-medium">Automated Monthly Billing</Label>
                           <p className="text-xs text-muted-foreground">
                             Automatically charge users on the 1st of each month
+                          </p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            💡 This uses VirtFusion tokens to charge customers for their DNS plan subscriptions
                           </p>
                         </div>
                         <Switch
@@ -2322,6 +2336,9 @@ export default function SettingsPage() {
                           <Label className="text-xs font-medium text-muted-foreground">Schedule</Label>
                           <p className="text-sm">{dnsBillingData?.cronStatus?.dnsBilling?.schedule || '0 2 1 * *'}</p>
                           <p className="text-xs text-muted-foreground">Runs at 2 AM on the 1st of each month</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            ⏰ Cron format: minute hour day month day-of-week
+                          </p>
                         </div>
                         <div>
                           <Label className="text-xs font-medium text-muted-foreground">Status</Label>
@@ -2338,6 +2355,12 @@ export default function SettingsPage() {
                               </>
                             )}
                           </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {dnsBillingData?.cronStatus?.dnsBilling?.isRunning 
+                              ? "Billing automation is active and will process charges automatically"
+                              : "Billing automation is disabled - no automatic charges will be processed"
+                            }
+                          </p>
                         </div>
                       </div>
 
@@ -2346,18 +2369,22 @@ export default function SettingsPage() {
                           <div className="text-center">
                             <p className="text-lg font-semibold">{dnsBillingData.dnsStats.totalActiveSubscriptions}</p>
                             <p className="text-xs text-muted-foreground">Active Subscriptions</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">Customers with active DNS plans</p>
                           </div>
                           <div className="text-center">
                             <p className="text-lg font-semibold">{dnsBillingData.dnsStats.subscriptionsDueToday}</p>
                             <p className="text-xs text-muted-foreground">Due Today</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">Subscriptions that will be charged today</p>
                           </div>
                           <div className="text-center">
                             <p className="text-lg font-semibold">{dnsBillingData.dnsStats.suspendedSubscriptions}</p>
                             <p className="text-xs text-muted-foreground">Suspended</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">Subscriptions with payment issues</p>
                           </div>
                           <div className="text-center">
                             <p className="text-lg font-semibold">${dnsBillingData.dnsStats.totalMonthlyRevenue?.toFixed(2)}</p>
                             <p className="text-xs text-muted-foreground">Monthly Revenue</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">Total revenue from DNS subscriptions</p>
                           </div>
                         </div>
                       )}
@@ -2392,6 +2419,9 @@ export default function SettingsPage() {
                           <DollarSign className="h-3 w-3 mr-1" />
                           Trigger Now
                         </Button>
+                        <div className="text-xs text-muted-foreground flex items-center">
+                          💡 Manually trigger billing for testing or immediate processing
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3926,7 +3956,6 @@ export default function SettingsPage() {
                               <Button
                                 variant="outline"
                                 onClick={() => refetchMigrationStatus()}
-                                disabled={migrationInProgress}
                               >
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 Refresh Status
@@ -4088,7 +4117,6 @@ export default function SettingsPage() {
                             <Button
                               variant="outline"
                               onClick={() => refetchMigrationStatus()}
-                              disabled={syncInProgress}
                             >
                               <RefreshCw className="mr-2 h-4 w-4" />
                               Refresh Status

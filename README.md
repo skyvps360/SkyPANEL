@@ -153,12 +153,14 @@ If you find my work helpful, consider supporting me:
 - **Billing Integration**: Automatic credit deduction based on usage
 
 ### 🎫 Support System
+- **Unified Department Management**: Combined chat and support department management with unified interface
 - **Ticket Management**: Full-featured support ticket system with departments
 - **Threaded Conversations**: Message threading with file attachments
 - **Status Tracking**: Open, closed, and priority level management
 - **Admin Assignment**: Ticket routing and bulk operations
 - **Discord Integration**: Two-way sync with Discord threads
 - **AI Assistance**: Google Gemini AI for intelligent response suggestions
+- **Chat Integration**: Real-time chat system with department-based routing
 
 ### 📊 Admin Dashboard
 - **User Management**: Comprehensive user administration with VirtFusion sync
@@ -683,6 +685,57 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
    docker-compose down
    docker-compose up -d
    ```
+
+## ☁️ Cloudflare Wrangler Deployment
+
+SkyPANEL now supports deployment via Cloudflare Wrangler for edge computing and global distribution.
+
+### Prerequisites
+- Cloudflare account with Workers enabled
+- Wrangler CLI installed: `npm install -g wrangler`
+- Environment variables configured for Cloudflare deployment
+
+### Configuration
+
+1. **Configure Wrangler**: Update `vite.config.ts` with your Cloudflare settings:
+   ```typescript
+   export default defineConfig({
+     // ... other config
+     wrangler: {
+       account_id: 'your-cloudflare-account-id',
+       zone_id: 'your-zone-id',
+       route: 'your-domain.com/*'
+     }
+   });
+   ```
+
+2. **Environment Setup**: Configure environment variables for Cloudflare Workers:
+   ```bash
+   # Cloudflare-specific environment variables
+   CLOUDFLARE_ACCOUNT_ID=your_account_id
+   CLOUDFLARE_ZONE_ID=your_zone_id
+   CLOUDFLARE_ROUTE=your-domain.com/*
+   ```
+
+### Deployment Commands
+
+```bash
+# Deploy to Cloudflare Workers
+npm run wrangler
+
+# Or use Wrangler directly
+wrangler run
+
+# Deploy to production
+wrangler deploy
+```
+
+### Benefits of Cloudflare Deployment
+- **Global Edge Network**: Deploy to 200+ locations worldwide
+- **Automatic Scaling**: Handle traffic spikes automatically
+- **DDoS Protection**: Built-in security and protection
+- **Low Latency**: Serve content from the edge closest to users
+- **Cost Effective**: Pay only for actual usage
 
 # Build and restart with PM2 (includes full rebuild, PM2 cleanup, and restart)
 npm run build:restart
@@ -1571,7 +1624,9 @@ SkyPANEL implements enterprise-grade security measures throughout the platform.
 
 #### Session Management
 - **Secure Sessions**: PostgreSQL-backed session storage
-- **Session Expiration**: Configurable session timeout periods
+- **Session Expiration**: Configurable session timeout periods (1 hour default)
+- **Automatic Logout**: Automatic session termination on inactivity
+- **Session Monitoring**: Real-time session tracking and management
 - **CSRF Protection**: Cross-site request forgery protection
 - **Secure Cookies**: HTTP-only and secure cookie flags
 
@@ -1732,6 +1787,27 @@ curl http://localhost:3000/api/virtfusion-health
 
 ## 🆕 Recent Updates
 
+### Version 2.1.0 - Enhanced Deployment & Management
+
+#### New Features
+- **☁️ Cloudflare Wrangler Deployment**: Added support for Cloudflare Workers deployment with global edge distribution
+- **🎯 Unified Department Manager**: Combined chat and support department management with unified interface
+- **🔐 Enhanced Session Security**: Improved session timeout management with automatic logout
+- **📊 Enhanced Transaction API**: Improved transaction endpoints with user information for admin requests
+- **🎨 Package Pricing Integration**: Direct VirtFusion package integration for pricing management
+
+#### Deployment Improvements
+- **🌐 Cloudflare Integration**: Deploy to 200+ global edge locations
+- **⚡ Edge Computing**: Low-latency global distribution
+- **🛡️ DDoS Protection**: Built-in security and protection
+- **💰 Cost Optimization**: Pay only for actual usage
+
+#### System Enhancements
+- **🗂️ Invoice System Removal**: Streamlined billing system without legacy invoice generation
+- **🔧 API Refactoring**: Improved transaction API with enhanced admin capabilities
+- **📱 Mobile Optimization**: Enhanced mobile experience and responsiveness
+- **🔄 Real-Time Updates**: Improved WebSocket integration for live updates
+
 ### Version 2.0.0 - Major Platform Overhaul
 
 #### New Features
@@ -1757,6 +1833,13 @@ curl http://localhost:3000/api/virtfusion-health
 
 ### Migration Guide
 
+#### From Version 2.0.x to 2.1.0
+1. **Update Dependencies**: Run `npm install` to update all packages
+2. **Database Migration**: Execute `npm run db:push` to apply schema changes
+3. **Cloudflare Configuration**: Add Cloudflare environment variables if using Wrangler deployment
+4. **Invoice System**: Remove any references to invoice-related features
+5. **Test Integration**: Verify all integrations and new features
+
 #### From Version 1.x
 1. **Backup Database**: Create complete database backup before migration
 2. **Update Dependencies**: Run `npm install` to update all packages
@@ -1765,10 +1848,11 @@ curl http://localhost:3000/api/virtfusion-health
 5. **Test Integration**: Verify VirtFusion and payment integrations
 
 #### Breaking Changes
-- **API Endpoints**: Some API endpoints have been restructured for consistency
-- **Database Schema**: New tables added for Discord integration and API keys
+- **Invoice System**: Complete removal of invoice generation and management
+- **API Endpoints**: Transaction API endpoints restructured for consistency
+- **Database Schema**: New tables added for unified department management
 - **Authentication**: Enhanced session management may require re-login
-- **Configuration**: New settings added for AI and monitoring features
+- **Configuration**: New settings added for Cloudflare deployment and department management
 
 ---
 

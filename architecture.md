@@ -103,6 +103,7 @@ SkyPANEL integrates with several external services to provide additional functio
 - **Google Gemini AI**: AI-powered support features with rate limiting (15 RPM, 1,500 RPD)
 - **BetterStack**: Monitoring and alerting
 - **InterServer API**: DNS management (currently disabled due to API reliability issues)
+- **Cloudflare Workers**: Edge computing deployment platform for global distribution
 
 ## Data Flow
 
@@ -272,6 +273,33 @@ This section describes the flow of data through the SkyPANEL system for key oper
 5. Staff can respond via Discord or SkyPANEL
 6. Responses are synchronized between both platforms
 7. When ticket is closed, thread is archived
+
+### Unified Department Management Flow
+
+```
+┌─────────┐     ┌─────────────┐     ┌─────────────┐
+│         │     │             │     │             │
+│  Admin  │────▶│  Unified    │────▶│  Database   │
+│         │     │  Department │     │             │
+│         │     │  Manager    │     │             │
+└─────────┘     └─────────────┘     └─────────────┘
+                                          │
+                                          ▼
+                                    ┌─────────────┐
+                                    │             │
+                                    │  Chat &     │
+                                    │  Support    │
+                                    │  Systems    │
+                                    │             │
+                                    └─────────────┘
+```
+
+1. Admin creates or updates department via unified interface
+2. Department configuration is stored in database
+3. Department is available for both chat and support ticket systems
+4. Users can select department when creating tickets or starting chats
+5. Department settings control routing and permissions
+6. Real-time updates sync across all systems
 
 ### Email Verification Flow
 
@@ -561,6 +589,14 @@ SkyPANEL supports multiple deployment options for different environments.
 - Load balancing across CPU cores
 - Process monitoring and auto-restart
 - External PostgreSQL database
+
+**Cloudflare Wrangler Deployment:**
+- Cloudflare Workers for edge computing
+- Global deployment to 200+ locations
+- Automatic scaling and DDoS protection
+- Low-latency global distribution
+- Pay-per-use pricing model
+- Built-in SSL and security features
 
 ### Continuous Integration/Deployment
 
