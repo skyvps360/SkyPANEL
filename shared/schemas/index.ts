@@ -25,3 +25,4 @@ export * from './awards-schema';
 export * from './todo-schema';
 export * from './coupon-schema';
 export * from './discord-verification-schema';
+export * from './oauth-schema';

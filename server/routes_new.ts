@@ -44,6 +44,7 @@ import monitoringRoutes from "./routes/monitoring-routes";
 import awardsRoutes from "./routes/awards-routes";
 import adminCouponsRoutes from "./routes/admin-coupons";
 import couponRoutes from "./routes/coupon-routes";
+import oauthRoutes from "./routes/oauth-routes";
 import { chatService } from "./chat-service";
 import { departmentMigrationService } from "./services/department-migration";
 import { cronService } from "./services/cron-service";
@@ -11217,6 +11218,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Coupon routes
   app.use("/api/coupons", isAuthenticated, couponRoutes);
   app.use("/api/admin/coupons", isAuthenticated, isAdmin, adminCouponsRoutes);
+
+  // OAuth routes
+  app.use("/api/oauth", oauthRoutes);
 
   // Admin settings routes are defined directly in this file instead of using the separate router
 

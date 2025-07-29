@@ -27,6 +27,7 @@ import {
   Server,
   MessageCircle,
   Gift,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/ui/theme-toggle";
@@ -56,6 +57,7 @@ const adminMenuItems = [
   { href: "/admin/package-pricing", icon: DollarSign, label: "Package Pricing" },
   { href: "/admin/faq-management", icon: HelpCircle, label: "FAQ Management" },
   { href: "/admin/legal", icon: FileCheck, label: "Legal Content" },
+  { href: "/admin/oauth-settings", icon: Shield, label: "OAuth SSO" },
   { href: "/admin/settings", icon: Settings, label: "Settings" },
 ];
 

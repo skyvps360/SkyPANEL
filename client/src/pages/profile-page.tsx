@@ -12,12 +12,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { User, Lock, Mail, UserCheck, Copy, Check, KeyRound, RefreshCw, ExternalLink } from "lucide-react";
+import { User, Lock, Mail, UserCheck, Copy, Check, KeyRound, RefreshCw, ExternalLink, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
 import { getBrandColors } from "@/lib/brand-theme";
+import OAuthAccountLinking from "@/components/profile/OAuthAccountLinking";
 
 // Profile schema
 const profileSchema = z.object({
@@ -188,6 +189,10 @@ export default function ProfilePage() {
                 <Lock className="h-4 w-4 mr-2" />
                 Password
               </TabsTrigger>
+              <TabsTrigger value="oauth" className="data-[state=active]:bg-background">
+                <Shield className="h-4 w-4 mr-2" />
+                OAuth Accounts
+              </TabsTrigger>
             </TabsList>
           </CardHeader>
 
@@ -307,6 +312,19 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </form>
+            </CardContent>
+          </TabsContent>
+
+          <TabsContent value="oauth" className="m-0">
+            <CardContent className="p-6">
+              <div className="mb-6">
+                <h3 className="text-lg font-medium">Social Account Linking</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Link your social accounts to enable OAuth login. You can link multiple accounts and use any of them to sign in.
+                </p>
+              </div>
+              
+              <OAuthAccountLinking />
             </CardContent>
           </TabsContent>
         </Tabs>

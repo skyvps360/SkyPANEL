@@ -12,6 +12,9 @@ declare module 'express-session' {
   interface Session {
     maintenanceBypass?: boolean;
     user?: any; // Already being used in the code
+    userId?: number; // For OAuth linking
+    oauthState?: string; // For OAuth state validation
+    oauthRedirect?: string; // For OAuth redirect URL
   }
 }
 

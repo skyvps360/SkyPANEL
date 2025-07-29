@@ -17,6 +17,8 @@ import confetti from "canvas-confetti";
 import { PasswordStrengthMeter } from "@/components/password-strength-meter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getBrandColors } from "@/lib/brand-theme";
+import OAuthLoginButtons from "@/components/auth/OAuthLoginButtons";
+import { Separator } from "@/components/ui/separator";
 
 // Extend schema for validation
 const loginSchema = z.object({
@@ -69,6 +71,89 @@ export default function AuthPage() {
   const [brandStyle, setBrandStyle] = useState<{ [key: string]: string }>({});
   // Add a state to track if branding is loaded
   const [brandingLoaded, setBrandingLoaded] = useState<boolean>(false);
+
+  // Handle OAuth callback errors and success messages
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const success = urlParams.get('success');
+    
+    if (error) {
+      let errorMessage = 'An error occurred during authentication.';
+      
+      switch (error) {
+        case 'link_required':
+          errorMessage = 'This OAuth account is not linked to any user. Please log in with your username/password first, then link your OAuth account from your profile page.';
+          break;
+        case 'callback_error':
+          errorMessage = 'Failed to complete OAuth authentication. Please try again.';
+          break;
+        case 'invalid_state':
+          errorMessage = 'Invalid OAuth state. Please try again.';
+          break;
+        case 'token_exchange_failed':
+          errorMessage = 'Failed to authenticate with the OAuth provider. Please try again.';
+          break;
+        case 'user_info_failed':
+          errorMessage = 'Failed to retrieve user information from OAuth provider.';
+          break;
+        case 'provider_not_available':
+          errorMessage = 'OAuth provider is not available. Please contact support.';
+          break;
+        case 'user_not_found':
+          errorMessage = 'User account not found. Please contact support.';
+          break;
+        case 'oauth_error':
+          errorMessage = 'OAuth provider returned an error. Please try again.';
+          break;
+        case 'invalid_callback':
+          errorMessage = 'Invalid OAuth callback. Please try again.';
+          break;
+        case 'login_failed':
+          errorMessage = 'Failed to log in after OAuth authentication. Please try again.';
+          break;
+        default:
+          errorMessage = `Authentication error: ${error}`;
+      }
+      
+      toast({
+        title: "Authentication Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      
+      // Clear the error from URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('error');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+    
+    if (success) {
+      let successMessage = 'Operation completed successfully.';
+      
+      switch (success) {
+        case 'oauth_linked':
+          successMessage = 'OAuth account linked successfully!';
+          break;
+        case 'oauth_login':
+          successMessage = 'Successfully logged in with OAuth!';
+          break;
+        default:
+          successMessage = 'Operation completed successfully.';
+      }
+      
+      toast({
+        title: "Success",
+        description: successMessage,
+        variant: "default",
+      });
+      
+      // Clear the success from URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('success');
+      window.history.replaceState({}, '', newUrl.toString());
+    }
+  }, [toast]);
 
   useEffect(() => {
     // Fetch branding settings on component mount
@@ -680,6 +765,24 @@ export default function AuthPage() {
                     )}
                   </Button>
                 </form>
+                
+                {/* OAuth Login Section */}
+                <div className="mt-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or continue with
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
+                    <OAuthLoginButtons />
+                  </div>
+                </div>
               </TabsContent>
               
               <TabsContent value="register">
