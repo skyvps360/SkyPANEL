@@ -49,7 +49,8 @@ import {
   X,
   DollarSign,
   MessageCircle,
-  Globe
+  Globe,
+  MessageSquare
 } from "lucide-react";
 
 interface Setting {
@@ -311,15 +312,29 @@ const cloudPricingSchema = z.object({
 
 type CloudPricingFormData = z.infer<typeof cloudPricingSchema>;
 
+// HubSpot settings schema
+const hubspotSchema = z.object({
+  hubspotEnabled: z.boolean().default(false),
+  hubspotPortalId: z.string().min(1, { message: "Portal ID is required when HubSpot is enabled" }).optional(),
+  hubspotApiKey: z.string().min(1, { message: "API Key is required when HubSpot is enabled" }).optional(),
+  hubspotChatEnabled: z.boolean().default(false),
+  hubspotTicketEnabled: z.boolean().default(false),
+  hubspotTicketFormId: z.string().optional(),
+  hubspotContactFormId: z.string().optional(),
+});
+
+type HubspotFormData = z.infer<typeof hubspotSchema>;
+
 // Define the settings options for dropdown
 const settingsOptions = [
-  { value: "general", label: "General", icon: <SettingsIcon className="h-4 w-4 mr-2" /> },  { value: "billing", label: "Billing", icon: <CreditCard className="h-4 w-4 mr-2" /> },
-
+  { value: "general", label: "General", icon: <SettingsIcon className="h-4 w-4 mr-2" /> },
+  { value: "billing", label: "Billing", icon: <CreditCard className="h-4 w-4 mr-2" /> },
   { value: "cloud", label: "Cloud", icon: <Cloud className="h-4 w-4 mr-2" /> },
   { value: "email", label: "Email", icon: <Mail className="h-4 w-4 mr-2" /> },
   { value: "notifications", label: "Discord", icon: <MessageCircle className="h-4 w-4 mr-2" /> },
   { value: "team", label: "Team", icon: <Users className="h-4 w-4 mr-2" /> },
   { value: "virtfusion", label: "VirtFusion API", icon: <Server className="h-4 w-4 mr-2" /> },
+  { value: "hubspot", label: "HubSpot", icon: <MessageSquare className="h-4 w-4 mr-2" /> },
   { value: "dns", label: "DNS", icon: <Globe className="h-4 w-4 mr-2" /> },
   { value: "departments", label: "Departments", icon: <Merge className="h-4 w-4 mr-2" /> },
   { value: "tickets", label: "Tickets", icon: <Ticket className="h-4 w-4 mr-2" /> },
@@ -473,6 +488,20 @@ export default function SettingsPage() {
     },
   });
 
+  // HubSpot form
+  const hubspotForm = useForm<HubspotFormData>({
+    resolver: zodResolver(hubspotSchema),
+    defaultValues: {
+      hubspotEnabled: getSettingValue("hubspot_enabled", "false") === "true",
+      hubspotPortalId: getSettingValue("hubspot_portal_id", ""),
+      hubspotApiKey: getSettingValue("hubspot_api_key", ""),
+      hubspotChatEnabled: getSettingValue("hubspot_chat_enabled", "false") === "true",
+      hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
+      hubspotTicketFormId: getSettingValue("hubspot_ticket_form_id", ""),
+      hubspotContactFormId: getSettingValue("hubspot_contact_form_id", ""),
+    },
+  });
+
 
 
   // Update setting mutation
@@ -572,7 +601,7 @@ export default function SettingsPage() {
         fetchMaintenanceToken();
       }
 
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
     },
     onError: (error: any) => {
       toast({
@@ -719,7 +748,7 @@ export default function SettingsPage() {
       });
 
       // Refresh settings
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/branding"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/public"] });
     } catch (error: any) {
@@ -1157,11 +1186,11 @@ export default function SettingsPage() {
       });
 
       // Invalidate all queries that might use this data
-      await queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      await queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
       await queryClient.invalidateQueries({ queryKey: ["/api/settings/branding"] });
 
       // Refetch settings data to update the form
-      const fetchedSettings = await queryClient.fetchQuery({ queryKey: ["/api/admin/settings"] });
+      const fetchedSettings = await queryClient.fetchQuery({ queryKey: ["api/admin/settings"] });
 
       // Cast the settings to the correct type
       const settings = (fetchedSettings as Setting[]) || [];
@@ -1226,6 +1255,17 @@ export default function SettingsPage() {
   // Update form values when settings change
   useEffect(() => {
     if (settings.length > 0) {
+      // Update HubSpot form with settings
+      hubspotForm.reset({
+        hubspotEnabled: getSettingValue("hubspot_enabled", "false") === "true",
+        hubspotPortalId: getSettingValue("hubspot_portal_id", ""),
+        hubspotApiKey: getSettingValue("hubspot_api_key", ""),
+        hubspotChatEnabled: getSettingValue("hubspot_chat_enabled", "false") === "true",
+        hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
+        hubspotTicketFormId: getSettingValue("hubspot_ticket_form_id", ""),
+        hubspotContactFormId: getSettingValue("hubspot_contact_form_id", ""),
+      });
+
       // Update VirtFusion form with all settings
       virtFusionForm.reset({
         apiUrl: getSettingValue("virtfusion_api_url", "https://skyvps360.xyz/api/v1"),
@@ -1421,7 +1461,7 @@ export default function SettingsPage() {
         description: "VirtFusion API settings have been updated",
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
     } catch (error: any) {
       toast({
         title: "Error saving settings",
@@ -1446,7 +1486,7 @@ export default function SettingsPage() {
         description: "Billing settings have been updated",
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
     } catch (error: any) {
       toast({
         title: "Error saving settings",
@@ -1477,7 +1517,7 @@ export default function SettingsPage() {
         description: "Email settings have been updated",
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
     } catch (error: any) {
       toast({
         title: "Error saving settings",
@@ -1517,7 +1557,38 @@ export default function SettingsPage() {
         description: "Cloud pricing settings have been updated",
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
+    } catch (error: any) {
+      toast({
+        title: "Error saving settings",
+        description: error.message || "Failed to save settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaveInProgress(false);
+    }
+  };
+
+  // Handle HubSpot form submission
+  const onHubspotSubmit = async (data: HubspotFormData) => {
+    setSaveInProgress(true);
+
+    try {
+      // Save HubSpot settings
+      await updateSettingMutation.mutateAsync({ key: "hubspot_enabled", value: data.hubspotEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "hubspot_portal_id", value: data.hubspotPortalId || "" });
+      await updateSettingMutation.mutateAsync({ key: "hubspot_api_key", value: data.hubspotApiKey || "" });
+          await updateSettingMutation.mutateAsync({ key: "hubspot_chat_enabled", value: data.hubspotChatEnabled.toString() });
+    await updateSettingMutation.mutateAsync({ key: "hubspot_ticket_enabled", value: data.hubspotTicketEnabled.toString() });
+    await updateSettingMutation.mutateAsync({ key: "hubspot_ticket_form_id", value: data.hubspotTicketFormId || "" });
+    await updateSettingMutation.mutateAsync({ key: "hubspot_contact_form_id", value: data.hubspotContactFormId || "" });
+
+      toast({
+        title: "Settings saved",
+        description: "HubSpot settings have been updated",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
     } catch (error: any) {
       toast({
         title: "Error saving settings",
@@ -1563,7 +1634,7 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "platform_memory_gb", value: data.platformMemoryGB || "" });
 
       // Update cache for both settings and platform stats
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/public/platform-stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/settings/branding"] });
 
@@ -1623,7 +1694,7 @@ export default function SettingsPage() {
         description: "Notification settings have been updated",
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
     } catch (error: any) {
       toast({
         title: "Error saving settings",
@@ -2035,6 +2106,223 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="hubspot">
+                <form onSubmit={hubspotForm.handleSubmit(onHubspotSubmit)}>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium">HubSpot Integration</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Configure HubSpot integration for live chat and ticket support
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="hubspotEnabled">Enable HubSpot Integration</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable HubSpot integration for live chat and ticket support
+                          </p>
+                        </div>
+                        <Switch
+                          id="hubspotEnabled"
+                          checked={hubspotForm.watch("hubspotEnabled")}
+                          onCheckedChange={(checked) => hubspotForm.setValue("hubspotEnabled", checked)}
+                        />
+                      </div>
+
+                      {hubspotForm.watch("hubspotEnabled") && (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="hubspotPortalId">Portal ID</Label>
+                              <Input
+                                id="hubspotPortalId"
+                                placeholder="123456"
+                                {...hubspotForm.register("hubspotPortalId")}
+                              />
+                              {hubspotForm.formState.errors.hubspotPortalId && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {hubspotForm.formState.errors.hubspotPortalId.message}
+                                </p>
+                              )}
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Your HubSpot portal ID (found in your HubSpot account settings)
+                              </p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="hubspotApiKey">API Key</Label>
+                              <Input
+                                id="hubspotApiKey"
+                                type="password"
+                                placeholder="Enter your HubSpot API key"
+                                {...hubspotForm.register("hubspotApiKey")}
+                              />
+                              {hubspotForm.formState.errors.hubspotApiKey && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {hubspotForm.formState.errors.hubspotApiKey.message}
+                                </p>
+                              )}
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Your HubSpot API key for authentication
+                              </p>
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          <div>
+                            <h4 className="text-md font-medium mb-4">Live Chat Configuration</h4>
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <Label htmlFor="hubspotChatEnabled">Enable Live Chat</Label>
+                                  <p className="text-sm text-muted-foreground">
+                                    Enable HubSpot live chat widget on your website
+                                  </p>
+                                </div>
+                                <Switch
+                                  id="hubspotChatEnabled"
+                                  checked={hubspotForm.watch("hubspotChatEnabled")}
+                                  onCheckedChange={(checked) => hubspotForm.setValue("hubspotChatEnabled", checked)}
+                                />
+                              </div>
+
+                              {hubspotForm.watch("hubspotChatEnabled") && (
+                                <div className="space-y-2">
+                                  <p className="text-sm text-muted-foreground">
+                                    Chat widget will be loaded automatically using your HubSpot portal ID
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <Separator />
+
+                          <div>
+                            <h4 className="text-md font-medium mb-4">Ticket Support Configuration</h4>
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <Label htmlFor="hubspotTicketEnabled">Enable Ticket Support</Label>
+                                  <p className="text-sm text-muted-foreground">
+                                    Enable HubSpot ticket creation for support requests
+                                  </p>
+                                </div>
+                                <Switch
+                                  id="hubspotTicketEnabled"
+                                  checked={hubspotForm.watch("hubspotTicketEnabled")}
+                                  onCheckedChange={(checked) => hubspotForm.setValue("hubspotTicketEnabled", checked)}
+                                />
+                              </div>
+
+                              {hubspotForm.watch("hubspotTicketEnabled") && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="hubspotTicketFormId">Ticket Form ID</Label>
+                                    <Input
+                                      id="hubspotTicketFormId"
+                                      placeholder="Enter your HubSpot ticket form ID"
+                                      {...hubspotForm.register("hubspotTicketFormId")}
+                                    />
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      The form ID for creating support tickets in HubSpot
+                                    </p>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label htmlFor="hubspotContactFormId">Contact Form ID</Label>
+                                    <Input
+                                      id="hubspotContactFormId"
+                                      placeholder="Enter your HubSpot contact form ID"
+                                      {...hubspotForm.register("hubspotContactFormId")}
+                                    />
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      The form ID for creating contacts in HubSpot
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      <Separator />
+
+                      <div className="flex justify-between items-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              setTestConnectionInProgress(true);
+                              const response = await apiRequest('/api/admin/settings/hubspot/test-connection', {
+                                method: 'POST'
+                              });
+                              
+                              if (response.success) {
+                                toast({
+                                  title: "Connection successful",
+                                  description: response.message,
+                                });
+                              } else {
+                                toast({
+                                  title: "Connection failed",
+                                  description: response.message,
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error: any) {
+                              toast({
+                                title: "Connection failed",
+                                description: error.message || "Failed to test connection",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setTestConnectionInProgress(false);
+                            }
+                          }}
+                          disabled={testConnectionInProgress || !hubspotForm.watch("hubspotEnabled")}
+                        >
+                          {testConnectionInProgress ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Testing...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Test Connection
+                            </>
+                          )}
+                        </Button>
+
+                        <Button
+                          type="submit"
+                          className="w-32"
+                          disabled={saveInProgress || !hubspotForm.formState.isDirty}
+                        >
+                          {saveInProgress ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
               </TabsContent>
 
               <TabsContent value="billing">

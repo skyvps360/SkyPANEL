@@ -10,6 +10,7 @@ import {PageLoadingProvider} from "@/components/loading/PageLoadingProvider";
 import {AppRouter} from "@/components/app/AppRouter";
 import {BrandThemeProvider} from "@/components/app/BrandThemeProvider";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
+import HubSpotChat from "@/components/HubSpotChat";
 
 
 /**
@@ -47,6 +48,7 @@ function App() {
                 <PageLoadingProvider>
                   <BrandThemeProvider>
                       <AppRouter/>
+                      <HubSpotChat />
                   </BrandThemeProvider>
                 </PageLoadingProvider>
               </DocumentTitle>

@@ -3755,11 +3755,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Legacy ticket department admin routes removed - use unified department system at /admin/settings
 
-  // Department Migration Routes
+  // Department Migration Routes - DEPRECATED (migration completed)
   app.get("/api/admin/department-migration/status", isAuthenticated, isAdmin, async (req, res) => {
     try {
-      const status = await departmentMigrationService.checkMigrationStatus();
-      res.json(status);
+      // Migration is complete - all departments are now unified
+      res.json({
+        needsMigration: false,
+        ticketDepartmentCount: 0,
+        supportDepartmentCount: 0,
+        message: "Department migration completed - all departments unified in support_departments"
+      });
     } catch (error: any) {
       console.error("Error checking migration status:", error);
       res.status(500).json({ error: error.message });

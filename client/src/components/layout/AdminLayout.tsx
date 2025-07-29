@@ -41,7 +41,6 @@ import { getBrandColors } from "@/lib/brand-theme";
 const adminMenuItems = [
   { href: "/admin", icon: Home, label: "Admin Dashboard" },
   { href: "/admin/tickets", icon: Ticket, label: "Tickets" },
-  { href: "/admin/chat", icon: MessageCircle, label: "Live Chat" },
   { href: "/admin/users", icon: Users, label: "Users" },
   { href: "/admin/billing", icon: DollarSign, label: "Billing" },
   { href: "/admin/servers", icon: Server, label: "Servers" },
