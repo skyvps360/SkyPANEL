@@ -249,10 +249,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     enabled: !!user,
   });
 
-  // Debug: Log award system status
-  useEffect(() => {
-    console.log('Award System Status:', awardSystemStatus);
-  }, [awardSystemStatus]);
+
 
   // Use API data without sample data fallbacks
   const users = usersData;
@@ -855,9 +852,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
   };
 
   // Debug log for award system status changes
-  useEffect(() => {
-    console.log("Award system status changed:", awardSystemStatus?.enabled);
-  }, [awardSystemStatus?.enabled]);
+
 
   // Ensure the navigation menu updates instantly
   useEffect(() => {
@@ -1197,15 +1192,17 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   </DropdownMenuItem>
 
                   {user?.role === "admin" && (
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href="/admin"
-                        className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-primary hover:text-primary-foreground transition-colors duration-200 cursor-pointer"
-                      >
-                        <SettingsIcon className="h-4 w-4 mr-3" />
-                        Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href="/admin"
+                          className="flex items-center px-3 py-2 rounded-lg text-sm hover:bg-primary hover:text-primary-foreground transition-colors duration-200 cursor-pointer"
+                        >
+                          <SettingsIcon className="h-4 w-4 mr-3" />
+                          Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
 
                   <DropdownMenuSeparator className="my-2" />

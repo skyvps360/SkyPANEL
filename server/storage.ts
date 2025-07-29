@@ -623,7 +623,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: number, updates: Partial<User>): Promise<void> {
-    console.log(`Updating user ${id} with:`, updates);
     await db.update(users).set(updates).where(eq(users.id, id));
   }
 
@@ -646,57 +645,43 @@ export class DatabaseStorage implements IStorage {
 
 
   async deleteUser(id: number): Promise<void> {
-    console.log(`Deleting user with ID: ${id} and all related data`);
-
     try {
       // Start a transaction to ensure all deletions succeed or fail together
       await db.transaction(async (tx) => {
         // Delete related data in the correct order (children first, then parent)
 
         // 1. Delete sessions
-        console.log(`Deleting sessions for user ${id}`);
         await tx.delete(sessions).where(eq(sessions.userId, id));
 
         // 2. Delete transactions
-        console.log(`Deleting transactions for user ${id}`);
         await tx.delete(transactions).where(eq(transactions.userId, id));
 
         // 3. Delete ticket messages (via tickets)
-        console.log(`Deleting ticket messages for user ${id}`);
         const userTickets = await tx.select({ id: tickets.id }).from(tickets).where(eq(tickets.userId, id));
         for (const ticket of userTickets) {
           await tx.delete(ticketMessages).where(eq(ticketMessages.ticketId, ticket.id));
         }
 
         // 4. Delete tickets
-        console.log(`Deleting tickets for user ${id}`);
         await tx.delete(tickets).where(eq(tickets.userId, id));
 
         // 5. Delete notifications
-        console.log(`Deleting notifications for user ${id}`);
         await tx.delete(notifications).where(eq(notifications.userId, id));
 
         // 6. Delete password reset tokens
-        console.log(`Deleting password reset tokens for user ${id}`);
         await tx.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, id));
 
         // 7. Delete email verification tokens
-        console.log(`Deleting email verification tokens for user ${id}`);
         await tx.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, id));
 
         // 8. Delete API keys
-        console.log(`Deleting API keys for user ${id}`);
         await tx.delete(apiKeys).where(eq(apiKeys.userId, id));
 
         // 9. Delete server logs
-        console.log(`Deleting server logs for user ${id}`);
         await tx.delete(serverLogs).where(eq(serverLogs.userId, id));
 
         // 10. Finally, delete the user record
-        console.log(`Deleting user record for user ${id}`);
         await tx.delete(users).where(eq(users.id, id));
-
-        console.log(`Successfully deleted user ${id} and all related data`);
       });
     } catch (error) {
       console.error(`Error deleting user ${id}:`, error);
@@ -724,7 +709,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTransaction(id: number, updates: Partial<Transaction>): Promise<void> {
-    console.log(`Updating transaction ${id} with:`, updates);
     await db.update(transactions).set(updates).where(eq(transactions.id, id));
   }
 
@@ -916,7 +900,6 @@ export class DatabaseStorage implements IStorage {
 
     // Then delete the ticket itself
     await db.delete(tickets).where(eq(tickets.id, id));
-    console.log(`Deleted ticket with ID ${id} and all associated messages`);
   }
 
   async getAllTickets(): Promise<Ticket[]> {
@@ -1067,31 +1050,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertSetting(key: string, value: string): Promise<void> {
-    console.log(`Storage: Upserting setting ${key} = ${key.includes('token') ? '***' : value}`);
     try {
       const [existingSetting] = await db.select().from(settings).where(eq(settings.key, key));
 
-      console.log(`Storage: Existing setting found: ${existingSetting ? 'yes' : 'no'}`);
-
       if (existingSetting) {
-        console.log(`Storage: Updating existing setting ${key}`);
         await db.update(settings)
           .set({ value, updatedAt: new Date() })
           .where(eq(settings.key, key));
-
-        console.log(`Storage: Updated setting ${key}`);
       } else {
-        console.log(`Storage: Inserting new setting ${key}`);
         await db.insert(settings).values({ key, value });
-        console.log(`Storage: Inserted setting ${key}`);
       }
 
       // Verify the setting was saved correctly
       const [verifiedSetting] = await db.select().from(settings).where(eq(settings.key, key));
-      console.log(`Storage: Verification - Setting ${key} exists: ${verifiedSetting ? 'yes' : 'no'}`);
-      if (verifiedSetting) {
-        console.log(`Storage: Verification - Value matches: ${verifiedSetting.value === value}`);
-      }
     } catch (error) {
       console.error(`Storage: Error upserting setting ${key}:`, error);
       throw error; // Rethrow to allow caller to handle
@@ -1310,8 +1281,6 @@ export class DatabaseStorage implements IStorage {
     totalCount: number;
     totalPages: number;
   }> {
-    console.log('Searching email logs with params:', params);
-
     try {
       // Set default pagination values
       const page = params.page || 1;
@@ -1378,8 +1347,6 @@ export class DatabaseStorage implements IStorage {
         .offset(offset);
 
       const logs = await queryBuilder;
-
-      console.log(`Found ${logs.length} email logs (page ${page} of ${totalPages}, total: ${totalCount})`);
 
       return {
         logs,
@@ -2524,9 +2491,7 @@ export class DatabaseStorage implements IStorage {
         reference_2: `Daily Login Award - ${new Date().toISOString()}`
       };
 
-      console.log(`Adding ${award.virtFusionTokens} tokens to VirtFusion user ${user.virtFusionId} for award ${awardId}`);
       const result = await virtFusionApi.addCreditToUser(user.virtFusionId, creditData);
-      console.log('VirtFusion API response:', result);
       
       if (!result || !result.data || !result.data.id) {
         return {
@@ -2545,7 +2510,6 @@ export class DatabaseStorage implements IStorage {
 
       // Create a transaction record for the award
       const transactionAmount = Number((award.virtFusionTokens / 100).toFixed(2));
-      console.log(`Creating transaction: userId=${userId}, amount=${transactionAmount}, tokens=${award.virtFusionTokens}`);
       
       const transaction = await this.createTransaction({
         userId: userId,
@@ -2556,8 +2520,6 @@ export class DatabaseStorage implements IStorage {
         paymentMethod: 'Daily Login Award',
         virtFusionCreditId: String(result.data.id)
       });
-      
-      console.log('Transaction created:', transaction);
       
       return {
         success: true,

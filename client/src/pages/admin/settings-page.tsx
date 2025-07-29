@@ -319,14 +319,22 @@ const hubspotSchema = z.object({
   hubspotApiKey: z.string().min(1, { message: "API Key is required when HubSpot is enabled" }).optional(),
   hubspotChatEnabled: z.boolean().default(false),
   hubspotTicketEnabled: z.boolean().default(false),
-  hubspotTicketFormId: z.string().optional(),
-  hubspotContactFormId: z.string().optional(),
-  hubspotPhoneField: z.string().optional(),
-  hubspotCompanyField: z.string().optional(),
-  hubspotAddressField: z.string().optional(),
 });
 
 type HubspotFormData = z.infer<typeof hubspotSchema>;
+
+// WordPress settings schema
+const wordpressSchema = z.object({
+  wordpressEnabled: z.boolean().default(false),
+  wordpressSiteUrl: z.string().url({ message: "Please enter a valid URL" }).optional(),
+  wordpressApiKey: z.string().min(1, { message: "API Key is required when WordPress is enabled" }).optional(),
+  wordpressUsername: z.string().min(1, { message: "Username is required when WordPress is enabled" }).optional(),
+  wordpressPassword: z.string().min(1, { message: "Password is required when WordPress is enabled" }).optional(),
+  wordpressAutoSync: z.boolean().default(false),
+  wordpressSyncInterval: z.number().min(1, { message: "Sync interval must be at least 1 minute" }).default(60),
+});
+
+type WordPressFormData = z.infer<typeof wordpressSchema>;
 
 // Define the settings options for dropdown
 const settingsOptions = [
@@ -338,6 +346,7 @@ const settingsOptions = [
   { value: "team", label: "Team", icon: <Users className="h-4 w-4 mr-2" /> },
   { value: "virtfusion", label: "VirtFusion API", icon: <Server className="h-4 w-4 mr-2" /> },
   { value: "hubspot", label: "HubSpot", icon: <MessageSquare className="h-4 w-4 mr-2" /> },
+  { value: "wordpress", label: "WordPress", icon: <Globe className="h-4 w-4 mr-2" /> },
   { value: "dns", label: "DNS", icon: <Globe className="h-4 w-4 mr-2" /> },
   { value: "departments", label: "Departments", icon: <Merge className="h-4 w-4 mr-2" /> },
   { value: "tickets", label: "Tickets", icon: <Ticket className="h-4 w-4 mr-2" /> },
@@ -500,11 +509,20 @@ export default function SettingsPage() {
       hubspotApiKey: getSettingValue("hubspot_api_key", ""),
       hubspotChatEnabled: getSettingValue("hubspot_chat_enabled", "false") === "true",
       hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
-      hubspotTicketFormId: getSettingValue("hubspot_ticket_form_id", ""),
-      hubspotContactFormId: getSettingValue("hubspot_contact_form_id", ""),
-      hubspotPhoneField: getSettingValue("hubspot_phone_field", ""),
-      hubspotCompanyField: getSettingValue("hubspot_company_field", ""),
-      hubspotAddressField: getSettingValue("hubspot_address_field", ""),
+    },
+  });
+
+  // WordPress form
+  const wordpressForm = useForm<WordPressFormData>({
+    resolver: zodResolver(wordpressSchema),
+    defaultValues: {
+      wordpressEnabled: getSettingValue("wordpress_enabled", "false") === "true",
+      wordpressSiteUrl: getSettingValue("wordpress_site_url", ""),
+      wordpressApiKey: getSettingValue("wordpress_api_key", ""),
+      wordpressUsername: getSettingValue("wordpress_username", ""),
+      wordpressPassword: getSettingValue("wordpress_password", ""),
+      wordpressAutoSync: getSettingValue("wordpress_auto_sync", "false") === "true",
+      wordpressSyncInterval: parseInt(getSettingValue("wordpress_sync_interval", "60")),
     },
   });
 
@@ -1258,22 +1276,17 @@ export default function SettingsPage() {
     }
   };
 
-  // Update form values when settings change
-  useEffect(() => {
-    if (settings.length > 0) {
-      // Update HubSpot form with settings
-      hubspotForm.reset({
-        hubspotEnabled: getSettingValue("hubspot_enabled", "false") === "true",
-        hubspotPortalId: getSettingValue("hubspot_portal_id", ""),
-        hubspotApiKey: getSettingValue("hubspot_api_key", ""),
-        hubspotChatEnabled: getSettingValue("hubspot_chat_enabled", "false") === "true",
-        hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
-        hubspotTicketFormId: getSettingValue("hubspot_ticket_form_id", ""),
-        hubspotContactFormId: getSettingValue("hubspot_contact_form_id", ""),
-        hubspotPhoneField: getSettingValue("hubspot_phone_field", ""),
-        hubspotCompanyField: getSettingValue("hubspot_company_field", ""),
-        hubspotAddressField: getSettingValue("hubspot_address_field", ""),
-      });
+        // Update form values when settings change
+      useEffect(() => {
+        if (settings.length > 0) {
+          // Update HubSpot form with settings
+          hubspotForm.reset({
+            hubspotEnabled: getSettingValue("hubspot_enabled", "false") === "true",
+            hubspotPortalId: getSettingValue("hubspot_portal_id", ""),
+            hubspotApiKey: getSettingValue("hubspot_api_key", ""),
+            hubspotChatEnabled: getSettingValue("hubspot_chat_enabled", "false") === "true",
+            hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
+          });
 
       // Update VirtFusion form with all settings
       virtFusionForm.reset({
@@ -1589,15 +1602,41 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "hubspot_api_key", value: data.hubspotApiKey || "" });
       await updateSettingMutation.mutateAsync({ key: "hubspot_chat_enabled", value: data.hubspotChatEnabled.toString() });
       await updateSettingMutation.mutateAsync({ key: "hubspot_ticket_enabled", value: data.hubspotTicketEnabled.toString() });
-      await updateSettingMutation.mutateAsync({ key: "hubspot_ticket_form_id", value: data.hubspotTicketFormId || "" });
-      await updateSettingMutation.mutateAsync({ key: "hubspot_contact_form_id", value: data.hubspotContactFormId || "" });
-      await updateSettingMutation.mutateAsync({ key: "hubspot_phone_field", value: data.hubspotPhoneField || "" });
-      await updateSettingMutation.mutateAsync({ key: "hubspot_company_field", value: data.hubspotCompanyField || "" });
-      await updateSettingMutation.mutateAsync({ key: "hubspot_address_field", value: data.hubspotAddressField || "" });
 
       toast({
         title: "Settings saved",
-        description: "HubSpot settings have been updated",
+        description: "HubSpot settings have been updated. Existing tickets will be synced automatically when created.",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
+    } catch (error: any) {
+      toast({
+        title: "Error saving settings",
+        description: error.message || "Failed to save settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaveInProgress(false);
+    }
+  };
+
+  // Handle WordPress form submission
+  const onWordPressSubmit = async (data: WordPressFormData) => {
+    setSaveInProgress(true);
+
+    try {
+      // Save WordPress settings
+      await updateSettingMutation.mutateAsync({ key: "wordpress_enabled", value: data.wordpressEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "wordpress_site_url", value: data.wordpressSiteUrl || "" });
+      await updateSettingMutation.mutateAsync({ key: "wordpress_api_key", value: data.wordpressApiKey || "" });
+      await updateSettingMutation.mutateAsync({ key: "wordpress_username", value: data.wordpressUsername || "" });
+      await updateSettingMutation.mutateAsync({ key: "wordpress_password", value: data.wordpressPassword || "" });
+      await updateSettingMutation.mutateAsync({ key: "wordpress_auto_sync", value: data.wordpressAutoSync.toString() });
+      await updateSettingMutation.mutateAsync({ key: "wordpress_sync_interval", value: data.wordpressSyncInterval.toString() });
+
+      toast({
+        title: "Settings saved",
+        description: "WordPress settings have been updated",
       });
 
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
@@ -1986,6 +2025,245 @@ export default function SettingsPage() {
                 </form>
               </TabsContent>
 
+              <TabsContent value="wordpress">
+                <form onSubmit={wordpressForm.handleSubmit(onWordPressSubmit)}>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium">WordPress Integration</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Configure WordPress integration for content management and synchronization
+                      </p>
+                    </div>
+
+                    {/* Setup Documentation */}
+                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">📋 Setup Instructions</h4>
+                      <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+                        <div>
+                          <strong>Step 1: WordPress Site URL</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Enter your WordPress site URL (e.g., https://yourdomain.com)</li>
+                            <li>Ensure your WordPress site has REST API enabled</li>
+                            <li>The URL should be accessible and not require authentication</li>
+                          </ul>
+                        </div>
+                        
+                        <div>
+                          <strong>Step 2: WordPress API Authentication</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Create an API key in your WordPress admin panel</li>
+                            <li>Go to Users → Profile → Application Passwords</li>
+                            <li>Create a new application password for SkyPANEL</li>
+                            <li>Use your WordPress username and the generated password</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <strong>Step 3: Content Synchronization</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Enable auto-sync to automatically sync content from WordPress</li>
+                            <li>Set sync interval (default: 60 minutes)</li>
+                            <li>Content will be cached locally for faster access</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <strong>Step 4: Integration Features</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Sync WordPress pages and posts to SkyPANEL</li>
+                            <li>Create and manage WordPress content from SkyPANEL admin</li>
+                            <li>Use WordPress as your homepage while keeping SkyPANEL functionality</li>
+                            <li>Automatic content updates and synchronization</li>
+                          </ul>
+                        </div>
+
+                        <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded p-2 mt-3">
+                          <strong>💡 Pro Tips:</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Test your connection after setup to verify everything works</li>
+                            <li>Use HTTPS URLs for security</li>
+                            <li>Keep your WordPress credentials secure</li>
+                            <li>Monitor sync status to ensure content stays up to date</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="wordpressEnabled">Enable WordPress Integration</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable WordPress integration for content management
+                          </p>
+                        </div>
+                        <Switch
+                          id="wordpressEnabled"
+                          checked={wordpressForm.watch("wordpressEnabled")}
+                          onCheckedChange={(checked) => wordpressForm.setValue("wordpressEnabled", checked)}
+                        />
+                      </div>
+
+                      {wordpressForm.watch("wordpressEnabled") && (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="wordpressSiteUrl">WordPress Site URL</Label>
+                              <Input
+                                id="wordpressSiteUrl"
+                                placeholder="https://yourdomain.com"
+                                {...wordpressForm.register("wordpressSiteUrl")}
+                              />
+                              {wordpressForm.formState.errors.wordpressSiteUrl && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {wordpressForm.formState.errors.wordpressSiteUrl.message}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="wordpressApiKey">API Key</Label>
+                              <Input
+                                id="wordpressApiKey"
+                                type="password"
+                                placeholder="Enter your WordPress API key"
+                                {...wordpressForm.register("wordpressApiKey")}
+                              />
+                              {wordpressForm.formState.errors.wordpressApiKey && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {wordpressForm.formState.errors.wordpressApiKey.message}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="wordpressUsername">Username</Label>
+                              <Input
+                                id="wordpressUsername"
+                                placeholder="Enter your WordPress username"
+                                {...wordpressForm.register("wordpressUsername")}
+                              />
+                              {wordpressForm.formState.errors.wordpressUsername && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {wordpressForm.formState.errors.wordpressUsername.message}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="wordpressPassword">Password</Label>
+                              <Input
+                                id="wordpressPassword"
+                                type="password"
+                                placeholder="Enter your WordPress password"
+                                {...wordpressForm.register("wordpressPassword")}
+                              />
+                              {wordpressForm.formState.errors.wordpressPassword && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {wordpressForm.formState.errors.wordpressPassword.message}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <Label htmlFor="wordpressAutoSync">Enable Auto Sync</Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Automatically sync content from WordPress
+                                </p>
+                              </div>
+                              <Switch
+                                id="wordpressAutoSync"
+                                checked={wordpressForm.watch("wordpressAutoSync")}
+                                onCheckedChange={(checked) => wordpressForm.setValue("wordpressAutoSync", checked)}
+                              />
+                            </div>
+
+                            {wordpressForm.watch("wordpressAutoSync") && (
+                              <div className="space-y-2">
+                                <Label htmlFor="wordpressSyncInterval">Sync Interval (minutes)</Label>
+                                <Input
+                                  id="wordpressSyncInterval"
+                                  type="number"
+                                  min="1"
+                                  placeholder="60"
+                                  {...wordpressForm.register("wordpressSyncInterval", { valueAsNumber: true })}
+                                />
+                                {wordpressForm.formState.errors.wordpressSyncInterval && (
+                                  <p className="text-sm text-destructive mt-1">
+                                    {wordpressForm.formState.errors.wordpressSyncInterval.message}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  const response = await apiRequest("/api/admin/wordpress/test-connection", {
+                                    method: "POST"
+                                  });
+                                  if (response.success) {
+                                    toast({
+                                      title: "Connection successful",
+                                      description: "WordPress connection test passed",
+                                    });
+                                  } else {
+                                    toast({
+                                      title: "Connection failed",
+                                      description: response.message || "Failed to connect to WordPress",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                } catch (error: any) {
+                                  toast({
+                                    title: "Connection failed",
+                                    description: error.message || "Failed to test WordPress connection",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              Test Connection
+                            </Button>
+                          </div>
+                        </>
+                      )}
+
+                      <div className="flex items-center justify-between pt-4">
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            type="submit"
+                            disabled={saveInProgress}
+                            style={getBrandButtonStyle(saveInProgress)}
+                          >
+                            {saveInProgress ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="mr-2 h-4 w-4" />
+                                Save
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </TabsContent>
+
               <TabsContent value="dns">
                 <div className="space-y-6">
                   <div>
@@ -2126,7 +2404,7 @@ export default function SettingsPage() {
                     <div>
                       <h3 className="text-lg font-medium">HubSpot Integration</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Configure HubSpot integration for live chat and ticket support
+                        Configure HubSpot integration for live chat and automatic ticket syncing
                       </p>
                     </div>
 
@@ -2165,12 +2443,12 @@ export default function SettingsPage() {
                         </div>
 
                         <div>
-                          <strong>Step 4: Client Data Sync (Automatic)</strong>
+                          <strong>Step 4: Automatic Ticket Sync</strong>
                           <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li>Once configured, SkyPANEL automatically syncs client data to HubSpot</li>
-                            <li>Client information is sent when users create tickets, use live chat, or make purchases</li>
-                            <li>No additional setup required - works automatically with your existing HubSpot account</li>
-                            <li>Client data includes: name, email, company, phone, and account details</li>
+                            <li>Once configured, SkyPANEL automatically syncs tickets to HubSpot</li>
+                            <li>When users create tickets in SkyPANEL, they're automatically created in HubSpot</li>
+                            <li>Client contact information is synced automatically</li>
+                            <li>No additional form setup required - works with your existing HubSpot account</li>
                           </ul>
                         </div>
 
@@ -2191,7 +2469,7 @@ export default function SettingsPage() {
                         <div className="space-y-0.5">
                           <Label htmlFor="hubspotEnabled">Enable HubSpot Integration</Label>
                           <p className="text-sm text-muted-foreground">
-                            Enable HubSpot integration for live chat and ticket support
+                            Enable HubSpot integration for live chat and ticket syncing
                           </p>
                         </div>
                         <Switch
@@ -2280,13 +2558,13 @@ export default function SettingsPage() {
                           <Separator />
 
                           <div>
-                            <h4 className="text-md font-medium mb-4">Ticket Support Configuration</h4>
+                            <h4 className="text-md font-medium mb-4">Ticket Sync Configuration</h4>
                             <div className="space-y-4">
                               <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
-                                  <Label htmlFor="hubspotTicketEnabled">Enable Ticket Support</Label>
+                                  <Label htmlFor="hubspotTicketEnabled">Enable Ticket Sync</Label>
                                   <p className="text-sm text-muted-foreground">
-                                    Enable HubSpot ticket creation for support requests
+                                    Automatically sync SkyPANEL tickets to HubSpot
                                   </p>
                                 </div>
                                 <Switch
@@ -2297,145 +2575,22 @@ export default function SettingsPage() {
                               </div>
 
                               {hubspotForm.watch("hubspotTicketEnabled") && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                    <Label htmlFor="hubspotTicketFormId">Ticket Form ID</Label>
-                                    <Input
-                                      id="hubspotTicketFormId"
-                                      placeholder="12345678-1234-1234-1234-123456789012"
-                                      {...hubspotForm.register("hubspotTicketFormId")}
-                                    />
-                                    {hubspotForm.formState.errors.hubspotTicketFormId && (
-                                      <p className="text-sm text-destructive mt-1">
-                                        {hubspotForm.formState.errors.hubspotTicketFormId.message}
-                                      </p>
-                                    )}
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      The form ID for creating support tickets in HubSpot
-                                      <br />
-                                      <span className="text-xs text-blue-600 dark:text-blue-400">
-                                        💡 Found in Settings → Objects → Tickets → Forms
-                                      </span>
-                                    </p>
-                                  </div>
-
-                                  <div className="space-y-2">
-                                    <Label htmlFor="hubspotContactFormId">Contact Form ID</Label>
-                                    <Input
-                                      id="hubspotContactFormId"
-                                      placeholder="12345678-1234-1234-1234-123456789012"
-                                      {...hubspotForm.register("hubspotContactFormId")}
-                                    />
-                                    {hubspotForm.formState.errors.hubspotContactFormId && (
-                                      <p className="text-sm text-destructive mt-1">
-                                        {hubspotForm.formState.errors.hubspotContactFormId.message}
-                                      </p>
-                                    )}
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                      The form ID for creating contacts in HubSpot
-                                      <br />
-                                      <span className="text-xs text-blue-600 dark:text-blue-400">
-                                        💡 Found in Settings → Objects → Contacts → Forms
-                                      </span>
-                                    </p>
-                                  </div>
+                                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                                  <h5 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">🔄 Automatic Ticket Sync</h5>
+                                  <p className="text-sm text-green-800 dark:text-green-200">
+                                    When enabled, SkyPANEL will automatically:
+                                  </p>
+                                  <ul className="list-disc list-inside mt-2 text-sm text-green-800 dark:text-green-200 space-y-1">
+                                    <li>Create HubSpot tickets when users submit support tickets</li>
+                                    <li>Sync client contact information to HubSpot</li>
+                                    <li>Include ticket details, priority, and department information</li>
+                                    <li>Maintain ticket status synchronization</li>
+                                  </ul>
+                                  <p className="text-xs text-green-700 dark:text-green-300 mt-2">
+                                    💡 No additional form setup required - works automatically with your existing HubSpot account
+                                  </p>
                                 </div>
                               )}
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          <div>
-                            <h4 className="text-md font-medium mb-4">Client Data Sync</h4>
-                            <div className="space-y-4">
-                              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                                <h5 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">🔄 Automatic Contact Sync</h5>
-                                <p className="text-sm text-green-800 dark:text-green-200">
-                                  When enabled, SkyPANEL will automatically sync client information to HubSpot when:
-                                </p>
-                                <ul className="list-disc list-inside mt-2 text-sm text-green-800 dark:text-green-200 space-y-1">
-                                  <li>Users create support tickets</li>
-                                  <li>Users interact with live chat</li>
-                                  <li>Users make purchases or transactions</li>
-                                  <li>Users register or update their profile</li>
-                                </ul>
-                                <p className="text-xs text-green-700 dark:text-green-300 mt-2">
-                                  💡 Client data includes: name, email, company, phone, and account details
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          <div>
-                            <h4 className="text-md font-medium mb-4">Additional Contact Fields</h4>
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="hubspotPhoneField">Phone Field</Label>
-                                  <Input
-                                    id="hubspotPhoneField"
-                                    placeholder="phone"
-                                    {...hubspotForm.register("hubspotPhoneField")}
-                                  />
-                                  {hubspotForm.formState.errors.hubspotPhoneField && (
-                                    <p className="text-sm text-destructive mt-1">
-                                      {hubspotForm.formState.errors.hubspotPhoneField.message}
-                                    </p>
-                                  )}
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    HubSpot contact property for phone number
-                                    <br />
-                                    <span className="text-xs text-blue-600 dark:text-blue-400">
-                                      💡 Default: "phone"
-                                    </span>
-                                  </p>
-                                </div>
-
-                                <div className="space-y-2">
-                                  <Label htmlFor="hubspotCompanyField">Company Field</Label>
-                                  <Input
-                                    id="hubspotCompanyField"
-                                    placeholder="company"
-                                    {...hubspotForm.register("hubspotCompanyField")}
-                                  />
-                                  {hubspotForm.formState.errors.hubspotCompanyField && (
-                                    <p className="text-sm text-destructive mt-1">
-                                      {hubspotForm.formState.errors.hubspotCompanyField.message}
-                                    </p>
-                                  )}
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    HubSpot contact property for company name
-                                    <br />
-                                    <span className="text-xs text-blue-600 dark:text-blue-400">
-                                      💡 Default: "company"
-                                    </span>
-                                  </p>
-                                </div>
-
-                                <div className="space-y-2">
-                                  <Label htmlFor="hubspotAddressField">Address Field</Label>
-                                  <Input
-                                    id="hubspotAddressField"
-                                    placeholder="address"
-                                    {...hubspotForm.register("hubspotAddressField")}
-                                  />
-                                  {hubspotForm.formState.errors.hubspotAddressField && (
-                                    <p className="text-sm text-destructive mt-1">
-                                      {hubspotForm.formState.errors.hubspotAddressField.message}
-                                    </p>
-                                  )}
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    HubSpot contact property for address
-                                    <br />
-                                    <span className="text-xs text-blue-600 dark:text-blue-400">
-                                      💡 Default: "address"
-                                    </span>
-                                  </p>
-                                </div>
-                              </div>
                             </div>
                           </div>
                         </>

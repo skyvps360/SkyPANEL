@@ -45,10 +45,13 @@ import awardsRoutes from "./routes/awards-routes";
 import adminCouponsRoutes from "./routes/admin-coupons";
 import couponRoutes from "./routes/coupon-routes";
 import oauthRoutes from "./routes/oauth-routes";
-
+import wordpressRoutes from "./routes/wordpress";
+import chatRoutes from "./routes/chat";
+import chatDepartmentsRoutes from "./routes/chat-departments";
 
 import { cronService } from "./services/cron-service";
 import { dnsBillingService } from "./services/dns-billing-service";
+import { ChatService } from "./chat-service";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import PDFDocument from "pdfkit";
 import { formatTicketPdf } from "./ticket-download";
@@ -180,31 +183,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // (This endpoint is used by the maintenance page to enable individual access)
   app.post("/api/maintenance/token/validate", (req, res) => {
     try {
-      console.log('Maintenance token validation request received');
-      console.log('Request body:', req.body);
-
       const { token } = req.body;
 
       if (!token) {
-        console.log('No token provided in request');
         return res.status(400).json({
           success: false,
           message: 'Token is required'
         });
       }
 
-      console.log('Validating token:', token);
       const isValid = validateMaintenanceToken(token);
-      console.log('Token is valid:', isValid);
 
       if (isValid) {
         // Set both the session and cookie bypass
         req.session.maintenanceBypass = true;
-        console.log('Setting maintenance bypass in session');
 
         // Set cookie for browser-based bypass (lasts 24 hours)
         // Make sure to use a string value for the cookie
-        console.log('Setting maintenance_bypass cookie');
         res.cookie('maintenance_bypass', 'true', {
           httpOnly: false,
           secure: process.env.NODE_ENV === 'production',
@@ -223,14 +218,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
           }
 
-          console.log('Session and cookie saved successfully');
           return res.json({
             success: true,
             message: 'Maintenance bypass enabled',
           });
         });
       } else {
-        console.log('Invalid token provided');
         return res.status(401).json({
           success: false,
           message: 'Invalid maintenance token'
@@ -248,7 +241,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/public/sla-plans", publicSlaRoutes);
   app.get("/api/public/packages", async (req, res) => {
     try {
-      console.log("Getting all packages for public display");
 
       // Check if environment variables are set
       if (!process.env.VIRTFUSION_API_URL || !process.env.VIRTFUSION_API_TOKEN) {
@@ -315,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .sort((a: any, b: any) => a.memory - b.memory);
 
-      console.log(`Returning ${allPackages.length} enabled packages from VirtFusion API with category information`);
+
       res.json(allPackages);
     } catch (error: any) {
       console.error("Error fetching public packages:", error);
@@ -337,19 +329,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update user profile
   app.patch("/api/user/profile", isAuthenticated, async (req, res) => {
     try {
-      console.log("Profile update request received:", req.body);
-
       const userId = req.user!.id;
-      console.log("User ID:", userId);
 
       const user = await storage.getUser(userId);
 
       if (!user) {
-        console.log("User not found for ID:", userId);
         return res.status(404).json({ error: "User not found" });
       }
-
-      console.log("Found user:", user);
 
       // Validate the request body
       const updateSchema = z.object({
@@ -365,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let validatedData;
       try {
         validatedData = updateSchema.parse(req.body);
-        console.log("Validated data:", validatedData);
+
       } catch (error) {
         console.error("Validation error:", error);
         if (error instanceof ZodError) {
@@ -378,27 +364,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedData.email && validatedData.email !== user.email) {
         const existingUser = await storage.getUserByEmail(validatedData.email);
         if (existingUser && existingUser.id !== userId) {
-          console.log("Email already in use:", validatedData.email);
+  
           return res.status(400).json({ error: "Email is already in use" });
         }
       }
 
       // Update user in database
-      console.log("Updating user in database:", validatedData);
       await storage.updateUser(userId, validatedData);
 
       // If user is linked to VirtFusion, sync the changes
       if (user.virtFusionId) {
         try {
-          console.log(`Syncing user ${userId} with VirtFusion using external relation ID`);
-
           // Use the VirtFusion API to update profile using external relation ID (same as admin endpoint)
           await virtFusionApi.modifyUserByExtRelationId(userId, {
             name: validatedData.fullName || user.fullName,
             email: validatedData.email || user.email,
           });
-
-          console.log(`Successfully synced user ${userId} with VirtFusion`);
         } catch (virtFusionError: any) {
           console.error("Error syncing with VirtFusion:", virtFusionError);
           // We don't fail the request if VirtFusion sync fails, just log the error
@@ -407,7 +388,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get the updated user to return
       const updatedUser = await storage.getUser(userId);
-      console.log("Updated user:", updatedUser);
       res.json(updatedUser);
     } catch (error: any) {
       console.error("Error updating user profile:", error);
@@ -553,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/packages', isAdmin, async (req, res) => {
     try {
       // Get all VirtFusion packages directly like the public endpoint
-      console.log("Getting all packages for admin pricing page");
+
       await virtFusionApi.updateSettings();
 
       // Test connection first
@@ -651,7 +631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 🖥️ Admin Hypervisor Management - Get all hypervisors (admin only)
   app.get("/api/admin/hypervisors", isAdmin, async (req, res) => {
     try {
-      console.log("Admin fetching hypervisors from VirtFusion API");
+
 
       // Get hypervisors from VirtFusion API
       const result = await virtFusionApi.getHypervisors();
@@ -671,12 +651,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 🖥️ Admin Hypervisor Groups Management - Get all hypervisor groups (admin only)
   app.get("/api/admin/hypervisor-groups", isAdmin, async (req, res) => {
     try {
-      console.log("Admin fetching hypervisor groups from VirtFusion API");
-
       // Get hypervisor groups from VirtFusion API (required for server creation)
       const result = await virtFusionApi.getHypervisorGroups();
-
-      console.log("VirtFusion hypervisor groups response:", JSON.stringify(result, null, 2));
 
       res.json(result);
     } catch (error: any) {
@@ -840,6 +816,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test VirtFusion API connection (admin only)
+  app.post(
+    "/api/admin/virtfusion/test-connection",
+    isAdmin,
+    async (req, res) => {
+      try {
+        console.log("Testing VirtFusion API connection...");
+
+        // Get the latest API settings
+        console.log("Fetching latest VirtFusion API settings from database");
+        const apiUrlSetting = await storage.getSetting("virtfusion_api_url");
+        const apiTokenSetting = await storage.getSetting(
+          "virtfusion_api_token",
+        );
+        const sslVerifySetting = await storage.getSetting(
+          "virtfusion_ssl_verify",
+        );
+
+        console.log("API settings retrieved from database:", {
+          apiUrl: apiUrlSetting?.value || "not set",
+          apiToken: apiTokenSetting?.value ? "***" : "not set",
+          sslVerify: sslVerifySetting?.value || "not set",
+        });
+
+        // Validate the settings
+        if (!apiUrlSetting?.value || !apiTokenSetting?.value) {
+          console.log("Missing API settings - cannot test connection");
+          return res.status(400).json({
+            success: false,
+            error:
+              "Missing API settings. Please configure API URL and token first.",
+          });
+        }
+
+        // Force the API client to use the latest settings
+        console.log("Updating VirtFusion API client with latest settings");
+        await virtFusionApi.updateSettings();
+
+        // Test the connection
+        try {
+          console.log("Making test request to VirtFusion API");
+          const result = await virtFusionApi.testConnection();
+          console.log(
+            "Connection test successful, response:",
+            JSON.stringify(result),
+          );
+
+          res.json({
+            success: true,
+            message: "Successfully connected to VirtFusion API",
+            data: result,
+          });
+        } catch (error: any) {
+          console.error("Connection test failed:", error);
+
+          res.status(500).json({
+            success: false,
+            error: "Failed to connect to VirtFusion API",
+            details: error.message || "Unknown error",
+            stack: error.stack,
+          });
+        }
+      } catch (error: any) {
+        console.error("Error testing VirtFusion connection:", error);
+        res.status(500).json({
+          success: false,
+          error: error.message || "Unknown error",
+          stack: error.stack,
+        });
+      }
+    },
+  );
+
+  // Temporary endpoint to create chat tables
+  app.post("/api/admin/create-chat-tables", isAdmin, async (req, res) => {
+    try {
+      console.log('Creating chat tables...');
+      
+      // Create chat_departments table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS chat_departments (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+      `);
+      
+      // Create chat_department_admins table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS chat_department_admins (
+          id SERIAL PRIMARY KEY,
+          department_id INTEGER NOT NULL REFERENCES chat_departments(id),
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+      `);
+      
+      // Create chat_sessions table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS chat_sessions (
+          id SERIAL PRIMARY KEY,
+          session_id TEXT NOT NULL UNIQUE,
+          user_id INTEGER REFERENCES users(id),
+          department_id INTEGER REFERENCES chat_departments(id),
+          status TEXT NOT NULL DEFAULT 'active',
+          started_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          ended_at TIMESTAMP,
+          last_activity_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          metadata JSONB DEFAULT '{}',
+          converted_to_ticket_id INTEGER
+        );
+      `);
+      
+      // Create chat_messages table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS chat_messages (
+          id SERIAL PRIMARY KEY,
+          session_id INTEGER NOT NULL REFERENCES chat_sessions(id),
+          sender_id INTEGER REFERENCES users(id),
+          sender_type TEXT NOT NULL,
+          message TEXT NOT NULL,
+          message_type TEXT NOT NULL DEFAULT 'text',
+          metadata JSONB DEFAULT '{}',
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+      `);
+      
+      // Create admin_chat_status table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS admin_chat_status (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          is_online BOOLEAN NOT NULL DEFAULT false,
+          is_available BOOLEAN NOT NULL DEFAULT false,
+          current_session_id INTEGER REFERENCES chat_sessions(id),
+          last_activity_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          metadata JSONB DEFAULT '{}'
+        );
+      `);
+      
+      // Create typing_indicators table
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS typing_indicators (
+          id SERIAL PRIMARY KEY,
+          session_id INTEGER NOT NULL REFERENCES chat_sessions(id),
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          is_typing BOOLEAN NOT NULL DEFAULT false,
+          last_typing_at TIMESTAMP NOT NULL DEFAULT NOW()
+        );
+      `);
+      
+      // Insert some default chat departments
+      await db.execute(`
+        INSERT INTO chat_departments (name, description) VALUES 
+        ('General Support', 'General customer support and inquiries'),
+        ('Technical Support', 'Technical issues and server problems'),
+        ('Billing Support', 'Billing and payment related questions')
+        ON CONFLICT DO NOTHING;
+      `);
+      
+      console.log('✅ Chat tables created successfully!');
+      res.json({ success: true, message: 'Chat tables created successfully!' });
+      
+    } catch (error: any) {
+      console.error('Error creating chat tables:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ----- User Server Management Routes -----
 
   // Get user's servers
@@ -854,12 +1002,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page as string) || 1;
       const perPage = parseInt(req.query.perPage as string) || 10;
 
-      console.log(`User ${userId} fetching their servers (page ${page}, perPage ${perPage})`);
+
 
       // Get user to find their VirtFusion ID
       const user = await storage.getUser(userId);
       if (!user || !user.virtFusionId) {
-        console.log(`User ${userId} has no VirtFusion ID, returning empty servers list`);
+
         return res.json({
           data: [],
           current_page: page,
@@ -880,13 +1028,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const endIndex = startIndex + perPage;
         const paginatedBasicServers = basicServers.slice(startIndex, endIndex);
 
-        console.log(`User ${userId} has ${total} servers, fetching detailed data for ${paginatedBasicServers.length} servers on page ${page}`);
+
 
         // Fetch detailed data for each server individually and process IP information
         const detailedServers = [];
         for (const basicServer of paginatedBasicServers) {
           try {
-            console.log(`Fetching detailed data for server ${basicServer.id}`);
+
             const detailedServer = await virtFusionApi.request("GET", `/servers/${basicServer.id}?remoteState=true`);
 
             if (detailedServer && detailedServer.data) {
@@ -1058,7 +1206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        console.log(`User ${userId} returning ${detailedServers.length} servers with detailed data for page ${page}`);
+
 
         return res.json({
           data: detailedServers,
@@ -1068,7 +1216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           total: total
         });
       } else {
-        console.log(`No servers found for user ${userId} (VirtFusion ID: ${user.virtFusionId})`);
+
         return res.json({
           data: [],
           current_page: page,
@@ -1097,7 +1245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid server ID" });
       }
 
-      console.log(`User ${userId} fetching server ${serverId} details`);
+      
 
       // Get user to find their VirtFusion ID
       const user = await storage.getUser(userId);
@@ -1124,11 +1272,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         serverOwnerId = server.ownerId || server.owner?.id || server.owner;
       }
 
-      console.log(`Server ${serverId} ownership check: server owner = ${serverOwnerId}, user VirtFusion ID = ${user.virtFusionId}`);
-      console.log(`Server object structure:`, JSON.stringify(server, null, 2));
+      
 
       if (serverOwnerId !== user.virtFusionId) {
-        console.log(`User ${userId} (VirtFusion ID: ${user.virtFusionId}) attempted to access server ${serverId} owned by ${serverOwnerId}`);
+        
         return res.status(403).json({ error: "Access denied - server does not belong to you" });
       }
 
@@ -1145,7 +1292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } : null
       };
 
-      console.log(`User ${userId} successfully retrieved server ${serverId} details, status: ${transformedServer.status}`);
+      
       return res.json(transformedServer);
     } catch (error) {
       console.error('Error fetching server details:', error);
@@ -1890,7 +2037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const isAdmin = req.user!.role === 'admin';
 
-      console.log(`Getting transaction ID: ${transactionId} for user ID: ${userId}`);
+
 
       // Get the specific transaction
       const transaction = await storage.getTransaction(transactionId);
@@ -1913,12 +2060,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
 
         // Log the transaction being returned
-        console.log(`Returning transaction with user data:`, JSON.stringify(transactionWithUser));
+
 
         res.json(transactionWithUser);
       } else {
         // Log the transaction being returned
-        console.log(`Returning transaction:`, JSON.stringify(transaction));
+
 
         res.json(transaction);
       }
@@ -1971,7 +2118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to format a single transaction PDF
   function formatSingleTransactionPdf(doc: PDFKit.PDFDocument, transaction: any, user: any, companyName: string, companyLogo: string) {
     // Debug transaction data
-    console.log('Generating PDF for transaction:', JSON.stringify(transaction, null, 2));
+    
 
     // Add logo if available
     if (companyLogo) {
@@ -2337,21 +2484,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { amount, paymentId, verificationData } = req.body;
 
-      console.log(`Processing VirtFusion token purchase: amount=${amount}, paymentId=${paymentId}`);
-
       if (!amount || amount <= 0 || !paymentId) {
-        console.log("Invalid token purchase request - missing amount or paymentId");
         return res.status(400).json({ error: "Invalid amount or payment ID" });
       }
 
       // Validate amount limits (minimum $1, maximum $1000)
       if (amount < 1) {
-        console.log(`Amount too low: ${amount}`);
         return res.status(400).json({ error: "Minimum amount is $1.00" });
       }
 
       if (amount > 1000) {
-        console.log(`Amount too high: ${amount}`);
         return res.status(400).json({ error: "Maximum amount is $1000.00" });
       }
 
@@ -2375,14 +2517,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if the user has a VirtFusion ID
       if (!req.user!.virtFusionId) {
-        console.log(`User ${req.user!.id} does not have a linked VirtFusion account`);
         return res.status(400).json({
           error: "Your account is not linked to VirtFusion yet. Please contact support.",
           needsSync: true
         });
       }
-
-      console.log(`User has VirtFusion extRelationId: ${req.user!.virtFusionId}`);
 
       // Check VirtFusion API configuration
       await virtFusionApi.updateSettings();
@@ -2693,8 +2832,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
-
 
   // Custom Credits System Endpoints
 
@@ -4385,7 +4522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error sending Discord notification for new ticket:", webhookError.message);
       }
 
-      // Sync client data to HubSpot
+      // Sync client data and create ticket in HubSpot
       try {
         await hubspotService.initialize();
         
@@ -4398,6 +4535,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             firstname: user.firstName || user.fullName?.split(' ')[0] || '',
             lastname: user.lastName || user.fullName?.split(' ').slice(1).join(' ') || ''
           });
+          
+          // Create HubSpot ticket if ticket sync is enabled
+          if (await hubspotService.isTicketEnabled()) {
+            console.log(`Creating HubSpot ticket for SkyPANEL ticket ${ticket.id}`);
+            
+            const ticketContent = `${req.body.message || "(No message provided)"}\n\n${additionalInfo}`;
+            
+            await hubspotService.createTicket({
+              subject: ticket.subject,
+              content: ticketContent,
+              email: user.email,
+              priority: ticket.priority || 'MEDIUM',
+              category: department.name || 'general'
+            });
+            
+            console.log(`Successfully created HubSpot ticket for SkyPANEL ticket ${ticket.id}`);
+          }
           
           console.log(`Successfully synced client data to HubSpot for ticket ${ticket.id}`);
         }
@@ -5840,12 +5994,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
-
-
-
-
-
 
   // Delete user (admin only)
   app.delete("/api/admin/users/:id", isAdmin, async (req, res) => {
@@ -8037,10 +8185,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-
-
-
   // Get a specific package
   app.get("/api/packages/:id", isAuthenticated, async (req, res) => {
     try {
@@ -8314,8 +8458,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!brandingObject.company_color) {
         brandingObject.company_color = brandingObject.primary_color;
       }
-
-
 
       res.json(brandingObject);
     } catch (error: any) {
@@ -11172,6 +11314,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // OAuth routes
   app.use("/api/oauth", oauthRoutes);
 
+  // WordPress routes
+  app.use("/api/admin/wordpress", isAuthenticated, isAdmin, wordpressRoutes);
+
+  // Chat routes
+  app.use("/api/chat", chatRoutes);
+  app.use("/api/chat-departments", chatDepartmentsRoutes);
+
   // Admin settings routes are defined directly in this file instead of using the separate router
 
   // Register API-only routes (authenticated via API keys)
@@ -11652,7 +11801,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
 
-
+  // Initialize chat service
+  const chatService = new ChatService(httpServer);
 
   // Create a manual WebSocket server for VNC
   const vncWebSocketServer = new WebSocketServer({ noServer: true });
@@ -11669,6 +11819,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (url.pathname === '/vnc-proxy') {
       console.log('Handling VNC WebSocket upgrade directly');
       handleWebSocketUpgrade(request, socket, head);
+
+    } else if (url.pathname === '/chat-ws') {
+      console.log('Handling chat WebSocket upgrade');
+      chatService.handleUpgrade(request, socket, head);
 
     } else if (url.pathname === '/' && process.env.NODE_ENV === 'development') {
       // Allow Vite HMR WebSocket connections in development

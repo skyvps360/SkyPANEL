@@ -11,8 +11,6 @@ interface HubSpotSettings {
   apiKey: string;
   chatEnabled: boolean;
   ticketEnabled: boolean;
-  ticketFormId?: string;
-  contactFormId?: string;
 }
 
 class HubSpotService {
@@ -41,8 +39,6 @@ class HubSpotService {
       const apiKey = await storage.getSetting('hubspot_api_key');
       const chatEnabled = await storage.getSetting('hubspot_chat_enabled');
       const ticketEnabled = await storage.getSetting('hubspot_ticket_enabled');
-      const ticketFormId = await storage.getSetting('hubspot_ticket_form_id');
-      const contactFormId = await storage.getSetting('hubspot_contact_form_id');
 
       return {
         enabled: enabled?.value === 'true',
@@ -50,8 +46,6 @@ class HubSpotService {
         apiKey: apiKey?.value || '',
         chatEnabled: chatEnabled?.value === 'true',
         ticketEnabled: ticketEnabled?.value === 'true',
-        ticketFormId: ticketFormId?.value || '',
-        contactFormId: contactFormId?.value || '',
       };
     } catch (error) {
       console.error('Failed to load HubSpot settings:', error);

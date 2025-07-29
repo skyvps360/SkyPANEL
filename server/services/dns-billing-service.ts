@@ -15,14 +15,11 @@ export class DnsBillingService {
     failed: number;
     errors: Array<{ userId: number; planName: string; error: string }>;
   }> {
-    console.log("=== STARTING MONTHLY DNS BILLING RENEWALS ===");
-    
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     // Only process on the 1st of the month
     if (today.getDate() !== 1) {
-      console.log(`Skipping DNS renewals - not the 1st of the month (today is ${today.getDate()})`);
       return { processed: 0, successful: 0, failed: 0, errors: [] };
     }
 
@@ -50,8 +47,6 @@ export class DnsBillingService {
           gte(dnsPlans.price, 0.01) // Only process paid plans (skip free plans)
         ));
 
-      console.log(`Found ${subscriptionsToRenew.length} DNS subscriptions to renew`);
-
       for (const { subscription, plan, user } of subscriptionsToRenew) {
         if (!plan || !user) {
           console.error(`Missing plan or user data for subscription ${subscription.id}`);
@@ -63,7 +58,6 @@ export class DnsBillingService {
         try {
           await this.renewSubscription(subscription, plan, user);
           results.successful++;
-          console.log(`✅ Successfully renewed DNS plan ${plan.name} for user ${user.id}`);
         } catch (error: any) {
           results.failed++;
           const errorMessage = error.message || 'Unknown error';
@@ -75,9 +69,6 @@ export class DnsBillingService {
           console.error(`❌ Failed to renew DNS plan ${plan.name} for user ${user.id}:`, errorMessage);
         }
       }
-
-      console.log("=== MONTHLY DNS BILLING RENEWALS COMPLETE ===");
-      console.log(`Processed: ${results.processed}, Successful: ${results.successful}, Failed: ${results.failed}`);
 
       return results;
     } catch (error: any) {
@@ -96,8 +87,6 @@ export class DnsBillingService {
   ): Promise<void> {
     const now = new Date();
     const tokensRequired = plan.price * 100; // Convert USD to tokens
-
-    console.log(`Processing renewal for user ${user.id}, plan ${plan.name}, tokens required: ${tokensRequired}`);
 
     // Check if user is linked to VirtFusion
     if (!user.virtFusionId) {

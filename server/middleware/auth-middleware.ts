@@ -2,6 +2,32 @@ import { Request, Response, NextFunction } from 'express';
 import { ApiKeyService } from '../api-key-service';
 
 /**
+ * Middleware to authenticate token-based requests
+ * @param req Request object
+ * @param res Response object
+ * @param next Next function
+ */
+export function authenticateToken(req: Request, res: Response, next: NextFunction) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: "Unauthorized" });
+}
+
+/**
+ * Middleware to require admin authentication
+ * @param req Request object
+ * @param res Response object
+ * @param next Next function
+ */
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (req.isAuthenticated() && req.user?.role === "admin") {
+    return next();
+  }
+  res.status(403).json({ error: "Forbidden: Admin access required" });
+}
+
+/**
  * Middleware to require authentication for a route
  * @param req Request object
  * @param res Response object

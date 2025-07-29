@@ -185,9 +185,9 @@ export function SharedFooter() {
               <li className="group">
                 <FooterLink href="/status">System Status</FooterLink>
               </li>
-              {/* <li className="group">
+              <li className="group">
                 <FooterLink href="/speed-test">Network Speed Test</FooterLink>
-              </li> */} {/* Temporarily hidden for fixes */}
+              </li>
             </ul>
           </div>
 

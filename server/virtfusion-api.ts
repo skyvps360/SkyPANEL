@@ -575,7 +575,6 @@ export class VirtFusionApi {
         const serversResponse = await this.request("GET", "/servers?results=1");
         if (serversResponse && serversResponse.data && Array.isArray(serversResponse.data) && serversResponse.data.length > 0) {
           const firstServerId = serversResponse.data[0].id;
-          console.log(`Using server ID ${firstServerId} to fetch templates`);
           return await this.request("GET", `/servers/${firstServerId}/templates`);
         }
       } catch (serversError) {
@@ -584,14 +583,12 @@ export class VirtFusionApi {
       
       // If no servers available, try with a default server ID
       try {
-        console.log("No servers found, trying with default server ID 1");
         return await this.request("GET", "/servers/1/templates");
       } catch (serverError) {
         console.error("Error fetching OS templates from /servers/1/templates:", serverError);
         
         // If that fails, try with a package ID (package ID 1 as fallback)
         try {
-          console.log("Server templates failed, trying with package ID 1");
           return await this.request("GET", "/media/templates/fromServerPackageSpec/1");
         } catch (packageError) {
           console.error("Error fetching OS templates from /media/templates/fromServerPackageSpec/1:", packageError);
@@ -1026,8 +1023,6 @@ export class VirtFusionApi {
         period = `${year}-${month}-${day}`;
       }
 
-      console.log(`Fetching hourly stats for extRelationId ${extRelationId}, period: ${period}, range: ${range}`);
-
       // Fetching hourly stats for extRelationId, period, range
 
       // Try multiple possible endpoints for hourly stats
@@ -1089,7 +1084,6 @@ export class VirtFusionApi {
    */
   async getUserSshKeys(userId: number) {
     try {
-      console.log(`Fetching SSH keys for user ${userId}`);
       return this.request("GET", `/ssh_keys/user/${userId}`);
     } catch (error) {
       console.error(`Error fetching SSH keys for user ${userId}:`, error);
@@ -1104,7 +1098,6 @@ export class VirtFusionApi {
    */
   async getSshKey(keyId: number) {
     try {
-      console.log(`Fetching SSH key ${keyId}`);
       return this.request("GET", `/ssh_keys/${keyId}`);
     } catch (error) {
       console.error(`Error fetching SSH key ${keyId}:`, error);
@@ -1121,7 +1114,6 @@ export class VirtFusionApi {
    */
   async createSshKey(userId: number, name: string, publicKey: string) {
     try {
-      console.log(`Creating SSH key for user ${userId}`);
       const data = {
         userId,
         name,
@@ -1141,7 +1133,6 @@ export class VirtFusionApi {
    */
   async deleteSshKey(keyId: number) {
     try {
-      console.log(`Deleting SSH key ${keyId}`);
       return this.request("DELETE", `/ssh_keys/${keyId}`);
     } catch (error) {
       console.error(`Error deleting SSH key ${keyId}:`, error);

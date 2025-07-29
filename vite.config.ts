@@ -55,6 +55,12 @@ export default defineConfig(async ({ mode }) => {
           ws: true,
           changeOrigin: true,
         },
+        // Proxy WebSocket requests for chat to the backend server
+        '/chat-ws': {
+          target: `ws://localhost:${process.env.PORT || '3333'}`,
+          ws: true,
+          changeOrigin: true,
+        },
         // Proxy API requests to the backend server
         '/api': {
           target: `http://localhost:${process.env.PORT || '3333'}`,

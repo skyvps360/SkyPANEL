@@ -74,8 +74,6 @@ export class DiscordService {
    */
   private async getRoleId(): Promise<string> {
     const setting = await storage.getSetting('discord_role_id');
-    console.log('Discord role ID setting retrieved:', setting);
-    console.log('Discord role ID value:', setting?.value);
     return setting?.value || '';
   }
 
@@ -95,7 +93,6 @@ export class DiscordService {
   ): Promise<boolean> {
     try {
       if (!await this.isEnabled()) {
-        console.log('Discord notifications disabled, skipping new ticket notification');
         return false;
       }
 
@@ -107,8 +104,6 @@ export class DiscordService {
 
       // Create a role mention if a role ID is configured
       const roleMention = roleId ? `<@&${roleId}> ` : '';
-      console.log('Role ID for new ticket notification:', roleId);
-      console.log('Role mention for new ticket notification:', roleMention);
 
       const payload: WebhookPayload = {
         content: roleId ? `${roleMention}A new support ticket has been created.` : undefined,
@@ -147,7 +142,6 @@ export class DiscordService {
       };
 
       await axios.post(webhookUrl, payload);
-      console.log(`Discord notification sent for new ticket #${ticketId}`);
       return true;
     } catch (error: any) {
       console.error('Error sending Discord notification for new ticket:', error.message);
@@ -173,7 +167,6 @@ export class DiscordService {
   ): Promise<boolean> {
     try {
       if (!await this.isEnabled()) {
-        console.log('Discord notifications disabled, skipping ticket reply notification');
         return false;
       }
 
@@ -226,7 +219,6 @@ export class DiscordService {
       };
 
       await axios.post(webhookUrl, payload);
-      console.log(`Discord notification sent for reply to ticket #${ticketId}`);
       return true;
     } catch (error: any) {
       console.error('Error sending Discord notification for ticket reply:', error.message);
@@ -252,7 +244,6 @@ export class DiscordService {
   ): Promise<boolean> {
     try {
       if (!await this.isEnabled()) {
-        console.log('Discord notifications disabled, skipping ticket status notification');
         return false;
       }
 
@@ -301,7 +292,6 @@ export class DiscordService {
       };
 
       await axios.post(webhookUrl, payload);
-      console.log(`Discord notification sent for ticket #${ticketId} status change to ${newStatus}`);
       return true;
     } catch (error: any) {
       console.error('Error sending Discord notification for ticket status change:', error.message);
@@ -323,7 +313,6 @@ export class DiscordService {
   ): Promise<boolean> {
     try {
       if (!await this.isEnabled()) {
-        console.log('Discord notifications disabled, skipping ticket deleted notification');
         return false;
       }
 
@@ -364,7 +353,6 @@ export class DiscordService {
       };
 
       await axios.post(webhookUrl, payload);
-      console.log(`Discord notification sent for ticket #${ticketId} deletion`);
       return true;
     } catch (error: any) {
       console.error('Error sending Discord notification for ticket deletion:', error.message);

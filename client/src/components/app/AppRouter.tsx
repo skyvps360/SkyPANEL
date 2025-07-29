@@ -30,7 +30,7 @@ import DashboardSLAPage from "@/pages/dashboard-sla-page";
 import BlogListPage from "@/pages/blog/index";
 import DocsListPage from "@/pages/docs/index";
 import StatusPage from "@/pages/status/index";
-// import SpeedTestPage from "@/pages/speed-test/index"; // Temporarily hidden for fixes
+import SpeedTestPage from "@/pages/speed-test/index";
 import PlansPage from "@/pages/plans/index";
 import TeamsPage from "@/pages/teams-page";
 import DashboardBlogPage from "@/pages/dashboard-blog-page";
@@ -65,6 +65,7 @@ import UserAwardsPage from "@/pages/admin/user-awards";
 import BillingAwardsPage from "@/pages/billing/awards";
 import CouponManagementPage from "@/pages/admin/coupon-management";
 import OAuthSettingsPage from "@/pages/admin/oauth-settings-page";
+import { AdminChatManagement } from "@/components/admin/AdminChatManagement";
 
 import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { useQuery } from "@tanstack/react-query";
@@ -142,8 +143,8 @@ export function AppRouter() {
                 <ProtectedRoute path="/billing/transactions/:id" component={TransactionDetailPage}
                     allowSuspended={true} />
                 <ProtectedRoute path="/tickets" component={TicketsPage} allowSuspended={true} />
-                <ProtectedRoute path="/tickets/:id" component={TicketDetailPage} allowSuspended={true} />
-                <ProtectedRoute path="/notifications" component={NotificationsPage} />
+<ProtectedRoute path="/tickets/:id" component={TicketDetailPage} allowSuspended={true} />
+<ProtectedRoute path="/notifications" component={NotificationsPage} />
                 <ProtectedRoute path="/profile" component={ProfilePage} />
 
                 {/* Public standalone blog and docs pages */}
@@ -151,7 +152,7 @@ export function AppRouter() {
                 <Route path="/blog/:slug" component={BlogListPage} />                <Route path="/docs" component={DocsListPage} />
                 <Route path="/docs/:slug" component={DocsListPage} />
                 <Route path="/status" component={StatusPage} />
-                {/* <Route path="/speed-test" component={SpeedTestPage}/> */} {/* Temporarily hidden for fixes */}
+                <Route path="/speed-test" component={SpeedTestPage}/>
                 <Route path="/plans" component={PlansPage} />
                 <Route path="/team" component={TeamsPage} />
                 <Route path="/tos" component={TermsOfServicePage} />
@@ -198,7 +199,8 @@ export function AppRouter() {
                 <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage} />
                 <AdminProtectedRoute path="/admin/user-awards" component={UserAwardsPage} />
                 <AdminProtectedRoute path="/admin/coupon" component={CouponManagementPage} />
-                <AdminProtectedRoute path="/admin/oauth-settings" component={OAuthSettingsPage} />
+<AdminProtectedRoute path="/admin/oauth-settings" component={OAuthSettingsPage} />
+<AdminProtectedRoute path="/admin/chat" component={AdminChatManagement} />
 
                 {/* Catch-all route for 404 pages */}
                 <Route path="*" component={NotFound} />

@@ -220,13 +220,13 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   // Server creation and build mutation
   const createServerMutation = useMutation({
     mutationFn: async (data: ServerCreateFormData) => {
-      console.log('Creating and building server with data:', data);
+  
       
       // Step 0: Deduct credits from the selected user based on the chosen package pricing
       if (selectedPackage?.pricing?.price && selectedPackage.pricing.price > 0) {
         try {
           const tokenAmount = selectedPackage.pricing.price; // price is stored in cents = tokens (100 tokens = $1)
-          console.log(`Deducting ${tokenAmount} tokens from user ${data.userId} before server creation`);
+  
 
           const creditResponse = await fetch(`/api/admin/users/${data.userId}/virtfusion-credit`, {
             method: 'DELETE',
@@ -243,7 +243,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
             throw new Error(errorResp.error || `Failed to deduct credits (HTTP ${creditResponse.status})`);
           }
 
-          console.log('Successfully deducted tokens for server creation');
+          
         } catch (deductErr: any) {
           console.error('Error during credit deduction:', deductErr);
           toast({
@@ -256,7 +256,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
       }
       
       // Step 1: Create the server
-      console.log('Step 1: Creating server...');
+      
       setStep('building');
       
       // Prepare server creation data (without OS template - that's for build step only)
@@ -283,7 +283,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
         additionalStorage2Capacity: data.additionalStorage2Capacity,
       };
       
-      console.log('Sending create request with data:', createData);
+      
       const createResponse = await fetch('/api/admin/servers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -303,7 +303,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
         throw new Error('Server created but no ID returned');
       }
       
-      console.log(`Step 2: Building server ${serverId}...`);
+      
       
       // Step 2: Build the server
       const buildData = {
@@ -317,7 +317,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
         swap: data.swap,
       };
       
-      console.log('Sending build request with data:', buildData);
+      
       const buildResponse = await fetch(`/api/admin/servers/${serverId}/build`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -339,7 +339,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
       };
     },
     onSuccess: (data) => {
-      console.log('Server created and built successfully:', data);
+      
       toast({
         title: "Server Created & Built Successfully",
         description: `Server "${form.getValues('name')}" (ID: ${data.serverId}) has been created and is installing the OS.`,
@@ -485,7 +485,6 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   }, [userSearch]);
 
   const onSubmit = (data: ServerCreateFormData) => {
-    console.log('Form submitted with data:', data);
     createServerMutation.mutate(data);
   };
 

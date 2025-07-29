@@ -624,7 +624,7 @@ export default function BlogPage() {
             // Additional cleanup for any leftover markdown or formatting
             jsonContent = jsonContent.replace(/^```json/gm, '').replace(/```$/gm, '').trim();
             
-            console.log("Cleaned JSON content for parsing:", jsonContent);
+
             
             try {
               parsedContent = JSON.parse(jsonContent);
@@ -641,7 +641,7 @@ export default function BlogPage() {
                   content: contentMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n'),
                   snippet: snippetMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n')
                 };
-                console.log("Manual extraction succeeded:", parsedContent);
+
               } else {
                 throw new Error("Could not extract content from response");
               }

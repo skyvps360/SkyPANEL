@@ -11,17 +11,13 @@ export class CronService {
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) {
-      console.log("Cron service already initialized");
       return;
     }
-
-    console.log("Initializing cron service...");
 
     try {
       // Load cron settings from database
       await this.loadCronSettings();
       this.isInitialized = true;
-      console.log("✅ Cron service initialized successfully");
     } catch (error) {
       console.error("❌ Failed to initialize cron service:", error);
       throw error;
@@ -41,8 +37,6 @@ export class CronService {
       const defaultSchedule = '0 2 1 * *';
       const schedule = dnsBillingSchedule?.value || defaultSchedule;
       const enabled = dnsBillingEnabled?.value === 'true';
-
-      console.log(`DNS billing cron: enabled=${enabled}, schedule="${schedule}"`);
 
       if (enabled) {
         this.startDnsBillingCron(schedule);
@@ -71,11 +65,8 @@ export class CronService {
       }
 
       const task = cron.schedule(schedule, async () => {
-        console.log("🔄 Starting scheduled DNS billing renewal process...");
         try {
           const results = await dnsBillingService.processMonthlyRenewals();
-          console.log("✅ DNS billing renewal process completed:", results);
-
           // Log results to database for admin monitoring
           await this.logCronJobResult('dns_billing', 'success', results);
         } catch (error: any) {
@@ -89,7 +80,6 @@ export class CronService {
 
       task.start();
       this.jobs.set('dns_billing', task);
-      console.log(`✅ DNS billing cron job started with schedule: ${schedule}`);
     } catch (error) {
       console.error("❌ Failed to start DNS billing cron job:", error);
       throw error;
