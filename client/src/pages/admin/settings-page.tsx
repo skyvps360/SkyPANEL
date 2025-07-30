@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { UnifiedDepartmentManager } from "@/components/admin/unified-department-manager";
 import { ToastAction } from "@/components/ui/toast";
 import TeamManagement from "@/components/admin/TeamManagement";
+import CodeSnippetsManager from "@/components/admin/CodeSnippetsManager";
 import {
   Settings as SettingsIcon,
   CreditCard,
@@ -50,7 +51,9 @@ import {
   DollarSign,
   MessageCircle,
   Globe,
-  MessageSquare
+  MessageSquare,
+  BarChart3,
+  Code
 } from "lucide-react";
 
 interface Setting {
@@ -335,6 +338,16 @@ const wordpressSchema = z.object({
 
 type WordPressFormData = z.infer<typeof wordpressSchema>;
 
+// Google Analytics settings schema
+const googleAnalyticsSchema = z.object({
+  googleAnalyticsEnabled: z.boolean().default(false),
+  googleAnalyticsCode: z.string().min(1, { message: "Google Analytics code is required when enabled" }).optional(),
+  googleAnalyticsTrackingId: z.string().min(1, { message: "Tracking ID is required when enabled" }).optional(),
+  googleAnalyticsSelectedPages: z.array(z.string()).default([]),
+});
+
+type GoogleAnalyticsFormData = z.infer<typeof googleAnalyticsSchema>;
+
 // Define the settings options for dropdown
 const settingsOptions = [
   { value: "general", label: "General", icon: <SettingsIcon className="h-4 w-4 mr-2" /> },
@@ -352,6 +365,8 @@ const settingsOptions = [
   { value: "maintenance", label: "Maintenance", icon: <AlertTriangle className="h-4 w-4 mr-2" /> },
   { value: "loading-screen", label: "Loading Screen", icon: <Hourglass className="h-4 w-4 mr-2" /> },
   { value: "design", label: "Design", icon: <PenTool className="h-4 w-4 mr-2" /> },
+  { value: "google-analytics", label: "Google Analytics", icon: <BarChart3 className="h-4 w-4 mr-2" /> },
+  { value: "code-snippets", label: "Code Snippets", icon: <Code className="h-4 w-4 mr-2" /> },
 ];
 
 export default function SettingsPage() {
@@ -524,6 +539,29 @@ export default function SettingsPage() {
       wordpressSyncInterval: parseInt(getSettingValue("wordpress_sync_interval", "60")),
     },
   });
+
+  // Google Analytics form
+  const googleAnalyticsForm = useForm<GoogleAnalyticsFormData>({
+    resolver: zodResolver(googleAnalyticsSchema),
+    defaultValues: {
+      googleAnalyticsEnabled: getSettingValue("google_analytics_enabled", "false") === "true",
+      googleAnalyticsCode: getSettingValue("google_analytics_code", ""),
+      googleAnalyticsTrackingId: getSettingValue("google_analytics_tracking_id", ""),
+      googleAnalyticsSelectedPages: JSON.parse(getSettingValue("google_analytics_selected_pages", '["/", "/auth", "/blog", "/docs", "/status", "/plans", "/team", "/tos", "/privacy", "/sla-plans", "/sla"]')),
+    },
+  });
+
+  // Reset Google Analytics form when settings data changes
+  useEffect(() => {
+    if (settings && settings.length > 0) {
+      googleAnalyticsForm.reset({
+        googleAnalyticsEnabled: getSettingValue("google_analytics_enabled", "false") === "true",
+        googleAnalyticsCode: getSettingValue("google_analytics_code", ""),
+        googleAnalyticsTrackingId: getSettingValue("google_analytics_tracking_id", ""),
+        googleAnalyticsSelectedPages: JSON.parse(getSettingValue("google_analytics_selected_pages", '["/", "/auth", "/blog", "/docs", "/status", "/plans", "/team", "/tos", "/privacy", "/sla-plans", "/sla"]')),
+      });
+    }
+  }, [settings, googleAnalyticsForm]);
 
 
 
@@ -1610,6 +1648,34 @@ export default function SettingsPage() {
       toast({
         title: "Settings saved",
         description: "WordPress settings have been updated",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
+    } catch (error: any) {
+      toast({
+        title: "Error saving settings",
+        description: error.message || "Failed to save settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaveInProgress(false);
+    }
+  };
+
+  // Handle Google Analytics form submission
+  const onGoogleAnalyticsSubmit = async (data: GoogleAnalyticsFormData) => {
+    setSaveInProgress(true);
+
+    try {
+      // Save Google Analytics settings
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_enabled", value: data.googleAnalyticsEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_code", value: data.googleAnalyticsCode || "" });
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_tracking_id", value: data.googleAnalyticsTrackingId || "" });
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_selected_pages", value: JSON.stringify(data.googleAnalyticsSelectedPages) });
+
+      toast({
+        title: "Settings saved",
+        description: "Google Analytics settings have been updated",
       });
 
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
@@ -4990,6 +5056,158 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </form>
+              </TabsContent>
+
+              <TabsContent value="google-analytics">
+                <form onSubmit={googleAnalyticsForm.handleSubmit(onGoogleAnalyticsSubmit)}>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium">Google Analytics Configuration</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Configure Google Analytics tracking for your platform
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="googleAnalyticsEnabled">Enable Google Analytics</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable Google Analytics tracking on your platform
+                          </p>
+                        </div>
+                        <Switch
+                          id="googleAnalyticsEnabled"
+                          checked={googleAnalyticsForm.watch("googleAnalyticsEnabled")}
+                          onCheckedChange={(checked) => googleAnalyticsForm.setValue("googleAnalyticsEnabled", checked)}
+                        />
+                      </div>
+
+                      {googleAnalyticsForm.watch("googleAnalyticsEnabled") && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="googleAnalyticsTrackingId">Tracking ID (G-XXXXXXXXXX)</Label>
+                            <Input
+                              id="googleAnalyticsTrackingId"
+                              placeholder="G-XXXXXXXXXX"
+                              {...googleAnalyticsForm.register("googleAnalyticsTrackingId")}
+                            />
+                            {googleAnalyticsForm.formState.errors.googleAnalyticsTrackingId && (
+                              <p className="text-sm text-destructive mt-1">
+                                {googleAnalyticsForm.formState.errors.googleAnalyticsTrackingId.message}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Your Google Analytics 4 tracking ID (starts with G-)
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="googleAnalyticsCode">Custom Analytics Code</Label>
+                            <Textarea
+                              id="googleAnalyticsCode"
+                              placeholder="<!-- Google Analytics Code -->
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX'></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>"
+                              rows={8}
+                              {...googleAnalyticsForm.register("googleAnalyticsCode")}
+                            />
+                            {googleAnalyticsForm.formState.errors.googleAnalyticsCode && (
+                              <p className="text-sm text-destructive mt-1">
+                                {googleAnalyticsForm.formState.errors.googleAnalyticsCode.message}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Paste your complete Google Analytics tracking code here. This will be included in the &lt;head&gt; section of your pages.
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label>Select Pages for Tracking</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Choose which pages should have Google Analytics tracking enabled
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                              {[
+                                { path: "/", label: "Landing Page", description: "Main homepage" },
+                                { path: "/auth", label: "Authentication", description: "Login/register pages" },
+                                { path: "/blog", label: "Blog", description: "Blog listing and articles" },
+                                { path: "/docs", label: "Documentation", description: "Documentation pages" },
+                                { path: "/status", label: "Status Page", description: "System status information" },
+                                { path: "/plans", label: "Plans", description: "Pricing plans page" },
+                                { path: "/team", label: "Team", description: "Team information page" },
+                                { path: "/tos", label: "Terms of Service", description: "Legal terms page" },
+                                { path: "/privacy", label: "Privacy Policy", description: "Privacy policy page" },
+                                { path: "/sla-plans", label: "SLA Plans", description: "Service level agreement plans" },
+                                { path: "/sla", label: "SLA", description: "Service level agreement page" },
+                                { path: "/dashboard", label: "Dashboard", description: "User dashboard (requires auth)" },
+                                { path: "/servers", label: "Servers", description: "Server management (requires auth)" },
+                                { path: "/billing", label: "Billing", description: "Billing and payments (requires auth)" },
+                                { path: "/tickets", label: "Support Tickets", description: "Support tickets (requires auth)" },
+                                { path: "/profile", label: "Profile", description: "User profile (requires auth)" },
+                                { path: "/dns", label: "DNS Management", description: "DNS management (requires auth)" }
+                              ].map((page) => (
+                                <div key={page.path} className="flex items-center space-x-3">
+                                  <input
+                                    type="checkbox"
+                                    id={`page-${page.path}`}
+                                    checked={googleAnalyticsForm.watch("googleAnalyticsSelectedPages").includes(page.path)}
+                                    onChange={(e) => {
+                                      const currentPages = googleAnalyticsForm.watch("googleAnalyticsSelectedPages");
+                                      if (e.target.checked) {
+                                        googleAnalyticsForm.setValue("googleAnalyticsSelectedPages", [...currentPages, page.path]);
+                                      } else {
+                                        googleAnalyticsForm.setValue("googleAnalyticsSelectedPages", currentPages.filter(p => p !== page.path));
+                                      }
+                                    }}
+                                    className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+                                  />
+                                  <div className="flex-1">
+                                    <label htmlFor={`page-${page.path}`} className="text-sm font-medium cursor-pointer">
+                                      {page.label}
+                                    </label>
+                                    <p className="text-xs text-muted-foreground">{page.description}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    <div className="flex justify-end">
+                      <Button
+                        type="submit"
+                        className="w-32"
+                        disabled={saveInProgress || !googleAnalyticsForm.formState.isDirty}
+                      >
+                        {saveInProgress ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            Save
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="code-snippets">
+                <CodeSnippetsManager />
               </TabsContent>
             </Tabs>
           </CardContent>

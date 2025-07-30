@@ -44,6 +44,17 @@ export default defineConfig(async ({ mode }) => {
       react(),
       ...replitPlugins,
     ],
+    define: {
+      // Set NODE_ENV for production builds
+      'process.env.NODE_ENV': JSON.stringify(mode === 'production' ? 'production' : 'development'),
+      // Explicitly define PayPal environment variables for client-side access
+      'import.meta.env.VITE_PAYPAL_SANDBOX': JSON.stringify(env.VITE_PAYPAL_SANDBOX),
+      'import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID': JSON.stringify(env.VITE_PAYPAL_SANDBOX_CLIENT_ID),
+      'import.meta.env.VITE_PAYPAL_SANDBOX_SECRET': JSON.stringify(env.VITE_PAYPAL_SANDBOX_SECRET),
+      'import.meta.env.VITE_PAYPAL_CLIENT_ID': JSON.stringify(env.VITE_PAYPAL_CLIENT_ID),
+      'import.meta.env.VITE_PAYPAL_SECRET': JSON.stringify(env.VITE_PAYPAL_SECRET),
+      'import.meta.env.VITE_PAYPAL_CURRENCY': JSON.stringify(env.VITE_PAYPAL_CURRENCY),
+    },
     server: {
       port: parseInt(process.env.PORT || '3333'),
       strictPort: true,
@@ -69,15 +80,6 @@ export default defineConfig(async ({ mode }) => {
 
       },
     },
-    define: {
-    // Explicitly define PayPal environment variables for client-side access
-    'import.meta.env.VITE_PAYPAL_SANDBOX': JSON.stringify(env.VITE_PAYPAL_SANDBOX),
-    'import.meta.env.VITE_PAYPAL_SANDBOX_CLIENT_ID': JSON.stringify(env.VITE_PAYPAL_SANDBOX_CLIENT_ID),
-    'import.meta.env.VITE_PAYPAL_SANDBOX_SECRET': JSON.stringify(env.VITE_PAYPAL_SANDBOX_SECRET),
-    'import.meta.env.VITE_PAYPAL_CLIENT_ID': JSON.stringify(env.VITE_PAYPAL_CLIENT_ID),
-    'import.meta.env.VITE_PAYPAL_SECRET': JSON.stringify(env.VITE_PAYPAL_SECRET),
-    'import.meta.env.VITE_PAYPAL_CURRENCY': JSON.stringify(env.VITE_PAYPAL_CURRENCY),
-  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),

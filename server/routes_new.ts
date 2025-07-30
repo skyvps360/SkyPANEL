@@ -46,6 +46,7 @@ import adminCouponsRoutes from "./routes/admin-coupons";
 import couponRoutes from "./routes/coupon-routes";
 import oauthRoutes from "./routes/oauth-routes";
 import wordpressRoutes from "./routes/wordpress";
+import codeSnippetsRoutes from "./routes/code-snippets";
 
 import { cronService } from "./services/cron-service";
 import { dnsBillingService } from "./services/dns-billing-service";
@@ -11200,6 +11201,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // WordPress routes
   app.use("/api/admin/wordpress", isAuthenticated, isAdmin, wordpressRoutes);
+
+  // Code snippets routes
+  app.use("/api/admin/code-snippets", isAuthenticated, isAdmin, codeSnippetsRoutes);
 
 
 

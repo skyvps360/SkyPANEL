@@ -425,4 +425,24 @@ router.post('/email/test', async (req, res) => {
   }
 });
 
+// Get Google Analytics settings (no auth required for frontend access)
+router.get('/google-analytics', async (req, res) => {
+  try {
+    const settings = await storage.getAllSettings();
+    
+    // Filter for Google Analytics settings
+    const googleAnalyticsSettings = settings.reduce((obj, setting) => {
+      if (setting.key.startsWith('google_analytics_')) {
+        obj[setting.key] = setting.value;
+      }
+      return obj;
+    }, {});
+    
+    return res.json(googleAnalyticsSettings);
+  } catch (error: any) {
+    console.error('Error getting Google Analytics settings:', error);
+    return res.status(500).json({ message: 'An error occurred while getting Google Analytics settings' });
+  }
+});
+
 export default router;
