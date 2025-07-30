@@ -103,7 +103,7 @@ export default function teamPage() {
         <meta name="description" content={`Meet the team behind ${companyName} - dedicated professionals providing excellent VPS hosting services.`} />
       </Helmet>
 
-      {/* Hero Section - matching blog, docs, status, and speed-test pages */}
+              {/* Hero Section - matching blog, docs, and status pages */}
       <div 
         className="relative overflow-hidden w-full"
         style={{ 

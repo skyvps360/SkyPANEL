@@ -93,7 +93,6 @@ export function SharedNavbar() {
     { name: "Blog", path: "/blog" },
     { name: "Documentation", path: "/docs" },
     { name: "Status", path: "/status" },
-    { name: "Speed Test", path: "/speed-test" },
   ];
 
 

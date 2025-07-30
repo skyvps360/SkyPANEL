@@ -67,7 +67,7 @@ export default function DocsPage() {
   
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
-  // Fetch branding data from API - just like status and speed-test pages
+      // Fetch branding data from API - just like status page
   const { data: brandingData } = useQuery<{
     primary_color: string;
     secondary_color: string;

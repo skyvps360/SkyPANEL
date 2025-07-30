@@ -2464,6 +2464,7 @@ export class DatabaseStorage implements IStorage {
       };
     }
 
+    // Check if user has a VirtFusion account (virtFusionId indicates they're linked)
     if (!user.virtFusionId) {
       return {
         success: false,
@@ -2484,14 +2485,14 @@ export class DatabaseStorage implements IStorage {
         };
       }
 
-      // Add credits to VirtFusion account using the correct virtFusionId
+      // Add credits to VirtFusion account using the user ID as extRelationId
       const creditData = {
         tokens: award.virtFusionTokens,
         reference_1: awardId,
         reference_2: `Daily Login Award - ${new Date().toISOString()}`
       };
 
-      const result = await virtFusionApi.addCreditToUser(user.virtFusionId, creditData);
+      const result = await virtFusionApi.addCreditToUser(userId, creditData);
       
       if (!result || !result.data || !result.data.id) {
         return {
