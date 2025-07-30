@@ -107,7 +107,7 @@ import {
 
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, isNull, gte, lte, count, inArray, or, ilike, lt, sql, not } from "drizzle-orm";
+import { eq, and, desc, isNull, gte, lte, count, inArray, or, ilike, lt, sql, not, gt } from "drizzle-orm";
 // Use import * as for express-session (namespace), but default import for connect-pg-simple (function)
 import * as session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -401,7 +401,7 @@ export interface IStorage {
   getUserAwardsHistory(userId: number, limit: number, offset: number): Promise<{ awards: UserAward[]; total: number; }>;
   createUserAward(award: InsertUserAward): Promise<UserAward>;
   updateUserAward(id: number, updates: Partial<UserAward>): Promise<void>;
-  getAwardStatistics(): Promise<{ totalUsers: number; totalAwards: number; totalTokensAwarded: number; }>;
+  getAwardStatistics(): Promise<{ totalActiveSettings: number; totalUsersWithStreaks: number; totalTokensAwarded: number; averageStreak: number; }>;
   getUserAwardsDashboard(userId: number): Promise<{ streak: UserLoginStreak | null; awards: UserAward[]; nextReward: AwardSetting | null; }>;
   claimUserAward(userId: number, awardId: number): Promise<{ success: boolean; message: string; tokensAwarded?: number; }>;
 
@@ -2298,21 +2298,39 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userAwards.id, id));
   }
 
-  async getAwardStatistics(): Promise<{ totalUsers: number; totalAwards: number; totalTokensAwarded: number; }> {
-    const [userCount] = await db.select({ count: sql<number>`count(distinct ${userLoginStreaks.userId})` })
-      .from(userLoginStreaks);
+  async getAwardStatistics(): Promise<{ 
+    totalActiveSettings: number; 
+    totalUsersWithStreaks: number; 
+    totalTokensAwarded: number; 
+    averageStreak: number; 
+  }> {
+    // Count active award settings
+    const [activeSettingsCount] = await db.select({ count: sql<number>`count(*)` })
+      .from(awardSettings)
+      .where(eq(awardSettings.isActive, true));
     
-    const [awardCount] = await db.select({ count: sql<number>`count(*)` })
-      .from(userAwards);
+    // Count users with streaks (currentStreak > 0)
+    const [usersWithStreaksCount] = await db.select({ count: sql<number>`count(distinct ${userLoginStreaks.userId})` })
+      .from(userLoginStreaks)
+      .where(gt(userLoginStreaks.currentStreak, 0));
     
+    // Calculate total tokens awarded
     const [tokenSum] = await db.select({ sum: sql<number>`coalesce(sum(${userAwards.virtFusionTokens}), 0)` })
       .from(userAwards)
       .where(eq(userAwards.status, 'claimed'));
     
+    // Calculate average streak (only for users with streaks > 0)
+    const [averageStreakResult] = await db.select({ 
+      avg: sql<number>`coalesce(avg(${userLoginStreaks.currentStreak}), 0)` 
+    })
+      .from(userLoginStreaks)
+      .where(gt(userLoginStreaks.currentStreak, 0));
+    
     return {
-      totalUsers: userCount?.count || 0,
-      totalAwards: awardCount?.count || 0,
-      totalTokensAwarded: tokenSum?.sum || 0
+      totalActiveSettings: activeSettingsCount?.count || 0,
+      totalUsersWithStreaks: usersWithStreaksCount?.count || 0,
+      totalTokensAwarded: tokenSum?.sum || 0,
+      averageStreak: averageStreakResult?.avg || 0
     };
   }
 
