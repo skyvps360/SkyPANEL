@@ -187,6 +187,14 @@ export default function AdminPage() {
       accentColor: "text-purple-600 dark:text-purple-400"
     },
     {
+      title: "Email Templates",
+      icon: Mail,
+      href: "/admin/email-templates",
+      description: "Create and manage email templates",
+      color: "bg-indigo-50 dark:bg-indigo-950",
+      accentColor: "text-indigo-600 dark:text-indigo-400"
+    },
+    {
       title: "Documentation",
       icon: FileText,
       href: "/admin/docs",

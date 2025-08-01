@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { db, pool } from "./db";
 import { hashPassword, setupAuth } from "./auth";
 import { AuthService } from "./services/auth/auth-service";
+import { OAuthService } from "./services/auth/oauth-service";
 import { EmailVerificationService } from "./email-verification-service";
 import { discordService } from "./discord-service";
 import { discordBotService } from "./discord-bot-service";
@@ -4881,7 +4882,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/users", isAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      res.json(users);
+      const localOAuthService = new OAuthService();
+      
+      // Fetch OAuth accounts for all users to include profile pictures
+      const usersWithOAuth = await Promise.all(
+        users.map(async (user) => {
+          try {
+            const oauthAccounts = await localOAuthService.getUserOAuthAccounts(user.id);
+            return {
+              ...user,
+              oauthAccounts
+            };
+          } catch (error) {
+            console.warn(`Failed to fetch OAuth accounts for user ${user.id}:`, error);
+            return {
+              ...user,
+              oauthAccounts: []
+            };
+          }
+        })
+      );
+      
+      res.json(usersWithOAuth);
     } catch (error: any) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: error.message });
@@ -10733,6 +10755,241 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(log);
     } catch (error: any) {
       console.error("Error fetching email log:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Email Template Management Endpoints (Admin Only)
+  
+  // Get all email templates
+  app.get("/api/admin/email-templates", isAdmin, async (req, res) => {
+    try {
+      const templates = await storage.getEmailTemplates();
+      res.json(templates);
+    } catch (error: any) {
+      console.error("Error fetching email templates:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get single email template by ID
+  app.get("/api/admin/email-templates/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+
+      const template = await storage.getEmailTemplate(id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      res.json(template);
+    } catch (error: any) {
+      console.error("Error fetching email template:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get email template by type
+  app.get("/api/admin/email-templates/type/:type", isAdmin, async (req, res) => {
+    try {
+      const type = req.params.type;
+      const template = await storage.getEmailTemplateByType(type);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      res.json(template);
+    } catch (error: any) {
+      console.error("Error fetching email template by type:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create new email template
+  app.post("/api/admin/email-templates", isAdmin, async (req, res) => {
+    try {
+      const { insertEmailTemplateSchema } = await import('@shared/schema');
+      
+      // Validate request body
+      const validationResult = insertEmailTemplateSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed",
+          details: validationResult.error.errors
+        });
+      }
+
+      const templateData = {
+        ...validationResult.data,
+        createdBy: req.user?.id,
+        updatedBy: req.user?.id
+      };
+
+      const newTemplate = await storage.createEmailTemplate(templateData);
+      res.status(201).json(newTemplate);
+    } catch (error: any) {
+      console.error("Error creating email template:", error);
+      if (error.code === '23505') {
+        // Unique constraint violation
+        if (error.constraint?.includes('name')) {
+          return res.status(409).json({ error: "Template name already exists" });
+        }
+        if (error.constraint?.includes('type')) {
+          return res.status(409).json({ error: "Template type already exists" });
+        }
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update email template
+  app.put("/api/admin/email-templates/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+
+      const { updateEmailTemplateSchema } = await import('@shared/schema');
+      
+      // Validate request body
+      const validationResult = updateEmailTemplateSchema.safeParse({ id, ...req.body });
+      if (!validationResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed",
+          details: validationResult.error.errors
+        });
+      }
+
+      const templateData = {
+        ...validationResult.data,
+        updatedBy: req.user?.id,
+        updatedAt: new Date()
+      };
+
+      const updatedTemplate = await storage.updateEmailTemplate(id, templateData);
+      if (!updatedTemplate) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      res.json(updatedTemplate);
+    } catch (error: any) {
+      console.error("Error updating email template:", error);
+      if (error.code === '23505') {
+        // Unique constraint violation
+        if (error.constraint?.includes('name')) {
+          return res.status(409).json({ error: "Template name already exists" });
+        }
+        if (error.constraint?.includes('type')) {
+          return res.status(409).json({ error: "Template type already exists" });
+        }
+      }
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Delete email template
+  app.delete("/api/admin/email-templates/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+
+      const deleted = await storage.deleteEmailTemplate(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      res.json({ message: "Template deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting email template:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Toggle email template active status
+  app.patch("/api/admin/email-templates/:id/toggle", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+
+      const template = await storage.getEmailTemplate(id);
+      if (!template) {
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      const updatedTemplate = await storage.updateEmailTemplate(id, {
+        isActive: !template.isActive,
+        updatedBy: req.user?.id,
+        updatedAt: new Date()
+      });
+
+      res.json(updatedTemplate);
+    } catch (error: any) {
+      console.error("Error toggling email template status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Preview email template with variables
+  app.post("/api/admin/email-templates/:id/preview", isAdmin, async (req, res) => {
+    try {
+      console.log('Preview request received for template ID:', req.params.id);
+      console.log('Preview variables:', req.body.variables);
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        console.error('Invalid template ID provided:', req.params.id);
+        return res.status(400).json({ error: "Invalid template ID" });
+      }
+
+      const template = await storage.getEmailTemplate(id);
+      if (!template) {
+        console.error('Template not found with ID:', id);
+        return res.status(404).json({ error: "Template not found" });
+      }
+
+      console.log('Found template:', template.name, 'type:', template.type);
+      
+      const variables = req.body.variables || {};
+      console.log('Rendering template with variables:', variables);
+      
+      // Render template with provided variables
+      const renderedTemplate = await emailService.renderTemplate(template, variables);
+      
+      console.log('Template rendered successfully');
+
+      const response = {
+        subject: renderedTemplate.subject,
+        htmlContent: renderedTemplate.htmlContent,
+        textContent: renderedTemplate.textContent
+      };
+      
+      console.log('Sending preview response');
+      res.json(response);
+    } catch (error: any) {
+      console.error("Error previewing email template:", error);
+      console.error("Error stack:", error.stack);
+      res.status(500).json({ 
+        error: error.message || 'Internal server error during template preview',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
+    }
+  });
+
+  // Get available template variables
+  app.get("/api/admin/email-templates/variables/common", isAdmin, async (req, res) => {
+    try {
+      const { COMMON_EMAIL_VARIABLES } = await import('@shared/schema');
+      res.json({ variables: COMMON_EMAIL_VARIABLES });
+    } catch (error: any) {
+      console.error("Error fetching common email variables:", error);
       res.status(500).json({ error: error.message });
     }
   });

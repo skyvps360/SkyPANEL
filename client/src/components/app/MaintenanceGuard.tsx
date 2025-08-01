@@ -71,6 +71,9 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
         '/blog',                // Public blog listing
         '/docs',                // Public documentation
         '/status',              // Status page
+        '/auth',                // Authentication pages (login, register, etc.)
+        '/tickets',             // Support ticket pages
+        '/billing',             // Billing pages
     ];
 
     // Check if current path is allowed during maintenance
@@ -93,11 +96,10 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
         // Prefix match for subpaths
         const isAllowed = allowedPaths.some(path => path !== '/' && location.startsWith(path)) ||
             location.startsWith('/blog/') ||
-            location.startsWith('/docs/');
-
-        if (isAllowed) {
-        } else {
-        }
+            location.startsWith('/docs/') ||
+            location.startsWith('/auth/') ||
+            location.startsWith('/tickets/') ||
+            location.startsWith('/billing/');
 
         return isAllowed;
     };
@@ -136,7 +138,7 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
                     // redirect to maintenance page (unless user is admin)
                     // Add additional check to prevent infinite redirects
                     if (data.enabled && !isPathAllowed() && !isAdmin && !bypassGranted &&
-                        location !== '/maintenance' && location !== '/auth') {
+                        location !== '/maintenance') {
                         setLocation('/maintenance');
                     }
                 }

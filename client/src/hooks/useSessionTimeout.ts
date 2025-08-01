@@ -1,14 +1,31 @@
 import { useEffect, useCallback } from 'react';
+import { useLocation } from 'wouter';
 import { useAuth } from './use-auth';
 import { useToast } from './use-toast';
 
 /**
  * Hook to handle automatic session timeout and logout
  * Monitors session expiration and provides user feedback
+ * Admins are exempt from auto-logout when on admin routes
  */
 export function useSessionTimeout() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
+  const [location] = useLocation();
+
+  /**
+   * Check if the current user should be exempt from auto-logout
+   * Admins are exempt when on admin routes
+   */
+  const isExemptFromAutoLogout = useCallback(() => {
+    if (!user) return false;
+    
+    // Check if user is admin and on admin route
+    const isAdmin = user.role === 'admin';
+    const isOnAdminRoute = location.startsWith('/admin');
+    
+    return isAdmin && isOnAdminRoute;
+  }, [user, location]);
 
   /**
    * Handle session timeout by logging out user and showing notification
@@ -34,6 +51,11 @@ export function useSessionTimeout() {
   const checkSessionValidity = useCallback(async () => {
     if (!user) return;
 
+    // Skip session check if admin is exempt from auto-logout
+    if (isExemptFromAutoLogout()) {
+      return;
+    }
+
     try {
       const response = await fetch('/api/user', {
         credentials: 'include',
@@ -50,7 +72,7 @@ export function useSessionTimeout() {
       console.error('Error checking session validity:', error);
       // On network error, don't automatically log out
     }
-  }, [user, handleSessionTimeout]);
+  }, [user, handleSessionTimeout, isExemptFromAutoLogout]);
 
   useEffect(() => {
     if (!user) return;
@@ -76,5 +98,6 @@ export function useSessionTimeout() {
   return {
     checkSessionValidity,
     handleSessionTimeout,
+    isExemptFromAutoLogout,
   };
 }

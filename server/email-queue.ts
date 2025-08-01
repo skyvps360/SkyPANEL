@@ -168,9 +168,6 @@ export class EmailQueueManager {
     estimatedCompletion?: string
   ): Promise<boolean> {
     try {
-      // Get company name from settings
-      const companyName = await emailService['getCompanyName']();
-
       // Get the current maintenance bypass token
       const maintenanceToken = getMaintenanceToken();
       
@@ -184,115 +181,23 @@ export class EmailQueueManager {
           completionText = estimatedCompletion;
         }
       }
-      
-      // Create email content
-      const textContent = 
-        `Hello ${recipientName},\n\n` +
-        `This is an automated notification that maintenance mode has been enabled for the ${companyName} system.\n\n` +
-        `Enabled by: ${enabledBy}\n` +
-        `Message: ${message}\n` +
-        (completionText ? `Estimated completion: ${completionText}\n\n` : '\n') +
-        `During maintenance, only administrators can access the system.\n\n` +
-        `IMPORTANT: Your maintenance bypass token is: ${maintenanceToken}\n` +
-        `Use this token to access the system during maintenance by entering it on the /maintenance page.\n\n` +
-        `Thank you,\n` +
-        `${companyName} System`;
-        
-      const htmlContent = 
-        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">` +
-        `<h2 style="color: #333;">System Maintenance Notification</h2>` +
-        `<p>Hello ${recipientName},</p>` +
-        `<p>This is an automated notification that <strong>maintenance mode</strong> has been enabled for the ${companyName} system.</p>` +
-        `<div style="background-color: #f8f9fa; border-left: 4px solid #5661b3; padding: 15px; margin: 20px 0;">` +
-        `<p><strong>Enabled by:</strong> ${enabledBy}</p>` +
-        `<p><strong>Message:</strong> ${message}</p>` +
-        (completionText ? `<p><strong>Estimated completion:</strong> ${completionText}</p>` : '') +
-        `</div>` +
-        `<p>During maintenance, only administrators can access the system.</p>` +
-        `<div style="background-color: #e9f5ff; border-left: 4px solid #0066cc; padding: 15px; margin: 20px 0;">` +
-        `<p><strong>IMPORTANT: Your maintenance bypass token is:</strong></p>` +
-        `<p style="font-family: monospace; font-size: 16px; background-color: #f0f0f0; padding: 8px; border-radius: 4px;">${maintenanceToken}</p>` +
-        `<p>Use this token to access the system during maintenance by entering it on the /maintenance page.</p>` +
-        `</div>` +
-        `<p>Thank you,<br>${companyName} System</p>` +
-        `</div>`;
-      
-      // Prepare email data
-      const mailOptions = {
-        from: `"${emailService['settings'].fromName || companyName}" <${emailService['settings'].fromEmail || 'noreply@example.com'}>`,
-        to: email,
-        subject: `[${companyName}] System Maintenance Mode Enabled`,
-        text: textContent,
-        html: htmlContent
-      };
-      
-      // Send the email via the email service's transporter
-      if (emailService['transporter']) {
-        try {
-          const info = await emailService['transporter'].sendMail(mailOptions);
-          console.log('Maintenance notification email sent:', info.messageId);
-          
-          // Log the email in the database
-          await storage.logEmail({
-            recipientEmail: email,
-            recipientName: recipientName,
-            subject: mailOptions.subject,
-            type: 'maintenance_notification',
-            status: 'sent',
-            messageId: info.messageId,
-            // Find the user ID by email
-            userId: await this.getUserIdByEmail(email),
-            metadata: {
-              enabledBy,
-              message,
-              estimatedCompletion,
-              maintenanceToken
-            }
-          });
-          
-          return true;
-        } catch (error) {
-          console.error('Error sending maintenance notification email:', error);
-          
-          // Log the failed email
-          await storage.logEmail({
-            recipientEmail: email,
-            recipientName: recipientName,
-            subject: mailOptions.subject,
-            type: 'maintenance_notification',
-            status: 'failed',
-            errorMessage: error instanceof Error ? error.message : String(error),
-            userId: await this.getUserIdByEmail(email),
-            metadata: {
-              enabledBy,
-              message,
-              estimatedCompletion
-            }
-          });
-          
-          return false;
-        }
-      } else {
-        console.error('Transporter is null, cannot send maintenance notification email');
-        
-        // Log the failed email due to null transporter
-        await storage.logEmail({
-          recipientEmail: email,
-          recipientName: recipientName,
-          subject: mailOptions.subject,
-          type: 'maintenance_notification',
-          status: 'failed',
-          errorMessage: 'Email transporter not initialized',
-          userId: await this.getUserIdByEmail(email),
-          metadata: {
-            enabledBy,
-            message,
-            estimatedCompletion
-          }
-        });
-        
-        return false;
+
+      // Try to use template system first
+      const templateSuccess = await emailService['sendTemplatedEmail']('maintenance_notification', email, {
+        recipient_name: recipientName,
+        enabled_by: enabledBy,
+        message: message,
+        estimated_completion: completionText || 'Not specified',
+        maintenance_token: maintenanceToken
+      });
+
+      if (templateSuccess) {
+        console.log('Maintenance notification sent using template system');
+        return true;
       }
+
+      console.error('Failed to send maintenance notification: template system failed and no fallback available');
+      return false;
     } catch (error) {
       console.error('Error sending maintenance notification email:', error);
       return false;

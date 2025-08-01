@@ -212,63 +212,130 @@ export class EmailService {
   }
 
   /**
-   * Send a password reset email
-   * @param email The recipient's email address
-   * @param resetCode The password reset code
+   * Render an email template with variables
+   * @param template The email template
+   * @param variables Key-value pairs of variables to replace
+   * @returns Rendered template with variables replaced
+   */
+  public async renderTemplate(template: any, variables: Record<string, string> = {}): Promise<{
+    subject: string;
+    htmlContent: string;
+    textContent: string;
+  }> {
+    // Get common variables from settings
+    const commonVars = await this.getCommonVariables();
+    
+    // Merge provided variables with common variables (provided variables take precedence)
+    const allVariables = { ...commonVars, ...variables };
+    
+    // Replace variables in template content
+    const subject = this.replaceVariables(template.subject, allVariables);
+    const htmlContent = this.replaceVariables(template.htmlContent, allVariables);
+    const textContent = template.textContent ? this.replaceVariables(template.textContent, allVariables) : '';
+    
+    return {
+      subject,
+      htmlContent,
+      textContent
+    };
+  }
+
+  /**
+   * Replace variables in content using {{variable}} syntax
+   * @param content The content to process
+   * @param variables Key-value pairs of variables to replace
+   * @returns Content with variables replaced
+   */
+  private replaceVariables(content: string, variables: Record<string, string>): string {
+    let result = content;
+    
+    // Replace {{variable}} patterns
+    Object.entries(variables).forEach(([key, value]) => {
+      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+      result = result.replace(regex, value || '');
+    });
+    
+    return result;
+  }
+
+  /**
+   * Get common variables that can be used in all email templates
+   * @returns Common variables object
+   */
+  private async getCommonVariables(): Promise<Record<string, string>> {
+    const companyName = await this.getCompanyName();
+    
+    return {
+      company_name: companyName,
+      support_email: this.settings.supportEmail || 'support@example.com',
+      frontend_url: this.settings.frontendUrl || 'https://example.com',
+      dashboard_url: `${this.settings.frontendUrl || 'https://example.com'}/dashboard`,
+      support_url: `${this.settings.frontendUrl || 'https://example.com'}/support`,
+      docs_url: `${this.settings.frontendUrl || 'https://example.com'}/docs`,
+    };
+  }
+
+  /**
+   * Send email using template
+   * @param templateType The template type to use
+   * @param to Recipient email address
+   * @param variables Variables to replace in the template
+   * @param userId Optional user ID for logging
    * @returns Success status
    */
-  public async sendPasswordResetEmail(email: string, resetCode: string): Promise<boolean> {
+  public async sendTemplatedEmail(
+    templateType: string,
+    to: string,
+    variables: Record<string, string> = {},
+    userId?: number
+  ): Promise<boolean> {
     try {
       // Initialize if not already initialized
       if (!this.transporter) {
         const initialized = await this.initialize();
         if (!initialized) {
-          console.error('Email service not initialized - cannot send password reset email');
+          console.error('Email service not initialized - cannot send templated email');
           return false;
         }
       }
       
       // Check if email is enabled
       if (this.settings.enabled === false) {
-        console.warn('Email sending is disabled - not sending password reset email');
+        console.warn('Email sending is disabled - not sending templated email');
         return false;
       }
-      
+
+      // Get template from database
+      const template = await storage.getEmailTemplateByType(templateType);
+      if (!template) {
+        console.error(`Email template not found for type: ${templateType}`);
+        return false;
+      }
+
+      if (!template.isActive) {
+        console.error(`Email template is inactive for type: ${templateType}`);
+        return false;
+      }
+
+      // Render template with variables
+      const renderedTemplate = await this.renderTemplate(template, variables);
+
       const companyName = await this.getCompanyName();
-      
-      // Create HTML and text content
-      const textContent = 
-        `Hello,\n\n` +
-        `You have requested to reset your password for your ${companyName} account.\n\n` +
-        `Your password reset code is: ${resetCode}\n\n` +
-        `This code will expire in 5 minutes. If you did not request this password reset, please ignore this email.\n\n` +
-        `Thank you,\n` +
-        `${companyName} Team`;
-        
-      const htmlContent = 
-        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">` +
-        `<h2 style="color: #333;">Password Reset</h2>` +
-        `<p>Hello,</p>` +
-        `<p>You have requested to reset your password for your ${companyName} account.</p>` +
-        `<p>Your password reset code is: <strong style="font-size: 18px; letter-spacing: 2px;">${resetCode}</strong></p>` +
-        `<p>This code will expire in <strong>5 minutes</strong>. If you did not request this password reset, please ignore this email.</p>` +
-        `<p>Thank you,<br>${companyName} Team</p>` +
-        `</div>`;
       
       // Prepare email data using nodemailer format
       const mailOptions = {
         from: `"${this.settings.fromName || companyName}" <${this.settings.fromEmail || 'noreply@skyvps360.xyz'}>`,
-        to: email,
-        subject: `${companyName} Password Reset Code`,
-        text: textContent,
-        html: htmlContent
+        to,
+        subject: renderedTemplate.subject,
+        html: renderedTemplate.htmlContent,
+        text: renderedTemplate.textContent || undefined
       };
       
       // Send the email
       if (this.transporter) {
         try {
           const info = await this.transporter.sendMail(mailOptions);
-          console.log('Password reset email sent:', info.messageId);
+          console.log(`Templated email sent (${templateType}):`, info.messageId);
           
           // Log preview URL in development
           if (process.env.NODE_ENV === 'development') {
@@ -277,30 +344,30 @@ export class EmailService {
           
           // Log the email to the database
           await this.logEmailToDatabase(
-            'password_reset',
-            email,
-            mailOptions.subject,
+            templateType,
+            to,
+            renderedTemplate.subject,
             'sent',
             info.messageId,
             undefined,
-            undefined,
-            { resetCode }
+            userId,
+            { variables, templateId: template.id }
           );
           
           return true;
         } catch (sendError: any) {
-          console.error('Error sending password reset email:', sendError);
+          console.error(`Error sending templated email (${templateType}):`, sendError);
           
           // Log the failed email
           await this.logEmailToDatabase(
-            'password_reset',
-            email,
-            mailOptions.subject,
+            templateType,
+            to,
+            renderedTemplate.subject,
             'failed',
             undefined,
             sendError.message,
-            undefined,
-            { resetCode }
+            userId,
+            { variables, templateId: template.id }
           );
           
           return false;
@@ -310,18 +377,44 @@ export class EmailService {
         
         // Log the failed email attempt
         await this.logEmailToDatabase(
-          'password_reset',
-          email,
-          mailOptions.subject,
+          templateType,
+          to,
+          renderedTemplate.subject,
           'failed',
           undefined,
           'Email transporter not initialized',
-          undefined,
-          { resetCode }
+          userId,
+          { variables, templateId: template.id }
         );
         
         return false;
       }
+    } catch (error) {
+      console.error(`Error sending templated email (${templateType}):`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Send a password reset email
+   * @param email The recipient's email address
+   * @param resetCode The password reset code
+   * @returns Success status
+   */
+  public async sendPasswordResetEmail(email: string, resetCode: string): Promise<boolean> {
+    try {
+      // Use template system only - no hardcoded fallback
+      const templateSuccess = await this.sendTemplatedEmail('password_reset', email, {
+        reset_code: resetCode
+      });
+      
+      if (templateSuccess) {
+        console.log('Password reset email sent using template system');
+        return true;
+      }
+      
+      console.error('Failed to send password reset email: template system failed and no fallback available');
+      return false;
     } catch (error) {
       console.error('Error sending password reset email:', error);
       return false;
@@ -336,109 +429,18 @@ export class EmailService {
    */
   public async sendForgotUsernameEmail(email: string, username: string): Promise<boolean> {
     try {
-      // Initialize if not already initialized
-      if (!this.transporter) {
-        const initialized = await this.initialize();
-        if (!initialized) {
-          console.error('Email service not initialized - cannot send username reminder email');
-          return false;
-        }
+      // Use template system only - no hardcoded fallback
+      const templateSuccess = await this.sendTemplatedEmail('username_reminder', email, {
+        username: username
+      });
+
+      if (templateSuccess) {
+        console.log('Username reminder email sent using template system');
+        return true;
       }
-      
-      // Check if email is enabled
-      if (this.settings.enabled === false) {
-        console.warn('Email sending is disabled - not sending username reminder email');
-        return false;
-      }
-      
-      const companyName = await this.getCompanyName();
-      
-      // Create HTML and text content
-      const textContent = 
-        `Hello,\n\n` +
-        `You have requested a reminder of your username for your ${companyName} account.\n\n` +
-        `Your username is: ${username}\n\n` +
-        `If you did not request this reminder, please ignore this email.\n\n` +
-        `Thank you,\n` +
-        `${companyName} Team`;
-        
-      const htmlContent = 
-        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">` +
-        `<h2 style="color: #333;">Username Reminder</h2>` +
-        `<p>Hello,</p>` +
-        `<p>You have requested a reminder of your username for your ${companyName} account.</p>` +
-        `<p>Your username is: <strong style="font-size: 18px;">${username}</strong></p>` +
-        `<p>If you did not request this reminder, please ignore this email.</p>` +
-        `<p>Thank you,<br>${companyName} Team</p>` +
-        `</div>`;
-      
-      // Prepare email data using nodemailer format
-      const mailOptions = {
-        from: `"${this.settings.fromName || companyName}" <${this.settings.fromEmail || 'noreply@skyvps360.xyz'}>`,
-        to: email,
-        subject: `${companyName} Username Reminder`,
-        text: textContent,
-        html: htmlContent
-      };
-      
-      // Send the email
-      if (this.transporter) {
-        try {
-          const info = await this.transporter.sendMail(mailOptions);
-          console.log('Username reminder email sent:', info.messageId);
-          
-          // Log preview URL in development
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
-          }
-          
-          // Log the email to the database
-          await this.logEmailToDatabase(
-            'username_reminder',
-            email,
-            mailOptions.subject,
-            'sent',
-            info.messageId,
-            undefined,
-            undefined,
-            { username }
-          );
-          
-          return true;
-        } catch (sendError: any) {
-          console.error('Error sending username reminder email:', sendError);
-          
-          // Log the failed email
-          await this.logEmailToDatabase(
-            'username_reminder',
-            email,
-            mailOptions.subject,
-            'failed',
-            undefined,
-            sendError.message,
-            undefined,
-            { username }
-          );
-          
-          return false;
-        }
-      } else {
-        console.error('Transporter is null, cannot send username reminder email');
-        
-        // Log the failed email attempt
-        await this.logEmailToDatabase(
-          'username_reminder',
-          email,
-          mailOptions.subject,
-          'failed',
-          undefined,
-          'Email transporter not initialized',
-          undefined,
-          { username }
-        );
-        
-        return false;
-      }
+
+      console.error('Failed to send username reminder email: template system failed and no fallback available');
+      return false;
     } catch (error) {
       console.error('Error sending username reminder email:', error);
       return false;
@@ -453,134 +455,19 @@ export class EmailService {
    */
   public async sendEmailVerificationCode(email: string, verificationCode: string): Promise<boolean> {
     try {
-      // Initialize if not already initialized
-      if (!this.transporter) {
-        console.log('Email transporter not initialized, attempting to initialize now...');
-        const initialized = await this.initialize();
-        if (!initialized) {
-          console.error('Email service failed to initialize - cannot send verification email');
-          return false;
-        }
-        console.log('Email service initialized successfully during verification email attempt');
+      // Try to use template system first
+      const templateSuccess = await this.sendTemplatedEmail('email_verification', email, {
+        verification_code: verificationCode,
+        expiry_time: '24 hours'
+      });
+
+      if (templateSuccess) {
+        console.log('Email verification sent using template system');
+        return true;
       }
-      
-      // Check if email is enabled
-      if (this.settings.enabled === false) {
-        console.warn('Email sending is disabled in settings - not sending verification email');
-        return false;
-      }
-      
-      // Double-check SMTP settings
-      if (!this.settings.smtpHost || !this.settings.smtpUser || !this.settings.smtpPass) {
-        console.error('Missing SMTP settings:', {
-          host: !this.settings.smtpHost,
-          user: !this.settings.smtpUser,
-          pass: !this.settings.smtpPass
-        });
-        return false;
-      }
-      
-      const companyName = await this.getCompanyName();
-      console.log(`Preparing email verification for ${email} with company name: ${companyName}`);
-      
-      // Create HTML and text content
-      const textContent = 
-        `Hello,\n\n` +
-        `Thank you for registering at ${companyName}. To verify your email address, please use the following verification code:\n\n` +
-        `Verification Code: ${verificationCode}\n\n` +
-        `This code will expire in 24 hours. If you did not create this account, please ignore this email.\n\n` +
-        `Thank you,\n` +
-        `${companyName} Team`;
-        
-      const htmlContent = 
-        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">` +
-        `<h2 style="color: #333;">Email Verification</h2>` +
-        `<p>Hello,</p>` +
-        `<p>Thank you for registering at ${companyName}. To verify your email address, please use the following verification code:</p>` +
-        `<p style="background-color: #f5f5f5; padding: 15px; text-align: center; border-radius: 5px;">` +
-        `<strong style="font-size: 20px; letter-spacing: 2px; color: #333;">${verificationCode}</strong>` +
-        `</p>` +
-        `<p>This code will expire in <strong>24 hours</strong>. If you did not create this account, please ignore this email.</p>` +
-        `<p>Thank you,<br>${companyName} Team</p>` +
-        `</div>`;
-      
-      // Prepare email data using nodemailer format
-      const fromEmail = this.settings.fromEmail || 'noreply@skyvps360.xyz';
-      const fromName = this.settings.fromName || companyName;
-      
-      console.log(`Sending verification email from: "${fromName}" <${fromEmail}>`);
-      
-      const mailOptions = {
-        from: `"${fromName}" <${fromEmail}>`,
-        to: email,
-        subject: `${companyName} Email Verification Code`,
-        text: textContent,
-        html: htmlContent
-      };
-      
-      // Send the email
-      if (this.transporter) {
-        try {
-          console.log('Attempting to send verification email...');
-          const info = await this.transporter.sendMail(mailOptions);
-          console.log('Email verification sent successfully:', info.messageId);
-          
-          // Log preview URL in development
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
-          }
-          
-          // Log the email to the database
-          await this.logEmailToDatabase(
-            'email_verification',
-            email,
-            mailOptions.subject,
-            'sent',
-            info.messageId,
-            undefined,
-            undefined,
-            { verificationCode }
-          );
-          
-          return true;
-        } catch (sendError) {
-          console.error('Failed to send verification email:', sendError);
-          
-          // Try to verify connection - it might have timed out
-          try {
-            await this.transporter.verify();
-            console.log('SMTP connection is still valid despite send error');
-          } catch (verifyError) {
-            console.error('SMTP connection is invalid, attempting to reinitialize transporter:', verifyError);
-            // Re-create transporter and try one more time
-            this.transporter = nodemailer.createTransport({
-              host: this.settings.smtpHost,
-              port: this.settings.smtpPort,
-              secure: this.settings.smtpSecure ?? false,
-              auth: {
-                user: this.settings.smtpUser,
-                pass: this.settings.smtpPass
-              },
-              debug: true
-            });
-            
-            try {
-              await this.transporter.verify();
-              console.log('Reinitialized SMTP connection, trying to send email again');
-              const retryInfo = await this.transporter.sendMail(mailOptions);
-              console.log('Email verification sent on second attempt:', retryInfo.messageId);
-              return true;
-            } catch (finalError) {
-              console.error('Failed to send email after reinitializing transporter:', finalError);
-              return false;
-            }
-          }
-          return false;
-        }
-      } else {
-        console.error('Transporter is null after initialization attempts, cannot send verification email');
-        return false;
-      }
+
+      console.error('Failed to send email verification: template system failed and no fallback available');
+      return false;
     } catch (error) {
       console.error('Unexpected error sending email verification:', error);
       return false;
@@ -642,109 +529,19 @@ export class EmailService {
    */
   public async sendAdminPasswordResetEmail(email: string, temporaryPassword: string, adminName: string): Promise<boolean> {
     try {
-      // Initialize if not already initialized
-      if (!this.transporter) {
-        const initialized = await this.initialize();
-        if (!initialized) {
-          console.error('Email service not initialized - cannot send admin password reset email');
-          return false;
-        }
+      // Try to use template system first
+      const templateSuccess = await this.sendTemplatedEmail('admin_password_reset', email, {
+        temporary_password: temporaryPassword,
+        admin_name: adminName
+      });
+
+      if (templateSuccess) {
+        console.log('Admin password reset email sent using template system');
+        return true;
       }
-      
-      // Check if email is enabled
-      if (this.settings.enabled === false) {
-        console.warn('Email sending is disabled - not sending admin password reset email');
-        return false;
-      }
-      
-      const companyName = await this.getCompanyName();
-      
-      // Create HTML and text content
-      const textContent = 
-        `Hello,\n\n` +
-        `Your password for your ${companyName} account has been reset by an administrator (${adminName}).\n\n` +
-        `Your new temporary password is: ${temporaryPassword}\n\n` +
-        `Please login with this temporary password and change it immediately for security purposes.\n\n` +
-        `Thank you,\n` +
-        `${companyName} Team`;
-        
-      const htmlContent = 
-        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">` +
-        `<h2 style="color: #333;">Password Reset Notification</h2>` +
-        `<p>Hello,</p>` +
-        `<p>Your password for your ${companyName} account has been reset by an administrator (${adminName}).</p>` +
-        `<p>Your new temporary password is: <strong style="font-size: 18px; letter-spacing: 2px;">${temporaryPassword}</strong></p>` +
-        `<p>Please login with this temporary password and change it immediately for security purposes.</p>` +
-        `<p>Thank you,<br>${companyName} Team</p>` +
-        `</div>`;
-      
-      // Prepare email data using nodemailer format
-      const mailOptions = {
-        from: `"${this.settings.fromName || companyName}" <${this.settings.fromEmail || 'noreply@skyvps360.xyz'}>`,
-        to: email,
-        subject: `${companyName} Password Reset Notification`,
-        text: textContent,
-        html: htmlContent
-      };
-      
-      // Send the email
-      if (this.transporter) {
-        try {
-          const info = await this.transporter.sendMail(mailOptions);
-          console.log('Admin password reset email sent:', info.messageId);
-          
-          // Log preview URL in development
-          if (process.env.NODE_ENV === 'development') {
-            console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
-          }
-          
-          // Log the email to the database
-          await this.logEmailToDatabase(
-            'admin_password_reset',
-            email,
-            mailOptions.subject,
-            'sent',
-            info.messageId,
-            undefined,
-            undefined, // We don't know the user ID here
-            { adminName }  // Don't include the temporary password in the logs for security reasons
-          );
-          
-          return true;
-        } catch (sendError: any) {
-          console.error('Error sending admin password reset email:', sendError);
-          
-          // Log the failed email
-          await this.logEmailToDatabase(
-            'admin_password_reset',
-            email,
-            mailOptions.subject,
-            'failed',
-            undefined,
-            sendError.message,
-            undefined,
-            { adminName }
-          );
-          
-          return false;
-        }
-      } else {
-        console.error('Transporter is null, cannot send admin password reset email');
-        
-        // Log the failed email attempt
-        await this.logEmailToDatabase(
-          'admin_password_reset',
-          email,
-          mailOptions.subject,
-          'failed',
-          undefined,
-          'Email transporter not initialized',
-          undefined,
-          { adminName }
-        );
-        
-        return false;
-      }
+
+      console.error('Failed to send admin password reset email: template system failed and no fallback available');
+      return false;
     } catch (error) {
       console.error('Error sending admin password reset email:', error);
       return false;
@@ -758,6 +555,32 @@ export class EmailService {
    * @param html HTML content of the email
    * @returns Success status
    */
+  /**
+   * Send a test email to verify email configuration
+   * @param to Recipient email address  
+   * @returns Success status
+   */
+  public async sendTestEmail(to: string): Promise<boolean> {
+    try {
+      // Try to use template system first
+      const templateSuccess = await this.sendTemplatedEmail('test_email', to, {
+        test_timestamp: new Date().toLocaleString(),
+        admin_email: to
+      });
+
+      if (templateSuccess) {
+        console.log('Test email sent using template system');
+        return true;
+      }
+
+      console.error('Failed to send test email: template system failed and no fallback available');
+      return false;
+    } catch (error: any) {
+      console.error('Error in sendTestEmail:', error);
+      return false;
+    }
+  }
+
   public async sendNotificationEmail(to: string, subject: string, html: string): Promise<boolean> {
     try {
       // Initialize if not already initialized

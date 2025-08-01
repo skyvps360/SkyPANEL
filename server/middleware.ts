@@ -195,6 +195,7 @@ export async function maintenanceMiddleware(req: Request, res: Response, next: N
           req.path.startsWith('/api/auth/') ||  // Allow auth endpoints for login/logout
           req.path.startsWith('/api/ticket-departments') ||  // For ticket department management
           req.path.startsWith('/api/tickets/') ||  // For ticket management
+          req.path.startsWith('/api/billing/') ||  // For billing functionality during maintenance
           req.path.startsWith('/api/service-status') ||  // For service status checking
           req.path.startsWith('/api/maintenance/')) {
         console.log(`Allowing API access during maintenance: ${req.path}`);

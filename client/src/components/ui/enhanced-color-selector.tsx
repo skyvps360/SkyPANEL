@@ -156,7 +156,7 @@ const COLOR_THEMES: ColorTheme[] = [
     name: 'Sunset Horizon',
     description: 'Fiery oranges and reds, reflecting warmth and energy.',
     primary: 'DC2626',
-    secondary: 'F97316',
+    secondary: 'EA580C',
     accent: 'FBBF24',
     category: 'warm'
   },
@@ -164,16 +164,16 @@ const COLOR_THEMES: ColorTheme[] = [
     name: 'Golden Hour',
     description: 'Soft yellows and oranges, capturing the essence of a warm glow.',
     primary: 'F59E0B',
-    secondary: 'FB923C',
-    accent: 'FEF08A',
+    secondary: 'FCD34D',
+    accent: 'FDE047',
     category: 'warm'
   },
   {
     name: 'Autumn Harvest',
     description: 'Deep reds, rustic oranges, and rich browns for a cozy feel.',
-    primary: '991B1B',
-    secondary: 'EA580C',
-    accent: '78350F',
+    primary: 'B91C1C',
+    secondary: 'C2410C',
+    accent: '92400E',
     category: 'warm'
   },
 

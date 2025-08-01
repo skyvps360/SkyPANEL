@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import AdminLayout from "@/components/layout/AdminLayout";
@@ -31,15 +31,36 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { UserCog, Download, Edit, ShieldAlert, User as UserIcon, Trash2, Power, PowerOff } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { 
+  UserCog, 
+  Download, 
+  Edit, 
+  ShieldAlert, 
+  User as UserIcon, 
+  Trash2, 
+  Power, 
+  PowerOff,
+  Users,
+  Shield,
+  UserX,
+  TrendingUp,
+  Calendar,
+  Search,
+  Filter,
+  Plus,
+  UserPlus
+} from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { highlightMatch } from "@/components/ui/data-table";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getUserAvatar } from "@/lib/avatar-utils";
 
 // Helper function to generate CSV from users data
 const generateCSV = (users: User[]): string => {
@@ -75,6 +96,21 @@ const downloadCSV = (csv: string, filename: string): void => {
   document.body.removeChild(link);
 };
 
+interface UserOAuthAccount {
+  id: number;
+  userId: number;
+  providerName: string;
+  providerUserId: string;
+  providerUserEmail?: string;
+  providerUserName?: string;
+  providerUsername?: string;
+  providerEmail?: string;
+  providerAvatarUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface User {
   id: number;
   username: string;
@@ -85,6 +121,72 @@ interface User {
   createdAt: string;
   isActive?: boolean;
   virtFusionId?: number | null;
+  oauthAccounts?: UserOAuthAccount[];
+}
+
+// Statistics Card Component
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  description?: string;
+  icon: React.ComponentType<{ className?: string }>;
+  trend?: {
+    value: number;
+    isPositive: boolean;
+  };
+  className?: string;
+}
+
+function StatCard({ title, value, description, icon: Icon, trend, className }: StatCardProps) {
+  return (
+    <Card className={className}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {description}
+          </p>
+        )}
+        {trend && (
+          <div className="flex items-center text-xs mt-1">
+            <TrendingUp 
+              className={`h-3 w-3 mr-1 ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`} 
+            />
+            <span className={trend.isPositive ? 'text-green-600' : 'text-red-600'}>
+              {trend.isPositive ? '+' : ''}{trend.value}%
+            </span>
+            <span className="text-muted-foreground ml-1">from last month</span>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Loading skeleton for statistics
+function StatsSkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Card key={i}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-4" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-16 mb-2" />
+            <Skeleton className="h-3 w-32" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 }
 
 export default function UsersPage() {
@@ -98,11 +200,79 @@ export default function UsersPage() {
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [userStatus, setUserStatus] = useState<boolean>(true); // true = enabled, false = suspended
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
 
   // Fetch users
   const { data: users = [], isLoading, refetch } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
+
+  // Computed statistics and filters
+  const statistics = useMemo(() => {
+    const totalUsers = users.length;
+    const activeUsers = users.filter(user => user.isActive !== false).length;
+    const suspendedUsers = users.filter(user => user.isActive === false).length;
+    const adminUsers = users.filter(user => user.role === "admin").length;
+    const clientUsers = users.filter(user => user.role === "client").length;
+    
+    // Recent users (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentUsers = users.filter(user => 
+      new Date(user.createdAt) > thirtyDaysAgo
+    ).length;
+
+    return {
+      totalUsers,
+      activeUsers,
+      suspendedUsers,
+      adminUsers,
+      clientUsers,
+      recentUsers,
+      activePercentage: totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0
+    };
+  }, [users]);
+
+  // Filter users based on search and tab
+  const filteredUsers = useMemo(() => {
+    let filtered = users;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(user => 
+        user.fullName?.toLowerCase().includes(query) ||
+        user.username?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply tab filter
+    switch (activeTab) {
+      case "active":
+        filtered = filtered.filter(user => user.role !== "admin" && user.isActive !== false);
+        break;
+      case "suspended":
+        filtered = filtered.filter(user => user.role !== "admin" && user.isActive === false);
+        break;
+      case "admins":
+        filtered = filtered.filter(user => user.role === "admin");
+        break;
+      case "clients":
+        filtered = filtered.filter(user => user.role === "client");
+        break;
+      default:
+        // "all" - no additional filtering
+        break;
+    }
+
+    return filtered;
+  }, [users, searchQuery, activeTab]);
+
+  // Legacy filtered arrays for backward compatibility
+  const admins = users.filter(user => user.role === "admin");
+  const activeClients = users.filter(user => user.role !== "admin" && user.isActive !== false);
+  const suspendedClients = users.filter(user => user.role !== "admin" && user.isActive === false);
 
   // Update user role mutation
   const updateRoleMutation = useMutation({
@@ -293,32 +463,60 @@ export default function UsersPage() {
     }
   };
 
-  // Table columns
+  // Enhanced table columns with better visuals
   const columns = [
     {
       accessorKey: "fullName" as keyof User,
       header: "User",
-      cell: (user: User) => (
-        <div className="flex items-center">
-          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-3">
-            <UserIcon className="h-4 w-4 text-muted-foreground" />
-          </div>
-          <div>
-            <div className="font-medium">
-              {searchQuery ? highlightMatch(user.fullName, searchQuery) : user.fullName}
+      cell: (user: User) => {
+        const avatar = getUserAvatar(user, user.oauthAccounts, 40);
+        
+        return (
+          <div className="flex items-center">
+            <Avatar className="w-10 h-10 mr-3">
+              {avatar.src ? (
+                <AvatarImage 
+                  src={avatar.src} 
+                  alt={user.fullName || user.username} 
+                  className="object-cover"
+                />
+              ) : null}
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                {avatar.fallback}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold text-sm truncate flex items-center gap-2">
+                {searchQuery ? highlightMatch(user.fullName || user.username, searchQuery) : (user.fullName || user.username)}
+                {avatar.type === 'discord' && (
+                  <div className="w-4 h-4 bg-[#5865F2] rounded-full flex items-center justify-center">
+                    <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 127.14 96.36" fill="currentColor">
+                      <path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/>
+                    </svg>
+                  </div>
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground truncate">{user.username}</div>
+              {user.virtFusionId && (
+                <div className="text-xs text-blue-600 font-mono">VF #{user.virtFusionId}</div>
+              )}
             </div>
-            <div className="text-xs text-muted-foreground">{user.username}</div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       accessorKey: "email" as keyof User,
-      header: "Email",
+      header: "Contact",
       cell: (user: User) => (
-        <span className="text-sm">
-          {searchQuery ? highlightMatch(user.email, searchQuery) : user.email}
-        </span>
+        <div className="text-sm">
+          <div className="truncate max-w-xs">
+            {searchQuery ? highlightMatch(user.email, searchQuery) : user.email}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
+          </div>
+        </div>
       ),
     },
     {
@@ -331,12 +529,12 @@ export default function UsersPage() {
       header: "Status",
       cell: (user: User) => (
         user.isActive === false ? (
-          <Badge variant="outline" className="bg-gray-100 text-gray-800 border-gray-200">
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100">
             <PowerOff className="h-3 w-3 mr-1" />
             Suspended
           </Badge>
         ) : (
-          <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100">
             <Power className="h-3 w-3 mr-1" />
             Active
           </Badge>
@@ -344,12 +542,14 @@ export default function UsersPage() {
       ),
     },
     {
-      accessorKey: "createdAt" as keyof User,
-      header: "Joined",
+      accessorKey: "credits" as keyof User,
+      header: "Credits",
       cell: (user: User) => (
-        <span className="text-sm text-gray-500">
-          {formatDate(user.createdAt)}
-        </span>
+        <div className="text-right">
+          <div className="font-mono text-sm font-medium">
+            ${user.credits?.toFixed(2) || '0.00'}
+          </div>
+        </div>
       ),
     },
   ];
@@ -407,20 +607,17 @@ export default function UsersPage() {
   </>
 );
 
-  // Filter users by role and status
-  const admins = users.filter(user => user.role === "admin");
-  const activeClients = users.filter(user => user.role !== "admin" && user.isActive !== false);
-  const suspendedClients = users.filter(user => user.role !== "admin" && user.isActive === false);
-
   return (
     <AdminLayout>
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">User Management</h1>
-          <p className="text-gray-500 mt-1">Manage your users and their permissions</p>
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+          <p className="text-muted-foreground">
+            Monitor and manage user accounts, permissions, and access controls
+          </p>
         </div>
-        <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
+        <div className="mt-4 lg:mt-0 flex flex-col sm:flex-row gap-2">
           <Button
             variant="outline"
             className="flex items-center"
@@ -434,96 +631,154 @@ export default function UsersPage() {
             }}
           >
             <Download className="h-4 w-4 mr-2" />
-            Export
+            Export CSV
+          </Button>
+          <Button
+            onClick={() => navigate('/admin/users/create')}
+            className="flex items-center"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add User
           </Button>
         </div>
       </div>
 
-      {/* Global Search Bar */}
-      <div className="mb-6 max-w-md">
-        <div className="relative">
+      {/* Statistics Cards */}
+      {isLoading ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <StatCard
+            title="Total Users"
+            value={statistics.totalUsers}
+            description={`${statistics.activePercentage}% active`}
+            icon={Users}
+            trend={{ value: 12, isPositive: true }}
+          />
+          <StatCard
+            title="Active Users"
+            value={statistics.activeUsers}
+            description="Currently enabled"
+            icon={Power}
+            className="border-green-200"
+          />
+          <StatCard
+            title="Administrators"
+            value={statistics.adminUsers}
+            description="System administrators"
+            icon={Shield}
+            className="border-purple-200"
+          />
+          <StatCard
+            title="New This Month"
+            value={statistics.recentUsers}
+            description="Recent signups"
+            icon={Calendar}
+            trend={{ value: 8, isPositive: true }}
+          />
+        </div>
+      )}
+
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search users or admins..."
+            placeholder="Search users by name, username, or email..."
             className="pl-10"
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Filter:</span>
+        </div>
       </div>
 
-      {/* Active Users Table */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-lg">Users</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="ml-2">Loading users...</p>
-            </div>
-          ) : (
-            <DataTable
-              data={activeClients}
-              columns={columns}
-              searchKey="fullName"
-              actions={renderActions}
-              enableSearch={false}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Admins Table */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-lg">Admins</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="ml-2">Loading users...</p>
-            </div>
-          ) : (
-            <DataTable
-              data={admins}
-              columns={columns}
-              searchKey="fullName"
-              actions={renderActions}
-              enableSearch={false}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Suspended Clients Table */}
+      {/* Main Content with Tabs */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Suspended Clients</CardTitle>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl">Users Directory</CardTitle>
+            <Badge variant="outline" className="px-3 py-1">
+              {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'}
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <p className="ml-2">Loading users...</p>
-            </div>
-          ) : (
-            <DataTable
-              data={suspendedClients}
-              columns={columns}
-              searchKey="fullName"
-              actions={renderActions}
-              enableSearch={false}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
-          )}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                All ({statistics.totalUsers})
+              </TabsTrigger>
+              <TabsTrigger value="active" className="flex items-center gap-2">
+                <Power className="h-4 w-4" />
+                Active ({statistics.activeUsers})
+              </TabsTrigger>
+              <TabsTrigger value="suspended" className="flex items-center gap-2">
+                <UserX className="h-4 w-4" />
+                Suspended ({statistics.suspendedUsers})
+              </TabsTrigger>
+              <TabsTrigger value="admins" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Admins ({statistics.adminUsers})
+              </TabsTrigger>
+              <TabsTrigger value="clients" className="flex items-center gap-2">
+                <UserIcon className="h-4 w-4" />
+                Clients ({statistics.clientUsers})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value={activeTab} className="mt-6">
+              {isLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4 p-4">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-48" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">
+                    No users found
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {searchQuery 
+                      ? `No users match "${searchQuery}" in the ${activeTab} category.`
+                      : `No users found in the ${activeTab} category.`
+                    }
+                  </p>
+                  {searchQuery && (
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => setSearchQuery("")}
+                    >
+                      Clear search
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <DataTable
+                  data={filteredUsers}
+                  columns={columns}
+                  searchKey="fullName"
+                  actions={renderActions}
+                  enableSearch={false}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

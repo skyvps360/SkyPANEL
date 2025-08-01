@@ -67,6 +67,9 @@ import {
   type PackagePricing,
   type EmailLog,
   type InsertEmailLog,
+  emailTemplates,
+  type EmailTemplate,
+  type InsertEmailTemplate,
   type InsertPackagePricing,
   type DiscordTicketThread,
   type InsertDiscordTicketThread,
@@ -1367,6 +1370,86 @@ export class DatabaseStorage implements IStorage {
   async getEmailLog(id: number): Promise<EmailLog | undefined> {
     const [log] = await db.select().from(emailLogs).where(eq(emailLogs.id, id));
     return log;
+  }
+
+  // ---- Implementation of Email Template operations ----
+  
+  /**
+   * Get all email templates
+   * @returns Promise that resolves with all email templates
+   */
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    return await db.select().from(emailTemplates)
+      .orderBy(emailTemplates.type, emailTemplates.name);
+  }
+
+  /**
+   * Get email template by ID
+   * @param id The template ID
+   * @returns Promise that resolves with the template or undefined
+   */
+  async getEmailTemplate(id: number): Promise<EmailTemplate | undefined> {
+    const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id));
+    return template;
+  }
+
+  /**
+   * Get email template by type
+   * @param type The template type
+   * @returns Promise that resolves with the template or undefined
+   */
+  async getEmailTemplateByType(type: string): Promise<EmailTemplate | undefined> {
+    const [template] = await db.select().from(emailTemplates)
+      .where(and(eq(emailTemplates.type, type), eq(emailTemplates.isActive, true)));
+    return template;
+  }
+
+  /**
+   * Create a new email template
+   * @param templateData The template data
+   * @returns Promise that resolves with the created template
+   */
+  async createEmailTemplate(templateData: InsertEmailTemplate): Promise<EmailTemplate> {
+    const [template] = await db.insert(emailTemplates).values(templateData).returning();
+    return template;
+  }
+
+  /**
+   * Update an email template
+   * @param id The template ID
+   * @param updates The updates to apply
+   * @returns Promise that resolves with the updated template or undefined
+   */
+  async updateEmailTemplate(id: number, updates: Partial<EmailTemplate>): Promise<EmailTemplate | undefined> {
+    const [template] = await db.update(emailTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(emailTemplates.id, id))
+      .returning();
+    return template;
+  }
+
+  /**
+   * Delete an email template
+   * @param id The template ID
+   * @returns Promise that resolves with true if deleted, false if not found
+   */
+  async deleteEmailTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(emailTemplates).where(eq(emailTemplates.id, id));
+    return result.rowCount > 0;
+  }
+
+  /**
+   * Get active email templates by type
+   * @param types Array of template types to fetch
+   * @returns Promise that resolves with matching templates
+   */
+  async getActiveEmailTemplatesByTypes(types: string[]): Promise<EmailTemplate[]> {
+    return await db.select().from(emailTemplates)
+      .where(and(
+        inArray(emailTemplates.type, types),
+        eq(emailTemplates.isActive, true)
+      ))
+      .orderBy(emailTemplates.type);
   }
 
   // ---- Implementation of Documentation operations ----

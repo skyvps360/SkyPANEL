@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { UnifiedDepartmentManager } from "@/components/admin/unified-department-manager";
 import { ToastAction } from "@/components/ui/toast";
 import TeamManagement from "@/components/admin/TeamManagement";
-import CodeSnippetsManager from "@/components/admin/CodeSnippetsManager";
+
 import {
   Settings as SettingsIcon,
   CreditCard,
@@ -52,8 +52,7 @@ import {
   MessageCircle,
   Globe,
   MessageSquare,
-  BarChart3,
-  Code
+  BarChart3
 } from "lucide-react";
 
 interface Setting {
@@ -366,7 +365,7 @@ const settingsOptions = [
   { value: "loading-screen", label: "Loading Screen", icon: <Hourglass className="h-4 w-4 mr-2" /> },
   { value: "design", label: "Design", icon: <PenTool className="h-4 w-4 mr-2" /> },
   { value: "google-analytics", label: "Google Analytics", icon: <BarChart3 className="h-4 w-4 mr-2" /> },
-  { value: "code-snippets", label: "Code Snippets", icon: <Code className="h-4 w-4 mr-2" /> },
+
 ];
 
 export default function SettingsPage() {
@@ -1864,7 +1863,7 @@ export default function SettingsPage() {
                   <SelectTrigger className="w-full focus:ring-2 settings-select-trigger">
                     <SelectValue placeholder="Select a setting category" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-60 overflow-y-auto">
                     {settingsOptions
                       // Filter out the tickets option from the dropdown but keep it in the array for the tab
                       .filter((option) => option.value !== "tickets")
@@ -5208,9 +5207,7 @@ export default function SettingsPage() {
                 </form>
               </TabsContent>
 
-              <TabsContent value="code-snippets">
-                <CodeSnippetsManager />
-              </TabsContent>
+
             </Tabs>
           </CardContent>
         )}

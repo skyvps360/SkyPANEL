@@ -44,6 +44,7 @@ import AdminTicketDetailPage from "@/pages/admin/ticket-detail-page";
 import AdminBillingPage from "@/pages/admin/billing-page";
 import AdminTransactionDetailPage from "@/pages/admin/transaction-detail-page";
 import EmailLogsPage from "@/pages/admin/email-logs-page";
+import EmailTemplatesPage from "@/pages/admin/email-templates-page";
 import AdminDocsPage from "@/pages/admin/docs-page";
 import AdminBlogPage from "@/pages/admin/blog-page";
 import DatacenterLocationsPage from "@/pages/admin/datacenter-locations";
@@ -184,6 +185,7 @@ export function AppRouter() {
                 <AdminProtectedRoute path="/admin/tickets/:id" component={AdminTicketDetailPage} />
                 <AdminProtectedRoute path="/admin/tickets" component={AdminTicketsPage} />
                 <AdminProtectedRoute path="/admin/mail" component={EmailLogsPage} />
+                <AdminProtectedRoute path="/admin/email-templates" component={EmailTemplatesPage} />
                 <AdminProtectedRoute path="/admin/docs" component={AdminDocsPage} />
                 <AdminProtectedRoute path="/admin/blog" component={AdminBlogPage} />
                 <AdminProtectedRoute path="/admin/datacenter-locations" component={DatacenterLocationsPage} />

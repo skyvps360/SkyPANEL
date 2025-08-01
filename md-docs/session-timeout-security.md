@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the implementation of automatic session timeout functionality to strengthen the security of the SkyPANEL application. Users are now automatically logged out after 1 hour of inactivity.
+This document describes the implementation of automatic session timeout functionality to strengthen the security of the SkyPANEL application. Users are now automatically logged out after 1 hour of inactivity, with an exception for administrators on admin routes.
 
 ## Security Benefits
 
@@ -10,6 +10,7 @@ This document describes the implementation of automatic session timeout function
 - **Automatic Logout**: Sessions expire after 1 hour, preventing unauthorized access to unattended sessions
 - **Idle Session Protection**: Protects against scenarios where users forget to log out on shared computers
 - **Reduced Attack Window**: Limits the time window for potential session hijacking attacks
+- **Admin Exemption**: Administrators are exempt from auto-logout when on admin routes to prevent disruption of administrative tasks
 
 ### 2. Enhanced Cookie Security
 - **httpOnly**: Prevents XSS attacks by making cookies inaccessible to JavaScript
@@ -46,6 +47,7 @@ The frontend includes a session monitoring hook that:
 - Monitors when the user returns to the tab (visibility change)
 - Automatically logs out users when sessions expire
 - Provides user-friendly notifications
+- **Exempts administrators from auto-logout when on admin routes** (`/admin/*`)
 
 ### Key Features
 
@@ -53,6 +55,7 @@ The frontend includes a session monitoring hook that:
 2. **Graceful Logout**: Handles logout process smoothly with user notifications
 3. **Background Monitoring**: Continuously monitors session status without user intervention
 4. **Tab Visibility Handling**: Checks session when user returns to the application tab
+5. **Admin Exemption**: Administrators are not auto-logged out when on admin routes
 
 ## User Experience
 
@@ -60,9 +63,15 @@ The frontend includes a session monitoring hook that:
 
 1. **Session Expires**: After 1 hour of inactivity
 2. **Detection**: Frontend detects expired session on next API call
-3. **Automatic Logout**: User is automatically logged out
+3. **Automatic Logout**: User is automatically logged out (except admins on admin routes)
 4. **Notification**: Toast notification informs user of session expiration
 5. **Redirect**: User is redirected to login page
+
+### Admin Exemption
+
+Administrators with the `admin` role are exempt from automatic logout when:
+- They are on any route starting with `/admin`
+- This prevents disruption of administrative tasks that may take longer than 1 hour
 
 ### Notification Message
 
