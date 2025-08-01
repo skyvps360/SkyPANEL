@@ -80,12 +80,14 @@ export async function apiRequest<T = any>(
     data?: any; // Support both 'body' and 'data' for backward compatibility
     headers?: Record<string, string>;
     responseType?: string;
+    isFormData?: boolean; // Flag to indicate FormData body
   }
 ): Promise<T> {
   const method = options?.method || 'GET';
   const payload = options?.data || options?.body; // Use data if provided, fallback to body
   const customHeaders = options?.headers || {};
   const responseType = options?.responseType;
+  const isFormData = options?.isFormData || payload instanceof FormData;
   
   // Determine if we're expecting a binary response
   const isBinaryResponse = responseType === 'blob' || 
@@ -98,15 +100,16 @@ export async function apiRequest<T = any>(
     ...customHeaders
   };
   
-  // Only add Content-Type header if we have a payload to send
-  if (payload) {
+  // Only add Content-Type header if we have a payload to send and it's not FormData
+  // For FormData, let the browser set the Content-Type (including boundary)
+  if (payload && !isFormData) {
     headers["Content-Type"] = "application/json";
   }
   
   const res = await fetch(url, {
     method,
     headers,
-    body: payload ? JSON.stringify(payload) : undefined,
+    body: payload ? (isFormData ? payload : JSON.stringify(payload)) : undefined,
     credentials: "include",
   });
 

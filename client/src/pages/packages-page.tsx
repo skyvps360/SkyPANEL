@@ -371,7 +371,12 @@ export default function PackagesPage() {
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div>
                   <CardTitle className="text-foreground">Package Comparison</CardTitle>
-                  <CardDescription>Compare all available packages side by side</CardDescription>
+                  <CardDescription>
+                    {categoryFilter && categories ? 
+                      categories.find(cat => cat.id === categoryFilter)?.description || "Compare all available packages side by side"
+                      : "Compare all available packages side by side"
+                    }
+                  </CardDescription>
                 </div>
                 {/* Billing Method Badge */}
                 <div

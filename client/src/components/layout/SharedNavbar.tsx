@@ -11,6 +11,7 @@ interface BrandingSettings {
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
+  company_logo?: string;
 }
 
 export function SharedNavbar() {
@@ -206,9 +207,20 @@ export function SharedNavbar() {
             <Link href="/" className="flex-shrink-0 flex items-center">
               <div
                 className="flex items-center justify-center h-8 w-10 mr-2 rounded text-white font-bold text-lg"
-                style={{ backgroundColor: brandColors.primary.full }}
+                style={{ 
+                  backgroundColor: branding?.company_logo ? 'transparent' : brandColors.primary.full,
+                  padding: branding?.company_logo ? '0' : undefined
+                }}
               >
-                {companyName?.charAt(0) || "S"}
+                {branding?.company_logo ? (
+                  <img
+                    src={branding.company_logo}
+                    alt={companyName || "Company Logo"}
+                    className="h-full w-full object-contain rounded"
+                  />
+                ) : (
+                  companyName?.charAt(0) || "S"
+                )}
               </div>
               <span className="text-xl font-bold text-gray-800">
                 {companyName}

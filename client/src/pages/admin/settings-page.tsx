@@ -52,7 +52,10 @@ import {
   MessageCircle,
   Globe,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Upload,
+  Image,
+  Trash2
 } from "lucide-react";
 
 interface Setting {
@@ -381,6 +384,9 @@ export default function SettingsPage() {
   const [migrationResult, setMigrationResult] = useState<MigrationResult | null>(null);
   const [syncInProgress, setSyncInProgress] = useState(false);
   const [syncResult, setSyncResult] = useState<MigrationResult | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [logoUploadInProgress, setLogoUploadInProgress] = useState(false);
 
   // Listen for theme changes to force re-render
   useEffect(() => {
@@ -574,6 +580,69 @@ export default function SettingsPage() {
     },
   });
 
+  // Logo upload mutation
+  const logoUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('logo', file);
+      
+      return apiRequest('/api/admin/settings/logo/upload', {
+        method: 'POST',
+        body: formData,
+        // Don't set Content-Type header - let the browser set it for FormData
+        isFormData: true
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Logo uploaded successfully",
+        description: "Your custom logo has been uploaded and will be displayed across the platform",
+      });
+      // Clear the preview state
+      setLogoFile(null);
+      setLogoPreview("");
+      // Refresh settings to get the updated logo
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/branding"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/public"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Logo upload failed",
+        description: error.message || "Failed to upload logo",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Logo delete mutation
+  const logoDeleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/settings/logo', {
+        method: 'DELETE'
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Logo deleted successfully",
+        description: "Custom logo has been removed. The default letter logo will be displayed",
+      });
+      setLogoPreview("");
+      setLogoFile(null);
+      // Refresh settings
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/branding"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/public"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Logo deletion failed",
+        description: error.message || "Failed to delete logo",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Test connection mutation
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
@@ -610,6 +679,65 @@ export default function SettingsPage() {
     const setting = typedSettings.find(s => s.key === key);
     return setting ? setting.value : defaultValue;
   }
+
+  // Logo upload helper functions
+  const handleLogoFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file (PNG, JPG, SVG, etc.)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLogoFile(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setLogoPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoUpload = async () => {
+    if (!logoFile) return;
+
+    setLogoUploadInProgress(true);
+    try {
+      await logoUploadMutation.mutateAsync(logoFile);
+    } catch (error) {
+      console.error("Logo upload error:", error);
+    } finally {
+      setLogoUploadInProgress(false);
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    try {
+      await logoDeleteMutation.mutateAsync();
+    } catch (error) {
+      console.error("Logo delete error:", error);
+    }
+  };
+
+  // Get current logo from settings
+  const currentLogo = getSettingValue("company_logo", "");
 
   // Get brand colors for styling
   const brandColorOptions = {
@@ -1353,6 +1481,16 @@ export default function SettingsPage() {
         platformCpuCores: getSettingValue("platform_cpu_cores", ""),
         platformMemoryGB: getSettingValue("platform_memory_gb", ""),
       });
+
+      // Update logo preview if logo exists - handle both file URLs and base64
+      const logo = getSettingValue("company_logo", "");
+      if (logo && !logoPreview) {
+        // If it's a file URL, we'll display it directly (no preview needed)
+        // If it's base64, we set it as preview for backward compatibility
+        if (logo.startsWith('data:image/')) {
+          setLogoPreview(logo);
+        }
+      }
 
       // Update Notifications form
       notificationsForm.reset({
@@ -3343,6 +3481,113 @@ export default function SettingsPage() {
                           <p className="text-sm text-muted-foreground mt-1">
                             This name will appear throughout the application
                           </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="companyLogo">Company Logo</Label>
+                          <div className="flex flex-col space-y-4">
+                            {/* Current Logo Display */}
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-3">
+                                <div
+                                  className="flex items-center justify-center h-16 w-16 rounded-lg border-2 border-dashed border-gray-300"
+                                  style={{
+                                    backgroundColor: currentLogo || logoPreview ? 'transparent' : brandColors.primary.full
+                                  }}
+                                >
+                                  {currentLogo || logoPreview ? (
+                                    <img
+                                      src={logoPreview || currentLogo}
+                                      alt="Company Logo"
+                                      className="h-full w-full object-contain rounded-lg"
+                                    />
+                                  ) : (
+                                    <span className="text-white font-bold text-xl">
+                                      {generalForm.watch("companyName")?.charAt(0) || "S"}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex flex-col space-y-1">
+                                  <p className="text-sm font-medium">
+                                    {currentLogo || logoPreview ? "Custom Logo" : "Default Letter Logo"}
+                                  </p>
+                                                                     <p className="text-xs text-muted-foreground">
+                                     {currentLogo 
+                                       ? "Your uploaded logo is displayed across the platform"
+                                       : logoPreview 
+                                       ? "Click 'Upload Logo' to save your selected image"
+                                       : "Upload a custom logo to replace the letter logo"
+                                     }
+                                   </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Upload Controls */}
+                            <div className="flex items-center space-x-3">
+                              <div className="flex-1">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleLogoFileSelect}
+                                  className="hidden"
+                                  id="logoFileInput"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-auto"
+                                  onClick={() => document.getElementById('logoFileInput')?.click()}
+                                >
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Choose Logo
+                                </Button>
+                              </div>
+
+                                                             {logoFile && (
+                                 <Button
+                                   type="button"
+                                   variant="default"
+                                   size="sm"
+                                   onClick={handleLogoUpload}
+                                   disabled={logoUploadInProgress}
+                                   style={getBrandButtonStyle(logoUploadInProgress)}
+                                 >
+                                   {logoUploadInProgress ? (
+                                     <>
+                                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                       Uploading...
+                                     </>
+                                   ) : (
+                                     <>
+                                       <Save className="h-4 w-4 mr-2" />
+                                       Upload Logo
+                                     </>
+                                   )}
+                                 </Button>
+                               )}
+
+                              {currentLogo && (
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={handleLogoDelete}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Remove Logo
+                                </Button>
+                              )}
+                            </div>
+
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <p>• Supported formats: PNG, JPG, SVG, GIF</p>
+                              <p>• Maximum file size: 5MB</p>
+                              <p>• Recommended size: 200x200 pixels or larger</p>
+                              <p>• Your logo will replace the initial letter logos in the dashboard and frontend</p>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="space-y-2">

@@ -117,6 +117,7 @@ interface BrandingData {
   primary_color?: string;
   secondary_color?: string;
   accent_color?: string;
+  company_logo?: string;
 }
 
 interface PublicSettings {
@@ -875,9 +876,20 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
           <Link href="/dashboard" className="flex items-center group">
             <div
               className="flex items-center justify-center h-12 w-12 mr-3 rounded-xl text-white font-bold text-xl shadow-lg group-hover:shadow-xl transition-shadow duration-200"
-              style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
+              style={{ 
+                backgroundColor: brandingSettings?.company_logo ? 'transparent' : `var(--brand-primary, ${brandColors.primary.full})`,
+                padding: brandingSettings?.company_logo ? '0' : undefined
+              }}
             >
-              {companyName?.charAt(0) || "S"}
+              {brandingSettings?.company_logo ? (
+                <img
+                  src={brandingSettings.company_logo}
+                  alt={companyName || "Company Logo"}
+                  className="h-full w-full object-contain rounded-xl"
+                />
+              ) : (
+                companyName?.charAt(0) || "S"
+              )}
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold text-white group-hover:text-primary transition-colors duration-200">
