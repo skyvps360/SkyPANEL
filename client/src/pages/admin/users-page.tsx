@@ -542,13 +542,24 @@ export default function UsersPage() {
       ),
     },
     {
-      accessorKey: "credits" as keyof User,
-      header: "Credits",
+      accessorKey: "virtFusionId" as keyof User,
+      header: "VirtFusion",
       cell: (user: User) => (
-        <div className="text-right">
-          <div className="font-mono text-sm font-medium">
-            ${user.credits?.toFixed(2) || '0.00'}
-          </div>
+        <div className="text-center">
+          {user.virtFusionId ? (
+            <div className="flex flex-col items-center">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                VF #{user.virtFusionId}
+              </Badge>
+              <span className="text-xs text-muted-foreground mt-1">Linked</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200 text-xs">
+                Not Linked
+              </Badge>
+            </div>
+          )}
         </div>
       ),
     },
