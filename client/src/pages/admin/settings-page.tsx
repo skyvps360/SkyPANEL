@@ -1616,7 +1616,9 @@ export default function SettingsPage() {
 
       toast({
         title: "Settings saved",
-        description: "HubSpot settings have been updated. Existing tickets will be synced automatically when created.",
+        description: data.hubspotEnabled 
+          ? "HubSpot settings have been updated. Existing tickets will be synced automatically when created."
+          : "HubSpot settings have been updated. HubSpot integration is now disabled.",
       });
 
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });

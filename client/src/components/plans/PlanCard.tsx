@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, Star, Zap } from 'lucide-react';
+import { Check, Star, Zap, Cpu, HardDrive, Wifi, Shield, Clock, ArrowRight } from 'lucide-react';
 import { Link } from 'wouter';
 import { getBrandColors } from '@/lib/brand-theme';
 
@@ -80,91 +80,129 @@ export function PlanCard({
   };
 
   const features = [
-    { label: 'CPU', value: `${pkg.cpuCores} vCPU` },
-    { label: 'Memory', value: `${pkg.memory / 1024} GB RAM` },
-    { label: 'Storage', value: `${pkg.primaryStorage} GB ${pkg.primaryDiskType}` },
-    { label: 'Bandwidth', value: formatBandwidth(pkg.traffic) },
-    { label: 'Network', value: formatNetworkSpeed(pkg.primaryNetworkSpeedIn) },
+    { 
+      label: 'CPU', 
+      value: `${pkg.cpuCores} vCPU`,
+      icon: Cpu,
+      color: 'text-blue-600'
+    },
+    { 
+      label: 'Memory', 
+      value: `${pkg.memory / 1024} GB RAM`,
+      icon: HardDrive,
+      color: 'text-green-600'
+    },
+    { 
+      label: 'Storage', 
+      value: `${pkg.primaryStorage} GB ${pkg.primaryDiskType}`,
+      icon: Shield,
+      color: 'text-purple-600'
+    },
+    { 
+      label: 'Bandwidth', 
+      value: formatBandwidth(pkg.traffic),
+      icon: Wifi,
+      color: 'text-orange-600'
+    },
+    { 
+      label: 'Network', 
+      value: formatNetworkSpeed(pkg.primaryNetworkSpeedIn),
+      icon: Wifi,
+      color: 'text-indigo-600'
+    },
   ];
 
   return (
-    <Card className={`relative h-full transition-all duration-300 hover:shadow-lg ${
-      isPopular ? 'ring-2 ring-blue-500 scale-105' : ''
+    <Card className={`relative h-full transition-all duration-300 hover:shadow-xl hover:scale-105 group ${
+      isPopular ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:ring-2 hover:ring-gray-200'
     } ${!pkg.enabled ? 'opacity-60' : ''}`}>
       {/* Popular/Recommended Badge */}
       {(isPopular || isRecommended) && (
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
           <Badge 
-            className="px-3 py-1 text-xs font-semibold"
+            className="px-4 py-2 text-sm font-semibold shadow-lg"
             style={{
               backgroundColor: isPopular ? brandColors.primary.full : brandColors.accent.full,
               color: 'white'
             }}
           >
             {isPopular ? (
-              <><Star className="w-3 h-3 mr-1" /> Most Popular</>
+              <><Star className="w-4 h-4 mr-2" /> Most Popular</>
             ) : (
-              <><Zap className="w-3 h-3 mr-1" /> Recommended</>
+              <><Zap className="w-4 h-4 mr-2" /> Recommended</>
             )}
           </Badge>
         </div>
       )}
 
-      <CardHeader className="text-center pb-4">
+      <CardHeader className="text-center pb-6 pt-8">
         <CardTitle 
-          className="text-2xl font-bold"
+          className="text-2xl font-bold mb-2"
           style={{ color: brandColors.primary.full }}
         >
           {pkg.name}
         </CardTitle>
         {pkg.description && (
-          <CardDescription className="text-sm text-gray-600">
+          <CardDescription className="text-sm text-gray-600 leading-relaxed">
             {pkg.description}
           </CardDescription>
         )}
         
         {/* Pricing */}
-        <div className="mt-4">
-          <div className="flex items-center justify-center">
-            <span className="text-4xl font-bold">${price.toFixed(2)}</span>
-            <span className="text-gray-500 ml-2">/month</span>
+        <div className="mt-6">
+          <div className="flex items-center justify-center mb-2">
+            <span className="text-5xl font-bold" style={{ color: brandColors.primary.full }}>
+              ${price.toFixed(2)}
+            </span>
+            <span className="text-gray-500 ml-2 text-lg">/month</span>
           </div>
           {pkg.category && (
-            <Badge variant="outline" className="mt-2">
+            <Badge 
+              variant="outline" 
+              className="mt-3 text-xs"
+              style={{
+                borderColor: brandColors.primary.medium,
+                color: brandColors.primary.full
+              }}
+            >
               {pkg.category.name}
             </Badge>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col">
+      <CardContent className="flex-1 flex flex-col px-6 pb-6">
         {/* Features List */}
-        <div className="space-y-3 mb-6">
-          {features.map((feature, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Check 
-                  className="w-4 h-4 mr-2 flex-shrink-0" 
-                  style={{ color: brandColors.primary.full }}
-                />
-                <span className="text-sm font-medium text-gray-700">{feature.label}</span>
+        <div className="space-y-4 mb-8">
+          {features.map((feature, index) => {
+            const IconComponent = feature.icon;
+            return (
+              <div key={index} className="flex items-center justify-between group/feature">
+                <div className="flex items-center">
+                  <div className={`p-2 rounded-lg mr-3 ${feature.color} bg-opacity-10`}>
+                    <IconComponent className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">{feature.label}</span>
+                </div>
+                <span className="text-sm text-gray-900 font-semibold">{feature.value}</span>
               </div>
-              <span className="text-sm text-gray-900 font-semibold">{feature.value}</span>
-            </div>
-          ))}
+            );
+          })}
           
           {/* SLA Information */}
           {(pkg.sla ?? pkg.sla_plan) && (
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between group/feature">
               <div className="flex items-center">
-                <Check 
-                  className="w-4 h-4 mr-2 flex-shrink-0" 
-                  style={{ color: brandColors.primary.full }}
-                />
+                <div className="p-2 rounded-lg mr-3 text-green-600 bg-green-100">
+                  <Clock className="w-4 h-4" />
+                </div>
                 <span className="text-sm font-medium text-gray-700">SLA</span>
               </div>
               <Link href={`/sla-plans?sla=${encodeURIComponent((pkg.sla ?? pkg.sla_plan)?.name ?? '')}&from=plans`}>
-                <span className="text-sm text-blue-600 hover:underline cursor-pointer">
+                <span 
+                  className="text-sm font-semibold hover:underline cursor-pointer"
+                  style={{ color: brandColors.primary.full }}
+                >
                   {(pkg.sla ?? pkg.sla_plan)?.uptime_guarantee_percentage}% Uptime
                 </span>
               </Link>
@@ -174,8 +212,11 @@ export function PlanCard({
 
         {/* Status Badge */}
         {!pkg.enabled && (
-          <div className="mb-4">
-            <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300">
+          <div className="mb-6">
+            <Badge 
+              variant="outline" 
+              className="bg-amber-50 text-amber-800 border-amber-300 w-full justify-center"
+            >
               Temporarily Unavailable
             </Badge>
           </div>
@@ -184,16 +225,24 @@ export function PlanCard({
         {/* Action Button */}
         <div className="mt-auto">
           <Button 
-            className="w-full font-semibold"
+            className="w-full font-semibold text-base py-3 transition-all duration-200 group-hover:shadow-lg"
             disabled={!pkg.enabled}
             onClick={() => onOrder(pkg)}
             style={{
               backgroundColor: pkg.enabled ? brandColors.primary.full : undefined,
-              color: pkg.enabled ? 'white' : undefined
+              color: pkg.enabled ? 'white' : undefined,
+              borderColor: pkg.enabled ? brandColors.primary.full : undefined
             }}
             variant={pkg.enabled ? "default" : "outline"}
           >
-            {pkg.enabled ? 'Order Now' : 'Unavailable'}
+            {pkg.enabled ? (
+              <>
+                Order Now
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </>
+            ) : (
+              'Unavailable'
+            )}
           </Button>
         </div>
       </CardContent>
