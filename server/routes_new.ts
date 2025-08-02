@@ -8373,6 +8373,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public Google Analytics settings endpoint - accessible without authentication
+  // This is used by the GoogleAnalytics component on all pages
+  app.get("/api/settings/google-analytics", async (req, res) => {
+    try {
+      const settings = await storage.getAllSettings();
+      // Only return Google Analytics settings that are safe for public access
+      const googleAnalyticsSettings = settings.filter(setting =>
+        [
+          'google_analytics_enabled',
+          'google_analytics_measurement_id',
+          'google_analytics_custom_code',
+          'google_analytics_enhanced_ecommerce',
+          'google_analytics_debug_mode'
+        ].includes(setting.key)
+      );
+
+      // Convert to object format for easier consumption
+      const googleAnalyticsObject = googleAnalyticsSettings.reduce((obj, setting) => {
+        obj[setting.key] = setting.value;
+        return obj;
+      }, {} as Record<string, string>);
+
+      // Return the settings in the format expected by the GoogleAnalytics component
+      res.json({
+        enabled: googleAnalyticsObject.google_analytics_enabled === 'true',
+        measurementId: googleAnalyticsObject.google_analytics_measurement_id || '',
+        customCode: googleAnalyticsObject.google_analytics_custom_code || '',
+        enhancedEcommerce: googleAnalyticsObject.google_analytics_enhanced_ecommerce === 'true',
+        debugMode: googleAnalyticsObject.google_analytics_debug_mode === 'true',
+      });
+    } catch (error: any) {
+      console.error("Error fetching Google Analytics settings:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Get cloud pricing settings (accessible to authenticated users)
   app.get("/api/settings/cloud-pricing", isAuthenticated, async (req, res) => {
     try {

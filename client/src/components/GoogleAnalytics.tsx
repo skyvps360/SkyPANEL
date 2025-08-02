@@ -18,7 +18,7 @@ export const GoogleAnalytics: React.FC = () => {
   const { data: gaSettings } = useQuery<GoogleAnalyticsSettings>({
     queryKey: ['google-analytics-settings'],
     queryFn: async () => {
-      const response = await axios.get('/api/admin/settings/google-analytics/config');
+      const response = await axios.get('/api/settings/google-analytics');
       return response.data;
     },
     enabled: false, // We'll handle this in useEffect like HubSpot
@@ -28,7 +28,7 @@ export const GoogleAnalytics: React.FC = () => {
     const loadGoogleAnalytics = async () => {
       try {
         // Get Google Analytics settings
-        const response = await axios.get('/api/admin/settings/google-analytics/config');
+        const response = await axios.get('/api/settings/google-analytics');
         const settings = response.data;
 
         if (settings.enabled) {
