@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from 'react-helmet';
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
 
 export function SLAPage() {
   const [companyName, setCompanyName] = useState("SkyVPS360");
@@ -34,6 +35,7 @@ export function SLAPage() {
   if (slaContent && !isLoading) {
     return (
       <>
+        <GoogleAnalyticsTracker />
         <Helmet>
           <title>Service Level Agreement - {companyName}</title>
           <meta name="description" content={`Service Level Agreement for ${companyName} - VPS Management Platform.`} />
@@ -69,6 +71,7 @@ export function SLAPage() {
   // Default content if we couldn't fetch from database or while loading
   return (
     <>
+      <GoogleAnalyticsTracker />
       <Helmet>
         <title>Service Level Agreement - {companyName}</title>
         <meta name="description" content={`Service Level Agreement for ${companyName} - VPS Management Platform.`} />

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
+import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -510,7 +511,9 @@ export default function BillingPage() {
 
 
   return (
-    <DashboardLayout>
+    <>
+      <GoogleAnalyticsTracker />
+      <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Modern Hero Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
@@ -1115,5 +1118,6 @@ export default function BillingPage() {
         </Card>
       </div>
     </DashboardLayout>
+    </>
   );
 }

@@ -34,6 +34,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { format } from "date-fns";
 import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
 import { InfrastructureTable } from "@/components/status/InfrastructureTable";
+import { GoogleAnalyticsTracker } from "../../components/GoogleAnalyticsTracker";
 
 // Define types for platform statistics
 interface PlatformStats {
@@ -394,7 +395,9 @@ export default function StatusPage() {
   };
 
   return (
-    <PublicLayout>
+    <>
+      <GoogleAnalyticsTracker />
+      <PublicLayout>
       <div className="w-full">
         {/* Hero section with colored background - matching blog and docs pages */}
         <div style={{ backgroundColor: brandColors.primary.full }} className="relative overflow-hidden w-full">
@@ -985,5 +988,6 @@ export default function StatusPage() {
         </div>
       </div>
     </PublicLayout>
+    </>
   );
 }

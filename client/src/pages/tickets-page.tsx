@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
+import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -224,7 +225,9 @@ export default function TicketsPage() {
   );
 
   return (
-    <DashboardLayout>
+    <>
+      <GoogleAnalyticsTracker />
+      <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Modern Hero Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
@@ -412,5 +415,6 @@ export default function TicketsPage() {
         </DialogContent>
       </Dialog>
     </DashboardLayout>
+    </>
   );
 }

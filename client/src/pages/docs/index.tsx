@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { DocsTable } from "@/components/docs/DocsTable";
+import { GoogleAnalyticsTracker } from "../../components/GoogleAnalyticsTracker";
 
 // Define the DocCategory type
 interface DocCategory {
@@ -608,10 +609,13 @@ export default function DocsPage() {
   };
 
   return (
-    <PublicLayout>
-      <div className="min-h-screen bg-muted/30">
-        {slug ? renderSingleDoc() : renderDocsList()}
-      </div>
-    </PublicLayout>
+    <>
+      <GoogleAnalyticsTracker />
+      <PublicLayout>
+        <div className="min-h-screen bg-muted/30">
+          {slug ? renderSingleDoc() : renderDocsList()}
+        </div>
+      </PublicLayout>
+    </>
   );
 }

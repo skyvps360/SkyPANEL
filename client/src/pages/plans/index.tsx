@@ -14,6 +14,7 @@ import { usePlanFilters } from '@/hooks/use-plan-filters';
 import { PlanFeature } from '@shared/schema';
 import { getBrandColors, getPatternBackgrounds } from '@/lib/brand-theme';
 import HubSpotChat from '@/components/HubSpotChat';
+import { GoogleAnalyticsTracker } from '../../components/GoogleAnalyticsTracker';
 
 interface PackageCategory {
   id: number;
@@ -182,7 +183,9 @@ export default function PlansPage() {
   };
 
   return (
-    <PublicLayout>
+    <>
+      <GoogleAnalyticsTracker />
+      <PublicLayout>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
         {/* Hero Section */}
         <div 
@@ -559,5 +562,6 @@ export default function PlansPage() {
         <HubSpotChat />
       </div>
     </PublicLayout>
+    </>
   );
 } 

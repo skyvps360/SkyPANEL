@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
+import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -206,7 +207,9 @@ export default function ProfilePage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
+      <GoogleAnalyticsTracker />
+      <DashboardLayout>
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">Account Settings</h1>
@@ -577,5 +580,6 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
     </DashboardLayout>
+    </>
   );
 }

@@ -46,6 +46,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getBrandColors } from "@/lib/brand-theme";
 import { BlogTable } from "@/components/blog/BlogTable";
+import { GoogleAnalyticsTracker } from "../../components/GoogleAnalyticsTracker";
 
 // Define the BlogCategory type
 interface BlogCategory {
@@ -1082,9 +1083,12 @@ export default function BlogPage() {
   };
   
   return (
-    <PublicLayout>
-      {renderContent()}
-    </PublicLayout>
+    <>
+      <GoogleAnalyticsTracker />
+      <PublicLayout>
+        {renderContent()}
+      </PublicLayout>
+    </>
   );
 }
 

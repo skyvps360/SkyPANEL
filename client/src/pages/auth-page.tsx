@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getBrandColors } from "@/lib/brand-theme";
 import OAuthLoginButtons from "@/components/auth/OAuthLoginButtons";
 import { Separator } from "@/components/ui/separator";
+import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
 
 // Extend schema for validation
 const loginSchema = z.object({
@@ -996,14 +997,17 @@ export default function AuthPage() {
 
   // Render the Auth Layout with the appropriate content
   return (
-    <AuthLayout>
-      {isLoading || redirectingToDashboard || !brandingLoaded ? (
-        <div className="flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-border" />
-        </div>
-      ) : (
-        renderContent()
-      )}
-    </AuthLayout>
+    <>
+      <GoogleAnalyticsTracker />
+      <AuthLayout>
+        {isLoading || redirectingToDashboard || !brandingLoaded ? (
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-border" />
+          </div>
+        ) : (
+          renderContent()
+        )}
+      </AuthLayout>
+    </>
   );
 }

@@ -7,6 +7,7 @@ import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import { getBrandColors } from "@/lib/brand-theme";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
 import {
   DollarSign,
   Ticket,
@@ -191,7 +192,9 @@ export default function HomePage() {
   const displayCredits = stats.virtFusionCredits ?? 0; // Show actual balance including negatives, fallback to 0 only if undefined/null
 
   return (
-    <DashboardLayout>
+    <>
+      <GoogleAnalyticsTracker />
+      <DashboardLayout>
       {/* Dashboard Content */}
         <div className="space-y-8 animate-in fade-in duration-500">
           {/* Modern Hero Header */}
@@ -422,5 +425,6 @@ export default function HomePage() {
 
         </div>
     </DashboardLayout>
+    </>
   );
 }
