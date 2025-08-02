@@ -368,10 +368,10 @@ export default function PackagesPage() {
           /* Table View */
           <Card className="bg-card border border-border shadow-sm">
             <CardHeader>
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div>
-                  <CardTitle className="text-foreground">Package Comparison</CardTitle>
-                  <CardDescription>
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div className="flex-1">
+                  <CardTitle className="text-foreground mb-2">Package Comparison</CardTitle>
+                  <CardDescription className="text-sm leading-relaxed max-w-2xl">
                     {categoryFilter && categories ? 
                       categories.find(cat => cat.id === categoryFilter)?.description || "Compare all available packages side by side"
                       : "Compare all available packages side by side"
@@ -380,7 +380,7 @@ export default function PackagesPage() {
                 </div>
                 {/* Billing Method Badge */}
                 <div
-                  className="inline-flex items-center px-4 py-2 rounded-lg border-2 shadow-sm"
+                  className="inline-flex items-center px-4 py-2 rounded-lg border-2 shadow-sm flex-shrink-0"
                   style={{
                     backgroundColor: brandColors.accent.light,
                     borderColor: brandColors.accent.medium,
