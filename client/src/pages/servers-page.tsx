@@ -11,7 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Cpu, HardDrive, MemoryStick, Zap, Settings } from "lucide-react";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
-import { getBrandColors } from "@/lib/brand-theme";
+import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 function getStatusBadgeVariant(status: string) {
   const normalizedStatus = status.toLowerCase();
@@ -85,6 +93,11 @@ export default function ServersPage() {
     primaryColor: brandingData?.primary_color,
     secondaryColor: brandingData?.secondary_color,
     accentColor: brandingData?.accent_color
+  });
+
+  // Get pattern backgrounds for visual elements
+  const patterns = getPatternBackgrounds({
+    primaryColor: brandingData?.primary_color
   });
 
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
@@ -189,58 +202,84 @@ export default function ServersPage() {
     <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Header Section */}
-        <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center space-x-4 mb-6 lg:mb-0">
-              <div 
-                className="flex items-center justify-center h-12 w-12 rounded-lg shadow-sm"
-                style={{ backgroundColor: brandColors.primary.full }}
+        <div className="relative overflow-hidden w-full rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
+          {/* Decorative bubble elements */}
+          <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
+               style={{ backgroundColor: brandColors.primary.full }}></div>
+          <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
+               style={{ backgroundColor: brandColors.secondary.full }}></div>
+          <div className="absolute top-1/4 right-10 w-32 h-32 rounded-full opacity-10"
+               style={{ backgroundColor: brandColors.accent?.full || brandColors.primary.full }}></div>
+          
+          <div className="p-8 relative z-10">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center space-x-4 mb-6 lg:mb-0">
+                <div 
+                  className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg"
+                  style={{ backgroundColor: brandColors.primary.full }}
+                >
+                  <Server className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">My Servers</h1>
+                  <p className="text-muted-foreground text-lg mt-1">Manage and monitor your virtual servers</p>
+                  <div className="flex flex-wrap gap-6 mt-4 text-sm text-gray-600">
+                    <div className="flex items-center space-x-2">
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: brandColors.primary.full }}
+                      ></div>
+                      <span className="font-medium text-foreground">{filteredServers.length} Total Servers</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: brandColors.secondary.full }}
+                      ></div>
+                      <span className="font-medium text-foreground">{filteredServers.filter((s: any) => getServerStatus(s) === 'RUNNING').length} Running</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Status Summary */}
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {filteredServers.filter((s: any) => getServerStatus(s) === 'RUNNING').length} Running
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {filteredServers.filter((s: any) => getServerStatus(s) === 'STOPPED').length} Stopped
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="text-sm font-medium text-gray-700">
+                    {filteredServers.filter((s: any) => getServerStatus(s) === 'SUSPENDED').length} Suspended
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-8">
+              <VirtFusionSsoButton
+                text="Create Server"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+              />
+              <Button
+                onClick={handleRefresh}
+                disabled={isRefreshing || isRateLimited}
+                variant="outline"
+                className="transition-all duration-200 shadow-sm hover:shadow"
               >
-                <Server className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">My Servers</h1>
-                <p className="text-gray-600 mt-1">Manage and monitor your virtual servers</p>
-              </div>
+                <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : isRateLimited ? 'Rate limit: wait 1 min' : 'Refresh'}
+              </Button>
             </div>
-
-            {/* Status Summary */}
-            <div className="flex gap-6">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-sm font-medium text-gray-700">
-                  {filteredServers.filter((s: any) => getServerStatus(s) === 'RUNNING').length} Running
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-gray-500" />
-                <span className="text-sm font-medium text-gray-700">
-                  {filteredServers.filter((s: any) => getServerStatus(s) === 'STOPPED').length} Stopped
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <span className="text-sm font-medium text-gray-700">
-                  {filteredServers.filter((s: any) => getServerStatus(s) === 'SUSPENDED').length} Suspended
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 mt-6">
-            <VirtFusionSsoButton
-              text="Create Server"
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-            />
-            <Button
-              onClick={handleRefresh}
-              disabled={isRefreshing || isRateLimited}
-              variant="outline"
-              className="transition-all duration-200"
-            >
-              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Refreshing...' : isRateLimited ? 'Rate limit: wait 1 min' : 'Refresh'}
-            </Button>
           </div>
         </div>
 
@@ -294,51 +333,50 @@ export default function ServersPage() {
 
         {/* Loading State */}
         {isLoading ? (
-          <Card className="shadow-sm border border-gray-200">
-            <div className="overflow-hidden">
-              {/* Table Header */}
-              <div className="bg-gray-50 border-b border-gray-200 px-8 py-4">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-5 w-40" />
-                </div>
-              </div>
-              
-              {/* Loading Rows */}
-              <div className="divide-y divide-gray-100">
+          <Card className="shadow-sm border border-gray-200 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="px-8 py-5"><Skeleton className="h-5 w-32" /></TableHead>
+                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-24" /></TableHead>
+                  <TableHead className="px-8 py-5"><Skeleton className="h-5 w-20" /></TableHead>
+                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-16" /></TableHead>
+                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-16" /></TableHead>
+                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-20" /></TableHead>
+                  <TableHead className="px-8 py-5"><Skeleton className="h-5 w-24" /></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="px-8 py-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-6 flex-1">
+                  <TableRow key={i}>
+                    <TableCell className="px-8 py-6">
+                      <div className="flex items-center gap-6">
                         <Skeleton className="h-12 w-12 rounded-full" />
-                        <div className="space-y-2 flex-1">
+                        <div className="space-y-2">
                           <Skeleton className="h-5 w-64" />
                           <Skeleton className="h-4 w-32" />
                         </div>
                       </div>
-                      <div className="flex items-center gap-8">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-9 w-24 rounded-lg" />
-                      </div>
-                    </div>
-                  </div>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell className="px-8 py-6"><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell className="px-8 py-6"><Skeleton className="h-9 w-24 rounded-lg" /></TableCell>
+                  </TableRow>
                 ))}
-              </div>
-            </div>
+              </TableBody>
+            </Table>
           </Card>
         ) : servers?.length ? (
           <>
             {/* Server List */}
             <Card className="shadow-sm border border-gray-200 overflow-hidden">
-              {/* Table Header */}
-              <div 
-                className="px-8 py-5 border-b border-gray-200 bg-gray-50"
-              >
-                <div className="flex items-center justify-between">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="px-8 py-5">
                   <div className="flex items-center gap-3">
                     <div 
                       className="p-2 rounded-lg text-white shadow-sm"
@@ -354,19 +392,16 @@ export default function ServersPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-600">
-                    <span className="min-w-[140px]">Location</span>
-                    <span className="min-w-[100px]">Status</span>
-                    <span className="min-w-[70px]">CPU</span>
-                    <span className="min-w-[80px]">RAM</span>
-                    <span className="min-w-[90px]">Storage</span>
-                    <span className="min-w-[100px]">Actions</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Server Rows */}
-              <div className="divide-y divide-gray-100">
+                    </TableHead>
+                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">Location</TableHead>
+                    <TableHead className="px-8 py-5 text-sm font-medium text-gray-600">Status</TableHead>
+                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">CPU</TableHead>
+                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">RAM</TableHead>
+                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">Storage</TableHead>
+                    <TableHead className="px-8 py-5 text-sm font-medium text-gray-600">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {servers.map((server: any, index: number) => {
                   const status = getServerStatus(server);
                   const isRunning = status === 'RUNNING';
@@ -374,14 +409,13 @@ export default function ServersPage() {
                   const isSuspended = status === 'SUSPENDED';
 
                   return (
-                    <div
+                      <TableRow
                       key={server.id}
-                      className={`group px-8 py-6 hover:bg-gray-50 transition-all duration-200 ${
+                        className={`group hover:bg-gray-50 transition-all duration-200 ${
                         index % 2 === 0 ? 'bg-white' : 'bg-gray-25/20'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        {/* Server Info Section */}
+                        <TableCell className="px-8 py-6">
                         <div className="flex items-center gap-6 flex-1 min-w-0">
                           <div
                             className="flex items-center justify-center h-12 w-12 rounded-full text-white shadow-sm transition-all duration-200 flex-shrink-0"
@@ -396,7 +430,6 @@ export default function ServersPage() {
                             <Server className="h-6 w-6" />
                           </div>
                           
-                          {/* Server Name & Details */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-1">
                               <h4 className="text-lg font-semibold text-gray-900 leading-tight group-hover:text-primary transition-colors">
@@ -416,11 +449,8 @@ export default function ServersPage() {
                             </div>
                           </div>
                         </div>
-
-                        {/* Server Stats & Actions - Individual Columns */}
-                        <div className="flex items-center gap-6 flex-shrink-0">
-                          {/* Location Column */}
-                          <div className="hidden lg:block text-sm font-medium text-gray-600 min-w-[140px]">
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell px-8 py-6 text-sm font-medium text-gray-600">
                             {server.hypervisor?.name ? (
                               <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4" />
@@ -429,10 +459,8 @@ export default function ServersPage() {
                             ) : (
                               <span className="text-gray-400">—</span>
                             )}
-                          </div>
-                          
-                          {/* Status Column */}
-                          <div className="min-w-[100px]">
+                        </TableCell>
+                        <TableCell className="px-8 py-6">
                             <Badge
                               variant={getStatusBadgeVariant(status)}
                               className={`text-xs font-medium px-3 py-1.5 rounded-full ${
@@ -448,18 +476,17 @@ export default function ServersPage() {
                               }`}></div>
                               {status}
                             </Badge>
-                          </div>
-                          
-                          {/* CPU Column */}
-                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-gray-600 min-w-[70px]">
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell px-8 py-6">
+                          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
                             <Cpu className="h-4 w-4" />
                             <span>
                               {server.cpu?.cores !== undefined && server.cpu?.cores !== null ? `${server.cpu.cores}c` : '—'}
                             </span>
                           </div>
-                          
-                          {/* RAM Column */}
-                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-gray-600 min-w-[80px]">
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell px-8 py-6">
+                          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
                             <MemoryStick className="h-4 w-4" />
                             <span>
                               {(() => {
@@ -475,9 +502,9 @@ export default function ServersPage() {
                               })()}
                             </span>
                           </div>
-                          
-                          {/* Storage Column */}
-                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-gray-600 min-w-[90px]">
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell px-8 py-6">
+                          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
                             <HardDrive className="h-4 w-4" />
                             <span>
                               {server.storage?.length > 0 && server.storage[0]?.capacity !== undefined && server.storage[0]?.capacity !== null
@@ -485,9 +512,8 @@ export default function ServersPage() {
                                 : '—'}
                             </span>
                           </div>
-                          
-                          {/* Actions Column */}
-                          <div className="min-w-[100px]">
+                        </TableCell>
+                        <TableCell className="px-8 py-6">
                             <Link href={`/servers/${server.id}`}>
                               <Button
                                 size="sm"
@@ -506,13 +532,12 @@ export default function ServersPage() {
                                 Manage
                               </Button>
                             </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                        </TableCell>
+                      </TableRow>
                   );
                 })}
-              </div>
+                </TableBody>
+              </Table>
             </Card>
 
             {/* Pagination */}
