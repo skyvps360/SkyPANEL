@@ -84,6 +84,14 @@ export default function DocsPage() {
     accentColor: brandingData?.accent_color || '',
   });
   
+  // Get company name from branding data
+  const companyName = brandingData?.company_name || 'Company';
+  
+  // Get pattern backgrounds for visual elements
+  const patterns = getPatternBackgrounds({
+    primaryColor: brandingData?.primary_color || ''
+  });
+  
   // Fetch all doc categories
   const { data: categoriesData = [], isLoading: isLoadingCategories } = useQuery<DocCategory[]>({
     queryKey: ["/api/public/doc-categories"],
@@ -171,32 +179,81 @@ export default function DocsPage() {
         <div 
           className="relative overflow-hidden w-full"
           style={{ 
-            backgroundColor: brandColors.primary.full,
+            background: `linear-gradient(135deg, ${brandColors.primary.full} 0%, ${brandColors.primary.dark} 100%)`,
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
           }}
         >
-          {/* Simple pattern overlay - using pattern backgrounds from brand theme */}
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)]" style={{ backgroundSize: '20px 20px' }}></div>
+          {/* Pattern overlay */}
+          <div 
+            className="absolute inset-0 opacity-10"
+            style={patterns.dots.style}
+          ></div>
           
-          <div className="max-w-screen-xl mx-auto py-16 px-4 sm:px-6 relative z-10">
-            <div className="max-w-3xl">
-              <div className="flex items-center mb-6">
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 opacity-10">
+            <svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="200" cy="200" r="200" fill="white" />
+            </svg>
+          </div>
+          <div className="absolute bottom-0 left-0 opacity-10 translate-y-1/2 -translate-x-1/4">
+            <svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="150" cy="150" r="150" fill="white" />
+            </svg>
+          </div>
+          <div className="absolute top-1/4 right-1/4 opacity-10">
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="40" cy="40" r="40" fill="white" />
+            </svg>
+          </div>
+          
+          <div className="max-w-screen-xl mx-auto py-20 px-4 sm:px-6 relative z-10">
+            <div className="max-w-4xl mx-auto text-center">
+              <div className="flex items-center justify-center mb-8">
                 <div
-                  className="p-3 rounded-full mr-4"
+                  className="p-4 rounded-full mr-6"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
                 >
-                  <FileText className="h-8 w-8 text-white" />
+                  <FileText className="h-10 w-10 text-white" />
                 </div>
-                <h1 className="text-4xl md:text-5xl font-extrabold text-white">
+                <h1 className="text-5xl md:text-6xl font-extrabold text-white leading-tight">
                   Knowledge Base
                 </h1>
               </div>
-              <p className="text-white text-lg opacity-90 max-w-xl">
-                Browse our documentation to find answers, guides, and help with our services.
+              <p className="text-white text-xl opacity-95 max-w-3xl mx-auto leading-relaxed mb-12">
+                Browse our comprehensive documentation to find answers, guides, and help with our services. 
+                Everything you need to succeed with {companyName}.
               </p>
               
+              {/* Key Benefits Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <BookOpen className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Comprehensive Guides</span>
+                </div>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <Search className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Easy to Search</span>
+                </div>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <Info className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Step-by-Step Help</span>
+                </div>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <Clock className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Always Updated</span>
+                </div>
+              </div>
+              
               {/* Modern search integrated directly in the hero */}
-              <div className="mt-8 relative w-full max-w-2xl">
+              <div className="mt-12 relative w-full max-w-2xl mx-auto">
                 <div className="relative flex items-center">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/70" />
                   <Input
@@ -224,7 +281,7 @@ export default function DocsPage() {
               
               {/* Category quick filters in hero section */}
               {categoryOptions.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-6">
+                <div className="flex flex-wrap gap-2 mt-6 justify-center">
                   <Button 
                     variant={selectedCategory === null ? "secondary" : "outline"} 
                     size="sm"

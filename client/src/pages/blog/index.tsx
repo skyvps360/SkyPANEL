@@ -44,7 +44,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { getBrandColors } from "@/lib/brand-theme";
+import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
 import { BlogTable } from "@/components/blog/BlogTable";
 
 
@@ -120,6 +120,11 @@ export default function BlogPage() {
     primaryColor: branding.primary_color || branding.company_color,
     secondaryColor: branding.secondary_color,
     accentColor: branding.accent_color
+  });
+  
+  // Get pattern backgrounds for visual elements
+  const patterns = getPatternBackgrounds({
+    primaryColor: branding.primary_color || branding.company_color
   });
   
   // Check if the URL has a slug parameter for a specific post
@@ -675,12 +680,24 @@ export default function BlogPage() {
     // Blog list view
     return (
       <div className="w-full">
-        {/* Hero section with colored background - matching docs and status pages */}
-        <div style={{ backgroundColor: brandColors.primary.full }} className="relative overflow-hidden w-full">
-          {/* Decorative bubbles in the background, matching docs and status pages */}
+        {/* Hero section with colored background - matching plans and team pages */}
+        <div 
+          className="relative overflow-hidden w-full"
+          style={{ 
+            background: `linear-gradient(135deg, ${brandColors.primary.full} 0%, ${brandColors.primary.dark} 100%)`,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+          }}
+        >
+          {/* Pattern overlay */}
+          <div 
+            className="absolute inset-0 opacity-10"
+            style={patterns.dots.style}
+          ></div>
+          
+          {/* Decorative elements */}
           <div className="absolute top-0 right-0 opacity-10">
-            <svg width="350" height="350" viewBox="0 0 350 350" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="175" cy="175" r="175" fill="white" />
+            <svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="200" cy="200" r="200" fill="white" />
             </svg>
           </div>
           <div className="absolute bottom-0 left-0 opacity-10 translate-y-1/2 -translate-x-1/4">
@@ -694,22 +711,51 @@ export default function BlogPage() {
             </svg>
           </div>
           
-          <div className="max-w-screen-xl mx-auto py-12 px-4 sm:px-6 relative z-10">
-            <div className="max-w-3xl">
-              <div className="flex items-center mb-6">
+          <div className="max-w-screen-xl mx-auto py-20 px-4 sm:px-6 relative z-10">
+            <div className="max-w-4xl mx-auto text-center">
+              <div className="flex items-center justify-center mb-8">
                 <div
-                  className="p-3 rounded-full mr-4"
+                  className="p-4 rounded-full mr-6"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
                 >
-                  <BookOpen className="h-8 w-8 text-white" />
+                  <BookOpen className="h-10 w-10 text-white" />
                 </div>
-                <h1 className="text-3xl md:text-4xl font-extrabold text-white">
-                  Blog
+                <h1 className="text-5xl md:text-6xl font-extrabold text-white leading-tight">
+                  Latest Insights & News
                 </h1>
               </div>
-              <p className="text-white text-lg opacity-90">
-                Latest insights, updates and news from {companyName}
+              <p className="text-white text-xl opacity-95 max-w-3xl mx-auto leading-relaxed mb-12">
+                Stay updated with the latest insights, updates, and news from {companyName}. 
+                Discover tips, tutorials, and industry trends to help you succeed.
               </p>
+              
+              {/* Key Benefits Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <PenTool className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Expert Insights</span>
+                </div>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <Clock className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Regular Updates</span>
+                </div>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <MessageCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Community Focus</span>
+                </div>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <ExternalLink className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Industry Trends</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>

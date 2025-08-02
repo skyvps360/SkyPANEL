@@ -93,15 +93,24 @@ export default function StatusPage() {
     primary_color: string;
     secondary_color: string;
     accent_color: string;
+    company_name?: string;
   }>({
     queryKey: ["/api/settings/branding"],
   });
+  
+  // Get company name from branding data
+  const companyName = brandingData?.company_name || 'Company';
   
   // Get brand colors using the data from API
   const brandColors = getBrandColors({
     primaryColor: brandingData?.primary_color || '',
     secondaryColor: brandingData?.secondary_color || '',
     accentColor: brandingData?.accent_color || '',
+  });
+  
+  // Get pattern backgrounds for visual elements
+  const patterns = getPatternBackgrounds({
+    primaryColor: brandingData?.primary_color || ''
   });
 
   // State for incidents pagination
@@ -399,12 +408,24 @@ export default function StatusPage() {
 
       <PublicLayout>
       <div className="w-full">
-        {/* Hero section with colored background - matching blog and docs pages */}
-        <div style={{ backgroundColor: brandColors.primary.full }} className="relative overflow-hidden w-full">
-          {/* Decorative bubbles in the background, exactly matching blog page */}
+        {/* Hero section with colored background - matching plans, blog, docs, and team pages */}
+        <div 
+          className="relative overflow-hidden w-full"
+          style={{ 
+            background: `linear-gradient(135deg, ${brandColors.primary.full} 0%, ${brandColors.primary.dark} 100%)`,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+          }}
+        >
+          {/* Pattern overlay */}
+          <div 
+            className="absolute inset-0 opacity-10"
+            style={patterns.dots.style}
+          ></div>
+          
+          {/* Decorative elements */}
           <div className="absolute top-0 right-0 opacity-10">
-            <svg width="350" height="350" viewBox="0 0 350 350" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="175" cy="175" r="175" fill="white" />
+            <svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="200" cy="200" r="200" fill="white" />
             </svg>
           </div>
           <div className="absolute bottom-0 left-0 opacity-10 translate-y-1/2 -translate-x-1/4">
@@ -418,22 +439,51 @@ export default function StatusPage() {
             </svg>
           </div>
           
-          <div className="max-w-screen-xl mx-auto py-12 px-4 sm:px-6 relative z-10">
-            <div className="max-w-3xl">
-              <div className="flex items-center mb-6">
+          <div className="max-w-screen-xl mx-auto py-20 px-4 sm:px-6 relative z-10">
+            <div className="max-w-4xl mx-auto text-center">
+              <div className="flex items-center justify-center mb-8">
                 <div
-                  className="p-3 rounded-full mr-4"
+                  className="p-4 rounded-full mr-6"
                   style={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
                 >
-                  <Activity className="h-8 w-8 text-white" />
+                  <Activity className="h-10 w-10 text-white" />
                 </div>
-                <h1 className="text-3xl md:text-4xl font-extrabold text-white">
+                <h1 className="text-5xl md:text-6xl font-extrabold text-white leading-tight">
                   System Status
                 </h1>
               </div>
-              <p className="text-white text-lg opacity-90">
-                Real-time monitoring and status of our infrastructure and services
+              <p className="text-white text-xl opacity-95 max-w-3xl mx-auto leading-relaxed mb-12">
+                Real-time monitoring and status of {companyName}'s infrastructure and services. 
+                Stay informed about system performance and any ongoing issues.
               </p>
+              
+              {/* Key Benefits Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Real-time Monitoring</span>
+                </div>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <CheckCircle2 className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">99.9% Uptime</span>
+                </div>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <AlertCircle className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Instant Alerts</span>
+                </div>
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="p-3 rounded-full bg-white/20">
+                    <BarChart2 className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="font-semibold text-white text-sm">Performance Metrics</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
