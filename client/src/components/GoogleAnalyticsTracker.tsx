@@ -15,6 +15,13 @@ export function GoogleAnalyticsTracker() {
   // Fetch Google Analytics settings
   const { data: analyticsSettings } = useQuery<GoogleAnalyticsSettings>({
     queryKey: ["/api/settings/google-analytics"],
+    queryFn: async () => {
+      const response = await fetch('/api/settings/google-analytics');
+      if (!response.ok) {
+        throw new Error('Failed to fetch Google Analytics settings');
+      }
+      return response.json();
+    },
     staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
   });
