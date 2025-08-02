@@ -4,6 +4,8 @@ import { SharedFooter } from "./SharedFooter";
 import { useQuery } from "@tanstack/react-query";
 import { getBrandColors } from "@/lib/brand-theme";
 import { TrustpilotWidget } from "../TrustpilotWidget";
+import HubSpotChat from "@/components/HubSpotChat";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 
 interface PublicLayoutProps {
@@ -90,6 +92,8 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       <TrustpilotWidget />
       <main className="flex-grow">{children}</main>
       <SharedFooter />
+      <HubSpotChat />
+      <GoogleAnalytics />
     </div>
   );
 }

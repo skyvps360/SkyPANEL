@@ -1,6 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { getBrandColors } from "@/lib/brand-theme";
+import HubSpotChat from "@/components/HubSpotChat";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 
 interface AuthLayoutProps {
@@ -158,6 +160,8 @@ export function AuthLayout({
           </div>
         </div>
       </div>
+      <HubSpotChat />
+      <GoogleAnalytics />
     </div>
   );
 }

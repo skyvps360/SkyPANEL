@@ -281,6 +281,61 @@ router.get('/settings/hubspot/config', async (req, res) => {
   }
 });
 
+// Get Google Analytics configuration for frontend
+router.get('/settings/google-analytics/config', async (req, res) => {
+  try {
+    const { googleAnalyticsService } = await import('../services/communication/google-analytics-service');
+
+    // Initialize the service
+    await googleAnalyticsService.initialize();
+
+    const enabled = await googleAnalyticsService.isEnabled();
+    const measurementId = await googleAnalyticsService.getMeasurementId();
+    const apiKey = await googleAnalyticsService.getApiKey();
+    const customCode = await googleAnalyticsService.getCustomCode();
+    const enhancedEcommerce = await googleAnalyticsService.isEnhancedEcommerceEnabled();
+    const debugMode = await googleAnalyticsService.isDebugModeEnabled();
+
+    return res.json({
+      enabled,
+      measurementId,
+      apiKey,
+      customCode,
+      enhancedEcommerce,
+      debugMode,
+    });
+  } catch (error) {
+    console.error('Error getting Google Analytics config:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Failed to get Google Analytics config: ${error instanceof Error ? error.message : 'Unknown error'}`
+    });
+  }
+});
+
+// Test Google Analytics connection
+router.post('/settings/google-analytics/test-connection', isAdmin, async (req, res) => {
+  try {
+    const { googleAnalyticsService } = await import('../services/communication/google-analytics-service');
+
+    // Initialize the service
+    await googleAnalyticsService.initialize();
+
+    const result = await googleAnalyticsService.testConnection();
+
+    return res.json({
+      success: result.success,
+      message: result.message,
+    });
+  } catch (error) {
+    console.error('Error testing Google Analytics connection:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Failed to test Google Analytics connection: ${error instanceof Error ? error.message : 'Unknown error'}`
+    });
+  }
+});
+
 // Logo upload endpoint (file-based)
 router.post('/settings/logo/upload', isAdmin, logoUpload.single('logo'), async (req, res) => {
   try {

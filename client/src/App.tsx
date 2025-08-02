@@ -11,6 +11,7 @@ import {AppRouter} from "@/components/app/AppRouter";
 import {BrandThemeProvider} from "@/components/app/BrandThemeProvider";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import HubSpotChat from "@/components/HubSpotChat";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 
 
@@ -50,6 +51,7 @@ function App() {
                   <BrandThemeProvider>
                     <AppRouter/>
                     <HubSpotChat />
+                    <GoogleAnalytics />
                   </BrandThemeProvider>
                 </PageLoadingProvider>
               </DocumentTitle>

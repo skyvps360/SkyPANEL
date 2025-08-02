@@ -55,7 +55,8 @@ import {
 
   Upload,
   Image,
-  Trash2
+  Trash2,
+  BarChart3
 } from "lucide-react";
 
 interface Setting {
@@ -345,7 +346,17 @@ const wordpressSchema = z.object({
 
 type WordPressFormData = z.infer<typeof wordpressSchema>;
 
+// Google Analytics settings schema
+const googleAnalyticsSchema = z.object({
+  googleAnalyticsEnabled: z.boolean().default(false),
+  googleAnalyticsMeasurementId: z.string().min(1, { message: "Measurement ID is required when Google Analytics is enabled" }).optional(),
+  googleAnalyticsApiKey: z.string().optional(),
+  googleAnalyticsCustomCode: z.string().optional(),
+  googleAnalyticsEnhancedEcommerce: z.boolean().default(false),
+  googleAnalyticsDebugMode: z.boolean().default(false),
+});
 
+type GoogleAnalyticsFormData = z.infer<typeof googleAnalyticsSchema>;
 
 // Define the settings options for dropdown
 const settingsOptions = [
@@ -357,6 +368,7 @@ const settingsOptions = [
   { value: "team", label: "Team", icon: <Users className="h-4 w-4 mr-2" /> },
   { value: "virtfusion", label: "VirtFusion API", icon: <Server className="h-4 w-4 mr-2" /> },
   { value: "hubspot", label: "HubSpot", icon: <MessageSquare className="h-4 w-4 mr-2" /> },
+  { value: "google-analytics", label: "Google Analytics", icon: <BarChart3 className="h-4 w-4 mr-2" /> },
   { value: "wordpress", label: "WordPress", icon: <Globe className="h-4 w-4 mr-2" /> },
   { value: "dns", label: "DNS", icon: <Globe className="h-4 w-4 mr-2" /> },
   { value: "departments", label: "Departments", icon: <Merge className="h-4 w-4 mr-2" /> },
@@ -539,6 +551,19 @@ export default function SettingsPage() {
       wordpressPassword: getSettingValue("wordpress_password", ""),
       wordpressAutoSync: getSettingValue("wordpress_auto_sync", "false") === "true",
       wordpressSyncInterval: parseInt(getSettingValue("wordpress_sync_interval", "60")),
+    },
+  });
+
+  // Google Analytics form
+  const googleAnalyticsForm = useForm<GoogleAnalyticsFormData>({
+    resolver: zodResolver(googleAnalyticsSchema),
+    defaultValues: {
+      googleAnalyticsEnabled: getSettingValue("google_analytics_enabled", "false") === "true",
+      googleAnalyticsMeasurementId: getSettingValue("google_analytics_measurement_id", ""),
+      googleAnalyticsApiKey: getSettingValue("google_analytics_api_key", ""),
+      googleAnalyticsCustomCode: getSettingValue("google_analytics_custom_code", ""),
+      googleAnalyticsEnhancedEcommerce: getSettingValue("google_analytics_enhanced_ecommerce", "false") === "true",
+      googleAnalyticsDebugMode: getSettingValue("google_analytics_debug_mode", "false") === "true",
     },
   });
 
@@ -1414,6 +1439,16 @@ export default function SettingsPage() {
             hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
           });
 
+          // Update Google Analytics form with settings
+          googleAnalyticsForm.reset({
+            googleAnalyticsEnabled: getSettingValue("google_analytics_enabled", "false") === "true",
+            googleAnalyticsMeasurementId: getSettingValue("google_analytics_measurement_id", ""),
+            googleAnalyticsApiKey: getSettingValue("google_analytics_api_key", ""),
+            googleAnalyticsCustomCode: getSettingValue("google_analytics_custom_code", ""),
+            googleAnalyticsEnhancedEcommerce: getSettingValue("google_analytics_enhanced_ecommerce", "false") === "true",
+            googleAnalyticsDebugMode: getSettingValue("google_analytics_debug_mode", "false") === "true",
+          });
+
       // Update VirtFusion form with all settings
       virtFusionForm.reset({
         apiUrl: getSettingValue("virtfusion_api_url", "https://skyvps360.xyz/api/v1"),
@@ -1775,6 +1810,38 @@ export default function SettingsPage() {
       toast({
         title: "Settings saved",
         description: "WordPress settings have been updated",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
+    } catch (error: any) {
+      toast({
+        title: "Error saving settings",
+        description: error.message || "Failed to save settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaveInProgress(false);
+    }
+  };
+
+  // Handle Google Analytics form submission
+  const onGoogleAnalyticsSubmit = async (data: GoogleAnalyticsFormData) => {
+    setSaveInProgress(true);
+
+    try {
+      // Save Google Analytics settings
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_enabled", value: data.googleAnalyticsEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_measurement_id", value: data.googleAnalyticsMeasurementId || "" });
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_api_key", value: data.googleAnalyticsApiKey || "" });
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_custom_code", value: data.googleAnalyticsCustomCode || "" });
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_enhanced_ecommerce", value: data.googleAnalyticsEnhancedEcommerce.toString() });
+      await updateSettingMutation.mutateAsync({ key: "google_analytics_debug_mode", value: data.googleAnalyticsDebugMode.toString() });
+
+      toast({
+        title: "Settings saved",
+        description: data.googleAnalyticsEnabled 
+          ? "Google Analytics settings have been updated. Analytics tracking is now active."
+          : "Google Analytics settings have been updated. Analytics tracking is now disabled.",
       });
 
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
@@ -2847,6 +2914,293 @@ export default function SettingsPage() {
                           type="submit"
                           className="w-32"
                           disabled={saveInProgress || !hubspotForm.formState.isDirty}
+                        >
+                          {saveInProgress ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Saving
+                            </>
+                          ) : (
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              Save
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="google-analytics">
+                <form onSubmit={googleAnalyticsForm.handleSubmit(onGoogleAnalyticsSubmit)}>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium">Google Analytics Integration</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Configure Google Analytics 4 (GA4) tracking for your website
+                      </p>
+                    </div>
+
+                    {/* Setup Documentation */}
+                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">📋 Setup Instructions</h4>
+                      <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+                        <div>
+                          <strong>Step 1: Create Google Analytics 4 Property</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Go to <a href="https://analytics.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">Google Analytics</a></li>
+                            <li>Create a new GA4 property for your website</li>
+                            <li>Set up data streams for your domain</li>
+                            <li>Copy your Measurement ID (starts with "G-")</li>
+                          </ul>
+                        </div>
+                        
+                        <div>
+                          <strong>Step 2: Get API Key (Optional)</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">Google Cloud Console</a></li>
+                            <li>Create a new project or select existing one</li>
+                            <li>Enable Google Analytics Data API</li>
+                            <li>Create API credentials (Service Account Key)</li>
+                            <li>Download the JSON key file</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <strong>Step 3: Enhanced Ecommerce (Optional)</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Enable enhanced ecommerce in your GA4 property</li>
+                            <li>Configure product and transaction tracking</li>
+                            <li>Set up conversion goals for purchases</li>
+                          </ul>
+                        </div>
+
+                        <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded p-2 mt-3">
+                          <strong>💡 Pro Tips:</strong>
+                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
+                            <li>Use the same GA4 property across all your domains</li>
+                            <li>Enable debug mode during development to test tracking</li>
+                            <li>Set up conversion goals for important user actions</li>
+                            <li>Monitor your data in real-time to verify tracking</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="googleAnalyticsEnabled">Enable Google Analytics</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable Google Analytics 4 tracking on your website
+                          </p>
+                        </div>
+                        <Switch
+                          id="googleAnalyticsEnabled"
+                          checked={googleAnalyticsForm.watch("googleAnalyticsEnabled")}
+                          onCheckedChange={(checked) => googleAnalyticsForm.setValue("googleAnalyticsEnabled", checked, { shouldDirty: true })}
+                        />
+                      </div>
+
+                      {googleAnalyticsForm.watch("googleAnalyticsEnabled") && (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="googleAnalyticsMeasurementId">Measurement ID</Label>
+                              <Input
+                                id="googleAnalyticsMeasurementId"
+                                placeholder="G-XXXXXXXXXX"
+                                {...googleAnalyticsForm.register("googleAnalyticsMeasurementId")}
+                              />
+                              {googleAnalyticsForm.formState.errors.googleAnalyticsMeasurementId && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {googleAnalyticsForm.formState.errors.googleAnalyticsMeasurementId.message}
+                                </p>
+                              )}
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Your GA4 Measurement ID (found in your Google Analytics property settings)
+                                <br />
+                                <span className="text-xs text-blue-600 dark:text-blue-400">
+                                  💡 Found in Admin → Property Settings → Data Streams
+                                </span>
+                              </p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="googleAnalyticsApiKey">API Key (Optional)</Label>
+                              <Input
+                                id="googleAnalyticsApiKey"
+                                type="password"
+                                placeholder="Enter your Google Analytics API key"
+                                {...googleAnalyticsForm.register("googleAnalyticsApiKey")}
+                              />
+                              {googleAnalyticsForm.formState.errors.googleAnalyticsApiKey && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {googleAnalyticsForm.formState.errors.googleAnalyticsApiKey.message}
+                                </p>
+                              )}
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Google Cloud API key for advanced analytics features
+                                <br />
+                                <span className="text-xs text-blue-600 dark:text-blue-400">
+                                  💡 Required for server-side analytics and custom reporting
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="googleAnalyticsCustomCode">Custom HTML/JS Code (Optional)</Label>
+                            <Textarea
+                              id="googleAnalyticsCustomCode"
+                              placeholder="Paste your custom Google Analytics HTML/JS code here..."
+                              className="min-h-[120px] font-mono text-sm"
+                              {...googleAnalyticsForm.register("googleAnalyticsCustomCode")}
+                            />
+                            {googleAnalyticsForm.formState.errors.googleAnalyticsCustomCode && (
+                              <p className="text-sm text-destructive mt-1">
+                                {googleAnalyticsForm.formState.errors.googleAnalyticsCustomCode.message}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Custom Google Analytics code that will be injected on all pages
+                              <br />
+                              <span className="text-xs text-blue-600 dark:text-blue-400">
+                                💡 Use this for custom tracking, GTM, or advanced GA4 configurations
+                              </span>
+                            </p>
+                          </div>
+
+                          <Separator />
+
+                          <div>
+                            <h4 className="text-md font-medium mb-4">Advanced Configuration</h4>
+                            <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <Label htmlFor="googleAnalyticsEnhancedEcommerce">Enhanced Ecommerce</Label>
+                                  <p className="text-sm text-muted-foreground">
+                                    Enable enhanced ecommerce tracking for detailed purchase analytics
+                                  </p>
+                                </div>
+                                <Switch
+                                  id="googleAnalyticsEnhancedEcommerce"
+                                  checked={googleAnalyticsForm.watch("googleAnalyticsEnhancedEcommerce")}
+                                  onCheckedChange={(checked) => googleAnalyticsForm.setValue("googleAnalyticsEnhancedEcommerce", checked, { shouldDirty: true })}
+                                />
+                              </div>
+
+                              {googleAnalyticsForm.watch("googleAnalyticsEnhancedEcommerce") && (
+                                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                                  <h5 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">🛒 Enhanced Ecommerce Tracking</h5>
+                                  <p className="text-sm text-green-800 dark:text-green-200">
+                                    When enabled, SkyPANEL will automatically track:
+                                  </p>
+                                  <ul className="list-disc list-inside mt-2 text-sm text-green-800 dark:text-green-200 space-y-1">
+                                    <li>Product views and interactions</li>
+                                    <li>Shopping cart additions and removals</li>
+                                    <li>Checkout process steps</li>
+                                    <li>Purchase transactions and revenue</li>
+                                    <li>Product performance metrics</li>
+                                  </ul>
+                                  <p className="text-xs text-green-700 dark:text-green-300 mt-2">
+                                    💡 Requires proper GA4 ecommerce setup in your Google Analytics property
+                                  </p>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                  <Label htmlFor="googleAnalyticsDebugMode">Debug Mode</Label>
+                                  <p className="text-sm text-muted-foreground">
+                                    Enable debug mode for development and testing
+                                  </p>
+                                </div>
+                                <Switch
+                                  id="googleAnalyticsDebugMode"
+                                  checked={googleAnalyticsForm.watch("googleAnalyticsDebugMode")}
+                                  onCheckedChange={(checked) => googleAnalyticsForm.setValue("googleAnalyticsDebugMode", checked, { shouldDirty: true })}
+                                />
+                              </div>
+
+                              {googleAnalyticsForm.watch("googleAnalyticsDebugMode") && (
+                                <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                                  <h5 className="text-sm font-semibold text-orange-900 dark:text-orange-100 mb-2">🐛 Debug Mode Active</h5>
+                                  <p className="text-sm text-orange-800 dark:text-orange-200">
+                                    Debug mode is enabled. This will:
+                                  </p>
+                                  <ul className="list-disc list-inside mt-2 text-sm text-orange-800 dark:text-orange-200 space-y-1">
+                                    <li>Log all analytics events to browser console</li>
+                                    <li>Show detailed tracking information</li>
+                                    <li>Help verify that events are firing correctly</li>
+                                    <li>Use more verbose logging for troubleshooting</li>
+                                  </ul>
+                                  <p className="text-xs text-orange-700 dark:text-orange-300 mt-2">
+                                    ⚠️ Remember to disable debug mode in production
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      <Separator />
+
+                      <div className="flex justify-between items-center">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              setTestConnectionInProgress(true);
+                              const response = await apiRequest('/api/admin/settings/google-analytics/test-connection', {
+                                method: 'POST'
+                              });
+                              
+                              if (response.success) {
+                                toast({
+                                  title: "Connection successful",
+                                  description: response.message,
+                                });
+                              } else {
+                                toast({
+                                  title: "Connection failed",
+                                  description: response.message,
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error: any) {
+                              toast({
+                                title: "Connection failed",
+                                description: error.message || "Failed to test connection",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setTestConnectionInProgress(false);
+                            }
+                          }}
+                          disabled={testConnectionInProgress || !googleAnalyticsForm.watch("googleAnalyticsEnabled")}
+                        >
+                          {testConnectionInProgress ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Testing...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Test Connection
+                            </>
+                          )}
+                        </Button>
+
+                        <Button
+                          type="submit"
+                          className="w-32"
+                          disabled={saveInProgress || !googleAnalyticsForm.formState.isDirty}
                         >
                           {saveInProgress ? (
                             <>
