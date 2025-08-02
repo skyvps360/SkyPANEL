@@ -273,10 +273,29 @@ export default function AuthPage() {
 
   // Handle redirect if already logged in
   useEffect(() => {
-    if (user && !redirectingToDashboard) {
-      setRedirectingToDashboard(true);
-      navigate("/dashboard");
-    }
+    const checkAndRedirect = async () => {
+      if (user && !redirectingToDashboard) {
+        // Validate session before redirecting using the proper endpoint
+        try {
+          const res = await fetch('/api/user', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          
+          if (res.ok) {
+            const userData = await res.json();
+            if (userData && !userData.error) {
+              setRedirectingToDashboard(true);
+              navigate('/dashboard');
+            }
+          }
+        } catch (error) {
+          console.error('Session validation failed:', error);
+          // If validation fails, user should stay on auth page
+        }
+      }
+    };
+    checkAndRedirect();
   }, [user, navigate, redirectingToDashboard]);
 
   // Function to trigger confetti celebration

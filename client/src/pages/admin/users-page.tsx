@@ -210,7 +210,8 @@ export default function UsersPage() {
   // Computed statistics and filters
   const statistics = useMemo(() => {
     const totalUsers = users.length;
-    const activeUsers = users.filter(user => user.isActive !== false).length;
+    const allActiveUsers = users.filter(user => user.isActive !== false).length;
+    const activeClients = users.filter(user => user.role !== "admin" && user.isActive !== false).length;
     const suspendedUsers = users.filter(user => user.isActive === false).length;
     const adminUsers = users.filter(user => user.role === "admin").length;
     const clientUsers = users.filter(user => user.role === "client").length;
@@ -224,12 +225,13 @@ export default function UsersPage() {
 
     return {
       totalUsers,
-      activeUsers,
+      activeUsers: activeClients, // Now represents active clients only (excluding admins)
+      allActiveUsers, // All active users including admins
       suspendedUsers,
       adminUsers,
       clientUsers,
       recentUsers,
-      activePercentage: totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0
+      activePercentage: totalUsers > 0 ? Math.round((allActiveUsers / totalUsers) * 100) : 0
     };
   }, [users]);
 
@@ -669,7 +671,7 @@ export default function UsersPage() {
           <StatCard
             title="Active Users"
             value={statistics.activeUsers}
-            description="Currently enabled"
+            description="Currently enabled clients"
             icon={Power}
             className="border-green-200"
           />
@@ -713,7 +715,7 @@ export default function UsersPage() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl">Users Directory</CardTitle>
             <Badge variant="outline" className="px-3 py-1">
-              {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'}
+              {filteredUsers.filter(user => user.role !== "admin").length} {filteredUsers.filter(user => user.role !== "admin").length === 1 ? 'member' : 'members'}
             </Badge>
           </div>
         </CardHeader>
@@ -784,6 +786,9 @@ export default function UsersPage() {
                   searchKey="fullName"
                   actions={renderActions}
                   enableSearch={false}
+                  enablePagination={true}
+                  defaultPageSize={10}
+                  pageSizeOptions={[5, 10, 25, 50, 100]}
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
                 />

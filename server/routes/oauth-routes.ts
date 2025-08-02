@@ -245,6 +245,25 @@ router.get('/callback/:providerName', async (req, res) => {
       });
       return res.redirect('/auth?error=invalid_state');
     }
+    
+    // Security enhancement: Validate redirect URL to prevent history manipulation attacks
+    // Only allow specific safe paths for redirection
+    const redirectUrl = req.session.oauthRedirect || '/dashboard';
+    const safeRedirectPaths = ['/dashboard', '/profile', '/billing', '/tickets', '/servers', '/dns'];
+    
+    // Check if the redirectUrl starts with any of the safe paths or is a relative path
+    // This prevents redirects to admin pages for non-admin users
+    const isRedirectSafe = safeRedirectPaths.some(safePath => 
+      redirectUrl === safePath || 
+      redirectUrl.startsWith(`${safePath}/`) || 
+      redirectUrl.startsWith(`${safePath}?`)
+    );
+    
+    // If redirect is not safe, default to dashboard
+    const finalRedirectBase = isRedirectSafe ? redirectUrl : '/dashboard';
+    
+    // Store the sanitized redirect URL back in the session
+    req.session.oauthRedirect = finalRedirectBase;
 
     const provider = await oauthService.getProvider(providerName);
     if (!provider || !provider.enabled) {
@@ -306,24 +325,23 @@ router.get('/callback/:providerName', async (req, res) => {
           return res.redirect('/auth?error=login_failed');
         }
         
-        const redirectUrl = req.session.oauthRedirect || '/dashboard';
+        // CRITICAL SECURITY FIX: Only redirect to dashboard if user is actually authenticated
+        if (!req.user || !req.isAuthenticated()) {
+          console.error('User not properly authenticated after OAuth login');
+          return res.redirect('/auth?error=authentication_failed');
+        }
+        
+        // Use the sanitized redirect URL from earlier
+        const redirectBase = req.session.oauthRedirect || '/dashboard';
         delete req.session.oauthState;
         delete req.session.oauthRedirect;
 
-        // Save session before redirecting to ensure it persists
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            console.error('Error saving session:', saveErr);
-            return res.redirect('/auth?error=session_save_failed');
-          }
+        // Add success parameter for OAuth login
+        const finalRedirectUrl = redirectBase.includes('?') 
+          ? `${redirectBase}&success=oauth_login` 
+          : `${redirectBase}?success=oauth_login`;
 
-          // Add success parameter for OAuth login
-          const finalRedirectUrl = redirectUrl.includes('?') 
-            ? `${redirectUrl}&success=oauth_login` 
-            : `${redirectUrl}?success=oauth_login`;
-
-          return res.redirect(finalRedirectUrl);
-        });
+        return res.redirect(finalRedirectUrl);
       });
     } else {
       // User needs to link their account
@@ -366,20 +384,53 @@ router.get('/callback/:providerName', async (req, res) => {
         userAgent: req.get('User-Agent'),
       });
 
-      const redirectUrl = req.session.oauthRedirect || '/dashboard';
+      // Use the sanitized redirect URL from earlier
+      const redirectBase = req.session.oauthRedirect || '/dashboard';
       delete req.session.oauthState;
       delete req.session.oauthRedirect;
 
       // Add success parameter for OAuth account linking
-      const finalRedirectUrl = redirectUrl.includes('?') 
-        ? `${redirectUrl}&success=oauth_linked` 
-        : `${redirectUrl}?success=oauth_linked`;
+      const finalRedirectUrl = redirectBase.includes('?') 
+        ? `${redirectBase}&success=oauth_linked` 
+        : `${redirectBase}?success=oauth_linked`;
 
       return res.redirect(finalRedirectUrl);
     }
   } catch (error: any) {
     console.error('Error in OAuth callback:', error);
     return res.redirect('/auth?error=callback_error');
+  }
+});
+
+// Session validation endpoint
+router.get('/validate', async (req, res) => {
+  try {
+    // Check if user is properly authenticated
+    if (!req.user || !req.isAuthenticated()) {
+      return res.status(401).json({ 
+        authenticated: false, 
+        message: 'Not authenticated' 
+      });
+    }
+
+    // Return user info if authenticated
+    return res.json({ 
+      authenticated: true, 
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        role: req.user.role,
+        isVerified: req.user.isVerified,
+        isActive: req.user.isActive
+      }
+    });
+  } catch (error: any) {
+    console.error('Session validation error:', error);
+    return res.status(500).json({ 
+      authenticated: false, 
+      message: 'Session validation failed' 
+    });
   }
 });
 

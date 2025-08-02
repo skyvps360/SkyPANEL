@@ -132,6 +132,48 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     Cookies.set("sidebar-collapsed", isSidebarCollapsed.toString(), { expires: 365 });
   }, [isSidebarCollapsed]);
   const { logoutMutation, user } = useAuth();
+  
+  // Enhanced security check to prevent unauthorized access to admin pages
+  // This is a secondary defense against history manipulation during OAuth flows
+  useEffect(() => {
+    const checkAuth = async () => {
+      // Verify admin status on every render of the admin layout
+      const isAdmin = user?.role === "admin";
+      
+      if (!user) {
+        // If not authenticated at all, redirect to auth page
+        window.location.href = '/auth';
+        return;
+      }
+      
+      // Additional session validation
+      try {
+        const response = await fetch('/api/user', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        
+        if (!response.ok) {
+          // If request fails, user is not authenticated
+          window.location.href = '/auth';
+          return;
+        }
+        
+        const userData = await response.json();
+        if (!userData || userData.error || userData.role !== 'admin') {
+          // If user data is invalid or user is not admin
+          window.location.href = userData && !userData.error ? '/dashboard' : '/auth';
+          return;
+        }
+      } catch (error) {
+        console.error('Session validation failed:', error);
+        window.location.href = '/auth';
+        return;
+      }
+    };
+    
+    checkAuth();
+  }, [user]);
 
   // Search-related state
   const [searchQuery, setSearchQuery] = useState("");

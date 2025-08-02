@@ -21,6 +21,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<ExtendedUser, Error, InsertUser>;
+  validateSession: () => Promise<boolean>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -163,6 +164,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  // Session validation function
+  const validateSession = async () => {
+    try {
+      const response = await fetch("/api/user", {
+        method: "GET",
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        // Clear user data if not authenticated
+        queryClient.setQueryData(["/api/user"], null);
+        return false;
+      }
+      
+      const userData = await response.json();
+      if (!userData || userData.error) {
+        // Clear user data if response is invalid
+        queryClient.setQueryData(["/api/user"], null);
+        return false;
+      }
+      
+      // Update user data in cache
+      queryClient.setQueryData(["/api/user"], userData);
+      return true;
+    } catch (error) {
+      console.error("Session validation failed:", error);
+      // Clear user data on validation error
+      queryClient.setQueryData(["/api/user"], null);
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -172,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        validateSession,
       }}
     >
       {children}

@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { AlertTriangle, Loader2, MessageSquare } from "lucide-react";
 import { Redirect, Route } from "wouter";
+import { useEffect } from "react";
 
 export function ProtectedRoute({
   path,
@@ -83,7 +84,38 @@ export function AdminProtectedRoute({
   path: string;
   component: any; // Using 'any' to allow for Layout property
 }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, validateSession } = useAuth();
+  
+  // Enhanced security check: Verify authentication status on every render
+  // This prevents access to admin pages through browser history manipulation during OAuth flows
+  const isAuthenticated = !!user && !isLoading;
+  const isAdmin = isAuthenticated && user?.role === "admin";
+  
+  // Force a re-validation of authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!isAuthenticated) {
+        // If not authenticated, redirect to auth page
+        window.location.href = '/auth';
+        return;
+      }
+      
+      // Additional session validation
+      const isValidSession = await validateSession();
+      if (!isValidSession) {
+        window.location.href = '/auth';
+        return;
+      }
+      
+      if (!isAdmin) {
+        // If authenticated but not admin, redirect to dashboard
+        window.location.href = '/dashboard';
+        return;
+      }
+    };
+    
+    checkAuth();
+  }, [isAuthenticated, isAdmin, validateSession]);
 
   if (isLoading) {
     return (
