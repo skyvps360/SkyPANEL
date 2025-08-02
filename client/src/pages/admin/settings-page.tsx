@@ -209,6 +209,11 @@ const designSchema = z.object({
   contactSupportText: z.string(),
   contactPhone: z.string(),
 
+  // Brand colors
+  primaryColor: z.string().regex(/^[0-9A-Fa-f]{6}$/, { message: "Color must be a valid hex code without # (e.g. 2563eb)" }),
+  secondaryColor: z.string().regex(/^[0-9A-Fa-f]{6}$/, { message: "Color must be a valid hex code without # (e.g. 10b981)" }),
+  accentColor: z.string().regex(/^[0-9A-Fa-f]{6}$/, { message: "Color must be a valid hex code without # (e.g. f59e0b)" }),
+
   // Features section settings
   featuresHeading: z.string().min(1, { message: "Features heading is required" }),
   featuresSubheading: z.string(),
@@ -1197,6 +1202,11 @@ export default function SettingsPage() {
       contactSupportText: getSettingValue("footer_contact_support_text", "24/7 Available"),
       contactPhone: getSettingValue("footer_contact_phone", "+1 (555) 123-4567"),
 
+      // Brand colors
+      primaryColor: getSettingValue("primary_color", "2563eb"),
+      secondaryColor: getSettingValue("secondary_color", "10b981"),
+      accentColor: getSettingValue("accent_color", "f59e0b"),
+
       // Features section settings
       featuresHeading: getSettingValue("features_heading", "Why Choose SkyVPS360?"),
       featuresSubheading: getSettingValue("features_subheading", "Experience the perfect blend of performance, reliability, and affordability."),
@@ -1286,6 +1296,11 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "footer_contact_email", value: data.contactEmail });
       await updateSettingMutation.mutateAsync({ key: "footer_contact_support_text", value: data.contactSupportText });
       await updateSettingMutation.mutateAsync({ key: "footer_contact_phone", value: data.contactPhone });
+
+      // Update brand colors
+      await updateSettingMutation.mutateAsync({ key: "primary_color", value: data.primaryColor });
+      await updateSettingMutation.mutateAsync({ key: "secondary_color", value: data.secondaryColor });
+      await updateSettingMutation.mutateAsync({ key: "accent_color", value: data.accentColor });
 
       // Update features section settings
       await updateSettingMutation.mutateAsync({ key: "features_heading", value: data.featuresHeading });
@@ -4868,6 +4883,75 @@ export default function SettingsPage() {
                       <p className="text-sm text-muted-foreground mt-1">
                         Customize website content, appearance, and layout elements
                       </p>
+                    </div>
+
+                    <Separator />
+
+                    {/* Brand Colors Section */}
+                    <div className="space-y-6">
+                      <h4 className="text-md font-medium">Brand Colors</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Customize your platform's visual identity. Changes will reflect across the client dashboard.
+                      </p>
+
+                      {/* Theme Selector */}
+                      <ThemeSelector
+                        currentTheme={{
+                          primary: designForm.watch("primaryColor") || "2563eb",
+                          secondary: designForm.watch("secondaryColor") || "10b981",
+                          accent: designForm.watch("accentColor") || "f59e0b",
+                        }}
+                        onThemeSelect={(theme) => {
+                          designForm.setValue("primaryColor", theme.primary, { shouldDirty: true });
+                          designForm.setValue("secondaryColor", theme.secondary, { shouldDirty: true });
+                          designForm.setValue("accentColor", theme.accent, { shouldDirty: true });
+                        }}
+                        disabled={saveInProgress}
+                      />
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Color Selectors */}
+                        <div className="space-y-6">
+                          <EnhancedColorSelector
+                            label="Primary Color"
+                            value={designForm.watch("primaryColor")}
+                            onChange={(color) => designForm.setValue("primaryColor", color, { shouldDirty: true })}
+                            error={designForm.formState.errors.primaryColor?.message}
+                            description="Main brand color for primary elements and actions"
+                            type="primary"
+                            disabled={saveInProgress}
+                          />
+
+                          <EnhancedColorSelector
+                            label="Secondary Color"
+                            value={designForm.watch("secondaryColor")}
+                            onChange={(color) => designForm.setValue("secondaryColor", color, { shouldDirty: true })}
+                            error={designForm.formState.errors.secondaryColor?.message}
+                            description="Supporting color for secondary elements and accents"
+                            type="secondary"
+                            disabled={saveInProgress}
+                          />
+
+                          <EnhancedColorSelector
+                            label="Accent Color"
+                            value={designForm.watch("accentColor")}
+                            onChange={(color) => designForm.setValue("accentColor", color, { shouldDirty: true })}
+                            error={designForm.formState.errors.accentColor?.message}
+                            description="Highlight color for callouts and important elements"
+                            type="accent"
+                            disabled={saveInProgress}
+                          />
+                        </div>
+
+                        {/* Color Preview */}
+                        <div>
+                          <ColorPreview
+                            primaryColor={designForm.watch("primaryColor") || "2563eb"}
+                            secondaryColor={designForm.watch("secondaryColor") || "10b981"}
+                            accentColor={designForm.watch("accentColor") || "f59e0b"}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-6">
