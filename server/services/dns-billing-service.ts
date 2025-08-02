@@ -18,10 +18,7 @@ export class DnsBillingService {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    // Only process on the 1st of the month
-    if (today.getDate() !== 1) {
-      return { processed: 0, successful: 0, failed: 0, errors: [] };
-    }
+
 
     const results = {
       processed: 0,
