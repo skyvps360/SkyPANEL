@@ -83,7 +83,7 @@ export function SharedFooter() {
     instagram: getSettingValue("footer_instagram_url", "")
   };
   
-  const contactEmail = getSettingValue("footer_contact_email", "support@example.com");
+  const contactEmail = getSettingValue("footer_contact_email", "support@skyvps360.xyz");
   const contactSupportText = getSettingValue("footer_contact_support_text", "24/7 Available");
   const contactPhone = getSettingValue("footer_contact_phone", "");
 

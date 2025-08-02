@@ -1196,7 +1196,7 @@ export default function SettingsPage() {
         ...(getSettingValue("footer_youtube_url", "") ? [{ platform: 'youtube' as SocialPlatform, url: getSettingValue("footer_youtube_url", "") }] : []),
         ...(getSettingValue("footer_instagram_url", "") ? [{ platform: 'instagram' as SocialPlatform, url: getSettingValue("footer_instagram_url", "") }] : []),
       ],
-      contactEmail: getSettingValue("footer_contact_email", "support@example.com"),
+      contactEmail: getSettingValue("footer_contact_email", "support@skyvps360.xyz"),
       contactSupportText: getSettingValue("footer_contact_support_text", "24/7 Available"),
       contactPhone: getSettingValue("footer_contact_phone", "+1 (555) 123-4567"),
 
@@ -1386,7 +1386,7 @@ export default function SettingsPage() {
         footerDescription: getSettingValue("footer_description", "High-performance VPS hosting solutions with exceptional support and reliability.", settings),
         enableSocialIcons: getSettingValue("footer_social_icons_enabled", "true", settings) === "true",
         socialLinks,  // Use the freshly loaded social links
-        contactEmail: getSettingValue("footer_contact_email", "support@example.com", settings),
+        contactEmail: getSettingValue("footer_contact_email", "support@skyvps360.xyz", settings),
         contactSupportText: getSettingValue("footer_contact_support_text", "24/7 Available", settings),
         contactPhone: getSettingValue("footer_contact_phone", "", settings),
 

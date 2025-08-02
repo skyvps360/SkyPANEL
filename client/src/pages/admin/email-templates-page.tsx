@@ -14,6 +14,7 @@ import { Plus, Edit, Eye, Trash2, Send, ToggleLeft, ToggleRight, Copy, Code, Mai
 import AdminLayout from '@/components/layout/AdminLayout';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/hooks/use-settings';
 import { cn } from '@/lib/utils';
 
 // Types
@@ -110,10 +111,19 @@ export default function EmailTemplatesPage() {
   });
 
   // Fetch common variables
-  const { data: commonVariables = [] } = useQuery<{ variables: string[] }>({
+  const { data: commonVariables } = useQuery<{ variables: string[] }>({
     queryKey: ['/api/admin/email-templates/variables/common'],
     retry: false
   });
+
+  // Fetch settings for support email
+  const { data: settings = [] } = useQuery<{ id: number; key: string; value: string }[]>({
+    queryKey: ['/api/admin/settings'],
+    retry: false
+  });
+
+  // Use settings hook
+  const { getSupportEmail } = useSettings(settings);
 
   // Create template mutation
   const createMutation = useMutation({
@@ -311,7 +321,7 @@ export default function EmailTemplatesPage() {
           sampleVariables[variable] = 'https://example.com/verify/token123';
           break;
         case 'support_email':
-          sampleVariables[variable] = 'support@example.com';
+          sampleVariables[variable] = getSupportEmail();
           break;
         default:
           sampleVariables[variable] = `sample_${variable}`;
