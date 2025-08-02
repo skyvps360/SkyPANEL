@@ -18,23 +18,20 @@ function getStatusBadgeVariant(status: string) {
 
   switch (normalizedStatus) {
     case 'running':
-      return 'default'; // Green
+      return 'default';
     case 'stopped':
-      return 'secondary'; // Gray
+      return 'secondary';
     case 'suspended':
-      return 'destructive'; // Red
+      return 'destructive';
     case 'building':
     case 'pending':
-      return 'outline'; // Yellow/Orange
+      return 'outline';
     default:
       return 'secondary';
   }
 }
 
 function getServerStatus(server: any) {
-  // Check multiple possible status fields from VirtFusion API
-
-  // First check remoteState (most reliable for VirtFusion)
   if (server.remoteState?.state) {
     const state = server.remoteState.state.toLowerCase();
     if (state === 'running' || server.remoteState.running === true) {
@@ -44,40 +41,37 @@ function getServerStatus(server: any) {
     }
   }
 
-  // Check powerStatus
   if (server.powerStatus?.powerState) {
     const powerState = server.powerStatus.powerState.toLowerCase();
     if (powerState === 'running') return 'RUNNING';
     if (powerState === 'stopped') return 'STOPPED';
   }
 
-  // Check main state field
   if (server.state) {
     const state = server.state.toLowerCase();
-    if (state === 'complete') return 'RUNNING'; // VirtFusion "complete" means running
+    if (state === 'complete') return 'RUNNING';
     if (state === 'running') return 'RUNNING';
     if (state === 'stopped') return 'STOPPED';
     if (state === 'suspended') return 'SUSPENDED';
     if (state === 'pending' || state === 'building') return 'BUILDING';
   }
 
-  // Check commissioned status (fallback)
   if (server.commissioned === 3) return 'RUNNING';
   if (server.commissioned === 0) return 'STOPPED';
 
   return 'UNKNOWN';
 }
 
+
+
 export default function ServersPage() {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  // Add state for rate limiting
   const [refreshClicks, setRefreshClicks] = useState<number[]>([]);
   const [isRateLimited, setIsRateLimited] = useState(false);
 
-  // Fetch branding data
   const { data: brandingData } = useQuery<{
     company_name: string;
     primary_color: string;
@@ -87,14 +81,12 @@ export default function ServersPage() {
     queryKey: ['/api/settings/branding'],
   });
 
-  // Get brand colors using the newer structure
   const brandColors = getBrandColors({
     primaryColor: brandingData?.primary_color,
     secondaryColor: brandingData?.secondary_color,
     accentColor: brandingData?.accent_color
   });
 
-  // Fetch servers from API
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
     queryKey: ['/api/user/servers'],
     queryFn: async () => {
@@ -104,14 +96,12 @@ export default function ServersPage() {
       }
       return response.json();
     },
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 30000,
   });
 
   const allServers = serversResponse?.data || [];
 
-  // Client-side filtering
   const filteredServers = allServers.filter((server: any) => {
-    // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       const matchesSearch =
@@ -122,7 +112,6 @@ export default function ServersPage() {
       if (!matchesSearch) return false;
     }
 
-    // Status filter
     if (statusFilter !== 'all') {
       const serverStatus = getServerStatus(server).toLowerCase();
       if (statusFilter === 'running' && serverStatus !== 'running') return false;
@@ -133,7 +122,6 @@ export default function ServersPage() {
     return true;
   });
 
-  // Client-side pagination
   const itemsPerPage = 12;
   const totalPages = Math.ceil(filteredServers.length / itemsPerPage);
   const startIndex = (page - 1) * itemsPerPage;
@@ -141,7 +129,6 @@ export default function ServersPage() {
   const servers = filteredServers.slice(startIndex, endIndex);
   const currentPage = page;
 
-  // Reset to page 1 when search/filter changes
   useEffect(() => {
     setPage(1);
   }, [searchQuery, statusFilter]);
@@ -154,30 +141,27 @@ export default function ServersPage() {
         setIsRateLimited(true);
         return recentClicks;
       }
-      // Allow refresh, update state, and trigger refresh
       setIsRefreshing(true);
       refetch().finally(() => setIsRefreshing(false));
       return [...recentClicks, now];
     });
   };
 
-  // Effect to re-enable button after 60s if rate limited
   useEffect(() => {
     if (!isRateLimited) return;
     const now = Date.now();
     const timeout = setTimeout(() => {
       setIsRateLimited(false);
-      // Remove old timestamps
       setRefreshClicks(clicks => clicks.filter(ts => now - ts < 60000));
     }, 60000 - (now - (refreshClicks[0] || now)));
     return () => clearTimeout(timeout);
   }, [isRateLimited, refreshClicks]);
 
+
+
   if (isError) {
     return (
-      <>
-  
-        <DashboardLayout>
+      <DashboardLayout>
         <div className="container mx-auto px-4 py-8">
           <Card className="border-destructive/50 bg-destructive/5">
             <CardHeader>
@@ -198,91 +182,78 @@ export default function ServersPage() {
           </Card>
         </div>
       </DashboardLayout>
-      </>
     );
   }
 
   return (
-    <>
-
-      <DashboardLayout>
+    <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Modern Hero Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
-          <div className="p-8 md:p-12 flex flex-col lg:flex-row lg:items-center lg:justify-between relative z-10">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
-                  <Server className="h-6 w-6" />
-                </div>
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                    My Servers
-                  </h1>
-                  <p className="text-muted-foreground text-lg mt-1">
-                    Manage and monitor your virtual servers
-                  </p>
-                </div>
+        {/* Header Section */}
+        <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center space-x-4 mb-6 lg:mb-0">
+              <div 
+                className="flex items-center justify-center h-12 w-12 rounded-lg shadow-sm"
+                style={{ backgroundColor: brandColors.primary.full }}
+              >
+                <Server className="h-6 w-6 text-white" />
               </div>
-
-              {/* Server Stats Summary */}
-              <div className="flex flex-wrap gap-6 mt-6">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-primary" />
-                  <span className="text-sm font-medium text-foreground">
-                    {filteredServers.filter((s: any) => getServerStatus(s) === 'RUNNING').length} Running
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">
-                    {filteredServers.filter((s: any) => getServerStatus(s) === 'STOPPED').length} Stopped
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-destructive" />
-                  <span className="text-sm font-medium text-foreground">
-                    {filteredServers.filter((s: any) => getServerStatus(s) === 'SUSPENDED').length} Suspended
-                  </span>
-                </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">My Servers</h1>
+                <p className="text-gray-600 mt-1">Manage and monitor your virtual servers</p>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
-              <VirtFusionSsoButton
-                text="Create Server"
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
-              />
-              <Button
-                onClick={handleRefresh}
-                disabled={isRefreshing || isRateLimited}
-                variant="outline"
-                className="transition-all duration-200"
-              >
-                <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                {isRefreshing ? 'Refreshing...' : isRateLimited ? 'Rate limit: wait 1 min' : 'Refresh'}
-              </Button>
+            {/* Status Summary */}
+            <div className="flex gap-6">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-sm font-medium text-gray-700">
+                  {filteredServers.filter((s: any) => getServerStatus(s) === 'RUNNING').length} Running
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-gray-500" />
+                <span className="text-sm font-medium text-gray-700">
+                  {filteredServers.filter((s: any) => getServerStatus(s) === 'STOPPED').length} Stopped
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-sm font-medium text-gray-700">
+                  {filteredServers.filter((s: any) => getServerStatus(s) === 'SUSPENDED').length} Suspended
+                </span>
+              </div>
             </div>
           </div>
-          {/* Abstract background shapes */}
-          <div className="absolute top-0 left-0 w-full h-full z-0">
-            <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
-                 style={{ backgroundColor: brandColors.primary.full }}></div>
-            <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
-                 style={{ backgroundColor: brandColors.secondary.full }}></div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-6">
+            <VirtFusionSsoButton
+              text="Create Server"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+            />
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing || isRateLimited}
+              variant="outline"
+              className="transition-all duration-200"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : isRateLimited ? 'Rate limit: wait 1 min' : 'Refresh'}
+            </Button>
           </div>
         </div>
 
-        {/* Enhanced Filters Section */}
-        <Card className="shadow-xl border border-gray-300/60">
+        {/* Filters Section */}
+        <Card className="shadow-sm border border-gray-200">
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex-1 max-w-md">
-                <label className="block text-sm font-medium text-foreground mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Search Servers
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
                     placeholder="Search by name, ID, or location..."
                     value={searchQuery}
@@ -294,7 +265,7 @@ export default function ServersPage() {
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Filter by Status
                   </label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -311,7 +282,7 @@ export default function ServersPage() {
                 </div>
 
                 <div className="flex items-end">
-                  <div className="text-sm text-muted-foreground bg-muted px-3 py-2 rounded-lg border border-border">
+                  <div className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
                     <span className="font-medium">{filteredServers.length}</span> of{' '}
                     <span className="font-medium">{allServers.length}</span> servers
                   </div>
@@ -321,12 +292,12 @@ export default function ServersPage() {
           </CardContent>
         </Card>
 
-        {/* Loading State for Modern Table */}
+        {/* Loading State */}
         {isLoading ? (
-          <Card className="shadow-xl border border-gray-300/60">
+          <Card className="shadow-sm border border-gray-200">
             <div className="overflow-hidden">
               {/* Table Header */}
-              <div className="bg-gray-50/80 border-b border-gray-200 px-8 py-4">
+              <div className="bg-gray-50 border-b border-gray-200 px-8 py-4">
                 <div className="flex items-center justify-between">
                   <Skeleton className="h-5 w-32" />
                   <Skeleton className="h-5 w-40" />
@@ -361,32 +332,29 @@ export default function ServersPage() {
           </Card>
         ) : servers?.length ? (
           <>
-            {/* Modern Server Management Table */}
-            <Card className="shadow-xl border border-gray-300/60 overflow-hidden">
+            {/* Server List */}
+            <Card className="shadow-sm border border-gray-200 overflow-hidden">
               {/* Table Header */}
               <div 
-                className="px-8 py-5 border-b border-gray-200/80 backdrop-blur-sm"
-                style={{
-                  background: `linear-gradient(135deg, ${brandColors.primary.full}15, ${brandColors.secondary.full}10)`
-                }}
+                className="px-8 py-5 border-b border-gray-200 bg-gray-50"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div 
-                      className="p-2 rounded-lg text-white shadow-md"
+                      className="p-2 rounded-lg text-white shadow-sm"
                       style={{ backgroundColor: brandColors.primary.full }}
                     >
                       <Server className="h-5 w-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground">Server Infrastructure</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 className="text-lg font-semibold text-gray-900">Server Infrastructure</h3>
+                      <p className="text-sm text-gray-600">
                         {filteredServers.length} server{filteredServers.length !== 1 ? 's' : ''} • 
                         {filteredServers.filter((s: any) => getServerStatus(s) === 'RUNNING').length} running
                       </p>
                     </div>
                   </div>
-                  <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+                  <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-gray-600">
                     <span className="min-w-[140px]">Location</span>
                     <span className="min-w-[100px]">Status</span>
                     <span className="min-w-[70px]">CPU</span>
@@ -398,7 +366,7 @@ export default function ServersPage() {
               </div>
 
               {/* Server Rows */}
-              <div className="divide-y divide-gray-100/60">
+              <div className="divide-y divide-gray-100">
                 {servers.map((server: any, index: number) => {
                   const status = getServerStatus(server);
                   const isRunning = status === 'RUNNING';
@@ -408,7 +376,7 @@ export default function ServersPage() {
                   return (
                     <div
                       key={server.id}
-                      className={`group px-8 py-6 hover:bg-gray-50/60 transition-all duration-200 ${
+                      className={`group px-8 py-6 hover:bg-gray-50 transition-all duration-200 ${
                         index % 2 === 0 ? 'bg-white' : 'bg-gray-25/20'
                       }`}
                     >
@@ -416,7 +384,7 @@ export default function ServersPage() {
                         {/* Server Info Section */}
                         <div className="flex items-center gap-6 flex-1 min-w-0">
                           <div
-                            className="flex items-center justify-center h-12 w-12 rounded-full text-white shadow-lg transition-all duration-200 flex-shrink-0"
+                            className="flex items-center justify-center h-12 w-12 rounded-full text-white shadow-sm transition-all duration-200 flex-shrink-0"
                             style={{
                               backgroundColor: isRunning 
                                 ? brandColors.primary.full 
@@ -431,11 +399,11 @@ export default function ServersPage() {
                           {/* Server Name & Details */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-1">
-                              <h4 className="text-lg font-semibold text-foreground leading-tight group-hover:text-primary transition-colors">
+                              <h4 className="text-lg font-semibold text-gray-900 leading-tight group-hover:text-primary transition-colors">
                                 <span className="break-all">{server.name}</span>
                               </h4>
                             </div>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-4 text-sm text-gray-500">
                               <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
                                 ID: {server.id}
                               </span>
@@ -452,7 +420,7 @@ export default function ServersPage() {
                         {/* Server Stats & Actions - Individual Columns */}
                         <div className="flex items-center gap-6 flex-shrink-0">
                           {/* Location Column */}
-                          <div className="hidden lg:block text-sm font-medium text-muted-foreground min-w-[140px]">
+                          <div className="hidden lg:block text-sm font-medium text-gray-600 min-w-[140px]">
                             {server.hypervisor?.name ? (
                               <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4" />
@@ -483,7 +451,7 @@ export default function ServersPage() {
                           </div>
                           
                           {/* CPU Column */}
-                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-muted-foreground min-w-[70px]">
+                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-gray-600 min-w-[70px]">
                             <Cpu className="h-4 w-4" />
                             <span>
                               {server.cpu?.cores !== undefined && server.cpu?.cores !== null ? `${server.cpu.cores}c` : '—'}
@@ -491,7 +459,7 @@ export default function ServersPage() {
                           </div>
                           
                           {/* RAM Column */}
-                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-muted-foreground min-w-[80px]">
+                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-gray-600 min-w-[80px]">
                             <MemoryStick className="h-4 w-4" />
                             <span>
                               {(() => {
@@ -509,7 +477,7 @@ export default function ServersPage() {
                           </div>
                           
                           {/* Storage Column */}
-                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-muted-foreground min-w-[90px]">
+                          <div className="hidden lg:flex items-center gap-2 text-sm font-medium text-gray-600 min-w-[90px]">
                             <HardDrive className="h-4 w-4" />
                             <span>
                               {server.storage?.length > 0 && server.storage[0]?.capacity !== undefined && server.storage[0]?.capacity !== null
@@ -523,7 +491,7 @@ export default function ServersPage() {
                             <Link href={`/servers/${server.id}`}>
                               <Button
                                 size="sm"
-                                className="text-white shadow-md transition-all duration-300 group-hover:scale-105 hover:shadow-lg w-full"
+                                className="text-white shadow-sm transition-all duration-300 group-hover:scale-105 hover:shadow-md w-full"
                                 style={{
                                   backgroundColor: brandColors.primary.full,
                                 }}
@@ -547,10 +515,10 @@ export default function ServersPage() {
               </div>
             </Card>
 
-            {/* Enhanced Pagination */}
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center mt-8">
-                <div className="flex items-center gap-2 bg-card rounded-full border border-border shadow-sm p-1">
+                <div className="flex items-center gap-2 bg-white rounded-full border border-gray-200 shadow-sm p-1">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -599,18 +567,18 @@ export default function ServersPage() {
             )}
           </>
         ) : (
-          /* Enhanced Empty State */
-          <Card className="shadow-xl border border-gray-300/60">
+          /* Empty State */
+          <Card className="shadow-sm border border-gray-200">
             <CardContent className="text-center py-16 px-8">
-              <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 shadow-lg">
+              <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 shadow-sm">
                 <Server className="h-10 w-10 text-primary" />
               </div>
 
-              <h3 className="text-2xl font-bold text-foreground mb-3">
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
                 {searchQuery || statusFilter !== 'all' ? 'No servers found' : 'No servers yet'}
               </h3>
 
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              <p className="text-gray-600 mb-8 max-w-md mx-auto">
                 {searchQuery || statusFilter !== 'all'
                   ? 'No servers match your current search criteria. Try adjusting your filters or search terms.'
                   : `You don't have any servers yet. Create your first server to get started with your virtual infrastructure.`}
@@ -629,13 +597,13 @@ export default function ServersPage() {
                   </Button>
                   <VirtFusionSsoButton
                     text="Create New Server"
-                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                   />
                 </div>
               ) : (
                 <VirtFusionSsoButton
                   text="Create Your First Server"
-                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
                 />
               )}
             </CardContent>
@@ -643,6 +611,5 @@ export default function ServersPage() {
         )}
       </div>
     </DashboardLayout>
-    </>
   );
 }
