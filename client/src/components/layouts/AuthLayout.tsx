@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { getBrandColors } from "@/lib/brand-theme";
-import HubSpotChat from "@/components/HubSpotChat";
+
 
 
 interface AuthLayoutProps {
@@ -159,7 +159,7 @@ export function AuthLayout({
           </div>
         </div>
       </div>
-      <HubSpotChat />
+      
       {/* GoogleAnalytics is loaded globally in App.tsx */}
     </div>
   );

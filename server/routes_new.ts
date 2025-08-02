@@ -13,7 +13,6 @@ import { EmailVerificationService } from "./email-verification-service";
 import { discordService } from "./discord-service";
 import { discordBotService } from "./discord-bot-service";
 import { virtFusionService } from "./virtfusion-service";
-import { hubspotService } from "./services/communication/hubspot-service";
 import { VirtFusionApi as ImportedVirtFusionApi, virtFusionApi, VirtFusionApi } from "./virtfusion-api";
 // Remove duplicate import of InsertTransaction
 // import { InsertTransaction } from "@shared/schema";
@@ -4408,43 +4407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Error sending Discord notification for new ticket:", webhookError.message);
       }
 
-      // Sync client data and create ticket in HubSpot
-      try {
-        await hubspotService.initialize();
-        
-        if (await hubspotService.isEnabled() && user) {
-          console.log(`Syncing client data to HubSpot for ticket ${ticket.id}`);
-          
-          // Create or update contact in HubSpot using firstName and lastName fields
-          await hubspotService.createOrUpdateContact({
-            email: user.email,
-            firstname: user.firstName || user.fullName?.split(' ')[0] || '',
-            lastname: user.lastName || user.fullName?.split(' ').slice(1).join(' ') || ''
-          });
-          
-          // Create HubSpot ticket if ticket sync is enabled
-          if (await hubspotService.isTicketEnabled()) {
-            console.log(`Creating HubSpot ticket for SkyPANEL ticket ${ticket.id}`);
-            
-            const ticketContent = `${req.body.message || "(No message provided)"}\n\n${additionalInfo}`;
-            
-            await hubspotService.createTicket({
-              subject: ticket.subject,
-              content: ticketContent,
-              email: user.email,
-              priority: ticket.priority || 'MEDIUM',
-              category: department.name || 'general'
-            });
-            
-            console.log(`Successfully created HubSpot ticket for SkyPANEL ticket ${ticket.id}`);
-          }
-          
-          console.log(`Successfully synced client data to HubSpot for ticket ${ticket.id}`);
-        }
-      } catch (hubspotError: any) {
-        // Log but don't fail the request if HubSpot sync fails
-        console.error("Error syncing client data to HubSpot:", hubspotError.message);
-      }
+
 
       res.status(201).json(ticket);
     } catch (error) {
@@ -8383,9 +8346,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         [
           'google_analytics_enabled',
           'google_analytics_measurement_id',
-          'google_analytics_custom_code',
           'google_analytics_enhanced_ecommerce',
-          'google_analytics_debug_mode'
+          'google_analytics_enabled_pages'
         ].includes(setting.key)
       );
 
@@ -8395,13 +8357,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return obj;
       }, {} as Record<string, string>);
 
+      // Parse enabled pages JSON or default to empty array
+      let enabledPages: string[] = [];
+      if (googleAnalyticsObject.google_analytics_enabled_pages) {
+        try {
+          enabledPages = JSON.parse(googleAnalyticsObject.google_analytics_enabled_pages);
+        } catch (error) {
+          console.error('Failed to parse google_analytics_enabled_pages:', error);
+          enabledPages = [];
+        }
+      }
+
       // Return the settings in the format expected by the GoogleAnalytics component
       res.json({
         enabled: googleAnalyticsObject.google_analytics_enabled === 'true',
         measurementId: googleAnalyticsObject.google_analytics_measurement_id || '',
-        customCode: googleAnalyticsObject.google_analytics_custom_code || '',
         enhancedEcommerce: googleAnalyticsObject.google_analytics_enhanced_ecommerce === 'true',
-        debugMode: googleAnalyticsObject.google_analytics_debug_mode === 'true',
+
+        enabledPages: enabledPages,
       });
     } catch (error: any) {
       console.error("Error fetching Google Analytics settings:", error);

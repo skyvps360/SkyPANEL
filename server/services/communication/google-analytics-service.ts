@@ -3,10 +3,9 @@ import { storage } from '../../storage';
 interface GoogleAnalyticsSettings {
   enabled: boolean;
   measurementId: string;
-  apiKey?: string;
-  customCode?: string;
   enhancedEcommerce: boolean;
   debugMode: boolean;
+  enabledPages: string[];
 }
 
 class GoogleAnalyticsService {
@@ -27,18 +26,27 @@ class GoogleAnalyticsService {
     try {
       const enabled = await storage.getSetting('google_analytics_enabled');
       const measurementId = await storage.getSetting('google_analytics_measurement_id');
-      const apiKey = await storage.getSetting('google_analytics_api_key');
-      const customCode = await storage.getSetting('google_analytics_custom_code');
       const enhancedEcommerce = await storage.getSetting('google_analytics_enhanced_ecommerce');
       const debugMode = await storage.getSetting('google_analytics_debug_mode');
+      const enabledPages = await storage.getSetting('google_analytics_enabled_pages');
+
+      // Parse enabled pages JSON or default to empty array
+      let enabledPagesArray: string[] = [];
+      if (enabledPages?.value) {
+        try {
+          enabledPagesArray = JSON.parse(enabledPages.value);
+        } catch (error) {
+          console.error('Failed to parse google_analytics_enabled_pages:', error);
+          enabledPagesArray = [];
+        }
+      }
 
       return {
         enabled: enabled?.value === 'true',
         measurementId: measurementId?.value || '',
-        apiKey: apiKey?.value || '',
-        customCode: customCode?.value || '',
         enhancedEcommerce: enhancedEcommerce?.value === 'true',
         debugMode: debugMode?.value === 'true',
+        enabledPages: enabledPagesArray,
       };
     } catch (error) {
       console.error('Failed to load Google Analytics settings:', error);
@@ -74,18 +82,42 @@ class GoogleAnalyticsService {
     return this.settings?.debugMode || false;
   }
 
-  async getApiKey(): Promise<string> {
+
+
+  async getEnabledPages(): Promise<string[]> {
     if (!this.settings) {
       await this.initialize();
     }
-    return this.settings?.apiKey || '';
+    return this.settings?.enabledPages || [];
   }
 
-  async getCustomCode(): Promise<string> {
+  async isPageEnabled(pagePath: string): Promise<boolean> {
     if (!this.settings) {
       await this.initialize();
     }
-    return this.settings?.customCode || '';
+    
+    const enabledPages = this.settings?.enabledPages || [];
+    
+    // Check if the current page path matches any enabled page
+    return enabledPages.some(enabledPage => {
+      // Exact match
+      if (enabledPage === pagePath) {
+        return true;
+      }
+      
+      // Wildcard match (if page ends with *)
+      if (enabledPage.endsWith('*')) {
+        const pattern = enabledPage.slice(0, -1);
+        return pagePath.startsWith(pattern);
+      }
+      
+      // Prefix match (for nested routes)
+      if (enabledPage.endsWith('/')) {
+        return pagePath.startsWith(enabledPage);
+      }
+      
+      return false;
+    });
   }
 
   async testConnection(): Promise<{ success: boolean; message: string }> {

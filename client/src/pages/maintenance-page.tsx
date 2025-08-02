@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle, MessageSquare, Activity, ExternalLink, Settings, Clock, Shield, Wrench } from 'lucide-react';
 import { getBrandColors, BrandColorsResult } from '@/lib/brand-theme';
-import HubSpotChat from '@/components/HubSpotChat';
+
 
 interface MaintenanceStatus {
   enabled: boolean;
@@ -848,7 +848,7 @@ export function MaintenancePage() {
           }
         `
       }} />
-      <HubSpotChat />
+      
       {/* GoogleAnalytics is loaded globally in App.tsx */}
     </div>
   );

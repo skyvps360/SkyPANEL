@@ -3,7 +3,6 @@ import { storage } from "../storage";
 import { z } from 'zod';
 import PDFDocument from "pdfkit";
 import { transactions, InsertTransaction } from "@shared/schema";
-import { hubspotService } from '../services/communication/hubspot-service';
 
 const router = Router();
 
@@ -424,30 +423,7 @@ router.post('/', async (req, res) => {
     
     const result = await storage.createTransaction(transaction);
     
-    // Sync client data to HubSpot
-    try {
-      await hubspotService.initialize();
-      
-      if (await hubspotService.isEnabled()) {
-        const user = await storage.getUser(userId);
-        
-        if (user) {
-          console.log(`Syncing client data to HubSpot for transaction ${result.id}`);
-          
-          // Create or update contact in HubSpot using firstName and lastName fields
-          await hubspotService.createOrUpdateContact({
-            email: user.email,
-            firstname: user.firstName || user.fullName?.split(' ')[0] || '',
-            lastname: user.lastName || user.fullName?.split(' ').slice(1).join(' ') || ''
-          });
-          
-          console.log(`Successfully synced client data to HubSpot for transaction ${result.id}`);
-        }
-      }
-    } catch (hubspotError: any) {
-      // Log but don't fail the request if HubSpot sync fails
-      console.error("Error syncing client data to HubSpot:", hubspotError.message);
-    }
+
     
     return res.status(201).json(result);
   } catch (error: any) {

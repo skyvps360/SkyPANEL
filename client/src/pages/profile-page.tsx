@@ -53,11 +53,7 @@ export default function ProfilePage() {
     queryKey: ["/api/settings/branding"]
   });
 
-  // Fetch HubSpot settings to conditionally show HubSpot references
-  const { data: hubspotSettings } = useQuery<{ enabled: boolean }>({
-    queryKey: ["/api/admin/settings/hubspot/config"],
-    enabled: true, // Enable to fetch HubSpot settings
-  });
+
   
   // Brand colors for styling
   const brandColors = getBrandColors({
@@ -256,10 +252,7 @@ export default function ProfilePage() {
                       </p>
                       <ul className="list-disc list-inside space-y-1 text-xs">
                         <li><strong>Full Name:</strong> Synchronized with VirtFusion VPS management account</li>
-                        <li><strong>First/Last Name:</strong> {hubspotSettings?.enabled 
-                          ? "Used for HubSpot CRM integration and internal tracking"
-                          : "Used for internal CRM and account management"
-                        }</li>
+                        <li><strong>First/Last Name:</strong> Used for internal CRM and account management</li>
                         <li><strong>Email Address:</strong> Primary contact method and login credential</li>
                         <li><strong>Profile Picture:</strong> Managed through Gravatar for consistency across services</li>
                       </ul>
@@ -320,10 +313,7 @@ export default function ProfilePage() {
                         <p className="text-sm text-destructive">{profileForm.formState.errors.firstName.message}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        {hubspotSettings?.enabled 
-                          ? "Used for HubSpot integration and internal CRM"
-                          : "Used for internal CRM and account management"
-                        }
+                        Used for internal CRM and account management
                       </p>
                     </div>
 
@@ -337,10 +327,7 @@ export default function ProfilePage() {
                         <p className="text-sm text-destructive">{profileForm.formState.errors.lastName.message}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        {hubspotSettings?.enabled 
-                          ? "Used for HubSpot integration and internal CRM"
-                          : "Used for internal CRM and account management"
-                        }
+                        Used for internal CRM and account management
                       </p>
                     </div>
                   </div>
@@ -371,10 +358,7 @@ export default function ProfilePage() {
                         <p className="text-sm text-destructive">{profileForm.formState.errors.phone.message}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        {hubspotSettings?.enabled 
-                          ? "Used for HubSpot contact sync and support"
-                          : "Used for account support and notifications"
-                        }
+                        Used for account support and notifications
                       </p>
                     </div>
 
@@ -389,10 +373,7 @@ export default function ProfilePage() {
                         <p className="text-sm text-destructive">{profileForm.formState.errors.company.message}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        {hubspotSettings?.enabled 
-                          ? "Used for HubSpot contact sync and billing"
-                          : "Used for billing and account management"
-                        }
+                        Used for billing and account management
                       </p>
                     </div>
                   </div>
@@ -408,10 +389,7 @@ export default function ProfilePage() {
                       <p className="text-sm text-destructive">{profileForm.formState.errors.address.message}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      {hubspotSettings?.enabled 
-                        ? "Used for HubSpot contact sync and billing"
-                        : "Used for billing and account management"
-                      }
+                      Used for billing and account management
                     </p>
                   </div>
 

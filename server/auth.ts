@@ -8,7 +8,7 @@ import { storage } from "./storage";
 import { User as SelectUser, dnsPlans, dnsPlanSubscriptions } from "@shared/schema";
 import { VirtFusionApi } from "./routes_new";
 import { EmailVerificationService } from "./email-verification-service";
-import { hubspotService } from "./services/communication/hubspot-service";
+
 import { verificationRateLimiter } from "./services/auth/verification-rate-limiter";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -234,26 +234,7 @@ export function setupAuth(app: Express) {
       // This ensures we only create accounts for users who have verified their email
       console.log(`User created locally. VirtFusion account will be created after email verification.`);
 
-      // Sync client data to HubSpot
-      try {
-        await hubspotService.initialize();
-        
-        if (await hubspotService.isEnabled()) {
-          console.log(`Syncing client data to HubSpot for new user ${user.id}`);
-          
-          // Create or update contact in HubSpot using firstName and lastName fields
-          await hubspotService.createOrUpdateContact({
-            email: user.email,
-            firstname: user.firstName || user.fullName?.split(' ')[0] || '',
-            lastname: user.lastName || user.fullName?.split(' ').slice(1).join(' ') || ''
-          });
-          
-          console.log(`Successfully synced client data to HubSpot for new user ${user.id}`);
-        }
-      } catch (hubspotError: any) {
-        // Log but don't fail the request if HubSpot sync fails
-        console.error("Error syncing client data to HubSpot:", hubspotError.message);
-      }
+
 
       // Log the user in but include verification status in response
       req.login(user, (err) => {

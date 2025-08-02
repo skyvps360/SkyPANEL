@@ -13,7 +13,7 @@ import { PlanFAQ } from '@/components/plans/PlanFAQ';
 import { usePlanFilters } from '@/hooks/use-plan-filters';
 import { PlanFeature } from '@shared/schema';
 import { getBrandColors, getPatternBackgrounds } from '@/lib/brand-theme';
-import HubSpotChat from '@/components/HubSpotChat';
+
 
 
 interface PackageCategory {
@@ -559,7 +559,7 @@ export default function PlansPage() {
         />
 
         {/* HubSpot Chat Widget */}
-        <HubSpotChat />
+
       </div>
     </PublicLayout>
     </>

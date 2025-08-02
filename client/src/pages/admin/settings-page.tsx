@@ -322,16 +322,7 @@ const cloudPricingSchema = z.object({
 
 type CloudPricingFormData = z.infer<typeof cloudPricingSchema>;
 
-// HubSpot settings schema
-const hubspotSchema = z.object({
-  hubspotEnabled: z.boolean().default(false),
-  hubspotPortalId: z.string().min(1, { message: "Portal ID is required when HubSpot is enabled" }).optional(),
-  hubspotApiKey: z.string().min(1, { message: "API Key is required when HubSpot is enabled" }).optional(),
-  hubspotChatEnabled: z.boolean().default(false),
-  hubspotTicketEnabled: z.boolean().default(false),
-});
 
-type HubspotFormData = z.infer<typeof hubspotSchema>;
 
 // WordPress settings schema
 const wordpressSchema = z.object({
@@ -350,10 +341,8 @@ type WordPressFormData = z.infer<typeof wordpressSchema>;
 const googleAnalyticsSchema = z.object({
   googleAnalyticsEnabled: z.boolean().default(false),
   googleAnalyticsMeasurementId: z.string().min(1, { message: "Measurement ID is required when Google Analytics is enabled" }).optional(),
-  googleAnalyticsApiKey: z.string().optional(),
-  googleAnalyticsCustomCode: z.string().optional(),
   googleAnalyticsEnhancedEcommerce: z.boolean().default(false),
-  googleAnalyticsDebugMode: z.boolean().default(false),
+  googleAnalyticsEnabledPages: z.string().optional(),
 });
 
 type GoogleAnalyticsFormData = z.infer<typeof googleAnalyticsSchema>;
@@ -367,7 +356,7 @@ const settingsOptions = [
   { value: "notifications", label: "Discord", icon: <MessageCircle className="h-4 w-4 mr-2" /> },
   { value: "team", label: "Team", icon: <Users className="h-4 w-4 mr-2" /> },
   { value: "virtfusion", label: "VirtFusion API", icon: <Server className="h-4 w-4 mr-2" /> },
-  { value: "hubspot", label: "HubSpot", icon: <MessageSquare className="h-4 w-4 mr-2" /> },
+
   { value: "google-analytics", label: "Google Analytics", icon: <BarChart3 className="h-4 w-4 mr-2" /> },
   { value: "wordpress", label: "WordPress", icon: <Globe className="h-4 w-4 mr-2" /> },
   { value: "dns", label: "DNS", icon: <Globe className="h-4 w-4 mr-2" /> },
@@ -528,17 +517,7 @@ export default function SettingsPage() {
     },
   });
 
-  // HubSpot form
-  const hubspotForm = useForm<HubspotFormData>({
-    resolver: zodResolver(hubspotSchema),
-    defaultValues: {
-      hubspotEnabled: getSettingValue("hubspot_enabled", "false") === "true",
-      hubspotPortalId: getSettingValue("hubspot_portal_id", ""),
-      hubspotApiKey: getSettingValue("hubspot_api_key", ""),
-      hubspotChatEnabled: getSettingValue("hubspot_chat_enabled", "false") === "true",
-      hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
-    },
-  });
+
 
   // WordPress form
   const wordpressForm = useForm<WordPressFormData>({
@@ -555,15 +534,35 @@ export default function SettingsPage() {
   });
 
   // Google Analytics form
+  // Helper function to convert JSON array to newline-separated string for textarea
+  const getEnabledPagesForTextarea = (key: string, defaultValue: string) => {
+    const value = getSettingValue(key, defaultValue);
+    try {
+      const pages = JSON.parse(value);
+      return Array.isArray(pages) ? pages.join('\n') : value;
+    } catch {
+      return value;
+    }
+  };
+
   const googleAnalyticsForm = useForm<GoogleAnalyticsFormData>({
     resolver: zodResolver(googleAnalyticsSchema),
     defaultValues: {
       googleAnalyticsEnabled: getSettingValue("google_analytics_enabled", "false") === "true",
       googleAnalyticsMeasurementId: getSettingValue("google_analytics_measurement_id", ""),
-      googleAnalyticsApiKey: getSettingValue("google_analytics_api_key", ""),
-      googleAnalyticsCustomCode: getSettingValue("google_analytics_custom_code", ""),
       googleAnalyticsEnhancedEcommerce: getSettingValue("google_analytics_enhanced_ecommerce", "false") === "true",
-      googleAnalyticsDebugMode: getSettingValue("google_analytics_debug_mode", "false") === "true",
+      googleAnalyticsEnabledPages: getEnabledPagesForTextarea("google_analytics_enabled_pages", JSON.stringify([
+        '/',
+        '/dashboard',
+        '/servers',
+        '/billing',
+        '/dns',
+        '/blog',
+        '/docs',
+        '/plans',
+        '/status',
+        '/api-docs'
+      ])),
     },
   });
 
@@ -1430,23 +1429,26 @@ export default function SettingsPage() {
         // Update form values when settings change
       useEffect(() => {
         if (settings.length > 0) {
-          // Update HubSpot form with settings
-          hubspotForm.reset({
-            hubspotEnabled: getSettingValue("hubspot_enabled", "false") === "true",
-            hubspotPortalId: getSettingValue("hubspot_portal_id", ""),
-            hubspotApiKey: getSettingValue("hubspot_api_key", ""),
-            hubspotChatEnabled: getSettingValue("hubspot_chat_enabled", "false") === "true",
-            hubspotTicketEnabled: getSettingValue("hubspot_ticket_enabled", "false") === "true",
-          });
+
 
           // Update Google Analytics form with settings
           googleAnalyticsForm.reset({
             googleAnalyticsEnabled: getSettingValue("google_analytics_enabled", "false") === "true",
             googleAnalyticsMeasurementId: getSettingValue("google_analytics_measurement_id", ""),
-            googleAnalyticsApiKey: getSettingValue("google_analytics_api_key", ""),
-            googleAnalyticsCustomCode: getSettingValue("google_analytics_custom_code", ""),
             googleAnalyticsEnhancedEcommerce: getSettingValue("google_analytics_enhanced_ecommerce", "false") === "true",
-            googleAnalyticsDebugMode: getSettingValue("google_analytics_debug_mode", "false") === "true",
+      
+            googleAnalyticsEnabledPages: getSettingValue("google_analytics_enabled_pages", JSON.stringify([
+              '/',
+              '/dashboard',
+              '/servers',
+              '/billing',
+              '/dns',
+              '/blog',
+              '/docs',
+              '/plans',
+              '/status',
+              '/api-docs'
+            ])),
           });
 
       // Update VirtFusion form with all settings
@@ -1762,36 +1764,7 @@ export default function SettingsPage() {
     }
   };
 
-  // Handle HubSpot form submission
-  const onHubspotSubmit = async (data: HubspotFormData) => {
-    setSaveInProgress(true);
 
-    try {
-      // Save HubSpot settings
-      await updateSettingMutation.mutateAsync({ key: "hubspot_enabled", value: data.hubspotEnabled.toString() });
-      await updateSettingMutation.mutateAsync({ key: "hubspot_portal_id", value: data.hubspotPortalId || "" });
-      await updateSettingMutation.mutateAsync({ key: "hubspot_api_key", value: data.hubspotApiKey || "" });
-      await updateSettingMutation.mutateAsync({ key: "hubspot_chat_enabled", value: data.hubspotChatEnabled.toString() });
-      await updateSettingMutation.mutateAsync({ key: "hubspot_ticket_enabled", value: data.hubspotTicketEnabled.toString() });
-
-      toast({
-        title: "Settings saved",
-        description: data.hubspotEnabled 
-          ? "HubSpot settings have been updated. Existing tickets will be synced automatically when created."
-          : "HubSpot settings have been updated. HubSpot integration is now disabled.",
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
-    } catch (error: any) {
-      toast({
-        title: "Error saving settings",
-        description: error.message || "Failed to save settings",
-        variant: "destructive",
-      });
-    } finally {
-      setSaveInProgress(false);
-    }
-  };
 
   // Handle WordPress form submission
   const onWordPressSubmit = async (data: WordPressFormData) => {
@@ -1832,10 +1805,20 @@ export default function SettingsPage() {
       // Save Google Analytics settings
       await updateSettingMutation.mutateAsync({ key: "google_analytics_enabled", value: data.googleAnalyticsEnabled.toString() });
       await updateSettingMutation.mutateAsync({ key: "google_analytics_measurement_id", value: data.googleAnalyticsMeasurementId || "" });
-      await updateSettingMutation.mutateAsync({ key: "google_analytics_api_key", value: data.googleAnalyticsApiKey || "" });
-      await updateSettingMutation.mutateAsync({ key: "google_analytics_custom_code", value: data.googleAnalyticsCustomCode || "" });
       await updateSettingMutation.mutateAsync({ key: "google_analytics_enhanced_ecommerce", value: data.googleAnalyticsEnhancedEcommerce.toString() });
-      await updateSettingMutation.mutateAsync({ key: "google_analytics_debug_mode", value: data.googleAnalyticsDebugMode.toString() });
+      
+      // Convert newline-separated string to JSON array for enabled pages
+      const enabledPages = data.googleAnalyticsEnabledPages
+        ? data.googleAnalyticsEnabledPages
+            .split('\n')
+            .map(page => page.trim())
+            .filter(page => page.length > 0)
+        : [];
+      
+      await updateSettingMutation.mutateAsync({ 
+        key: "google_analytics_enabled_pages", 
+        value: JSON.stringify(enabledPages)
+      });
 
       toast({
         title: "Settings saved",
@@ -2662,277 +2645,6 @@ export default function SettingsPage() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="hubspot">
-                <form onSubmit={hubspotForm.handleSubmit(onHubspotSubmit)}>
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium">HubSpot Integration</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Configure HubSpot integration for live chat and automatic ticket syncing
-                      </p>
-                    </div>
-
-                    {/* Setup Documentation */}
-                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3">📋 Setup Instructions</h4>
-                      <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
-                        <div>
-                          <strong>Step 1: Get Your HubSpot Portal ID</strong>
-                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li>Log into your HubSpot account</li>
-                            <li>Go to Settings → Account Setup → Account and Portal</li>
-                            <li>Your Portal ID is displayed in the top right (e.g., "123456")</li>
-                            <li>This is a 6-digit number unique to your HubSpot account</li>
-                          </ul>
-                        </div>
-                        
-                        <div>
-                          <strong>Step 2: Create HubSpot API Key</strong>
-                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li>In HubSpot, go to Settings → Account Setup → Integrations → API Keys</li>
-                            <li>Click "Create API Key"</li>
-                            <li>Give it a name like "SkyPANEL Integration"</li>
-                            <li>Copy the generated API key (starts with "pat-")</li>
-                            <li>⚠️ Store this securely - you won't see it again</li>
-                          </ul>
-                        </div>
-
-                        <div>
-                          <strong>Step 3: Enable Live Chat (Optional)</strong>
-                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li>Go to Settings → Inbox → Chat → Chat Widget</li>
-                            <li>Enable the chat widget for your website</li>
-                            <li>The widget will automatically load using your Portal ID</li>
-                          </ul>
-                        </div>
-
-                        <div>
-                          <strong>Step 4: Automatic Ticket Sync</strong>
-                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li>Once configured, SkyPANEL automatically syncs tickets to HubSpot</li>
-                            <li>When users create tickets in SkyPANEL, they're automatically created in HubSpot</li>
-                            <li>Client contact information is synced automatically</li>
-                            <li>No additional form setup required - works with your existing HubSpot account</li>
-                          </ul>
-                        </div>
-
-                        <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded p-2 mt-3">
-                          <strong>💡 Pro Tips:</strong>
-                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li>Test your connection after setup to verify everything works</li>
-                            <li>Use the same HubSpot account for all integrations</li>
-                            <li>Keep your API key secure and don't share it publicly</li>
-                            <li>Monitor your HubSpot API usage to avoid rate limits</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="hubspotEnabled">Enable HubSpot Integration</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Enable HubSpot integration for live chat and ticket syncing
-                          </p>
-                        </div>
-                        <Switch
-                          id="hubspotEnabled"
-                          checked={hubspotForm.watch("hubspotEnabled")}
-                          onCheckedChange={(checked) => hubspotForm.setValue("hubspotEnabled", checked, { shouldDirty: true })}
-                        />
-                      </div>
-
-                      {hubspotForm.watch("hubspotEnabled") && (
-                        <>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="hubspotPortalId">Portal ID</Label>
-                              <Input
-                                id="hubspotPortalId"
-                                placeholder="123456"
-                                {...hubspotForm.register("hubspotPortalId")}
-                              />
-                              {hubspotForm.formState.errors.hubspotPortalId && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {hubspotForm.formState.errors.hubspotPortalId.message}
-                                </p>
-                              )}
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Your HubSpot portal ID (found in your HubSpot account settings)
-                                <br />
-                                <span className="text-xs text-blue-600 dark:text-blue-400">
-                                  💡 Found in Settings → Account Setup → Account and Portal
-                                </span>
-                              </p>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="hubspotApiKey">API Key</Label>
-                              <Input
-                                id="hubspotApiKey"
-                                type="password"
-                                placeholder="Enter your HubSpot API key"
-                                {...hubspotForm.register("hubspotApiKey")}
-                              />
-                              {hubspotForm.formState.errors.hubspotApiKey && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {hubspotForm.formState.errors.hubspotApiKey.message}
-                                </p>
-                              )}
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Your HubSpot API key for authentication
-                                <br />
-                                <span className="text-xs text-blue-600 dark:text-blue-400">
-                                  💡 Found in Settings → Account Setup → Integrations → API Keys
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          <div>
-                            <h4 className="text-md font-medium mb-4">Live Chat Configuration</h4>
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                  <Label htmlFor="hubspotChatEnabled">Enable Live Chat</Label>
-                                  <p className="text-sm text-muted-foreground">
-                                    Enable HubSpot live chat widget on your website
-                                  </p>
-                                </div>
-                                <Switch
-                                  id="hubspotChatEnabled"
-                                  checked={hubspotForm.watch("hubspotChatEnabled")}
-                                  onCheckedChange={(checked) => hubspotForm.setValue("hubspotChatEnabled", checked, { shouldDirty: true })}
-                                />
-                              </div>
-
-                              {hubspotForm.watch("hubspotChatEnabled") && (
-                                <div className="space-y-2">
-                                  <p className="text-sm text-muted-foreground">
-                                    Chat widget will be loaded automatically using your HubSpot portal ID
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          <div>
-                            <h4 className="text-md font-medium mb-4">Ticket Sync Configuration</h4>
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                  <Label htmlFor="hubspotTicketEnabled">Enable Ticket Sync</Label>
-                                  <p className="text-sm text-muted-foreground">
-                                    Automatically sync SkyPANEL tickets to HubSpot
-                                  </p>
-                                </div>
-                                <Switch
-                                  id="hubspotTicketEnabled"
-                                  checked={hubspotForm.watch("hubspotTicketEnabled")}
-                                  onCheckedChange={(checked) => hubspotForm.setValue("hubspotTicketEnabled", checked, { shouldDirty: true })}
-                                />
-                              </div>
-
-                              {hubspotForm.watch("hubspotTicketEnabled") && (
-                                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                                  <h5 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">🔄 Automatic Ticket Sync</h5>
-                                  <p className="text-sm text-green-800 dark:text-green-200">
-                                    When enabled, SkyPANEL will automatically:
-                                  </p>
-                                  <ul className="list-disc list-inside mt-2 text-sm text-green-800 dark:text-green-200 space-y-1">
-                                    <li>Create HubSpot tickets when users submit support tickets</li>
-                                    <li>Sync client contact information to HubSpot</li>
-                                    <li>Include ticket details, priority, and department information</li>
-                                    <li>Maintain ticket status synchronization</li>
-                                  </ul>
-                                  <p className="text-xs text-green-700 dark:text-green-300 mt-2">
-                                    💡 No additional form setup required - works automatically with your existing HubSpot account
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      <Separator />
-
-                      <div className="flex justify-between items-center">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={async () => {
-                            try {
-                              setTestConnectionInProgress(true);
-                              const response = await apiRequest('/api/admin/settings/hubspot/test-connection', {
-                                method: 'POST'
-                              });
-                              
-                              if (response.success) {
-                                toast({
-                                  title: "Connection successful",
-                                  description: response.message,
-                                });
-                              } else {
-                                toast({
-                                  title: "Connection failed",
-                                  description: response.message,
-                                  variant: "destructive",
-                                });
-                              }
-                            } catch (error: any) {
-                              toast({
-                                title: "Connection failed",
-                                description: error.message || "Failed to test connection",
-                                variant: "destructive",
-                              });
-                            } finally {
-                              setTestConnectionInProgress(false);
-                            }
-                          }}
-                          disabled={testConnectionInProgress || !hubspotForm.watch("hubspotEnabled")}
-                        >
-                          {testConnectionInProgress ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Testing...
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="mr-2 h-4 w-4" />
-                              Test Connection
-                            </>
-                          )}
-                        </Button>
-
-                        <Button
-                          type="submit"
-                          className="w-32"
-                          disabled={saveInProgress || !hubspotForm.formState.isDirty}
-                        >
-                          {saveInProgress ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Saving
-                            </>
-                          ) : (
-                            <>
-                              <Save className="mr-2 h-4 w-4" />
-                              Save
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </form>
-              </TabsContent>
-
               <TabsContent value="google-analytics">
                 <form onSubmit={googleAnalyticsForm.handleSubmit(onGoogleAnalyticsSubmit)}>
                   <div className="space-y-6">
@@ -3027,50 +2739,6 @@ export default function SettingsPage() {
                                 </span>
                               </p>
                             </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="googleAnalyticsApiKey">API Key (Optional)</Label>
-                              <Input
-                                id="googleAnalyticsApiKey"
-                                type="password"
-                                placeholder="Enter your Google Analytics API key"
-                                {...googleAnalyticsForm.register("googleAnalyticsApiKey")}
-                              />
-                              {googleAnalyticsForm.formState.errors.googleAnalyticsApiKey && (
-                                <p className="text-sm text-destructive mt-1">
-                                  {googleAnalyticsForm.formState.errors.googleAnalyticsApiKey.message}
-                                </p>
-                              )}
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Google Cloud API key for advanced analytics features
-                                <br />
-                                <span className="text-xs text-blue-600 dark:text-blue-400">
-                                  💡 Required for server-side analytics and custom reporting
-                                </span>
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="googleAnalyticsCustomCode">Custom HTML/JS Code (Optional)</Label>
-                            <Textarea
-                              id="googleAnalyticsCustomCode"
-                              placeholder="Paste your custom Google Analytics HTML/JS code here..."
-                              className="min-h-[120px] font-mono text-sm"
-                              {...googleAnalyticsForm.register("googleAnalyticsCustomCode")}
-                            />
-                            {googleAnalyticsForm.formState.errors.googleAnalyticsCustomCode && (
-                              <p className="text-sm text-destructive mt-1">
-                                {googleAnalyticsForm.formState.errors.googleAnalyticsCustomCode.message}
-                              </p>
-                            )}
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Custom Google Analytics code that will be injected on all pages
-                              <br />
-                              <span className="text-xs text-blue-600 dark:text-blue-400">
-                                💡 Use this for custom tracking, GTM, or advanced GA4 configurations
-                              </span>
-                            </p>
                           </div>
 
                           <Separator />
@@ -3111,37 +2779,166 @@ export default function SettingsPage() {
                                 </div>
                               )}
 
-                              <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                  <Label htmlFor="googleAnalyticsDebugMode">Debug Mode</Label>
-                                  <p className="text-sm text-muted-foreground">
-                                    Enable debug mode for development and testing
-                                  </p>
-                                </div>
-                                <Switch
-                                  id="googleAnalyticsDebugMode"
-                                  checked={googleAnalyticsForm.watch("googleAnalyticsDebugMode")}
-                                  onCheckedChange={(checked) => googleAnalyticsForm.setValue("googleAnalyticsDebugMode", checked, { shouldDirty: true })}
-                                />
-                              </div>
 
-                              {googleAnalyticsForm.watch("googleAnalyticsDebugMode") && (
-                                <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
-                                  <h5 className="text-sm font-semibold text-orange-900 dark:text-orange-100 mb-2">🐛 Debug Mode Active</h5>
-                                  <p className="text-sm text-orange-800 dark:text-orange-200">
-                                    Debug mode is enabled. This will:
+
+                              <div className="space-y-4">
+                                <div>
+                                  <Label htmlFor="googleAnalyticsEnabledPages">Enabled Pages</Label>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    Select which pages should have Google Analytics enabled. Use one page path per line.
                                   </p>
-                                  <ul className="list-disc list-inside mt-2 text-sm text-orange-800 dark:text-orange-200 space-y-1">
-                                    <li>Log all analytics events to browser console</li>
-                                    <li>Show detailed tracking information</li>
-                                    <li>Help verify that events are firing correctly</li>
-                                    <li>Use more verbose logging for troubleshooting</li>
-                                  </ul>
-                                  <p className="text-xs text-orange-700 dark:text-orange-300 mt-2">
-                                    ⚠️ Remember to disable debug mode in production
-                                  </p>
+                                  <Textarea
+                                    id="googleAnalyticsEnabledPages"
+                                    placeholder="/&#10;/dashboard&#10;/servers&#10;/billing&#10;/dns&#10;/blog&#10;/docs&#10;/plans&#10;/status&#10;/api-docs"
+                                    className="mt-2 font-mono text-sm"
+                                    rows={8}
+                                    {...googleAnalyticsForm.register("googleAnalyticsEnabledPages")}
+                                  />
+                                  {googleAnalyticsForm.formState.errors.googleAnalyticsEnabledPages && (
+                                    <p className="text-sm text-destructive mt-1">
+                                      {googleAnalyticsForm.formState.errors.googleAnalyticsEnabledPages.message}
+                                    </p>
+                                  )}
+                                  <div className="mt-2 text-xs text-muted-foreground">
+                                    <p className="font-semibold mb-1">Format examples:</p>
+                                    <ul className="list-disc list-inside space-y-1">
+                                      <li><code>/</code> - Landing page only</li>
+                                      <li><code>/dashboard</code> - Dashboard page only</li>
+                                      <li><code>/servers*</code> - All server pages (wildcard)</li>
+                                      <li><code>/admin/</code> - All admin pages (prefix)</li>
+                                    </ul>
+                                  </div>
+
+                                  <div className="mt-4">
+                                    <p className="text-sm font-medium mb-2">Quick Presets:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const commonPages = [
+                                            '/',
+                                            '/dashboard',
+                                            '/servers',
+                                            '/billing',
+                                            '/dns',
+                                            '/blog',
+                                            '/docs',
+                                            '/plans',
+                                            '/status',
+                                            '/api-docs'
+                                          ];
+                                          googleAnalyticsForm.setValue("googleAnalyticsEnabledPages", commonPages.join('\n'), { shouldDirty: true });
+                                        }}
+                                      >
+                                        Common Pages
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const allPages = [
+                                            '/',
+                                            '/dashboard',
+                                            '/servers',
+                                            '/servers/*',
+                                            '/billing',
+                                            '/billing/*',
+                                            '/dns',
+                                            '/dns/*',
+                                            '/blog',
+                                            '/blog/*',
+                                            '/docs',
+                                            '/docs/*',
+                                            '/plans',
+                                            '/plans/*',
+                                            '/status',
+                                            '/api-docs',
+                                            '/tickets',
+                                            '/tickets/*',
+                                            '/teams',
+                                            '/teams/*',
+                                            '/profile',
+                                            '/profile/*'
+                                          ];
+                                          googleAnalyticsForm.setValue("googleAnalyticsEnabledPages", allPages.join('\n'), { shouldDirty: true });
+                                        }}
+                                      >
+                                        All Pages
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const adminPages = [
+                                            '/admin',
+                                            '/admin/*'
+                                          ];
+                                          googleAnalyticsForm.setValue("googleAnalyticsEnabledPages", adminPages.join('\n'), { shouldDirty: true });
+                                        }}
+                                      >
+                                        Admin Only
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const publicPages = [
+                                            '/',
+                                            '/plans',
+                                            '/status',
+                                            '/blog',
+                                            '/docs',
+                                            '/api-docs'
+                                          ];
+                                          googleAnalyticsForm.setValue("googleAnalyticsEnabledPages", publicPages.join('\n'), { shouldDirty: true });
+                                        }}
+                                      >
+                                        Public Only
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const userPages = [
+                                            '/dashboard',
+                                            '/servers',
+                                            '/servers/*',
+                                            '/billing',
+                                            '/billing/*',
+                                            '/dns',
+                                            '/dns/*',
+                                            '/tickets',
+                                            '/tickets/*',
+                                            '/teams',
+                                            '/teams/*',
+                                            '/profile',
+                                            '/profile/*'
+                                          ];
+                                          googleAnalyticsForm.setValue("googleAnalyticsEnabledPages", userPages.join('\n'), { shouldDirty: true });
+                                        }}
+                                      >
+                                        User Pages
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          googleAnalyticsForm.setValue("googleAnalyticsEnabledPages", "", { shouldDirty: true });
+                                        }}
+                                      >
+                                        Clear All
+                                      </Button>
+                                    </div>
+                                  </div>
                                 </div>
-                              )}
+                              </div>
                             </div>
                           </div>
                         </>

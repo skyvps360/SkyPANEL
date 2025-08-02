@@ -12,8 +12,7 @@ async function checkGoogleAnalyticsSettings() {
       'google_analytics_enabled',
       'google_analytics_measurement_id',
       'google_analytics_api_key',
-      'google_analytics_enhanced_ecommerce',
-      'google_analytics_debug_mode'
+      'google_analytics_enhanced_ecommerce'
     ];
 
     console.log('📋 Expected settings:');

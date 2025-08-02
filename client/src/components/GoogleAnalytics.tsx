@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { useLocation } from 'wouter';
 
 interface GoogleAnalyticsSettings {
   enabled: boolean;
   measurementId: string;
-  apiKey?: string;
-  customCode?: string;
   enhancedEcommerce: boolean;
-  debugMode: boolean;
+  enabledPages: string[];
 }
 
 export const GoogleAnalytics: React.FC = () => {
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [location] = useLocation();
 
   // Fetch Google Analytics settings - disabled to avoid duplicate API calls
   const { data: gaSettings } = useQuery<GoogleAnalyticsSettings>({
@@ -31,37 +31,61 @@ export const GoogleAnalytics: React.FC = () => {
         const response = await axios.get('/api/settings/google-analytics');
         const settings = response.data;
 
+        // Check if Google Analytics is enabled and if the current page should have it
         if (settings.enabled) {
+          // Check if current page is in the enabled pages list
+          const currentPath = location;
+          const enabledPages = settings.enabledPages || [];
+          
+          console.log(`Checking Google Analytics for page: ${currentPath}`);
+          console.log(`Enabled pages:`, enabledPages);
+          
+          const isPageEnabled = enabledPages.some((enabledPage: string) => {
+            // Exact match
+            if (enabledPage === currentPath) {
+              console.log(`Exact match found for: ${enabledPage}`);
+              return true;
+            }
+            
+            // Wildcard match (if page ends with *)
+            if (enabledPage.endsWith('*')) {
+              const pattern = enabledPage.slice(0, -1);
+              if (currentPath.startsWith(pattern)) {
+                console.log(`Wildcard match found for: ${enabledPage}`);
+                return true;
+              }
+            }
+            
+            // Prefix match (for nested routes) - only if it's not just "/"
+            if (enabledPage.endsWith('/') && enabledPage !== '/') {
+              if (currentPath.startsWith(enabledPage)) {
+                console.log(`Prefix match found for: ${enabledPage}`);
+                return true;
+              }
+            }
+            
+            return false;
+          });
+
+          if (!isPageEnabled) {
+            console.log(`Google Analytics disabled for page: ${currentPath}`);
+            return;
+          }
+
+          console.log(`Google Analytics enabled for page: ${currentPath}`);
+          
           // Check if any GA script is already loaded to prevent duplicates
-          if (document.getElementById('ga-script-loader') || 
-              document.getElementById('ga-script') || 
+          if (document.getElementById('ga-script') || 
               document.getElementById('ga-inline-config')) {
+            console.log('Google Analytics script already loaded');
             setScriptLoaded(true);
             return;
           }
 
-          // If custom code is provided, use that instead of Measurement ID
-          if (settings.customCode && settings.customCode.trim()) {
-            // Create a script element with the custom code
-            const script = document.createElement('script');
-            script.id = 'ga-script-loader';
-            script.innerHTML = settings.customCode;
-            
-            script.onload = () => {
-              setScriptLoaded(true);
-              console.log('Google Analytics custom code loaded successfully');
-            };
-            
-            script.onerror = () => {
-              console.error('Failed to load Google Analytics custom code');
-            };
-
-            document.head.appendChild(script);
-            return;
-          }
-
-          // Fall back to Measurement ID approach
+          // Load Google Analytics using Measurement ID
           if (settings.measurementId) {
+            console.log(`Loading Google Analytics with measurement ID: ${settings.measurementId}`);
+            
             // 1️⃣ External GA loader first
             const gaScript = document.createElement("script");
             gaScript.id = "ga-script";
@@ -85,7 +109,6 @@ export const GoogleAnalytics: React.FC = () => {
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               gtag('config', '${settings.measurementId}', {
-                debug_mode: ${settings.debugMode},
                 send_page_view: true${settings.enhancedEcommerce ? ", ecommerce: { enhanced: true }" : ""}
               });
             `;
@@ -104,13 +127,9 @@ export const GoogleAnalytics: React.FC = () => {
 
     // Cleanup function - only run when component unmounts
     return () => {
-      const existingCustomScript = document.getElementById('ga-script-loader');
       const existingInlineScript = document.getElementById('ga-inline-config');
       const existingGaScript = document.getElementById('ga-script');
       
-      if (existingCustomScript) {
-        existingCustomScript.remove();
-      }
       if (existingInlineScript) {
         existingInlineScript.remove();
       }
@@ -118,7 +137,7 @@ export const GoogleAnalytics: React.FC = () => {
         existingGaScript.remove();
       }
     };
-  }, []);
+  }, [location]); // Add location to dependency array so it runs on page changes
 
   return null; // The script handles the analytics tracking
 };

@@ -10,9 +10,7 @@ import {PageLoadingProvider} from "@/components/loading/PageLoadingProvider";
 import {AppRouter} from "@/components/app/AppRouter";
 import {BrandThemeProvider} from "@/components/app/BrandThemeProvider";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
-import HubSpotChat from "@/components/HubSpotChat";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
-
 
 
 /**
@@ -44,16 +42,11 @@ function App() {
             <TooltipProvider>
               <DocumentTitle>
                 <Toaster />
-                {/* Global SSO handler for VirtFusion redirects */}
                 <VirtFusionSsoHandler />
-                {/* Wrap the router with PageLoadingProvider to enable loading screen */}
-                <PageLoadingProvider>
-                  <BrandThemeProvider>
-                    <AppRouter/>
-                    <HubSpotChat />
-                    <GoogleAnalytics />
-                  </BrandThemeProvider>
-                </PageLoadingProvider>
+                <BrandThemeProvider>
+                  <AppRouter />
+                </BrandThemeProvider>
+                <GoogleAnalytics />
               </DocumentTitle>
             </TooltipProvider>
           </SessionTimeoutProvider>

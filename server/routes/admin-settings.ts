@@ -4,7 +4,6 @@ import { settings } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { SettingsService } from '../settings-service';
 import { storage } from '../storage';
-import { hubspotService } from '../services/communication/hubspot-service';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -141,37 +140,7 @@ router.put('/settings/award-system/toggle', isAdmin, async (req, res) => {
   try {
     const { enabled } = req.body;
 
-// HubSpot sync endpoint for live chat interactions
-router.post('/settings/hubspot/sync-user', async (req, res) => {
-  try {
-    const { email, firstname, lastname } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required' });
-    }
-
-    await hubspotService.initialize();
-
-    if (await hubspotService.isEnabled()) {
-      console.log(`Syncing user data to HubSpot from live chat: ${email}`);
-
-      // Create or update contact in HubSpot
-      await hubspotService.createOrUpdateContact({
-        email,
-        firstname: firstname || '',
-        lastname: lastname || ''
-      });
-
-      console.log(`Successfully synced user data to HubSpot from live chat: ${email}`);
-      return res.json({ success: true, message: 'User data synced to HubSpot' });
-    } else {
-      return res.status(400).json({ error: 'HubSpot integration is not enabled' });
-    }
-  } catch (error: any) {
-    console.error('Error syncing user data to HubSpot:', error);
-    return res.status(500).json({ error: 'Failed to sync user data to HubSpot' });
-  }
-});
 
     if (typeof enabled !== 'boolean') {
       return res.status(400).json({ error: 'Enabled must be a boolean value' });
@@ -185,101 +154,7 @@ router.post('/settings/hubspot/sync-user', async (req, res) => {
   }
 });
 
-// Test HubSpot connection
-router.post('/settings/hubspot/test-connection', isAdmin, async (req, res) => {
-  try {
-    const { hubspotService } = await import('../services/communication/hubspot-service');
 
-    // Initialize the service
-    await hubspotService.initialize();
-
-    // Test the connection
-    const result = await hubspotService.testConnection();
-
-    return res.json(result);
-  } catch (error) {
-    console.error('Error testing HubSpot connection:', error);
-    return res.status(500).json({
-      success: false,
-      message: `Failed to test HubSpot connection: ${error instanceof Error ? error.message : 'Unknown error'}`
-    });
-  }
-});
-
-// Get HubSpot contacts
-router.get('/settings/hubspot/contacts', isAdmin, async (req, res) => {
-  try {
-    const { hubspotService } = await import('../services/communication/hubspot-service');
-
-    // Initialize the service
-    await hubspotService.initialize();
-
-    // Get contacts
-    const contacts = await hubspotService.getAllContacts(50);
-
-    return res.json({ success: true, contacts });
-  } catch (error) {
-    console.error('Error getting HubSpot contacts:', error);
-    return res.status(500).json({
-      success: false,
-      message: `Failed to get HubSpot contacts: ${error instanceof Error ? error.message : 'Unknown error'}`
-    });
-  }
-});
-
-// Create HubSpot contact
-router.post('/settings/hubspot/contacts', isAdmin, async (req, res) => {
-  try {
-    const { hubspotService } = await import('../services/communication/hubspot-service');
-    const { email, firstname, lastname, company, phone } = req.body;
-
-    // Initialize the service
-    await hubspotService.initialize();
-
-    // Create contact
-    const contact = await hubspotService.createContact({
-      email,
-      firstname,
-      lastname,
-      company,
-      phone,
-    });
-
-    return res.json({ success: true, contact });
-  } catch (error) {
-    console.error('Error creating HubSpot contact:', error);
-    return res.status(500).json({
-      success: false,
-      message: `Failed to create HubSpot contact: ${error instanceof Error ? error.message : 'Unknown error'}`
-    });
-  }
-});
-
-// Get HubSpot configuration for frontend
-router.get('/settings/hubspot/config', async (req, res) => {
-  try {
-    const { hubspotService } = await import('../services/communication/hubspot-service');
-
-    // Initialize the service
-    await hubspotService.initialize();
-
-    const enabled = await hubspotService.isEnabled();
-    const chatEnabled = await hubspotService.isChatEnabled();
-    const portalId = await storage.getSetting('hubspot_portal_id');
-
-    return res.json({
-      enabled,
-      chatEnabled,
-      portalId: portalId?.value || '',
-    });
-  } catch (error) {
-    console.error('Error getting HubSpot config:', error);
-    return res.status(500).json({
-      success: false,
-      message: `Failed to get HubSpot config: ${error instanceof Error ? error.message : 'Unknown error'}`
-    });
-  }
-});
 
 // Get Google Analytics configuration for frontend
 router.get('/settings/google-analytics/config', async (req, res) => {
