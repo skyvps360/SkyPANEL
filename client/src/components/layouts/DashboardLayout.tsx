@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { getBrandColors } from "@/lib/brand-theme";
 import { getGravatarUrl, getUserInitials } from "@/lib/avatar-utils";
 import { TrustpilotWidget } from "../TrustpilotWidget";
+import { GoogleAnalyticsTracker } from "../GoogleAnalyticsTracker";
 
 
 type NavigationItem = {
@@ -864,6 +865,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
 
   return (
     <div className="flex h-screen overflow-hidden text-textColor">
+      <GoogleAnalyticsTracker />
       {/* Modern Sidebar Navigation */}
       <aside
         className={cn(

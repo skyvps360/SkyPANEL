@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { getBrandColors } from "@/lib/brand-theme";
+import { GoogleAnalyticsTracker } from "../GoogleAnalyticsTracker";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -75,6 +76,7 @@ export function AuthLayout({
   
   return (
     <div className="flex min-h-screen bg-gray-50">
+      <GoogleAnalyticsTracker />
       {/* Form Side */}
       <div className="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:px-20 xl:px-24">
         <div className="w-full max-w-sm mx-auto lg:w-96">

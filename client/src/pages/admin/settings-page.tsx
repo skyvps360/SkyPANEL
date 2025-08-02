@@ -557,7 +557,7 @@ export default function SettingsPage() {
       googleAnalyticsEnabled: getSettingValue("google_analytics_enabled", "false") === "true",
       googleAnalyticsCode: getSettingValue("google_analytics_code", ""),
       googleAnalyticsTrackingId: getSettingValue("google_analytics_tracking_id", ""),
-      googleAnalyticsSelectedPages: JSON.parse(getSettingValue("google_analytics_selected_pages", '["/", "/auth", "/blog", "/docs", "/status", "/plans", "/team", "/tos", "/privacy", "/sla-plans", "/sla"]')),
+      googleAnalyticsSelectedPages: JSON.parse(getSettingValue("google_analytics_selected_pages", '["/", "/auth", "/blog", "/docs", "/status", "/plans", "/team", "/tos", "/privacy", "/sla-plans", "/sla", "/dashboard", "/servers", "/billing", "/tickets", "/profile", "/dns"]')),
     },
   });
 
@@ -568,7 +568,7 @@ export default function SettingsPage() {
         googleAnalyticsEnabled: getSettingValue("google_analytics_enabled", "false") === "true",
         googleAnalyticsCode: getSettingValue("google_analytics_code", ""),
         googleAnalyticsTrackingId: getSettingValue("google_analytics_tracking_id", ""),
-        googleAnalyticsSelectedPages: JSON.parse(getSettingValue("google_analytics_selected_pages", '["/", "/auth", "/blog", "/docs", "/status", "/plans", "/team", "/tos", "/privacy", "/sla-plans", "/sla"]')),
+        googleAnalyticsSelectedPages: JSON.parse(getSettingValue("google_analytics_selected_pages", '["/", "/auth", "/blog", "/docs", "/status", "/plans", "/team", "/tos", "/privacy", "/sla-plans", "/sla", "/dashboard", "/servers", "/billing", "/tickets", "/profile", "/dns"]')),
       });
     }
   }, [settings, googleAnalyticsForm]);
@@ -5473,7 +5473,7 @@ export default function SettingsPage() {
                                 { path: "/team", label: "Team", description: "Team information page" },
                                 { path: "/tos", label: "Terms of Service", description: "Legal terms page" },
                                 { path: "/privacy", label: "Privacy Policy", description: "Privacy policy page" },
-                                { path: "/sla-plans", label: "SLA Plans", description: "Service level agreement plans" },
+                                { path: "/sla-plans", label: "SLA Plans", description: "Service level agreement plans (/sla-plans & /dashboard/sla)" },
                                 { path: "/sla", label: "SLA", description: "Service level agreement page" },
                                 { path: "/dashboard", label: "Dashboard", description: "User dashboard (requires auth)" },
                                 { path: "/servers", label: "Servers", description: "Server management (requires auth)" },
@@ -5490,9 +5490,15 @@ export default function SettingsPage() {
                                     onChange={(e) => {
                                       const currentPages = googleAnalyticsForm.watch("googleAnalyticsSelectedPages");
                                       if (e.target.checked) {
-                                        googleAnalyticsForm.setValue("googleAnalyticsSelectedPages", [...currentPages, page.path]);
+                                        googleAnalyticsForm.setValue("googleAnalyticsSelectedPages", [...currentPages, page.path], {
+                                          shouldDirty: true,
+                                          shouldTouch: true
+                                        });
                                       } else {
-                                        googleAnalyticsForm.setValue("googleAnalyticsSelectedPages", currentPages.filter(p => p !== page.path));
+                                        googleAnalyticsForm.setValue("googleAnalyticsSelectedPages", currentPages.filter(p => p !== page.path), {
+                                          shouldDirty: true,
+                                          shouldTouch: true
+                                        });
                                       }
                                     }}
                                     className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"

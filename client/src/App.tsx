@@ -11,7 +11,7 @@ import {AppRouter} from "@/components/app/AppRouter";
 import {BrandThemeProvider} from "@/components/app/BrandThemeProvider";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import HubSpotChat from "@/components/HubSpotChat";
-import { GoogleAnalyticsProvider } from "@/components/GoogleAnalyticsProvider";
+
 
 
 /**
@@ -48,10 +48,8 @@ function App() {
                 {/* Wrap the router with PageLoadingProvider to enable loading screen */}
                 <PageLoadingProvider>
                   <BrandThemeProvider>
-                    <GoogleAnalyticsProvider>
-                      <AppRouter/>
-                      <HubSpotChat />
-                    </GoogleAnalyticsProvider>
+                    <AppRouter/>
+                    <HubSpotChat />
                   </BrandThemeProvider>
                 </PageLoadingProvider>
               </DocumentTitle>
