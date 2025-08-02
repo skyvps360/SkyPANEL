@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
-import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -226,7 +226,7 @@ export default function TicketsPage() {
 
   return (
     <>
-      <GoogleAnalyticsTracker />
+
       <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Modern Hero Header */}

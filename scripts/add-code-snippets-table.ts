@@ -40,7 +40,7 @@ async function addCodeSnippetsTable() {
     console.log('Adding sample code snippets...');
     await db.execute(sql`
       INSERT INTO "code_snippets" ("name", "code", "display_location", "description") VALUES
-      ('Google Analytics', '<script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script><script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag("js", new Date());gtag("config", "GA_MEASUREMENT_ID");</script>', 'header', 'Google Analytics tracking code for the header'),
+
       ('Custom CSS', '<style>.custom-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }</style>', 'header', 'Custom CSS for header styling'),
       ('Footer Script', '<script>console.log("Footer script loaded");</script>', 'footer', 'Sample footer script')
       ON CONFLICT DO NOTHING;

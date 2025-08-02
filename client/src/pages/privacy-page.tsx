@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from 'react-helmet';
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
+
 
 export function PrivacyPolicyPage() {
   const [companyName, setCompanyName] = useState("SkyVPS360");
@@ -35,7 +35,7 @@ export function PrivacyPolicyPage() {
   if (privacyContent && !isLoading) {
     return (
       <>
-        <GoogleAnalyticsTracker />
+  
         <Helmet>
           <title>Privacy Policy - {companyName}</title>
           <meta name="description" content={`Privacy Policy for ${companyName} - VPS Management Platform.`} />
@@ -65,7 +65,7 @@ export function PrivacyPolicyPage() {
   // Default content if we couldn't fetch from database or while loading
   return (
     <>
-      <GoogleAnalyticsTracker />
+
       <Helmet>
         <title>Privacy Policy - {companyName}</title>
         <meta name="description" content={`Privacy Policy for ${companyName} - VPS Management Platform.`} />

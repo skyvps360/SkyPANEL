@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
-import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
+
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -176,7 +176,7 @@ export default function ServersPage() {
   if (isError) {
     return (
       <>
-        <GoogleAnalyticsTracker />
+  
         <DashboardLayout>
         <div className="container mx-auto px-4 py-8">
           <Card className="border-destructive/50 bg-destructive/5">
@@ -204,7 +204,7 @@ export default function ServersPage() {
 
   return (
     <>
-      <GoogleAnalyticsTracker />
+
       <DashboardLayout>
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Modern Hero Header */}

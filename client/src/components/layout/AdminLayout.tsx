@@ -37,7 +37,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getBrandColors } from "@/lib/brand-theme";
-import { GoogleAnalyticsTracker } from "../GoogleAnalyticsTracker";
+
 
 const adminMenuItems = [
   { href: "/admin", icon: Home, label: "Admin Dashboard" },
@@ -504,7 +504,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className={cn("grid min-h-screen w-full overflow-hidden", isSidebarCollapsed ? "lg:grid-cols-[80px_1fr]" : "lg:grid-cols-[280px_1fr]")}>
-      <GoogleAnalyticsTracker />
+
       {/* Sidebar for larger screens */}
       <div className="hidden border-r bg-background lg:block">
         <div className="flex h-full max-h-screen flex-col gap-2">

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
+
 import {
   Card,
   CardContent,
@@ -103,7 +103,7 @@ export default function SLAPublicPlansPage() {
 
   return (
     <>
-      <GoogleAnalyticsTracker />
+
       <Helmet>
         <title>Service Level Agreements – {companyName}</title>
         <meta

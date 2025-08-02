@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet";
 import { getBrandColors } from "@/lib/brand-theme";
 import { TeamCards } from "@/components/teams/TeamCards";
 import { Loader2, Users } from "lucide-react";
-import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
+
 
 interface TeamMember {
   id: number;
@@ -99,7 +99,7 @@ export default function teamPage() {
 
   return (
     <>
-      <GoogleAnalyticsTracker />
+
       <PublicLayout>
       <Helmet>
         <title>Our Team - {companyName}</title>

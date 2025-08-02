@@ -7,7 +7,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { DatacenterLeafletMap } from "@/components/datacenter/DatacenterLeafletMap";
 import { getBrandColors } from "@/lib/brand-theme";
-import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
+
 
 /**
  * Landing Page Component
@@ -96,7 +96,7 @@ export default function LandingPage() {
   
   return (
     <>
-      <GoogleAnalyticsTracker />
+
       <PublicLayout>
         {/* Maintenance Banner - Only shown when maintenance mode is enabled */}
         {maintenanceMode.enabled && (

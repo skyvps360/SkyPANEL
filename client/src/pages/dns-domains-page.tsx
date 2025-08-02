@@ -10,7 +10,7 @@ import { getDnsDomains, deleteDnsDomain, getDnsPlanLimits } from "@/lib/api";
 import { AddDomainDialog } from "@/components/dns/AddDomainDialog";
 import { getBrandColors } from "@/lib/brand-theme";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
-import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
+
 
 interface DnsDomain {
   id: number;
@@ -252,7 +252,7 @@ export default function DnsDomainsPage() {
   if (error) {
     return (
       <>
-        <GoogleAnalyticsTracker />
+  
         <DashboardLayout>
         <div className="container mx-auto py-8">
           <Card>
@@ -274,7 +274,7 @@ export default function DnsDomainsPage() {
 
   return (
     <>
-      <GoogleAnalyticsTracker />
+
       <DashboardLayout>
       <div className="space-y-6">
         {/* Modern Hero Header */}

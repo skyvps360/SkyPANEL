@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from 'react-helmet';
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { GoogleAnalyticsTracker } from "../components/GoogleAnalyticsTracker";
+
 
 export function TermsOfServicePage() {
   const [companyName, setCompanyName] = useState("SkyVPS360");
@@ -35,7 +35,7 @@ export function TermsOfServicePage() {
   if (tosContent && !isLoading) {
     return (
       <>
-        <GoogleAnalyticsTracker />
+  
         <Helmet>
           <title>Terms of Service - {companyName}</title>
           <meta name="description" content={`Terms of Service for ${companyName} - VPS Management Platform.`} />
@@ -71,7 +71,7 @@ export function TermsOfServicePage() {
   // Default content if we couldn't fetch from database or while loading
   return (
     <>
-      <GoogleAnalyticsTracker />
+
       <Helmet>
         <title>Terms of Service - {companyName}</title>
         <meta name="description" content={`Terms of Service for ${companyName} - VPS Management Platform.`} />
