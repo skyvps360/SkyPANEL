@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { getBrandColors } from "@/lib/brand-theme";
 import { TrustpilotWidget } from "../TrustpilotWidget";
 import HubSpotChat from "@/components/HubSpotChat";
-import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 
 interface PublicLayoutProps {
@@ -93,7 +92,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       <main className="flex-grow">{children}</main>
       <SharedFooter />
       <HubSpotChat />
-      <GoogleAnalytics />
+      {/* GoogleAnalytics is loaded globally in App.tsx */}
     </div>
   );
 }
