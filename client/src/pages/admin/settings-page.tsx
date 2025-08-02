@@ -4991,22 +4991,9 @@ export default function SettingsPage() {
                       <p className="text-sm text-muted-foreground">
                         Customize your platform's visual identity. Changes will reflect across the client dashboard.
                       </p>
-
+                      
                       {/* Theme Selector */}
-                      <ThemeSelector
-                        currentTheme={{
-                          primary: designForm.watch("primaryColor") || "2563eb",
-                          secondary: designForm.watch("secondaryColor") || "10b981",
-                          accent: designForm.watch("accentColor") || "f59e0b",
-                        }}
-                        onThemeSelect={(theme) => {
-                          designForm.setValue("primaryColor", theme.primary, { shouldDirty: true });
-                          designForm.setValue("secondaryColor", theme.secondary, { shouldDirty: true });
-                          designForm.setValue("accentColor", theme.accent, { shouldDirty: true });
-                        }}
-                        disabled={saveInProgress}
-                      />
-
+                      // [REMOVED ThemeSelector from Design tab]
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Color Selectors */}
                         <div className="space-y-6">
