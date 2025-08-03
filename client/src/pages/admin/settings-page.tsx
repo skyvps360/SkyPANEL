@@ -2656,25 +2656,7 @@ export default function SettingsPage() {
                           </ul>
                         </div>
                         
-                        <div>
-                          <strong>Step 2: Get API Key (Optional)</strong>
-                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">Google Cloud Console</a></li>
-                            <li>Create a new project or select existing one</li>
-                            <li>Enable Google Analytics Data API</li>
-                            <li>Create API credentials (Service Account Key)</li>
-                            <li>Download the JSON key file</li>
-                          </ul>
-                        </div>
 
-                        <div>
-                          <strong>Step 3: Enhanced Ecommerce (Optional)</strong>
-                          <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
-                            <li>Enable enhanced ecommerce in your GA4 property</li>
-                            <li>Configure product and transaction tracking</li>
-                            <li>Set up conversion goals for purchases</li>
-                          </ul>
-                        </div>
 
                         <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded p-2 mt-3">
                           <strong>💡 Pro Tips:</strong>

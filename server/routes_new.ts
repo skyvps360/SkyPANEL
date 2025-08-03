@@ -19,7 +19,7 @@ import { VirtFusionApi as ImportedVirtFusionApi, virtFusionApi, VirtFusionApi } 
 import { emailService } from "./email";
 import { betterStackService } from "./betterstack-service";
 import { geminiService } from "./gemini-service";
-import { cacheService } from "./cache-service";
+import { cacheService } from "./services/infrastructure/cache-service";
 import { serverLoggingService } from "./server-logging-service";
 import {
   getMaintenanceStatus,
