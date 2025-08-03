@@ -47,6 +47,7 @@ const adminMenuItems = [
   { href: "/admin/servers", icon: Server, label: "Servers" },
   { href: "/admin/user-awards", icon: Gift, label: "User Awards" },
   { href: "/admin/coupon", icon: Ticket, label: "Coupon Management" },
+
   // { href: "/admin/dns", icon: Globe, label: "DNS Management" }, // DNS disabled
   { href: "/admin/mail", icon: Mail, label: "Email Logs" },
   { href: "/admin/email-templates", icon: Mail, label: "Email Templates" },

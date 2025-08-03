@@ -58,6 +58,7 @@ import ApiDocsAdminPage from "@/pages/admin/api-docs-page";
 import AdminDnsPage from "@/pages/admin/dns-page"; // DNS feature enabled
 import UsersPage from "@/pages/admin/users-page";
 import UserEditPage from "@/pages/admin/user-edit-page";
+import UserCreatePage from "@/pages/admin/user-create-page";
 import VNCConsole from "@/pages/vnc-console";
 import DnsDomainsPage from "@/pages/dns-domains-page"; // DNS feature enabled
 import DnsRecordsPage from "@/pages/dns-records-page"; // DNS feature enabled
@@ -66,6 +67,7 @@ import UserAwardsPage from "@/pages/admin/user-awards";
 import BillingAwardsPage from "@/pages/billing/awards";
 import CouponManagementPage from "@/pages/admin/coupon-management";
 import OAuthSettingsPage from "@/pages/admin/oauth-settings-page";
+
 
 import { AdminProtectedRoute, ProtectedRoute } from "@/lib/protected-route-new";
 import { useQuery } from "@tanstack/react-query";
@@ -167,6 +169,7 @@ export function AppRouter() {
 
                 {/* Admin Routes */}
                 <AdminProtectedRoute path="/admin" component={AdminDashboard} />
+                <AdminProtectedRoute path="/admin/users/create" component={UserCreatePage} />
                 <AdminProtectedRoute path="/admin/users/:id" component={UserEditPage} />
                 <AdminProtectedRoute path="/admin/users" component={UsersPage} />
                 <AdminProtectedRoute path="/admin/settings" component={SettingsPage} />
@@ -200,6 +203,7 @@ export function AppRouter() {
                 <AdminProtectedRoute path="/admin/dns" component={AdminDnsPage} />
                 <AdminProtectedRoute path="/admin/user-awards" component={UserAwardsPage} />
                 <AdminProtectedRoute path="/admin/coupon" component={CouponManagementPage} />
+        
 <AdminProtectedRoute path="/admin/oauth-settings" component={OAuthSettingsPage} />
 
                 {/* Catch-all route for 404 pages */}

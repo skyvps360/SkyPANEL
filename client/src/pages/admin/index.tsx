@@ -169,6 +169,7 @@ export default function AdminPage() {
       color: "bg-yellow-50 dark:bg-yellow-950",
       accentColor: "text-yellow-600 dark:text-yellow-400"
     },
+
     // TEMPORARILY HIDDEN - DNS Management section
     // {
     //   title: "DNS Management",

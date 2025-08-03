@@ -45,7 +45,7 @@ import awardsRoutes from "./routes/awards-routes";
 import adminCouponsRoutes from "./routes/admin-coupons";
 import couponRoutes from "./routes/coupon-routes";
 import oauthRoutes from "./routes/oauth-routes";
-import wordpressRoutes from "./routes/wordpress";
+
 import codeSnippetsRoutes from "./routes/code-snippets";
 
 import { cronService } from "./services/cron-service";
@@ -4869,6 +4869,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(usersWithOAuth);
     } catch (error: any) {
       console.error("Error fetching users:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create new user (admin only)
+  app.post("/api/admin/users", isAdmin, async (req, res) => {
+    try {
+      const { username, email, password, fullName, firstName, lastName, phone, company, address, role } = req.body;
+
+      // Validate required fields
+      if (!username || !email || !password || !fullName) {
+        return res.status(400).json({ error: "Username, email, password, and full name are required" });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      // Validate password strength
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters long" });
+      }
+
+      // Check if username or email already exists
+      const existingUserByUsername = await storage.getUserByUsername(username);
+      if (existingUserByUsername) {
+        return res.status(409).json({ error: "Username already exists" });
+      }
+
+      const existingUserByEmail = await storage.getUserByEmail(email);
+      if (existingUserByEmail) {
+        return res.status(409).json({ error: "Email already exists" });
+      }
+
+      // Hash the password
+      const hashedPassword = await hashPassword(password);
+
+      // Create the user
+      const newUser = await storage.createUser({
+        username,
+        email,
+        password: hashedPassword,
+        fullName,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        phone: phone || null,
+        company: company || null,
+        address: address || null,
+        role: role || "client",
+        isVerified: true,
+        isActive: true
+      });
+
+      // Send welcome email
+      try {
+        await emailService.sendTemplatedEmail('welcome_email', email, {
+          username,
+          password,
+          fullName
+        });
+        console.log(`Welcome email sent to ${email}`);
+      } catch (emailError: any) {
+        console.error("Error sending welcome email:", emailError);
+        // Continue with the response even if email sending fails
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "User created successfully",
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          email: newUser.email,
+          fullName: newUser.fullName,
+          role: newUser.role
+        }
+      });
+    } catch (error: any) {
+      console.error("Error creating user:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -11471,8 +11552,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // OAuth routes
   app.use("/api/oauth", oauthRoutes);
 
-  // WordPress routes
-  app.use("/api/admin/wordpress", isAuthenticated, isAdmin, wordpressRoutes);
+
 
   // Code snippets routes
   app.use("/api/admin/code-snippets", isAuthenticated, isAdmin, codeSnippetsRoutes);
