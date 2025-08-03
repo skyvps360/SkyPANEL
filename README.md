@@ -643,41 +643,45 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
 ### Building the Docker Image
 
 1. **Build using Docker Compose** (recommended):
-   ```bash
+
+```bash
    docker-compose build
-   ```
+```
 
 2. **Build directly with Docker**:
-   ```bash
+
+```bash
    docker build -t skyvps360/skypanel-app .
-   ```
+```
 
 3. **Clean build without cache**:
-   ```bash
+
+```bash
    docker builder prune -f
    docker build --no-cache -t skyvps360/skypanel-app .
-   ```
+```
 ### Pushing to Docker Hub
 
 1. Log in to Docker Hub:
-   ```bash
+```bash
    docker login
-   ```
+```
 
 2. Tag the image (if not already tagged during build):
-   ```bash
+```bash
    docker tag skypanel-app skyvps360/skypanel-app:latest
-   ```
+```
 
 3. Push the image to Docker Hub:
-   ```bash
+```bash
    docker push skyvps360/skypanel-app:latest
-   ```
+```
 
 ### Running the Container
 
 1. **Create a `.env` file** with all required environment variables:
-   ```bash
+
+```bash
    # Essential variables for Docker deployment
    DATABASE_URL=postgres://username:password@hostname:port/database
    SESSION_SECRET=your_secure_random_string_here
@@ -685,25 +689,26 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
    VIRTFUSION_API_KEY=your_virtfusion_api_key
    PORT=3333
    NODE_ENV=production
-   ```
+```
 
 2. **Run the container**:
-   ```bash
+
+```bash
    docker run -d \
      --name skypanel-app \
      -p 3333:3333 \
      --env-file .env \
      skyvps360/skypanel-app:latest
-   ```
+```
 
 3. **Verify the deployment**:
    The application will be available at `http://localhost:3333`
 
    Check container status:
-   ```bash
+```bash
    docker ps
    docker logs skypanel-app
-   ```
+```
 
 ### Using Docker Compose
 
@@ -712,41 +717,41 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
 2. **Review docker-compose.yml**: The included compose file provides a complete stack with database
 
 3. **Start the services**:
-   ```bash
+```bash
    # Start in detached mode
    docker-compose up -d
    
    # Or start with logs visible
    docker-compose up
-   ```
+```
 
 4. **Check service status**:
-   ```bash
+```bash
    docker-compose ps
    docker-compose logs -f skypanel-app
-   ```
+```
 
 ### Updating the Application
 
 1. **Stop the current containers**:
-   ```bash
+```bash
    docker-compose down
-   ```
+```
 
 2. **Pull the latest image**:
-   ```bash
+```bash
    docker pull skyvps360/skypanel-app:latest
-   ```
+```
 
 3. **Restart with the new image**:
-   ```bash
+```bash
    docker-compose up -d
-   ```
+```
 
 4. **Verify the update**:
-   ```bash
+```bash
    docker-compose logs -f skypanel-app
-   ```
+```
 
 ### Docker Troubleshooting
 
@@ -786,7 +791,7 @@ SkyPANEL now supports deployment via Cloudflare Wrangler for edge computing and 
 ### Configuration
 
 1. **Configure Wrangler**: Update `vite.config.ts` with your Cloudflare settings:
-   ```typescript
+```typescript
    export default defineConfig({
      // ... other config
      wrangler: {
@@ -795,15 +800,15 @@ SkyPANEL now supports deployment via Cloudflare Wrangler for edge computing and 
        route: 'your-domain.com/*'
      }
    });
-   ```
+```
 
 2. **Environment Setup**: Configure environment variables for Cloudflare Workers:
-   ```bash
+```bash
    # Cloudflare-specific environment variables
    CLOUDFLARE_ACCOUNT_ID=your_account_id
    CLOUDFLARE_ZONE_ID=your_zone_id
    CLOUDFLARE_ROUTE=your-domain.com/*
-   ```
+```
 
 ### Deployment Commands
 
