@@ -645,31 +645,33 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
 1. **Build using Docker Compose** (recommended):
 
 ```bash
-   docker-compose build
+
+docker-compose build
+
 ```
 
 2. **Build directly with Docker**:
 
 ```bash
-   docker build -t skyvps360/skypanel-app .
+docker build -t skyvps360/skypanel-app .
 ```
 
 3. **Clean build without cache**:
 
 ```bash
-   docker builder prune -f
-   docker build --no-cache -t skyvps360/skypanel-app .
+docker builder prune -f
+docker build --no-cache -t skyvps360/skypanel-app .
 ```
 ### Pushing to Docker Hub
 
 1. Log in to Docker Hub:
 ```bash
-   docker login
+docker login
 ```
 
 2. Tag the image (if not already tagged during build):
 ```bash
-   docker tag skypanel-app skyvps360/skypanel-app:latest
+docker tag skypanel-app skyvps360/skypanel-app:latest
 ```
 
 3. Push the image to Docker Hub:
