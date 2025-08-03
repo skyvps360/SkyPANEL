@@ -21,7 +21,7 @@ export const GoogleAnalytics: React.FC = () => {
       const response = await axios.get('/api/settings/google-analytics');
       return response.data;
     },
-    enabled: false, // We'll handle this in useEffect like HubSpot
+    enabled: false, 
   });
 
   useEffect(() => {

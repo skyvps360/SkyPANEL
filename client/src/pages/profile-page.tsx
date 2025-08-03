@@ -301,7 +301,7 @@ export default function ProfilePage() {
                     </p>
                   </div>
 
-                  {/* First Name and Last Name - Internal/HubSpot use */}
+                  {/* First Name and Last Name - Internal use */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>

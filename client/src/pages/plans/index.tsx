@@ -558,8 +558,6 @@ export default function PlansPage() {
           brandColors={brandColors}
         />
 
-        {/* HubSpot Chat Widget */}
-
       </div>
     </PublicLayout>
     </>
