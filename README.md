@@ -643,9 +643,10 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
 ### Building the Docker Image
 
 1. **Build using Docker Compose** (recommended):
-
+```
 ```bash
-docker-compose build```
+docker-compose build
+```
 
 
 2. **Build directly with Docker**:
@@ -750,7 +751,7 @@ docker-compose up -d
 
 4. **Verify the update**:
 ```bash
-   docker-compose logs -f skypanel-app
+docker-compose logs -f skypanel-app
 ```
 
 ### Docker Troubleshooting
@@ -792,22 +793,22 @@ SkyPANEL now supports deployment via Cloudflare Wrangler for edge computing and 
 
 1. **Configure Wrangler**: Update `vite.config.ts` with your Cloudflare settings:
 ```typescript
-   export default defineConfig({
-     // ... other config
-     wrangler: {
-       account_id: 'your-cloudflare-account-id',
-       zone_id: 'your-zone-id',
-       route: 'your-domain.com/*'
-     }
-   });
+export default defineConfig({
+  // ... other config
+  wrangler: {
+    account_id: 'your-cloudflare-account-id',
+    zone_id: 'your-zone-id',
+    route: 'your-domain.com/*'
+  }
+});
 ```
 
 2. **Environment Setup**: Configure environment variables for Cloudflare Workers:
 ```bash
-   # Cloudflare-specific environment variables
-   CLOUDFLARE_ACCOUNT_ID=your_account_id
-   CLOUDFLARE_ZONE_ID=your_zone_id
-   CLOUDFLARE_ROUTE=your-domain.com/*
+# Cloudflare-specific environment variables
+CLOUDFLARE_ACCOUNT_ID=your_account_id
+CLOUDFLARE_ZONE_ID=your_zone_id
+CLOUDFLARE_ROUTE=your-domain.com/*
 ```
 
 ### Deployment Commands
