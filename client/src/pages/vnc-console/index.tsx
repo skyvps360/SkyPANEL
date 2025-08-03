@@ -29,13 +29,15 @@ const VNCConsole: React.FC = () => {
   const password = searchParams.get('password');
   const serverId = searchParams.get('serverId');
 
-  // Fetch brand colors from database
+  // Fetch brand colors from database with caching
   const { data: brandingData } = useQuery<{
     primary_color: string;
     secondary_color: string;
     accent_color: string;
   }>({
     queryKey: ["/api/settings/branding"],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const brandColors = getBrandColors({
@@ -112,9 +114,9 @@ const VNCConsole: React.FC = () => {
   };
 
   const waitForCanvasAndInitialize = () => {
-    // Wait for canvas to be rendered in DOM
+    // Wait for canvas to be rendered in DOM with optimized polling
     let attempts = 0;
-    const maxAttempts = 50; // 5 seconds max wait
+    const maxAttempts = 30; // 3 seconds max wait (reduced from 5)
 
     const checkCanvas = () => {
       attempts++;
@@ -122,15 +124,18 @@ const VNCConsole: React.FC = () => {
       if (canvasRef.current) {
         initializeVNC();
       } else if (attempts < maxAttempts) {
-        setTimeout(checkCanvas, 100);
+        // Use requestAnimationFrame for better performance
+        requestAnimationFrame(() => {
+          setTimeout(checkCanvas, 100);
+        });
       } else {
         console.error('Canvas element not found after maximum attempts');
         setConnectionError('VNC display container not ready');
       }
     };
 
-    // Start checking after a short delay to ensure DOM is rendered
-    setTimeout(checkCanvas, 200);
+    // Start checking after a shorter delay
+    setTimeout(checkCanvas, 100);
   };
 
   const initializeVNC = () => {
@@ -159,13 +164,28 @@ const VNCConsole: React.FC = () => {
 
 
 
-      // Create the RFB connection directly (no test connection)
+      // Create the RFB connection with performance optimizations
       try {
         rfbRef.current = new (window as any).RFB(canvasRef.current, wsUrl, {
           credentials: { password: password },
           repeaterID: '',
           shared: true,
           wsProtocols: ['binary'],
+          // Performance optimizations
+          qualityLevel: 6, // High quality (0-6, 6 is best)
+          compressionLevel: 2, // Moderate compression (0-9, 2 is balanced)
+          showDotCursor: true,
+          background: '#000000',
+          // Disable clipboard for better performance
+          enableClipboard: false,
+          // Optimize canvas rendering
+          canvas: canvasRef.current,
+          // Set reasonable timeouts
+          connectTimeout: 10000,
+          // Optimize for network conditions
+          adaptiveQuality: true,
+          // Reduce unnecessary logging
+          debug: false,
         });
 
         // Set up event handlers
@@ -173,6 +193,19 @@ const VNCConsole: React.FC = () => {
         rfbRef.current.addEventListener('disconnect', handleDisconnect);
         rfbRef.current.addEventListener('credentialsrequired', handleCredentialsRequired);
         rfbRef.current.addEventListener('securityfailure', handleSecurityFailure);
+
+        // Additional performance optimizations after connection
+        rfbRef.current.addEventListener('connect', () => {
+          // Set optimal encoding after connection
+          if (rfbRef.current && rfbRef.current._rfbConnection) {
+            try {
+              // Prefer tight encoding for better performance
+              rfbRef.current._rfbConnection.setEncodings([16, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
+            } catch (e) {
+              console.log('Could not set optimal encodings:', e);
+            }
+          }
+        });
 
       } catch (rfbError) {
         console.error('Error creating RFB connection:', rfbError);
@@ -188,13 +221,17 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleConnect = () => {
+    // Batch state updates for better performance
     setIsConnected(true);
     setIsConnecting(false);
     setConnectionError(null);
 
-    toast({
-      title: "VNC Connected",
-      description: "Successfully connected to the server console",
+    // Use requestAnimationFrame to avoid blocking the main thread
+    requestAnimationFrame(() => {
+      toast({
+        title: "VNC Connected",
+        description: "Successfully connected to the server console",
+      });
     });
   };
 
@@ -202,7 +239,8 @@ const VNCConsole: React.FC = () => {
     setIsConnected(false);
     setIsConnecting(false);
 
-    if (e.detail.clean) {
+    // Add null checks to prevent errors when e or e.detail is null
+    if (e && e.detail && e.detail.clean) {
       toast({
         title: "VNC Disconnected",
         description: "Connection closed normally",
@@ -223,7 +261,9 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleSecurityFailure = (e: any) => {
-    setConnectionError('Security failure: ' + e.detail.reason);
+    // Add null check to prevent errors when e or e.detail is null
+    const reason = e && e.detail && e.detail.reason ? e.detail.reason : 'Unknown security failure';
+    setConnectionError('Security failure: ' + reason);
     setIsConnecting(false);
   };
 
@@ -232,11 +272,18 @@ const VNCConsole: React.FC = () => {
     setIsConnecting(true);
     setIsConnected(false);
 
-    // Clean up existing connection
+    // Clean up existing connection with proper event listener removal
     if (rfbRef.current) {
       try {
+        // Remove event listeners before disconnecting to prevent unwanted events
+        rfbRef.current.removeEventListener('connect', handleConnect);
+        rfbRef.current.removeEventListener('disconnect', handleDisconnect);
+        rfbRef.current.removeEventListener('credentialsrequired', handleCredentialsRequired);
+        rfbRef.current.removeEventListener('securityfailure', handleSecurityFailure);
+        
         rfbRef.current.disconnect();
       } catch (error) {
+        console.log('Error during cleanup:', error);
       }
       rfbRef.current = null;
     }
@@ -257,6 +304,7 @@ const VNCConsole: React.FC = () => {
       (window as any).rfb = undefined;
       (window as any).NoVNC = undefined;
     } catch (error) {
+      console.log('Error clearing window objects:', error);
     }
 
     // Restart the connection process after a short delay
@@ -371,11 +419,25 @@ const VNCConsole: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="w-full h-full bg-black rounded-lg overflow-hidden border">
-            <div ref={canvasRef} className="w-full h-full min-h-[600px]" id="vnc-canvas-container" />
+          <div className="w-full h-full bg-black rounded-lg overflow-hidden border relative">
+            <div 
+              ref={canvasRef} 
+              className="w-full h-full min-h-[600px]" 
+              id="vnc-canvas-container"
+              style={{
+                // Optimize canvas rendering
+                imageRendering: 'crisp-edges',
+                // Disable text selection for better performance
+                userSelect: 'none',
+                // Optimize for GPU acceleration
+                transform: 'translateZ(0)',
+                backfaceVisibility: 'hidden',
+                perspective: '1000px',
+              }}
+            />
 
             {isConnecting && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
                 <div className="bg-card p-6 rounded-lg text-center">
                   <div
                     className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-4"

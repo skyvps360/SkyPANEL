@@ -6766,6 +6766,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = validationResult.data;
 
+      // Step 1: Get package details and deduct tokens if needed
+      let packageCost = 0;
+      let packageName = 'Unknown Package';
+      
+      try {
+        // Get package details to determine cost
+        const packageDetails = await virtFusionApi.getPackage(validatedData.packageId);
+        packageCost = packageDetails?.data?.pricing?.price || 0; // Cost in tokens (100 tokens = $1)
+        packageName = packageDetails?.data?.name || 'Unknown Package';
+        
+        // Deduct tokens from user's VirtFusion account if package has a cost
+        if (packageCost > 0) {
+          console.log(`Deducting ${packageCost} tokens from user ${user.id} for package ${packageName}`);
+          
+          // Deduct credits from the user's VirtFusion account
+          const creditResponse = await virtFusionApi.removeCreditFromUserByExtRelationId(
+            user.id, // Use SkyPANEL user ID as extRelationId
+            {
+              tokens: packageCost,
+              reference_1: null, // Optional reference ID
+              reference_2: `Server creation charge for package ${packageName}`,
+            }
+          );
+          
+          if (!creditResponse || !creditResponse.data) {
+            throw new Error(`Failed to deduct ${packageCost} tokens from user account`);
+          }
+          
+          console.log(`Successfully deducted ${packageCost} tokens from user ${user.id}`);
+        }
+      } catch (deductError: any) {
+        console.error("Error deducting credits:", deductError);
+        return res.status(400).json({
+          error: "Insufficient credits",
+          message: `Failed to deduct credits for package ${packageName}: ${deductError.message}`
+        });
+      }
+
       // Prepare server creation data for VirtFusion API
       const virtFusionServerData = {
         packageId: validatedData.packageId,
@@ -6828,6 +6866,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await virtFusionApi.createServer(virtFusionServerData);
 
       console.log("VirtFusion create server response:", JSON.stringify(result, null, 2));
+
+      // Create billing transaction for server creation
+      try {
+        if (packageCost > 0) {
+          const costInDollars = packageCost / 100; // Convert tokens to dollars
+          
+          // Create a transaction record for the server creation
+          const transaction: InsertTransaction = {
+            userId: user.id,
+            amount: -costInDollars, // Negative amount for debit
+            type: "server_creation",
+            description: `Server creation charge for package ${packageName} (Server ID: ${result.data?.id})`,
+            status: "completed",
+            paymentMethod: "virtfusion_credit",
+            virtFusionCreditId: null, // Will be set when VirtFusion processes the charge
+          };
+
+          console.log("Creating server creation transaction:", transaction);
+          const createdTransaction = await storage.createTransaction(transaction);
+          console.log("Server creation transaction created with ID:", createdTransaction.id);
+        }
+      } catch (billingError) {
+        console.error("Error creating billing transaction:", billingError);
+        // Don't fail the server creation if billing fails
+      }
 
       res.json({
         success: true,
@@ -8091,28 +8154,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
 
-          // Forward data between WebSocket and VNC TCP socket
+          // Optimized data forwarding with buffering and flow control
+          let wsBackpressure = false;
+          let vncBackpressure = false;
+          
+          // Buffer for incoming WebSocket data
+          const wsBuffer: Buffer[] = [];
+          let wsBufferSize = 0;
+          const maxBufferSize = 1024 * 1024; // 1MB buffer
+          
+          // Buffer for incoming VNC data
+          const vncBuffer: Buffer[] = [];
+          let vncBufferSize = 0;
+
           ws.on('message', (data) => {
-            if (isConnected && vncSocket.writable) {
+            if (isConnected && vncSocket.writable && !vncBackpressure) {
               try {
                 // Convert WebSocket data to Buffer for TCP socket
                 const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
-                vncSocket.write(buffer);
+                
+                // Check if we need to buffer due to backpressure
+                if (vncSocket.write(buffer)) {
+                  // Data was written immediately
+                } else {
+                  // Socket is full, buffer the data
+                  if (wsBufferSize + buffer.length > maxBufferSize) {
+                    console.warn('WebSocket buffer full, dropping data');
+                    return;
+                  }
+                  wsBuffer.push(buffer);
+                  wsBufferSize += buffer.length;
+                  wsBackpressure = true;
+                }
               } catch (error) {
                 console.error('Error writing to VNC socket:', error);
               }
-            } else {
+            } else if (!isConnected) {
               console.warn('Attempted to write to disconnected VNC socket');
             }
           });
 
+          // Handle VNC socket drain event
+          vncSocket.on('drain', () => {
+            vncBackpressure = false;
+            // Flush buffered data
+            while (wsBuffer.length > 0 && vncSocket.writable) {
+              const buffer = wsBuffer.shift()!;
+              if (vncSocket.write(buffer)) {
+                wsBufferSize -= buffer.length;
+              } else {
+                wsBuffer.unshift(buffer);
+                break;
+              }
+            }
+            if (wsBuffer.length === 0) {
+              wsBackpressure = false;
+            }
+          });
+
           vncSocket.on('data', (data) => {
-            if (ws.readyState === ws.OPEN) {
+            if (ws.readyState === ws.OPEN && !wsBackpressure) {
               try {
-                ws.send(data);
+                // Check if we can send immediately
+                if (ws.send(data)) {
+                  // Data was sent immediately
+                } else {
+                  // WebSocket is full, buffer the data
+                  if (vncBufferSize + data.length > maxBufferSize) {
+                    console.warn('VNC buffer full, dropping data');
+                    return;
+                  }
+                  vncBuffer.push(data);
+                  vncBufferSize += data.length;
+                  vncBackpressure = true;
+                }
               } catch (error) {
                 console.error('Error sending data to WebSocket:', error);
               }
+            }
+          });
+
+          // Handle WebSocket drain event
+          ws.on('drain', () => {
+            wsBackpressure = false;
+            // Flush buffered data
+            while (vncBuffer.length > 0 && ws.readyState === ws.OPEN) {
+              const buffer = vncBuffer.shift()!;
+              if (ws.send(buffer)) {
+                vncBufferSize -= buffer.length;
+              } else {
+                vncBuffer.unshift(buffer);
+                break;
+              }
+            }
+            if (vncBuffer.length === 0) {
+              vncBackpressure = false;
             }
           });
 
