@@ -2662,7 +2662,6 @@ export default function SettingsPage() {
                           <strong>💡 Pro Tips:</strong>
                           <ul className="list-disc list-inside mt-1 ml-2 space-y-1">
                             <li>Use the same GA4 property across all your domains</li>
-                            <li>Enable debug mode during development to test tracking</li>
                             <li>Set up conversion goals for important user actions</li>
                             <li>Monitor your data in real-time to verify tracking</li>
                           </ul>
