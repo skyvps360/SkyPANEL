@@ -33,7 +33,6 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
-import { InfrastructureTable } from "@/components/status/InfrastructureTable";
 
 
 // Define types for platform statistics
@@ -517,12 +516,12 @@ export default function StatusPage() {
           )}
         </div>
 
-        {/* Service status grid */}
+        {/* Combined Service Status and Infrastructure Metrics */}
         <div className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               <LineChart className="h-5 w-5" style={{ color: brandColors.primary.full }} />
-              <h2 className="text-2xl font-bold">Service Status</h2>
+              <h2 className="text-2xl font-bold">Service Status & Infrastructure</h2>
             </div>
             <TooltipProvider>
               <Tooltip>
@@ -533,7 +532,7 @@ export default function StatusPage() {
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Service statuses are updated in real-time</p>
+                  <p>Service statuses and infrastructure metrics are updated in real-time</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -555,17 +554,18 @@ export default function StatusPage() {
                 <table className="w-full">
                   <thead>
                     <tr style={{ backgroundColor: brandColors.primary.extraLight }}>
-                      <th className="text-left py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>Service</th>
+                      <th className="text-left py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>Service/Metric</th>
                       <th className="text-center py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>Status</th>
-                      <th className="text-right py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>Uptime</th>
+                      <th className="text-right py-4 px-6 font-semibold text-sm uppercase tracking-wide" style={{ color: brandColors.primary.dark }}>Value</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
+                    {/* Service Status Rows */}
                     {services.map((service, index) => {
                       const statusColor = getStatusColor(service.status);
                       return (
                         <tr 
-                          key={index} 
+                          key={`service-${index}`} 
                           className="hover:bg-gray-50/50 transition-colors duration-200"
                         >
                           <td className="py-5 px-6">
@@ -619,6 +619,58 @@ export default function StatusPage() {
                         </tr>
                       );
                     })}
+                    
+                    {/* Infrastructure Metrics Rows */}
+                    {[
+                      {
+                        name: 'Hypervisors',
+                        value: platformStats?.hypervisorCount || 0,
+                        description: 'Physical servers',
+                        icon: <HardDrive className="h-5 w-5" />,
+                      },
+                      {
+                        name: 'Servers',
+                        value: platformStats?.serverCount || 0,
+                        description: 'Virtual machines',
+                        icon: <Server className="h-5 w-5" />,
+                      },
+                    ].map((metric, index) => (
+                      <tr 
+                        key={`metric-${index}`}
+                        className="hover:bg-gray-50/50 transition-colors duration-200"
+                      >
+                        <td className="py-5 px-6">
+                          <div className="flex items-center gap-4">
+                            <span 
+                              className="flex items-center justify-center p-2.5 rounded-xl shadow-sm"
+                              style={{ 
+                                backgroundColor: brandColors.primary.extraLight,
+                                color: brandColors.primary.full
+                              }}
+                            >
+                              {metric.icon}
+                            </span>
+                            <div>
+                              <p className="font-semibold text-gray-900 text-base">{metric.name}</p>
+                              <p className="text-sm text-gray-500">{metric.description}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-5 px-6 text-center">
+                          <span className="text-sm font-medium text-gray-500">Infrastructure</span>
+                        </td>
+                        <td className="py-5 px-6">
+                          <div className="flex flex-col items-end">
+                            <span 
+                              className="text-2xl font-bold tabular-nums"
+                              style={{ color: brandColors.primary.full }}
+                            >
+                              {isLoading ? "..." : metric.value.toLocaleString()}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -628,7 +680,7 @@ export default function StatusPage() {
           {/* CARD VIEW ON MOBILE */}
           <div className="grid grid-cols-1 gap-4 md:hidden">
             {isLoading ? (
-              Array(3).fill(0).map((_, i) => (
+              Array(6).fill(0).map((_, i) => (
                 <Card key={i} className="animate-pulse border border-gray-200 rounded-xl overflow-hidden shadow-sm">
                   <div className="h-1 w-full bg-gray-200"></div>
                   <CardHeader className="pb-3">
@@ -647,10 +699,82 @@ export default function StatusPage() {
                 </Card>
               ))
             ) : (
-              services.map((service, index) => {
-                const statusColor = getStatusColor(service.status);
-                return (
-                  <Card key={index} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md bg-white">
+              <>
+                {/* Service Status Cards */}
+                {services.map((service, index) => {
+                  const statusColor = getStatusColor(service.status);
+                  return (
+                    <Card key={`service-${index}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md bg-white">
+                      <div 
+                        className="h-1 w-full" 
+                        style={{ backgroundColor: brandColors.primary.full }}
+                      ></div>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span 
+                              className="flex items-center justify-center p-2.5 rounded-xl shadow-sm"
+                              style={{ 
+                                backgroundColor: brandColors.primary.extraLight,
+                                color: brandColors.primary.full
+                              }}
+                            >
+                              {service.icon}
+                            </span>
+                            <CardTitle className="text-lg font-semibold">{service.name}</CardTitle>
+                          </div>
+                          <span 
+                            className="flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-full shadow-sm"
+                            style={{ 
+                              backgroundColor: statusColor.bg,
+                              color: statusColor.text
+                            }}
+                          >
+                            {getStatusIcon(service.status)}
+                            <span className="capitalize">{service.status}</span>
+                          </span>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pb-6">
+                        <p className="text-sm text-gray-500 mb-4">{service.description}</p>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600">Uptime</span>
+                            <span className="text-sm font-bold tabular-nums" style={{ color: brandColors.primary.full }}>
+                              {formatUptimePercentage(service.uptimePercentage)}
+                            </span>
+                          </div>
+                          <div className="relative h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: brandColors.primary.extraLight }}>
+                            <div 
+                              className="h-full transition-all duration-300 absolute left-0 top-0 rounded-full"
+                              style={{ 
+                                width: `${service.uptimePercentage}%`,
+                                backgroundColor: brandColors.primary.full
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+                
+                {/* Infrastructure Metrics Cards */}
+                {[
+                  {
+                    name: 'Hypervisors',
+                    value: platformStats?.hypervisorCount || 0,
+                    description: 'Physical servers',
+                    icon: <HardDrive className="h-5 w-5" />,
+                  },
+                  {
+                    name: 'Servers',
+                    value: platformStats?.serverCount || 0,
+                    description: 'Virtual machines',
+                    icon: <Server className="h-5 w-5" />,
+                  },
+                ].map((metric, index) => (
+                  <Card key={`metric-${index}`} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md bg-white">
                     <div 
                       className="h-1 w-full" 
                       style={{ backgroundColor: brandColors.primary.full }}
@@ -665,61 +789,30 @@ export default function StatusPage() {
                               color: brandColors.primary.full
                             }}
                           >
-                            {service.icon}
+                            {metric.icon}
                           </span>
-                          <CardTitle className="text-lg font-semibold">{service.name}</CardTitle>
+                          <CardTitle className="text-lg font-semibold">{metric.name}</CardTitle>
                         </div>
-                        <span 
-                          className="flex items-center gap-2 text-sm font-semibold px-3 py-1.5 rounded-full shadow-sm"
-                          style={{ 
-                            backgroundColor: statusColor.bg,
-                            color: statusColor.text
-                          }}
-                        >
-                          {getStatusIcon(service.status)}
-                          <span className="capitalize">{service.status}</span>
-                        </span>
+                        <span className="text-sm font-medium text-gray-500">Infrastructure</span>
                       </div>
                     </CardHeader>
                     <CardContent className="pb-6">
-                      <p className="text-sm text-gray-500 mb-4">{service.description}</p>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-600">Uptime</span>
-                          <span className="text-sm font-bold tabular-nums" style={{ color: brandColors.primary.full }}>
-                            {formatUptimePercentage(service.uptimePercentage)}
-                          </span>
-                        </div>
-                        <div className="relative h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: brandColors.primary.extraLight }}>
-                          <div 
-                            className="h-full transition-all duration-300 absolute left-0 top-0 rounded-full"
-                            style={{ 
-                              width: `${service.uptimePercentage}%`,
-                              backgroundColor: brandColors.primary.full
-                            }}
-                          />
-                        </div>
+                      <p className="text-sm text-gray-500 mb-4">{metric.description}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-600">Count</span>
+                        <span 
+                          className="text-2xl font-bold tabular-nums"
+                          style={{ color: brandColors.primary.full }}
+                        >
+                          {isLoading ? "..." : metric.value.toLocaleString()}
+                        </span>
                       </div>
                     </CardContent>
                   </Card>
-                );
-              })
+                ))}
+              </>
             )}
           </div>
-        </div>
-
-        {/* Infrastructure statistics */}
-        <div className="mb-12">
-          <div className="flex items-center gap-2 mb-6">
-            <BarChart2 className="h-5 w-5" style={{ color: brandColors.primary.full }} />
-            <h2 className="text-2xl font-bold">Infrastructure Metrics</h2>
-          </div>
-          
-          <InfrastructureTable
-            platformStats={platformStats}
-            brandColors={brandColors}
-            isLoading={isLoading}
-          />
         </div>
         
         {/* Footer section with last update info */}
