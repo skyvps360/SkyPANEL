@@ -116,8 +116,6 @@ const generalSchema = z.object({
   accentColor: z.string().regex(/^[0-9A-Fa-f]{6}$/, { message: "Color must be a valid hex code without # (e.g. 2563eb)" }),
   platformServerCount: z.string().regex(/^\d*$/, { message: "Server count must be a number" }).optional(),
   platformHypervisorCount: z.string().regex(/^\d*$/, { message: "Hypervisor count must be a number" }).optional(),
-  platformCpuCores: z.string().regex(/^\d*$/, { message: "CPU cores must be a number" }).optional(),
-  platformMemoryGB: z.string().regex(/^\d*$/, { message: "Memory (GB) must be a number" }).optional(),
 });
 
 // Define social media platform type
@@ -440,8 +438,6 @@ export default function SettingsPage() {
       accentColor: getSettingValue("accent_color", "f59e0b"),
       platformServerCount: getSettingValue("platform_server_count", ""),
       platformHypervisorCount: getSettingValue("platform_hypervisor_count", ""),
-      platformCpuCores: getSettingValue("platform_cpu_cores", ""),
-      platformMemoryGB: getSettingValue("platform_memory_gb", ""),
     },
   });
 
@@ -1808,8 +1804,6 @@ export default function SettingsPage() {
       // Update platform statistics
       await updateSettingMutation.mutateAsync({ key: "platform_server_count", value: data.platformServerCount || "" });
       await updateSettingMutation.mutateAsync({ key: "platform_hypervisor_count", value: data.platformHypervisorCount || "" });
-      await updateSettingMutation.mutateAsync({ key: "platform_cpu_cores", value: data.platformCpuCores || "" });
-      await updateSettingMutation.mutateAsync({ key: "platform_memory_gb", value: data.platformMemoryGB || "" });
 
       // Update cache for both settings and platform stats
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
@@ -3598,33 +3592,9 @@ export default function SettingsPage() {
                         )}
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="platformCpuCores">CPU Cores</Label>
-                        <Input
-                          id="platformCpuCores"
-                          placeholder="Additional CPU cores (leave empty to use API)"
-                          {...generalForm.register("platformCpuCores")}
-                        />
-                        {generalForm.formState.errors.platformCpuCores && (
-                          <p className="text-sm text-destructive mt-1">
-                            {generalForm.formState.errors.platformCpuCores.message}
-                          </p>
-                        )}
-                      </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="platformMemoryGB">Memory (GB)</Label>
-                        <Input
-                          id="platformMemoryGB"
-                          placeholder="Additional memory in GB (leave empty to use API)"
-                          {...generalForm.register("platformMemoryGB")}
-                        />
-                        {generalForm.formState.errors.platformMemoryGB && (
-                          <p className="text-sm text-destructive mt-1">
-                            {generalForm.formState.errors.platformMemoryGB.message}
-                          </p>
-                        )}
-                      </div>
+
+
                     </div>
                   </div>
 
