@@ -102,12 +102,18 @@ export class CacheService {
   /**
    * Clear selective Node.js module cache
    * Only clears non-core modules that are safe to reload
+   * Note: This may not work in ES module environments or bundled builds
    */
   public async clearNodeModuleCache(): Promise<void> {
     try {
-      // Only proceed if we're in a Node.js environment
-      if (typeof require === 'undefined' || !require.cache) {
-        console.warn('Module cache clearing skipped - not in Node.js environment or require.cache not available');
+      // Check if we're in a CommonJS environment with require.cache
+      if (typeof require === 'undefined') {
+        console.warn('Module cache clearing skipped - ES module environment detected (require not available)');
+        return;
+      }
+      
+      if (!require.cache) {
+        console.warn('Module cache clearing skipped - require.cache not available (likely bundled build)');
         return;
       }
 
@@ -213,12 +219,18 @@ export class CacheService {
       // Node.js module cache status
       let cachedModulesCount: number | null = null;
       try {
-        // Only access require.cache in Node.js environment
+        // Only access require.cache in CommonJS environments
         if (typeof require !== 'undefined' && require.cache) {
           cachedModulesCount = Object.keys(require.cache).length;
+        } else if (typeof require === 'undefined') {
+          // ES module environment - module cache not applicable
+          console.log('Module cache unavailable - running in ES module environment');
+        } else {
+          // Bundled build or other environment
+          console.log('Module cache unavailable - likely bundled build or unsupported environment');
         }
       } catch (error) {
-        console.log('Could not access require.cache - likely in a browser environment');
+        console.log('Could not access require.cache:', error);
       }
 
       const currentTime = Date.now();

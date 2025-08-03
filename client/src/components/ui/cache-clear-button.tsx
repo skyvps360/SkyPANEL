@@ -116,7 +116,7 @@ export const CacheClearButton: React.FC = () => {
       if (response.success) {
         const { betterstack, gemini, modules } = response.data;
         const cacheAgeMinutes = Math.floor(betterstack.cacheAge / (1000 * 60));
-        const modulesText = modules.cachedModules !== null ? `${modules.cachedModules} cached` : 'unavailable';
+        const modulesText = modules.cachedModules !== null ? `${modules.cachedModules} cached` : 'unavailable (ES modules)';
         
         toast({
           title: "Cache Status",
