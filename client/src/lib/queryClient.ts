@@ -106,7 +106,10 @@ export async function apiRequest<T = any>(
     headers["Content-Type"] = "application/json";
   }
   
-  const res = await fetch(url, {
+  // Add /api prefix to the URL if it doesn't already have it
+  const fullUrl = url.startsWith('/api') ? url : `/api${url.startsWith('/') ? '' : '/'}${url}`;
+  
+  const res = await fetch(fullUrl, {
     method,
     headers,
     body: payload ? (isFormData ? payload : JSON.stringify(payload)) : undefined,
@@ -169,8 +172,11 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
     
+    // Add /api prefix to the URL if it doesn't already have it
+    const fullUrl = url.startsWith('/api') ? url : `/api${url.startsWith('/') ? '' : '/'}${url}`;
+    
     try {
-      const res = await fetch(url, {
+      const res = await fetch(fullUrl, {
         credentials: "include",
       });
 

@@ -1,5 +1,5 @@
 import { getBrandColors } from '@/lib/brand-theme';
-import { Server, HardDrive, Cpu, Database } from 'lucide-react';
+import { Server, HardDrive } from 'lucide-react';
 
 interface PlatformStats {
   serverCount: number;
@@ -27,28 +27,16 @@ export function InfrastructureTable({ platformStats, brandColors, isLoading }: I
   
   const metrics = [
     {
-      name: 'Servers',
-      value: platformStats?.serverCount || 0,
-      description: 'Virtual machines',
-      icon: <Server className="h-5 w-5" />,
-    },
-    {
       name: 'Hypervisors',
       value: platformStats?.hypervisorCount || 0,
       description: 'Physical servers',
       icon: <HardDrive className="h-5 w-5" />,
     },
     {
-      name: 'Compute',
-      value: platformStats?.maxCPU || 0,
-      description: 'CPU cores',
-      icon: <Cpu className="h-5 w-5" />,
-    },
-    {
-      name: 'Memory',
-      value: platformStats?.maxMemory || 0,
-      description: 'GB RAM',
-      icon: <Database className="h-5 w-5" />,
+      name: 'Servers',
+      value: platformStats?.serverCount || 0,
+      description: 'Virtual machines',
+      icon: <Server className="h-5 w-5" />,
     },
   ];
 
