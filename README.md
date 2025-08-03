@@ -2016,5 +2016,5 @@ While not required, attribution is appreciated:
 
 <div align="center">
   <h3>🌟 Thank you for choosing SkyPANEL! 🌟</h3>
-  <p>Built with ❤️ by the SkyPANEL team</p>
+  <p>Built with ❤️ by the SkyVPS360.xyz team</p>
 </div>
