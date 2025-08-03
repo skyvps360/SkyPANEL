@@ -137,7 +137,8 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch packages');
       }
-      return response.json();
+      const data = await response.json();
+      return data;
     },
     enabled: open,
   });
@@ -266,13 +267,18 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
   useEffect(() => {
     if (selectedPackage && form) {
       form.setValue('packageId', selectedPackage.id);
-      form.setValue('storage', selectedPackage.primaryStorage || selectedPackage.storage || 20);
+      form.setValue('storage', selectedPackage.primaryStorage || 20);
+      if (typeof selectedPackage.traffic === 'number') {
+        form.setValue('traffic', selectedPackage.traffic);
+      } else {
+        form.setValue('traffic', 1000);
+      }
       form.setValue('memory', selectedPackage.memory || 1024);
       form.setValue('cpuCores', selectedPackage.cpuCores || 1);
-      form.setValue('networkSpeedInbound', selectedPackage.primaryNetworkSpeedIn || selectedPackage.networkSpeedIn || 1000);
-      form.setValue('networkSpeedOutbound', selectedPackage.primaryNetworkSpeedOut || selectedPackage.networkSpeedOut || 1000);
-      form.setValue('storageProfile', selectedPackage.primaryStorageProfile || selectedPackage.storageProfile || 0);
-      form.setValue('networkProfile', selectedPackage.primaryNetworkProfile || selectedPackage.networkProfile || 0);
+      form.setValue('networkSpeedInbound', selectedPackage.primaryNetworkSpeedIn || 1000);
+      form.setValue('networkSpeedOutbound', selectedPackage.primaryNetworkSpeedOut || 1000);
+      form.setValue('storageProfile', selectedPackage.primaryStorageProfile || 0);
+      form.setValue('networkProfile', selectedPackage.primaryNetworkProfile || 0);
       
       // Reset OS selection when package changes since OS templates are package-specific
       setSelectedOsTemplate(null);
@@ -296,6 +302,8 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
 
   // ---------------- Package dropdown filtering / pagination ----------------
   const packages = Array.isArray(packagesData) ? packagesData : [];
+  console.log('Client packages data:', packagesData);
+  console.log('Processed packages:', packages);
   const filteredPackages = useMemo(() => {
     if (!packageSearch) return packages;
     return packages.filter((p: any) =>
@@ -548,63 +556,65 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Server Package</FormLabel>
-                        <Popover open={packageSelectOpen} onOpenChange={setPackageSelectOpen}>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                className="w-full justify-between"
-                                disabled={packagesLoading}
-                              >
-                                {selectedPackage ? selectedPackage.name : "Select a package..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-full p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                            <Command>
-                              <CommandInput
+                        <Select
+                          value={selectedPackage?.id?.toString() || ""}
+                          onValueChange={(value) => {
+                            const pkg = packages.find((p: any) => p.id.toString() === value);
+                            if (pkg) {
+                              field.onChange(pkg.id);
+                              setSelectedPackage(pkg);
+                            }
+                          }}
+                          disabled={packagesLoading}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a package..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <div className="p-2">
+                              <Input
                                 placeholder="Search packages..."
                                 value={packageSearch}
-                                onValueChange={setPackageSearch}
-                                className="text-foreground"
+                                onChange={(e) => setPackageSearch(e.target.value)}
+                                className="mb-2"
                               />
-                              <CommandList>
-                                <CommandEmpty className="text-muted-foreground">No packages found.</CommandEmpty>
-                                {paginatedPackages.map((pkg: any) => (
-                                  <CommandItem
-                                    key={pkg.id}
-                                    value={pkg.id.toString()}
-                                    onSelect={() => {
-                                      setSelectedPackage(pkg);
-                                      setPackageSelectOpen(false);
-                                    }}
-                                    className="cursor-pointer hover:bg-accent hover:text-accent-foreground"
-                                  >
-                                    <div className="flex items-center justify-between w-full">
-                                      <div>
-                                        <div className="font-medium text-foreground">{pkg.name}</div>
-                                        <div className="text-sm text-muted-foreground">
-                                          {pkg.cpuCores} CPU • {pkg.memory}MB RAM • {pkg.primaryStorage}GB Storage
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                                {totalPackagePages > 1 && (
-                                  <div className="p-2">
-                                    <Pagination
-                                      currentPage={packagePage}
-                                      totalPages={totalPackagePages}
-                                      onPageChange={setPackagePage}
-                                    />
+                            </div>
+                            {paginatedPackages.map((pkg: any) => (
+                              <SelectItem key={pkg.id} value={pkg.id.toString()}>
+                                <div className="flex items-center justify-between w-full">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="font-medium truncate">{pkg.name}</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {pkg.cpuCores}C•{pkg.memory}MB•{pkg.primaryStorage}GB
+                                    </Badge>
                                   </div>
-                                )}
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                                  <div className="flex items-center gap-2">
+                                    {(pkg.pricing || pkg.price) && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        ${((pkg.pricing?.price || pkg.price || 0)).toFixed(2)}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                            {totalPackagePages > 1 && (
+                              <div className="border-t bg-muted/30 p-2">
+                                <Pagination
+                                  currentPage={packagePage}
+                                  totalPages={totalPackagePages}
+                                  onPageChange={setPackagePage}
+                                  className="justify-center [&>*]:h-7 [&>*]:text-xs"
+                                />
+                              </div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Select a VirtFusion package that defines the server resources
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -676,76 +686,68 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                     name="operatingSystemId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Operating System</FormLabel>
-                        <Popover open={osSelectOpen} onOpenChange={setOsSelectOpen}>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" role="combobox" className="w-full justify-between" disabled={!selectedPackage || osTemplatesLoading || flatOsTemplates.length === 0}>
-                              {selectedOsTemplate
-                                ? `${selectedOsTemplate.name} ${selectedOsTemplate.version}`
-                                : !selectedPackage 
-                                  ? "Select a package first"
-                                  : "Select an operating system"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[400px] p-0">
-                            <Command shouldFilter={false}>
-                              <CommandInput
+                        <FormLabel>OS Template</FormLabel>
+                        <Select
+                          value={selectedOsTemplate?.id?.toString() || ""}
+                          onValueChange={(value) => {
+                            const template = flatOsTemplates.find((t: any) => t.id.toString() === value);
+                            if (template) {
+                              field.onChange(template.id);
+                              setSelectedOsTemplate(template);
+                            }
+                          }}
+                          disabled={!selectedPackage || osTemplatesLoading || flatOsTemplates.length === 0}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an operating system" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <div className="p-2">
+                              <Input
                                 placeholder="Search operating systems..."
                                 value={osSearch}
-                                onValueChange={setOsSearch}
-                                className="h-9"
+                                onChange={(e) => setOsSearch(e.target.value)}
+                                className="mb-2"
                               />
-                              <CommandList className="max-h-[200px]">
-                                <CommandEmpty>No operating systems found.</CommandEmpty>
-                                {paginatedOsTemplates.map((template: any) => (
-                                  <CommandItem
-                                    key={template.id}
-                                    value={`${template.name} ${template.version} ${template.variant || ""}`}
-                                    onSelect={(value) => {
-                                      field.onChange(template.id);
-                                      setSelectedOsTemplate(template);
-                                      setOsSelectOpen(false);
-                                    }}
-                                    className="px-3 py-2"
-                                  >
-                                    <div className="flex items-center justify-between w-full">
-                                      <div className="flex-1">
-                                        <div className="font-medium">
-                                          {template.name} {template.version}
-                                        </div>
-                                        {template.description && (
-                                          <div className="text-sm text-muted-foreground mt-1">
-                                            {template.description}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center gap-1 ml-2">
-                                        {template.eol && (
-                                          <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
-                                            EOL
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandList>
-                              {totalOsPages > 1 && (
-                                <div className="border-t bg-muted/30 p-2">
-                                  <Pagination
-                                    currentPage={osPage}
-                                    totalPages={totalOsPages}
-                                    onPageChange={setOsPage}
-                                    className="justify-center [&>*]:h-7 [&>*]:text-xs"
-                                  />
+                            </div>
+                            {paginatedOsTemplates.map((template: any) => (
+                              <SelectItem key={template.id} value={template.id.toString()}>
+                                <div className="flex items-center justify-between w-full">
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <span className="font-medium truncate">{template.name}</span>
+                                    <span className="text-sm text-muted-foreground">{template.version}</span>
+                                    {template.variant && (
+                                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                                        {template.variant}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1 ml-2">
+                                    {template.eol && (
+                                      <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                                        EOL
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
+                              </SelectItem>
+                            ))}
+                            {totalOsPages > 1 && (
+                              <div className="border-t bg-muted/30 p-2">
+                                <Pagination
+                                  currentPage={osPage}
+                                  totalPages={totalOsPages}
+                                  onPageChange={setOsPage}
+                                  className="justify-center [&>*]:h-7 [&>*]:text-xs"
+                                />
+                              </div>
+                            )}
+                          </SelectContent>
+                        </Select>
                         <FormDescription>
-                          The operating system template to install on the server. Available options depend on the selected package.
+                          The operating system template to install on the server
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
