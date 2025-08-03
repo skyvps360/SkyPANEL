@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import AdminLayout from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +23,7 @@ import { EnhancedColorSelector, ColorPreview, ThemeSelector } from "@/components
 import { getBrandColors } from "@/lib/brand-theme";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { UnifiedDepartmentManager } from "@/components/admin/unified-department-manager";
 import { ToastAction } from "@/components/ui/toast";
@@ -1918,55 +1919,87 @@ export default function SettingsPage() {
         ) : (
           <CardContent className="p-6 bg-card">
             <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab}>
-              <div className="mb-6 max-w-xs">
-                <style>{`
-                  .settings-select-trigger {
-                    border-color: ${brandColors.primary.full} !important;
-                    box-shadow: 0 0 0 1px ${brandColors.primary.light} !important;
-                  }
-                  .settings-select-trigger:hover {
-                    border-color: ${brandColors.primary.full} !important;
-                  }
-                  .settings-select-trigger:focus {
-                    box-shadow: 0 0 0 2px ${brandColors.primary.light} !important;
-                  }
-                  .settings-select-item[data-selected] {
-                    background-color: ${brandColors.primary.lighter} !important;
-                    color: ${brandColors.primary.full} !important;
-                  }
-                  .settings-select-item:hover {
-                    background-color: ${brandColors.primary.extraLight} !important;
-                  }
-                  .settings-select-item:focus {
-                    background-color: ${brandColors.primary.lighter} !important;
-                  }
-                `}</style>
-                <Select
-                  value={activeTab}
-                  onValueChange={setActiveTab}
-                >
-                  <SelectTrigger className="w-full focus:ring-2 settings-select-trigger">
-                    <SelectValue placeholder="Select a setting category" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 overflow-y-auto">
-                    {settingsOptions
-                      // Filter out the tickets option from the dropdown but keep it in the array for the tab
-                      .filter((option) => option.value !== "tickets")
-                      .map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                        className="settings-select-item"
+              {/* Responsive Navigation */}
+              {(() => {
+                const isMobile = useIsMobile();
+                
+                if (isMobile) {
+                  // Mobile: Dropdown navigation
+                  return (
+                    <div className="mb-6 max-w-xs">
+                      <style>{`
+                        .settings-select-trigger {
+                          border-color: ${brandColors.primary.full} !important;
+                          box-shadow: 0 0 0 1px ${brandColors.primary.light} !important;
+                        }
+                        .settings-select-trigger:hover {
+                          border-color: ${brandColors.primary.full} !important;
+                        }
+                        .settings-select-trigger:focus {
+                          box-shadow: 0 0 0 2px ${brandColors.primary.light} !important;
+                        }
+                        .settings-select-item[data-selected] {
+                          background-color: ${brandColors.primary.lighter} !important;
+                          color: ${brandColors.primary.full} !important;
+                        }
+                        .settings-select-item:hover {
+                          background-color: ${brandColors.primary.extraLight} !important;
+                        }
+                        .settings-select-item:focus {
+                          background-color: ${brandColors.primary.lighter} !important;
+                        }
+                      `}</style>
+                      <Select
+                        value={activeTab}
+                        onValueChange={setActiveTab}
                       >
-                        <div className="flex items-center">
-                          {option.icon}
-                          <span className="ml-2">{option.label}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                        <SelectTrigger className="w-full focus:ring-2 settings-select-trigger">
+                          <SelectValue placeholder="Select a setting category" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60 overflow-y-auto">
+                          {settingsOptions
+                            // Filter out the tickets option from the dropdown but keep it in the array for the tab
+                            .filter((option) => option.value !== "tickets")
+                            .map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value}
+                              className="settings-select-item"
+                            >
+                              <div className="flex items-center">
+                                {option.icon}
+                                <span className="ml-2">{option.label}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                } else {
+                  // Desktop: Horizontal tab navigation
+                  return (
+                    <div className="mb-6">
+                      <TabsList className="grid w-full grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 h-auto bg-muted p-1">
+                        {settingsOptions
+                          .filter((option) => option.value !== "tickets")
+                          .map((option) => (
+                            <TabsTrigger
+                              key={option.value}
+                              value={option.value}
+                              className="flex flex-col items-center justify-center gap-1 h-auto py-3 px-2 text-xs data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                            >
+                              <div className="flex items-center justify-center w-5 h-5">
+                                {option.icon}
+                              </div>
+                              <span className="text-center leading-tight">{option.label}</span>
+                            </TabsTrigger>
+                          ))}
+                      </TabsList>
+                    </div>
+                  );
+                }
+              })()}
 
               <TabsContent value="virtfusion">
                 <form onSubmit={virtFusionForm.handleSubmit(onVirtFusionSubmit)}>
