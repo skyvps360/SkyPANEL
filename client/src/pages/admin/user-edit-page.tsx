@@ -1243,16 +1243,16 @@ export default function UserEditPage() {
                           </div>
                         </div>
 
-                        <div className="bg-white p-3 rounded-md">
-                          <h4 className="text-base font-medium mb-2">Monthly Total</h4>
+                        <div className="bg-white dark:bg-gray-800 p-3 rounded-md">
+                          <h4 className="text-base font-medium mb-2 text-gray-900 dark:text-gray-100">Monthly Total</h4>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <p className="text-sm text-muted-foreground">Hours</p>
-                              <p className="text-lg font-medium">{usageData.data.data.monthlyTotal.hours || 0}</p>
+                              <p className="text-lg font-medium text-gray-900 dark:text-gray-100">{usageData.data.data.monthlyTotal.hours || 0}</p>
                             </div>
                             <div>
                               <p className="text-sm text-muted-foreground">Value</p>
-                              <p className="text-lg font-medium">
+                              <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
                                 {usageData.data.data.currency?.prefix || '$'}
                                 {usageData.data.data.monthlyTotal.value || '0.00'}
                                 {usageData.data.data.currency?.suffix || ''}

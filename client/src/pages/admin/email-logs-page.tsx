@@ -142,7 +142,7 @@ export default function EmailLogsPage() {
     return (
       <div className="space-y-2">
         {Object.entries(metadata).map(([key, value]) => (
-          <div key={key} className="text-sm">
+          <div key={key} className="text-sm text-gray-900 dark:text-gray-100">
             <span className="font-semibold">{key}:</span>{' '}
             {typeof value === 'object' ? JSON.stringify(value) : String(value)}
           </div>
@@ -534,7 +534,7 @@ export default function EmailLogsPage() {
                 </TabsContent>
                 
                 <TabsContent value="metadata" className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-md overflow-x-auto">
+                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-md overflow-x-auto">
                     {formatMetadata(selectedEmail.metadata)}
                   </div>
                 </TabsContent>
