@@ -10,6 +10,17 @@ import {
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 import { NetworkingChart } from "@/components/NetworkingChart";
 import {
@@ -46,7 +57,9 @@ import {
   Key,
   ScrollText,
   Eye,
-  EyeOff
+  EyeOff,
+  Trash,
+  AlertTriangle
 } from "lucide-react";
 
 // OS Icon Components with actual OS logos
@@ -1770,7 +1783,7 @@ export default function ServerDetailPage() {
 
   const deleteServerMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/admin/servers/${id}`, {
+      const response = await fetch(`/api/user/servers/${id}`, {
         method: 'DELETE',
       });
 
@@ -1787,7 +1800,7 @@ export default function ServerDetailPage() {
         description: "The server has been deleted successfully.",
       });
       // Redirect to servers list after deletion
-      window.location.href = '/admin/servers';
+      window.location.href = '/servers';
     },
     onError: (error) => {
       toast({
@@ -2114,6 +2127,43 @@ export default function ServerDetailPage() {
                     <ScrollText className="h-4 w-4" />
                     Activity Logs
                   </Button>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start gap-2 h-10 transition-all duration-200 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                      >
+                        <Trash className="h-4 w-4" />
+                        Delete Server
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Permanently Delete Server</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          <div className="flex items-start gap-2 my-2">
+                            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                            <div>
+                              <p>Are you sure you want to delete this server?</p>
+                              <p className="mt-2">This action is permanent and cannot be undone. All data associated with this server will be lost.</p>
+                            </div>
+                          </div>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteServerMutation.mutate()}
+                          disabled={deleteServerMutation.isPending}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {deleteServerMutation.isPending ? 'Deleting...' : 'Delete Permanently'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </div>

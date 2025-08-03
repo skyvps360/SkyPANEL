@@ -1610,6 +1610,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete server for user
+  app.delete("/api/user/servers/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const serverId = parseInt(req.params.id);
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      console.log(`User ${userId} deleting server ID: ${serverId}`);
+
+      // Get user to find their VirtFusion ID
+      const user = await storage.getUser(userId);
+      if (!user || !user.virtFusionId) {
+        return res.status(404).json({ error: "User not found or no VirtFusion account" });
+      }
+
+      // Verify the server belongs to this user
+      try {
+        // Get user's servers to verify ownership
+        const userServers = await virtFusionApi.getUserServers(user.virtFusionId);
+        if (!userServers || !userServers.data) {
+          return res.status(404).json({ error: "No servers found for user" });
+        }
+
+        // Check if the server belongs to the user
+        const serverExists = userServers.data.some((server: any) => server.id === serverId);
+        if (!serverExists) {
+          return res.status(403).json({ error: "Access denied - server does not belong to user" });
+        }
+      } catch (error: any) {
+        console.error(`Error verifying server ownership for user ${userId}:`, error.message);
+        return res.status(500).json({ error: "Failed to verify server ownership" });
+      }
+
+      // Schedule deletion after 24 hours by default (if supported by VirtFusion)
+      // Otherwise, it will be immediately deleted
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const scheduleAt = tomorrow.toISOString();
+
+      const result = await virtFusionApi.deleteServer(serverId, scheduleAt);
+      res.json({ success: true, message: "Server deletion initiated", scheduledTime: scheduleAt, data: result });
+    } catch (error: any) {
+      console.error(`Error deleting server ${req.params.id}:`, error.message);
+      res.status(500).json({
+        error: "Failed to delete server",
+        message: error.message
+      });
+    }
+  });
+
   // ----- Server Management Routes -----
   // All servers are now managed directly through VirtFusion, these routes now just return empty data
 
@@ -1736,7 +1793,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Client hypervisor endpoint removed
+  // Get client-accessible hypervisor groups
+  app.get("/api/hypervisor-groups", isAuthenticated, async (req, res) => {
+    try {
+      console.log("Fetching hypervisor groups for client");
+
+      // Get hypervisor groups from VirtFusion API
+      const result = await virtFusionApi.getHypervisorGroups();
+
+      if (!result) {
+        return res.json([]);
+      }
+
+      // Convert to array if it's not already
+      const groupsArray = Array.isArray(result) ? result : result.data || [];
+
+      // Filter to only show enabled groups to clients
+      const clientGroups = groupsArray.filter((group: any) => group.enabled !== false);
+
+      console.log(`Returning ${clientGroups.length} hypervisor groups for authenticated client`);
+      res.json(clientGroups);
+    } catch (error: any) {
+      console.error("Error fetching hypervisor groups for client:", error);
+      res.status(500).json({ error: "Failed to fetch hypervisor groups" });
+    }
+  });
 
   // Client template endpoint removed
 
@@ -4420,48 +4501,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all messages for a ticket
-  app.get("/api/tickets/:id/messages", isAuthenticated, async (req, res) => {
+  // Get OS templates
+  app.get("/api/os-templates", isAuthenticated, async (req, res) => {
     try {
-      const ticketId = parseInt(req.params.id);
+      const packageId = req.query.packageId ? parseInt(req.query.packageId as string) : null;
 
-      if (isNaN(ticketId)) {
-        return res.status(400).json({ error: "Invalid ticket ID" });
+      if (!packageId) {
+        return res.status(400).json({ error: "Package ID is required" });
       }
 
-      const ticket = await storage.getTicket(ticketId);
-      if (
-        !ticket ||
-        (ticket.userId !== req.user!.id && req.user!.role !== "admin")
-      ) {
-        return res.status(404).json({ error: "Ticket not found" });
+      console.log(`Client fetching OS templates for package ID: ${packageId}`);
+
+      // Get OS templates for the specific package from VirtFusion API
+      const result = await virtFusionApi.getOsTemplatesForPackage(packageId);
+
+      console.log(`VirtFusion OS templates response for package ${packageId}:`, JSON.stringify(result, null, 2));
+
+      // Handle different response formats and group templates by OS family
+      let templates = [];
+      if (result && result.data) {
+        templates = Array.isArray(result.data) ? result.data : [result.data];
+      } else if (Array.isArray(result)) {
+        templates = result;
       }
 
-      // Get the messages for this ticket
-      const messages = await storage.getTicketMessages(ticketId);
+      // VirtFusion already groups templates by distro (Debian, Ubuntu, Windows, etc.).
+      // Pass the data straight through so the frontend sees full sub-distro structure.
 
-      // For each message, enrich with user information
-      const enrichedMessages = await Promise.all(
-        messages.map(async (message) => {
-          const user = await storage.getUser(message.userId);
-          return {
-            ...message,
-            user: user
-              ? {
-                id: user.id,
-                fullName: user.fullName,
-                email: user.email,
-                role: user.role,
-              }
-              : undefined,
-          };
-        }),
-      );
+      res.json({
+        success: true,
+        data: templates
+      });
 
-      res.json(enrichedMessages);
     } catch (error: any) {
-      console.error(`Error fetching ticket messages:`, error);
-      res.status(500).json({ error: error.message });
+      console.error(`Error fetching OS templates for package ${req.query.packageId}:`, error.message);
+      res.status(500).json({
+        error: "Failed to fetch OS templates",
+        message: error.message
+      });
     }
   });
 
@@ -5842,7 +5919,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             amount: 0, // Amount unknown for legacy removals
             description: `Removed VirtFusion credit (Legacy Credit ID: ${creditId})`,
             type: "debit",
-            status: "completed"
+            status: "completed",
+            paymentMethod: "virtfusion_tokens"
           });
 
           return res.json({
@@ -5893,7 +5971,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             amount: -Math.abs(dollarAmount),
             description: `Removed ${tokenAmount} tokens from VirtFusion${reference ? ` (${reference})` : ''}`,
             type: "debit",
-            status: "pending"
+            status: "pending",
+            paymentMethod: "virtfusion_tokens"
           });
 
           // Update the reference with the transaction ID
@@ -6598,6 +6677,222 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         error: "Failed to build server",
         message: error.message
+      });
+    }
+  });
+
+  // 🖥️ Client Server Management - Create server (authenticated users)
+  app.post("/api/user/servers", isAuthenticated, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Check if user has VirtFusion account linked
+      if (!user.virtFusionId) {
+        return res.status(400).json({ 
+          error: "VirtFusion account required",
+          message: "You need to link your account to VirtFusion before creating servers."
+        });
+      }
+
+      // Check if user has sufficient VirtFusion tokens
+      try {
+        await virtFusionApi.updateSettings();
+        if (virtFusionApi.isConfigured()) {
+          const balanceData = await virtFusionApi.getUserHourlyStats(user.id);
+          if (balanceData?.data?.credit?.tokens) {
+            const tokenAmount = parseFloat(balanceData.data.credit.tokens);
+            if (tokenAmount <= 0) {
+              return res.status(400).json({ 
+                error: "Insufficient credits",
+                message: "You need VirtFusion tokens to create servers. Please add credits to your account."
+              });
+            }
+          } else {
+            return res.status(400).json({ 
+              error: "Insufficient credits",
+              message: "You need VirtFusion tokens to create servers. Please add credits to your account."
+            });
+          }
+        }
+      } catch (virtFusionError) {
+        console.error("Error checking VirtFusion balance:", virtFusionError);
+        return res.status(500).json({ 
+          error: "Failed to verify credits",
+          message: "Unable to verify your VirtFusion credits. Please try again."
+        });
+      }
+
+      // Validation schema for server creation
+      const createServerSchema = z.object({
+        packageId: z.number().int().positive("Package ID must be a positive integer"),
+        userId: z.number().int().positive("User ID must be a positive integer"),
+        hypervisorId: z.number().int().positive("Hypervisor Group ID must be a positive integer"),
+        ipv4: z.number().int().min(0).default(1),
+        storage: z.number().int().positive("Storage must be a positive integer"),
+        traffic: z.number().int().min(0, "Traffic must be a non-negative integer (0 = unlimited)"),
+        memory: z.number().int().positive("Memory must be a positive integer"),
+        cpuCores: z.number().int().positive("CPU cores must be a positive integer"),
+        networkSpeedInbound: z.number().int().positive().default(1000),
+        networkSpeedOutbound: z.number().int().positive().default(1000),
+        storageProfile: z.number().int().min(0).default(0),
+        networkProfile: z.number().int().optional().default(0),
+        firewallRulesets: z.array(z.number().int()).default([]),
+        hypervisorAssetGroups: z.array(z.number().int()).default([]),
+        additionalStorage1Enable: z.boolean().default(false),
+        additionalStorage2Enable: z.boolean().default(false),
+        additionalStorage1Profile: z.number().int().positive().optional(),
+        additionalStorage2Profile: z.number().int().positive().optional(),
+        additionalStorage1Capacity: z.number().int().positive().optional(),
+        additionalStorage2Capacity: z.number().int().positive().optional()
+      });
+
+      // Override userId to use the current user's ID
+      const serverData = {
+        ...req.body,
+        userId: user.id // Force use of current user's ID
+      };
+
+      // Validate request body
+      const validationResult = createServerSchema.safeParse(serverData);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationResult.error.errors
+        });
+      }
+
+      const validatedData = validationResult.data;
+
+      // Prepare server creation data for VirtFusion API
+      const virtFusionServerData = {
+        packageId: validatedData.packageId,
+        userId: user.virtFusionId, // Use VirtFusion user ID
+        hypervisorId: validatedData.hypervisorId,
+        ipv4: validatedData.ipv4,
+        storage: validatedData.storage,
+        traffic: validatedData.traffic,
+        memory: validatedData.memory,
+        cpuCores: validatedData.cpuCores,
+        networkSpeedInbound: validatedData.networkSpeedInbound,
+        networkSpeedOutbound: validatedData.networkSpeedOutbound,
+        storageProfile: validatedData.storageProfile,
+        firewallRulesets: validatedData.firewallRulesets,
+        hypervisorAssetGroups: validatedData.hypervisorAssetGroups,
+        additionalStorage1Enable: validatedData.additionalStorage1Enable,
+        additionalStorage2Enable: validatedData.additionalStorage2Enable,
+        // Self-service server configuration for hourly billing
+        selfService: 1, // 1 = hourly self-service enabled
+        selfServiceHourlyCredit: true, // Enable credit balance billing for hourly self-service
+        selfServiceHourlyGroupProfiles: [], // Required array field - empty for default
+        selfServiceResourceGroupProfiles: [], // Required array field - empty for default
+        selfServiceHourlyResourcePack: 1 // Default hourly resource pack
+      };
+
+      // Only include networkProfile if it's not 0
+      if (validatedData.networkProfile && validatedData.networkProfile !== 0) {
+        virtFusionServerData.networkProfile = validatedData.networkProfile;
+      }
+
+      // Add additional storage configurations if enabled
+      if (validatedData.additionalStorage1Enable && validatedData.additionalStorage1Profile && validatedData.additionalStorage1Capacity) {
+        virtFusionServerData.additionalStorage1Profile = validatedData.additionalStorage1Profile;
+        virtFusionServerData.additionalStorage1Capacity = validatedData.additionalStorage1Capacity;
+      }
+
+      if (validatedData.additionalStorage2Enable && validatedData.additionalStorage2Profile && validatedData.additionalStorage2Capacity) {
+        virtFusionServerData.additionalStorage2Profile = validatedData.additionalStorage2Profile;
+        virtFusionServerData.additionalStorage2Capacity = validatedData.additionalStorage2Capacity;
+      }
+
+      console.log(`Client creating server for user ${user.id}:`, virtFusionServerData);
+
+      // Create server using VirtFusion API
+      const result = await virtFusionApi.createServer(virtFusionServerData);
+
+      console.log("VirtFusion create server response:", JSON.stringify(result, null, 2));
+
+      res.json({
+        success: true,
+        data: result.data,
+        message: "Server created successfully"
+      });
+
+    } catch (error: any) {
+      console.error("Error creating server:", error.message);
+      res.status(500).json({ 
+        error: "Failed to create server",
+        message: error.message 
+      });
+    }
+  });
+
+  // 🖥️ Client Server Management - Build server with OS (authenticated users)
+  app.post("/api/user/servers/:serverId/build", isAuthenticated, async (req, res) => {
+    try {
+      const { serverId } = req.params;
+      const {
+        operatingSystemId,
+        name,
+        hostname,
+        sshKeys = [],
+        vnc = false,
+        ipv6 = false,
+        email = true,
+        swap = 512
+      } = req.body;
+
+      // Verify the server belongs to the current user
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get the server details to verify ownership
+      try {
+        const serverDetails = await virtFusionApi.getServer(parseInt(serverId));
+        if (!serverDetails || !serverDetails.data) {
+          return res.status(404).json({ error: "Server not found" });
+        }
+
+        // Check if the server belongs to the current user
+        if (serverDetails.data.userId !== user.virtFusionId) {
+          return res.status(403).json({ error: "Access denied" });
+        }
+      } catch (serverError) {
+        console.error("Error verifying server ownership:", serverError);
+        return res.status(500).json({ error: "Failed to verify server ownership" });
+      }
+
+      console.log(`Client building server ${serverId} with OS ${operatingSystemId}`);
+
+      // Build the server using VirtFusion API
+      const result = await virtFusionApi.buildServer(parseInt(serverId), {
+        operatingSystemId,
+        name,
+        hostname: hostname || name,
+        sshKeys,
+        vnc,
+        ipv6,
+        email,
+        swap
+      });
+
+      console.log("VirtFusion build server response:", JSON.stringify(result, null, 2));
+
+      res.json({
+        success: true,
+        data: result.data,
+        message: "Server build initiated successfully"
+      });
+
+    } catch (error: any) {
+      console.error("Error building server:", error.message);
+      res.status(500).json({ 
+        error: "Failed to build server",
+        message: error.message 
       });
     }
   });
@@ -8183,66 +8478,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get OS templates
   app.get("/api/os-templates", isAuthenticated, async (req, res) => {
     try {
-      // Try to get from VirtFusion first
-      try {
-        const templatesData = await virtFusionApi.getOsTemplates();
+      const packageId = req.query.packageId ? parseInt(req.query.packageId as string) : null;
 
-        // Log the response for debugging
-        console.log("OS Templates response:", JSON.stringify(templatesData));
-
-        // Handle different response formats
-        let templates;
-        if (Array.isArray(templatesData)) {
-          templates = templatesData;
-        } else if (templatesData.data && Array.isArray(templatesData.data)) {
-          templates = templatesData.data;
-        } else if (
-          templatesData &&
-          typeof templatesData === "object" &&
-          Object.keys(templatesData).length > 0
-        ) {
-          // VirtFusion might return a nested structure we need to process
-          // Create a flat list from the nested categories
-          templates = [];
-
-          // Check if it's the structure with categories and template groups
-          if (Array.isArray(templatesData.categories)) {
-            // Process categories format
-            templatesData.categories.forEach((category) => {
-              if (category.templates && Array.isArray(category.templates)) {
-                templates = [...templates, ...category.templates];
-              }
-            });
-          } else {
-            // Check if we have a collection of template groups
-            Object.keys(templatesData).forEach((key) => {
-              const group = templatesData[key];
-              if (group && group.templates && Array.isArray(group.templates)) {
-                templates = [...templates, ...group.templates];
-              }
-            });
-          }
-        } else {
-          throw new Error("Unexpected API response format");
-        }
-
-        // If we got templates, return them in the expected format
-        if (templates && templates.length > 0) {
-          return res.json({ data: templates });
-        }
-
-        // Fall through to error if no templates were found
-        throw new Error("No templates found in API response");
-      } catch (error) {
-        console.error("Error fetching OS templates from API:", error);
-        return res.status(500).json({
-          error:
-            "Failed to retrieve operating system templates from VirtFusion API. Please check API connectivity.",
-        });
+      if (!packageId) {
+        return res.status(400).json({ error: "Package ID is required" });
       }
+
+      console.log(`Client fetching OS templates for package ID: ${packageId}`);
+
+      // Get OS templates for the specific package from VirtFusion API
+      const result = await virtFusionApi.getOsTemplatesForPackage(packageId);
+
+      console.log(`VirtFusion OS templates response for package ${packageId}:`, JSON.stringify(result, null, 2));
+
+      // Handle different response formats and group templates by OS family
+      let templates = [];
+      if (result && result.data) {
+        templates = Array.isArray(result.data) ? result.data : [result.data];
+      } else if (Array.isArray(result)) {
+        templates = result;
+      }
+
+      // VirtFusion already groups templates by distro (Debian, Ubuntu, Windows, etc.).
+      // Pass the data straight through so the frontend sees full sub-distro structure.
+
+      res.json({
+        success: true,
+        data: templates
+      });
+
     } catch (error: any) {
-      console.error("Error fetching OS templates:", error);
-      res.status(500).json({ error: error.message });
+      console.error(`Error fetching OS templates for package ${req.query.packageId}:`, error.message);
+      res.status(500).json({
+        error: "Failed to fetch OS templates",
+        message: error.message
+      });
     }
   });
 

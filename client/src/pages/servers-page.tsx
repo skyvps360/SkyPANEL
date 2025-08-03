@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Cpu, HardDrive, MemoryStick, Zap, Settings } from "lucide-react";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
+import ClientServerCreateModal from "@/components/ClientServerCreateModal";
 import {
   Table,
   TableBody,
@@ -79,6 +80,7 @@ export default function ServersPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshClicks, setRefreshClicks] = useState<number[]>([]);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: brandingData } = useQuery<{
     company_name: string;
@@ -266,10 +268,13 @@ export default function ServersPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
-              <VirtFusionSsoButton
-                text="Create Server"
+              <Button
+                onClick={() => setShowCreateModal(true)}
                 className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
-              />
+              >
+                <Server className="h-4 w-4" />
+                Create Server in {brandingData?.company_name || 'SkyPANEL'}
+              </Button>
               <Button
                 onClick={handleRefresh}
                 disabled={isRefreshing || isRateLimited}
@@ -620,20 +625,37 @@ export default function ServersPage() {
                   >
                     Clear Filters
                   </Button>
-                  <VirtFusionSsoButton
-                    text="Create New Server"
+                  <Button
+                    onClick={() => setShowCreateModal(true)}
                     className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                  />
+                  >
+                    <Server className="h-4 w-4" />
+                    Create New Server
+                  </Button>
                 </div>
               ) : (
-                <VirtFusionSsoButton
-                  text="Create Your First Server"
+                <Button
+                  onClick={() => setShowCreateModal(true)}
                   className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                />
+                >
+                  <Server className="h-4 w-4" />
+                  Create Your First Server
+                </Button>
               )}
             </CardContent>
           </Card>
         )}
+
+        {/* Client Server Create Modal */}
+        <ClientServerCreateModal
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
+          onSuccess={() => {
+            // Refresh the server list after successful creation
+            refetch();
+          }}
+          companyName={brandingData?.company_name}
+        />
       </div>
     </DashboardLayout>
   );

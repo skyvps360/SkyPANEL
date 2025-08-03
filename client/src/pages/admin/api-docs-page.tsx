@@ -831,17 +831,42 @@ const serverEndpoints: ApiEndpoint[] = [
   },
   {
     method: "DELETE",
-    path: "/api/servers/:id",
-    description: "Delete a server",
+    path: "/api/user/servers/:id",
+    description: "Delete a server (user-specific endpoint)",
     parameters: [
       { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
     ],
     responseExample: JSON.stringify({
       success: true,
-      message: "Server deletion initiated"
+      message: "Server deletion initiated",
+      scheduledTime: "2025-04-16T12:00:00Z",
+      data: {
+        id: 123,
+        status: "scheduled_for_deletion"
+      }
     }, null, 2),
     requiresAuth: true,
-    tags: ["servers", "deletion"]
+    tags: ["servers", "deletion", "user"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/admin/servers/:id",
+    description: "Delete a server (admin endpoint)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Server deletion initiated",
+      scheduledTime: "2025-04-16T12:00:00Z",
+      data: {
+        id: 123,
+        status: "scheduled_for_deletion"
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["servers", "deletion", "admin"]
   },
   {
     method: "POST",
