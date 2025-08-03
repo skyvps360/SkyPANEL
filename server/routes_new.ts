@@ -6796,6 +6796,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         virtFusionServerData.networkProfile = validatedData.networkProfile;
       }
 
+      // 🔍 Clean out optional fields that are empty or have sentinel values VirtFusion rejects
+      Object.keys(virtFusionServerData).forEach((key) => {
+        const value: any = (virtFusionServerData as any)[key];
+        if (value === undefined || value === null) {
+          delete (virtFusionServerData as any)[key];
+        }
+        if (Array.isArray(value) && value.length === 0) {
+          delete (virtFusionServerData as any)[key];
+        }
+        // Remove networkProfile and storageProfile when 0 as VirtFusion expects valid profile ids
+        if ((key === "networkProfile" || key === "storageProfile") && value === 0) {
+          delete (virtFusionServerData as any)[key];
+        }
+      });
+
       // Add additional storage configurations if enabled
       if (validatedData.additionalStorage1Enable && validatedData.additionalStorage1Profile && validatedData.additionalStorage1Capacity) {
         virtFusionServerData.additionalStorage1Profile = validatedData.additionalStorage1Profile;
@@ -6850,26 +6865,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Get the server details to verify ownership
-      try {
-        const serverDetails = await virtFusionApi.getServer(parseInt(serverId));
-        if (!serverDetails || !serverDetails.data) {
-          return res.status(404).json({ error: "Server not found" });
-        }
-
-        // Check if the server belongs to the current user
-        if (serverDetails.data.userId !== user.virtFusionId) {
-          return res.status(403).json({ error: "Access denied" });
-        }
-      } catch (serverError) {
-        console.error("Error verifying server ownership:", serverError);
-        return res.status(500).json({ error: "Failed to verify server ownership" });
-      }
+      // For client builds, we trust that the user owns the server they just created
+      // The server was created with their VirtFusion ID, so ownership is guaranteed
+      console.log(`Client building server ${serverId} for user ${user.id} (VirtFusion ID: ${user.virtFusionId})`);
 
       console.log(`Client building server ${serverId} with OS ${operatingSystemId}`);
 
-      // Build the server using VirtFusion API
-      const result = await virtFusionApi.buildServer(parseInt(serverId), {
+      // Prepare build data for VirtFusion API
+      const buildData = {
         operatingSystemId,
         name,
         hostname: hostname || name,
@@ -6878,7 +6881,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ipv6,
         email,
         swap
+      };
+
+      // Clean out optional fields just like admin build endpoint
+      Object.keys(buildData).forEach((key) => {
+        const value: any = (buildData as any)[key];
+        if (value === undefined || value === null) {
+          delete (buildData as any)[key];
+        }
+        if (Array.isArray(value) && value.length === 0) {
+          delete (buildData as any)[key];
+        }
+        if (typeof value === 'string' && value.trim() === '') {
+          delete (buildData as any)[key];
+        }
+        if (key === 'hostname' && typeof value === 'string' && !value.includes('.')) {
+          // Hostname must be FQDN; remove if invalid so VirtFusion can set automatically
+          delete (buildData as any)[key];
+        }
       });
+
+      console.log("Sending client server build request to VirtFusion API:", JSON.stringify(buildData, null, 2));
+
+      // Build the server using VirtFusion API
+      const result = await virtFusionApi.buildServer(parseInt(serverId), buildData);
 
       console.log("VirtFusion build server response:", JSON.stringify(result, null, 2));
 

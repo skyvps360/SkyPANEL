@@ -117,6 +117,48 @@ export default function ServersPage() {
   const allServers = serversResponse?.data || [];
 
   const filteredServers = allServers.filter((server: any) => {
+    // Temporary debugging for server ID 278 to see what fields are available
+    if (server.id === 278) {
+      console.log('Server 278 data:', {
+        id: server.id,
+        name: server.name,
+        deleteLevel: server.deleteLevel,
+        state: server.state,
+        commissionStatus: server.commissionStatus,
+        scheduledDeletion: server.scheduledDeletion,
+        deletionScheduled: server.deletionScheduled,
+        deleteScheduled: server.deleteScheduled,
+        deletedAt: server.deletedAt,
+        scheduledForDeletion: server.scheduledForDeletion,
+        deletionDate: server.deletionDate
+      });
+    }
+
+    // Exclude servers that are being deleted - check multiple possible fields
+    if (server.deleteLevel && server.deleteLevel > 0) {
+      return false;
+    }
+    
+    // Also check if server has a deletion scheduled (alternative field names)
+    if (server.scheduledDeletion || server.deletionScheduled || server.deleteScheduled) {
+      return false;
+    }
+    
+    // Check if server state indicates deletion
+    if (server.state === 'deleting' || server.state === 'deleted' || server.state === 'scheduled_deletion') {
+      return false;
+    }
+    
+    // Check commissionStatus - if it's 0, the server might be decommissioned/deleted
+    if (server.commissionStatus === 0) {
+      return false;
+    }
+    
+    // Check if server has a deletion timestamp or scheduled deletion
+    if (server.deletedAt || server.scheduledForDeletion || server.deletionDate) {
+      return false;
+    }
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       const matchesSearch =
