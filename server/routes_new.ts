@@ -6594,7 +6594,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firewallRulesets: validatedData.firewallRulesets,
         hypervisorAssetGroups: validatedData.hypervisorAssetGroups,
         additionalStorage1Enable: validatedData.additionalStorage1Enable,
-        additionalStorage2Enable: validatedData.additionalStorage2Enable
+        additionalStorage2Enable: validatedData.additionalStorage2Enable,
+        // Self-service server configuration for hourly billing
+        selfService: 1, // 1 = hourly self-service enabled
+        selfServiceHourlyCredit: true, // Enable credit balance billing for hourly self-service
+        selfServiceHourlyGroupProfiles: [], // Required array field - empty for default
+        selfServiceResourceGroupProfiles: [], // Required array field - empty for default
+        selfServiceHourlyResourcePack: 1 // Default hourly resource pack
       };
 
       // Add additional storage configurations if enabled

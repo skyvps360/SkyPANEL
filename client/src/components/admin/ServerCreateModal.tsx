@@ -280,7 +280,7 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
         additionalStorage1Profile: data.additionalStorage1Profile,
         additionalStorage2Profile: data.additionalStorage2Profile,
         additionalStorage1Capacity: data.additionalStorage1Capacity,
-        additionalStorage2Capacity: data.additionalStorage2Capacity,
+        additionalStorage2Capacity: data.additionalStorage2Capacity
       };
       
       
@@ -890,6 +890,8 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
                         )}
                       </CardContent>
                     </Card>
+
+
                   </div>
 
                                       {/* Hypervisor Group Selection */}
