@@ -645,10 +645,8 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
 1. **Build using Docker Compose** (recommended):
 
 ```bash
+docker-compose build```
 
-docker-compose build
-
-```
 
 2. **Build directly with Docker**:
 
@@ -676,7 +674,7 @@ docker tag skypanel-app skyvps360/skypanel-app:latest
 
 3. Push the image to Docker Hub:
 ```bash
-   docker push skyvps360/skypanel-app:latest
+docker push skyvps360/skypanel-app:latest
 ```
 
 ### Running the Container
@@ -684,23 +682,23 @@ docker tag skypanel-app skyvps360/skypanel-app:latest
 1. **Create a `.env` file** with all required environment variables:
 
 ```bash
-   # Essential variables for Docker deployment
-   DATABASE_URL=postgres://username:password@hostname:port/database
-   SESSION_SECRET=your_secure_random_string_here
-   VIRTFUSION_API_URL=https://your-virtfusion.com/api/v1
-   VIRTFUSION_API_KEY=your_virtfusion_api_key
-   PORT=3333
-   NODE_ENV=production
+# Essential variables for Docker deployment
+DATABASE_URL=postgres://username:password@hostname:port/database
+SESSION_SECRET=your_secure_random_string_here
+VIRTFUSION_API_URL=https://your-virtfusion.com/api/v1
+VIRTFUSION_API_KEY=your_virtfusion_api_key
+PORT=3333
+NODE_ENV=production
 ```
 
 2. **Run the container**:
 
 ```bash
-   docker run -d \
-     --name skypanel-app \
-     -p 3333:3333 \
-     --env-file .env \
-     skyvps360/skypanel-app:latest
+docker run -d \
+  --name skypanel-app \
+  -p 3333:3333 \
+  --env-file .env \
+  skyvps360/skypanel-app:latest
 ```
 
 3. **Verify the deployment**:
@@ -708,8 +706,8 @@ docker tag skypanel-app skyvps360/skypanel-app:latest
 
    Check container status:
 ```bash
-   docker ps
-   docker logs skypanel-app
+docker ps
+docker logs skypanel-app
 ```
 
 ### Using Docker Compose
@@ -720,34 +718,34 @@ docker tag skypanel-app skyvps360/skypanel-app:latest
 
 3. **Start the services**:
 ```bash
-   # Start in detached mode
-   docker-compose up -d
-   
-   # Or start with logs visible
-   docker-compose up
+# Start in detached mode
+docker-compose up -d
+
+# Or start with logs visible
+docker-compose up
 ```
 
 4. **Check service status**:
 ```bash
-   docker-compose ps
-   docker-compose logs -f skypanel-app
+docker-compose ps
+docker-compose logs -f skypanel-app
 ```
 
 ### Updating the Application
 
 1. **Stop the current containers**:
 ```bash
-   docker-compose down
+docker-compose down
 ```
 
 2. **Pull the latest image**:
 ```bash
-   docker pull skyvps360/skypanel-app:latest
+docker pull skyvps360/skypanel-app:latest
 ```
 
 3. **Restart with the new image**:
 ```bash
-   docker-compose up -d
+docker-compose up -d
 ```
 
 4. **Verify the update**:
