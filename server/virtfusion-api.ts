@@ -563,6 +563,11 @@ export class VirtFusionApi {
     return this.request("GET", "/packages");
   }
 
+  // Get a single package by ID
+  async getPackage(packageId: number) {
+    return this.request("GET", `/packages/${packageId}`);
+  }
+
   // Get all operating system templates
   async getOsTemplates() {
     try {

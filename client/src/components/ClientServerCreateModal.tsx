@@ -34,7 +34,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle, ChevronsUpDown, Dices, Key, AlertCircle, CreditCard } from "lucide-react";
+import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle, ChevronsUpDown, Dices, Key, AlertCircle, CreditCard, Clock, Loader2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   Command,
@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/command";
 import { Pagination } from "@/components/ui/pagination";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 
 interface ClientServerCreateModalProps {
   open: boolean;
@@ -97,6 +98,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
   const [selectedOsTemplate, setSelectedOsTemplate] = useState<any>(null);
   const [step, setStep] = useState<'create' | 'building' | 'installing' | 'success' | 'failed'>('create');
   const [createdServer, setCreatedServer] = useState<any>(null);
+  const [serverName, setServerName] = useState<string>('');
   const queryClient = useQueryClient();
   const [pollId, setPollId] = useState<NodeJS.Timeout | null>(null);
   // Stores VirtFusion queue ID returned by the build request (used for polling)
@@ -330,11 +332,129 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
     return `${adjective}-${noun}-${number}`;
   };
 
+  // Helper to poll VirtFusion queue item status (preferred when we have queueId)
+  const startQueuePolling = (vfQueueId: number, serverId: number) => {
+    // Clear any existing poller first
+    if (pollId) clearInterval(pollId);
+
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin/queue/${vfQueueId}`);
+        if (!res.ok) throw new Error("Failed to fetch queue item");
+        const queueItem = await res.json();
+
+        // VirtFusion returns a 'data' wrapper; fall back to root when absent
+        const itemData: any = queueItem.data || queueItem;
+
+        const finished = itemData.finished !== null && itemData.finished !== undefined;
+        const failed = itemData.failed === true || itemData.failed === 1;
+
+        if (finished) {
+          clearInterval(id);
+          setPollId(null);
+          if (!failed) {
+            setStep("success");
+            toast({
+              title: "Server Ready!",
+              description: `Server "${serverName}" has been successfully created and is now ready to use.`,
+            });
+          } else {
+            setStep("failed");
+            toast({
+              title: "Server Build Failed",
+              description: "The server build process failed. Please try again.",
+              variant: "destructive",
+            });
+          }
+          // Invalidate server list cache once done so UI refreshes
+          queryClient.invalidateQueries({ queryKey: ["/api/user/servers"] });
+        }
+      } catch (err) {
+        console.error("Queue polling error:", err);
+      }
+    }, 10000); // 10-second interval
+
+    setPollId(id);
+  };
+
+  // Helper to poll VirtFusion for build status (fallback when no queueId)
+  const startBuildPolling = (serverId: number) => {
+    // Clear any existing poller
+    if (pollId) clearInterval(pollId);
+
+    const id = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/user/servers/${serverId}`);
+        if (!res.ok) throw new Error('Failed to fetch server status');
+        const serverResp = await res.json();
+
+        // VirtFusion API usually wraps the response in a data property
+        const serverData: any = serverResp.data || serverResp;
+        const state: string | undefined = serverData.state;
+        const buildFailed: boolean = serverData.buildFailed === true;
+        const tasksActiveFlag = serverData.tasks?.active;
+
+        // If tasksActiveFlag is explicitly false the queue finished processing
+        if (tasksActiveFlag === false) {
+          clearInterval(id);
+          setPollId(null);
+          if (!buildFailed) {
+            setStep('success');
+            toast({
+              title: "Server Ready!",
+              description: `Server "${serverName}" has been successfully created and is now ready to use.`,
+            });
+          } else {
+            setStep('failed');
+            toast({
+              title: "Server Build Failed",
+              description: "The server build process failed. Please try again.",
+              variant: "destructive",
+            });
+          }
+          queryClient.invalidateQueries({ queryKey: ['/api/user/servers'] });
+          return;
+        }
+
+        // If tasks are still active keep waiting
+        if (tasksActiveFlag === true) {
+          return;
+        }
+
+        // Fallback – rely on explicit state flags if tasks info is missing
+        if (state === 'complete') {
+          clearInterval(id);
+          setPollId(null);
+          setStep('success');
+          toast({
+            title: "Server Ready!",
+            description: `Server "${serverName}" has been successfully created and is now ready to use.`,
+          });
+          queryClient.invalidateQueries({ queryKey: ['/api/user/servers'] });
+        } else if (buildFailed || state === 'failed' || state === 'error') {
+          clearInterval(id);
+          setPollId(null);
+          setStep('failed');
+          toast({
+            title: "Server Build Failed",
+            description: "The server build process failed. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 10000); // 10-second interval
+
+    setPollId(id);
+  };
+
   const createServerMutation = useMutation({
     mutationFn: async (data: ServerCreateFormData) => {
       console.log("Creating server with data:", data);
       
       // Step 1: Create server hardware
+      setStep('building');
       const createResponse = await fetch('/api/user/servers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -348,8 +468,10 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
 
       const createResult = await createResponse.json();
       console.log("Server creation result:", createResult);
+      setCreatedServer(createResult);
 
       // Step 2: Build server with OS
+      setStep('installing');
       const buildData = {
         operatingSystemId: data.operatingSystemId,
         name: data.name,
@@ -375,19 +497,25 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
       const buildResult = await buildResponse.json();
       console.log("Server build result:", buildResult);
 
+      // Start polling based on available information
+      const qId = buildResult.data?.queueId ?? buildResult.data?.queue_id ?? null;
+      setQueueId(qId ?? null);
+      
+      if (qId) {
+        // Prefer queue polling when we have a queue ID
+        startQueuePolling(qId, createResult.data.id);
+      } else {
+        // Fall back to server polling
+        startBuildPolling(createResult.data.id);
+      }
+
       return { createResult, buildResult };
     },
-    onSuccess: (result) => {
-      console.log("Server creation successful:", result);
-      setCreatedServer(result.createResult);
-      setStep('success');
-      toast({
-        title: "Server Created Successfully",
-        description: `Server "${result.createResult.data.name}" is being built and will be ready shortly.`,
-      });
-      if (onSuccess) {
-        onSuccess();
-      }
+    onSuccess: (data) => {
+      // Invalidate servers list to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['/api/user/servers'] });
+      // Call the onSuccess prop if provided
+      onSuccess?.();
     },
     onError: (error: any) => {
       console.error("Server creation failed:", error);
@@ -401,15 +529,30 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
   });
 
   const onSubmit = (data: ServerCreateFormData) => {
+    setServerName(data.name);
     createServerMutation.mutate(data);
   };
 
+  // Clear poller on unmount
+  useEffect(() => {
+    return () => {
+      if (pollId) clearInterval(pollId);
+    };
+  }, [pollId]);
+
   const resetAndClose = () => {
+    // Clear any active polling
+    if (pollId) {
+      clearInterval(pollId);
+      setPollId(null);
+    }
+    
     setSelectedPackage(null);
     setSelectedHypervisorGroup(null);
     setSelectedOsTemplate(null);
     setStep('create');
     setCreatedServer(null);
+    setServerName('');
     setQueueId(null);
     setOsSelectOpen(false);
     setOsSearch("");
@@ -422,6 +565,11 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
+    // Prevent closing during building or installing steps
+    if (!nextOpen && (step === 'building' || step === 'installing')) {
+      return;
+    }
+    
     if (!nextOpen) {
       resetAndClose();
     } else {
@@ -439,14 +587,44 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent 
+        className={cn(
+          "max-w-4xl max-h-[90vh] overflow-y-auto",
+          // Hide close button during building/installing
+          (step === 'building' || step === 'installing') && "[&>button]:hidden"
+        )}
+        onPointerDownOutside={(e) => {
+          // Prevent closing on backdrop click during building/installing
+          if (step === 'building' || step === 'installing') {
+            e.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(e) => {
+          // Prevent closing on escape key during building/installing
+          if (step === 'building' || step === 'installing') {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Server className="h-5 w-5" />
-            Create Server in {companyName || 'SkyPANEL'}
+            {step === 'building' && <Loader2 className="h-5 w-5 animate-spin" />}
+            {step === 'installing' && <Loader2 className="h-5 w-5 animate-spin" />}
+            {step === 'success' && <CheckCircle className="h-5 w-5 text-green-500" />}
+            {step === 'failed' && <AlertCircle className="h-5 w-5 text-destructive" />}
+            {step === 'create' && <Server className="h-5 w-5" />}
+            {step === 'create' && `Create Server in ${companyName || 'SkyPANEL'}`}
+            {step === 'building' && 'Creating Server Hardware'}
+            {step === 'installing' && 'Installing Operating System'}
+            {step === 'success' && 'Server Ready!'}
+            {step === 'failed' && 'Server Creation Failed'}
           </DialogTitle>
           <DialogDescription>
-            Create a new virtual server with your preferred configuration.
+            {step === 'create' && 'Create a new virtual server with your preferred configuration.'}
+            {step === 'building' && `Setting up your server "${serverName}" with the selected configuration...`}
+            {step === 'installing' && `Installing ${selectedOsTemplate?.name} ${selectedOsTemplate?.version} on your server...`}
+            {step === 'success' && `Your server "${serverName}" has been successfully created and is now ready to use.`}
+            {step === 'failed' && 'An error occurred while creating your server. Please try again.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -486,13 +664,49 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
               </Button>
             </div>
           </div>
+        ) : step === 'building' ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-12 w-12 text-blue-500 mx-auto mb-4 animate-spin" />
+            <h3 className="text-lg font-semibold mb-2">Creating Server Hardware</h3>
+            <p className="text-muted-foreground mb-4">
+              Setting up your server "{serverName}" with the selected configuration...
+            </p>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              This usually takes 1-2 minutes
+            </div>
+          </div>
+        ) : step === 'installing' ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-12 w-12 text-orange-500 mx-auto mb-4 animate-spin" />
+            <h3 className="text-lg font-semibold mb-2">Installing Operating System</h3>
+            <p className="text-muted-foreground mb-4">
+              Installing {selectedOsTemplate?.name} {selectedOsTemplate?.version} on your server...
+            </p>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              This may take 5-15 minutes depending on the OS
+            </div>
+          </div>
         ) : step === 'success' ? (
           <div className="text-center py-8">
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Server Created Successfully!</h3>
+            <h3 className="text-lg font-semibold mb-2">Server Ready!</h3>
             <p className="text-muted-foreground mb-4">
-              Your server "{createdServer?.data?.name}" is being built and will be ready shortly.
+              Your server "{serverName}" has been successfully created and is now ready to use.
             </p>
+            {createdServer?.data && (
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg text-left max-w-md mx-auto">
+                <h4 className="font-medium mb-2">Server Details:</h4>
+                <div className="text-sm space-y-1">
+                  <div>ID: {createdServer.data.id}</div>
+                  <div>Name: {createdServer.data.name || serverName}</div>
+                  {createdServer.data.primaryIpv4 && (
+                    <div>IP Address: {createdServer.data.primaryIpv4}</div>
+                  )}
+                </div>
+              </div>
+            )}
             <Button onClick={resetAndClose}>
               Close
             </Button>
@@ -866,7 +1080,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                 </Button>
                 <Button
                   type="submit"
-                  disabled={createServerMutation.isPending}
+                  disabled={createServerMutation.isPending || !selectedPackage || !selectedHypervisorGroup || !selectedOsTemplate}
                 >
                   {createServerMutation.isPending ? (
                     <>
@@ -884,4 +1098,4 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
       </DialogContent>
     </Dialog>
   );
-} 
+}
