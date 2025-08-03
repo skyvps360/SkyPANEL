@@ -2104,6 +2104,310 @@ const adminEndpoints: ApiEndpoint[] = [
     requiresAuth: true,
     requiresAdmin: true,
     tags: ["admin", "coupons"]
+  },
+  // VirtFusion Integration Admin Endpoints
+  {
+    method: "GET",
+    path: "/api/admin/packages",
+    description: "Get all VirtFusion packages with pricing (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "Basic VPS",
+        ram: 1024,
+        disk: 25,
+        cpu: 1,
+        bandwidth: 1000,
+        price: 5.00,
+        isEnabled: true
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "packages", "virtfusion"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/packages/:id/pricing",
+    description: "Set pricing for a VirtFusion package (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Package ID", example: "1" },
+      { name: "price", type: "number", required: true, description: "Price in USD", example: "10.00" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      package: {
+        id: 1,
+        name: "Basic VPS",
+        price: 10.00,
+        updatedAt: "2025-05-01T12:00:00Z"
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "packages", "pricing"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/admin/packages/:id/pricing",
+    description: "Remove pricing for a VirtFusion package (admin only)",
+    parameters: [
+      { name: "id", type: "string", required: true, description: "Package ID", example: "1" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Package pricing removed successfully"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "packages", "pricing"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/hypervisors",
+    description: "Get all VirtFusion hypervisors (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "HV-NYC-01",
+        location: "New York",
+        status: "online",
+        usedRam: 80,
+        totalRam: 128
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "hypervisors", "virtfusion"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/hypervisor-groups",
+    description: "Get all VirtFusion hypervisor groups (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "NYC Cluster",
+        hypervisors: 5,
+        location: "New York"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "hypervisors", "virtfusion"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/servers",
+    description: "Get all servers across all users (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "user-server-01",
+        userId: 5,
+        username: "johndoe",
+        status: "running",
+        ip: "192.168.1.100",
+        plan: "basic",
+        createdAt: "2025-05-01T12:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "servers"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/os-templates",
+    description: "Get all available OS templates (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "Ubuntu 22.04 LTS",
+        os: "ubuntu",
+        version: "22.04",
+        isActive: true
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "templates"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/servers/:serverId/build-legacy",
+    description: "Build/rebuild a server with legacy method (admin only)",
+    parameters: [
+      { name: "serverId", type: "string", required: true, description: "Server ID", example: "1" },
+      { name: "templateId", type: "number", required: true, description: "OS template ID", example: "1" },
+      { name: "password", type: "string", required: true, description: "Root password", example: "SecurePass123" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Server build initiated"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "servers", "build"]
+  },
+  // DNS Admin Endpoints
+  {
+    method: "GET",
+    path: "/api/admin/dns-plans",
+    description: "Get all DNS plans with subscription counts (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "Basic DNS",
+        description: "Basic DNS hosting",
+        price: 0,
+        maxDomains: 5,
+        maxRecords: 50,
+        subscriptionCount: 25,
+        isActive: true
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "dns", "plans"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/dns-plans",
+    description: "Create a new DNS plan (admin only)",
+    parameters: [
+      { name: "name", type: "string", required: true, description: "Plan name", example: "Enterprise DNS" },
+      { name: "description", type: "string", required: true, description: "Plan description", example: "Advanced DNS hosting" },
+      { name: "price", type: "number", required: true, description: "Monthly price", example: "15.00" },
+      { name: "maxDomains", type: "number", required: true, description: "Maximum domains", example: "100" },
+      { name: "maxRecords", type: "number", required: true, description: "Maximum records per domain", example: "1000" }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      plan: {
+        id: 3,
+        name: "Enterprise DNS",
+        price: 15.00,
+        maxDomains: 100,
+        createdAt: "2025-05-01T12:00:00Z"
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "dns", "plans"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/dns/domains",
+    description: "Get all DNS domains across all users (admin only)",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "example.com",
+        userId: 5,
+        username: "johndoe",
+        status: "active",
+        recordCount: 8,
+        createdAt: "2025-05-01T12:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "dns", "domains"]
+  },
+  {
+    method: "POST",
+    path: "/api/admin/dns/test-connection",
+    description: "Test DNS provider (InterServer) connection (admin only)",
+    responseExample: JSON.stringify({
+      success: true,
+      connected: true,
+      provider: "InterServer",
+      message: "Connection successful"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "dns", "connectivity"]
+  },
+  // Monitoring and Health Endpoints
+  {
+    method: "GET",
+    path: "/api/admin/monitoring/health",
+    description: "Get overall system health status (admin only)",
+    responseExample: JSON.stringify({
+      status: "healthy",
+      uptime: "15d 4h 32m",
+      services: {
+        database: "healthy",
+        api: "healthy",
+        virtfusion: "healthy",
+        dns: "healthy"
+      },
+      metrics: {
+        cpu: 45.2,
+        memory: 68.1,
+        disk: 32.8
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "monitoring", "health"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/monitoring/db-health",
+    description: "Get database health status (admin only)",
+    responseExample: JSON.stringify({
+      status: "healthy",
+      connections: {
+        active: 25,
+        max: 100,
+        usage: "25%"
+      },
+      performance: {
+        averageQueryTime: "2.3ms",
+        slowQueries: 0
+      }
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "monitoring", "database"]
+  },
+  {
+    method: "GET",
+    path: "/api/admin/monitoring/virtfusion-health",
+    description: "Get VirtFusion API health status (admin only)",
+    responseExample: JSON.stringify({
+      status: "healthy",
+      connected: true,
+      responseTime: "150ms",
+      lastCheck: "2025-05-01T12:00:00Z",
+      apiVersion: "v2.0"
+    }, null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "monitoring", "virtfusion"]
+  },
+  // SSH Key Management Admin Endpoints
+  {
+    method: "GET",
+    path: "/api/admin/ssh-keys/user/:userId",
+    description: "Get SSH keys for a specific user (admin only)",
+    parameters: [
+      { name: "userId", type: "string", required: true, description: "User ID", example: "1" }
+    ],
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "User's Laptop",
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB...",
+        fingerprint: "SHA256:xyz123...",
+        createdAt: "2025-05-01T12:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    requiresAdmin: true,
+    tags: ["admin", "ssh-keys", "users"]
   }
 ];
 

@@ -216,21 +216,31 @@ export class CacheService {
         console.warn('Error accessing Gemini rate limiter for cache status:', error);
       }
 
-      // Node.js module cache status
+      // Node.js module cache status - Let's debug what's actually happening
       let cachedModulesCount: number | null = null;
       try {
-        // Only access require.cache in CommonJS environments
-        if (typeof require !== 'undefined' && require.cache) {
-          cachedModulesCount = Object.keys(require.cache).length;
-        } else if (typeof require === 'undefined') {
-          // ES module environment - module cache not applicable
-          console.log('Module cache unavailable - running in ES module environment');
+        console.log('=== MODULE CACHE DEBUG ===');
+        console.log('typeof require:', typeof require);
+        console.log('require exists:', typeof require !== 'undefined');
+        
+        if (typeof require !== 'undefined') {
+          console.log('require.cache exists:', !!require.cache);
+          console.log('require.cache type:', typeof require.cache);
+          
+          if (require.cache) {
+            const keys = Object.keys(require.cache);
+            cachedModulesCount = keys.length;
+            console.log('require.cache keys count:', cachedModulesCount);
+            console.log('First few modules:', keys.slice(0, 5));
+          } else {
+            console.log('require.cache is:', require.cache);
+          }
         } else {
-          // Bundled build or other environment
-          console.log('Module cache unavailable - likely bundled build or unsupported environment');
+          console.log('require is completely undefined - true ES module environment');
         }
+        console.log('========================');
       } catch (error) {
-        console.log('Could not access require.cache:', error);
+        console.log('Error accessing require.cache:', error);
       }
 
       const currentTime = Date.now();

@@ -124,6 +124,7 @@ If you find my work helpful, consider supporting me:
 - **Cross-env**: Cross-platform environment variables
 - **TSX**: TypeScript execution for development
 - **Husky**: Git hooks for code quality
+- **Cloudflare Wrangler**: Edge computing deployment platform
 
 ---
 
@@ -315,6 +316,8 @@ POST   /api/admin/servers/:id/unsuspend    # Unsuspend server
 GET    /api/admin/servers/:id/vnc          # Get VNC status
 POST   /api/admin/servers/:id/vnc/enable   # Enable VNC
 POST   /api/admin/servers/:id/vnc/disable  # Disable VNC
+POST   /api/admin/servers/:id/build        # Build server with OS template
+GET    /api/admin/packages/:packageId/templates # Get OS templates for package
 ```
 
 #### Billing Administration
@@ -329,6 +332,21 @@ DELETE /api/credits/:id                    # Cancel credit transaction
 ```bash
 GET    /api/admin/tickets                  # List all tickets (paginated)
 DELETE /api/admin/tickets/:id              # Delete ticket
+```
+
+#### Queue Management
+```bash
+GET    /api/admin/queue/:id                # Get VirtFusion queue item details
+```
+
+#### SSH Key Management
+```bash
+GET    /api/admin/ssh-keys/user/:userId    # Get SSH keys for specific user
+```
+
+#### OS Template Management
+```bash
+GET    /api/admin/os-templates             # Get available OS templates
 ```
 
 #### System Administration
@@ -624,15 +642,17 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
 
 ### Building the Docker Image
 
-1. Build the Docker image:
+1. **Build using Docker Compose** (recommended):
    ```bash
    docker-compose build
    ```
-   or
+
+2. **Build directly with Docker**:
    ```bash
    docker build -t skyvps360/skypanel-app .
    ```
-   or for a clean build using no cache:
+
+3. **Clean build without cache**:
    ```bash
    docker builder prune -f
    docker build --no-cache -t skyvps360/skypanel-app .
@@ -656,35 +676,103 @@ SkyPANEL can be easily deployed using Docker. Follow these steps to build and ru
 
 ### Running the Container
 
-1. Create a `.env` file with all required environment variables
-
-2. Run the container:
+1. **Create a `.env` file** with all required environment variables:
    ```bash
-   docker run -d -p 3333:3333 --env-file .env skyvps360/skypanel-app:latest
+   # Essential variables for Docker deployment
+   DATABASE_URL=postgres://username:password@hostname:port/database
+   SESSION_SECRET=your_secure_random_string_here
+   VIRTFUSION_API_URL=https://your-virtfusion.com/api/v1
+   VIRTFUSION_API_KEY=your_virtfusion_api_key
+   PORT=3333
+   NODE_ENV=production
    ```
 
+2. **Run the container**:
+   ```bash
+   docker run -d \
+     --name skypanel-app \
+     -p 3333:3333 \
+     --env-file .env \
+     skyvps360/skypanel-app:latest
+   ```
+
+3. **Verify the deployment**:
    The application will be available at `http://localhost:3333`
+
+   Check container status:
+   ```bash
+   docker ps
+   docker logs skypanel-app
+   ```
 
 ### Using Docker Compose
 
-1. Ensure `docker-compose.yml` is configured with your environment
-2. Start the services:
+1. **Configure your environment**: Ensure your `.env` file contains all required variables
+
+2. **Review docker-compose.yml**: The included compose file provides a complete stack with database
+
+3. **Start the services**:
    ```bash
+   # Start in detached mode
    docker-compose up -d
+   
+   # Or start with logs visible
+   docker-compose up
+   ```
+
+4. **Check service status**:
+   ```bash
+   docker-compose ps
+   docker-compose logs -f skypanel-app
    ```
 
 ### Updating the Application
 
-1. Pull the latest image:
+1. **Stop the current containers**:
+   ```bash
+   docker-compose down
+   ```
+
+2. **Pull the latest image**:
    ```bash
    docker pull skyvps360/skypanel-app:latest
    ```
 
-2. Recreate the container:
+3. **Restart with the new image**:
    ```bash
-   docker-compose down
    docker-compose up -d
    ```
+
+4. **Verify the update**:
+   ```bash
+   docker-compose logs -f skypanel-app
+   ```
+
+### Docker Troubleshooting
+
+#### Common Issues
+
+- **Port conflicts**: If port 3333 is in use, modify the port mapping in docker-compose.yml
+- **Environment variables**: Ensure all required variables are set in your `.env` file
+- **Database connections**: Verify DATABASE_URL is correctly formatted for Docker networking
+- **Permission issues**: On Linux, you may need to run Docker commands with `sudo`
+
+#### Useful Commands
+
+```bash
+# View container logs
+docker logs skypanel-app
+
+# Access container shell
+docker exec -it skypanel-app /bin/bash
+
+# Remove all containers and start fresh
+docker-compose down -v
+docker-compose up -d
+
+# Check container resource usage
+docker stats skypanel-app
+```
 
 ## ☁️ Cloudflare Wrangler Deployment
 
@@ -737,6 +825,15 @@ wrangler deploy
 - **Low Latency**: Serve content from the edge closest to users
 - **Cost Effective**: Pay only for actual usage
 
+---
+
+## 🚀 Production Deployment
+
+### PM2 Process Management
+
+For production deployments, SkyPANEL includes PM2 configuration for process management:
+
+```bash
 # Build and restart with PM2 (includes full rebuild, PM2 cleanup, and restart)
 npm run build:restart
 
@@ -1795,6 +1892,9 @@ curl http://localhost:3000/api/virtfusion-health
 - **🔐 Enhanced Session Security**: Improved session timeout management with automatic logout
 - **📊 Enhanced Transaction API**: Improved transaction endpoints with user information for admin requests
 - **🎨 Package Pricing Integration**: Direct VirtFusion package integration for pricing management
+- **🔧 Queue Management**: Admin queue monitoring and management for VirtFusion operations
+- **🔑 SSH Key Management**: Admin interface for managing user SSH keys
+- **💾 OS Template Management**: Streamlined OS template selection and server building
 
 #### Deployment Improvements
 - **🌐 Cloudflare Integration**: Deploy to 200+ global edge locations
@@ -1853,6 +1953,8 @@ curl http://localhost:3000/api/virtfusion-health
 - **Database Schema**: New tables added for unified department management
 - **Authentication**: Enhanced session management may require re-login
 - **Configuration**: New settings added for Cloudflare deployment and department management
+- **Server Build Process**: Legacy server build endpoints renamed to avoid conflicts
+- **Package Pricing**: Simplified pricing form now uses VirtFusion package details directly
 
 ---
 

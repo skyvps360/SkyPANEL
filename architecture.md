@@ -104,6 +104,7 @@ SkyPANEL integrates with several external services to provide additional functio
 - **BetterStack**: Monitoring and alerting
 - **InterServer API**: DNS management (currently disabled due to API reliability issues)
 - **Cloudflare Workers**: Edge computing deployment platform for global distribution
+- **OAuth Providers**: Social authentication with Discord, GitHub, Google, and LinkedIn
 
 ## Data Flow
 
@@ -411,6 +412,40 @@ This section describes the flow of data through the SkyPANEL system for key oper
 6. Admins can bypass maintenance mode with special token
 7. When maintenance is complete, admin disables maintenance mode
 
+### VirtFusion Queue Management Flow
+
+```
+┌─────────┐     ┌─────────────┐     ┌─────────────┐
+│         │     │             │     │             │
+│  Admin  │────▶│  SkyPANEL   │────▶│ VirtFusion  │
+│         │     │  Admin UI   │     │    API      │
+└─────────┘     └─────────────┘     └─────────────┘
+                        │                   │
+                        │                   ▼
+                        │           ┌─────────────┐
+                        │           │             │
+                        │           │ VirtFusion  │
+                        │           │   Queue     │
+                        │           │             │
+                        │           └─────────────┘
+                        │                   │
+                        ▼                   │
+                ┌─────────────┐             │
+                │             │             │
+                │  Queue      │◀────────────┘
+                │  Monitor    │
+                │             │
+                └─────────────┘
+```
+
+1. Admin initiates server operation (create, build, etc.)
+2. SkyPANEL sends request to VirtFusion API
+3. VirtFusion queues the operation and returns queue ID
+4. Admin can monitor queue status via SkyPANEL
+5. VirtFusion processes queue items asynchronously
+6. Queue status updates are available through API
+7. Admin receives real-time updates on operation progress
+
 ## Integration Points
 
 SkyPANEL integrates with several external services through well-defined integration points.
@@ -427,11 +462,16 @@ VirtFusion provides the underlying virtualization platform for server provisioni
 - VNC console access
 - Backup management
 - User synchronization between SkyPANEL and VirtFusion
+- Queue management for server operations
+- SSH key management
+- OS template management
 
 **Implementation:**
 - RESTful API communication using API tokens
 - Webhook support for status updates
 - SSO integration for seamless user experience
+- Queue monitoring for operation status tracking
+- Advanced server building with OS template selection
 
 ### PayPal Integration
 
@@ -531,6 +571,22 @@ InterServer API integration for DNS management is currently disabled due to reli
 - RESTful API communication (disabled)
 - Record synchronization (disabled)
 - Billing integration for domain services (disabled)
+
+### OAuth SSO Integration
+
+OAuth Single Sign-On integration with multiple providers for enhanced authentication.
+
+**Integration Points:**
+- Social authentication (Discord, GitHub, Google, LinkedIn)
+- Account linking for existing users
+- Secure authentication flows
+- User session management
+
+**Implementation:**
+- Passport.js strategies for each provider
+- Secure credential storage
+- State parameter validation
+- CSRF protection for OAuth flows
 
 ## Authentication Flow
 
@@ -684,12 +740,24 @@ In the backend, these route imports are commented out:
 
 This feature will remain disabled until the InterServer API reliability issues are resolved.
 
+### Invoice System (Deprecated)
+
+The invoice generation and management system has been completely removed in favor of a streamlined transaction-based billing system. This affects:
+
+- Invoice generation endpoints
+- Invoice detail pages
+- Invoice-related admin interfaces
+
+The system now relies entirely on transaction records for billing history and exports.
+
 ### Other Limitations
 
 - VirtFusion API rate limits may affect operations during high load
 - Google Gemini AI has usage limits (15 requests per minute, 1,500 per day)
 - PayPal integration requires proper environment variable configuration
 - Discord bot requires proper permissions and token configuration
+- OAuth SSO requires proper provider configuration and credentials
+- BYOS (Bring Your Own Server) functionality is planned but not yet implemented
 
 ---
 

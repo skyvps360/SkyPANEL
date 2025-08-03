@@ -1034,6 +1034,86 @@ const userEndpoints: ApiEndpoint[] = [
     }, null, 2),
     requiresAuth: true,
     tags: ["user", "account"]
+  },
+  {
+    method: "GET",
+    path: "/api/user/ssh-keys",
+    description: "Get SSH keys for the authenticated user",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "My SSH Key",
+        publicKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB...",
+        fingerprint: "SHA256:xyz123...",
+        createdAt: "2025-05-01T12:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["user", "ssh-keys"]
+  },
+  {
+    method: "POST",
+    path: "/api/user/ssh-keys",
+    description: "Add a new SSH key",
+    parameters: [
+      {
+        name: "name",
+        type: "string",
+        required: true,
+        description: "A name for the SSH key",
+        example: "My Laptop"
+      },
+      {
+        name: "publicKey",
+        type: "string",
+        required: true,
+        description: "The SSH public key",
+        example: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB..."
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      keyId: 1,
+      message: "SSH key added successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["user", "ssh-keys"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/user/ssh-keys/:id",
+    description: "Delete an SSH key",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The SSH key ID",
+        example: "1"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "SSH key deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["user", "ssh-keys"]
+  },
+  {
+    method: "GET",
+    path: "/api/v1/me",
+    description: "API-key authenticated endpoint to get current user information (requires 'read:user' scope)",
+    responseExample: JSON.stringify({
+      id: 1,
+      username: "johndoe",
+      email: "john@example.com",
+      fullName: "John Doe",
+      role: "user",
+      isVerified: true,
+      isActive: true
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["user", "api-keys", "v1-api"]
   }
 ];
 
@@ -1180,6 +1260,403 @@ const serverEndpoints: ApiEndpoint[] = [
     }, null, 2),
     requiresAuth: true,
     tags: ["servers", "usage", "statistics"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/boot",
+    description: "Boot a server",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Server boot initiated"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "power"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/restart",
+    description: "Restart a server",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Server restart initiated"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "power"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/shutdown",
+    description: "Shutdown a server",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Server shutdown initiated"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "power"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/poweroff",
+    description: "Power off a server (force)",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Server poweroff initiated"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "power"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/reset-password",
+    description: "Reset server root password",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      },
+      {
+        name: "password",
+        type: "string",
+        required: true,
+        description: "New password (minimum 8 characters)",
+        example: "NewSecurePassword123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Server password reset successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "security"]
+  },
+  {
+    method: "GET",
+    path: "/api/servers/:id/vnc",
+    description: "Get VNC console access URL for a server",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      vncUrl: "https://console.example.com/vnc/123?token=abcd1234",
+      expires: "2025-05-01T12:00:00Z"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "console"]
+  },
+  {
+    method: "GET",
+    path: "/api/servers/:id/traffic",
+    description: "Get traffic statistics for a server",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      data: {
+        inbound: 1024000000,
+        outbound: 512000000,
+        unit: "bytes",
+        period: "last_24_hours"
+      }
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "traffic", "statistics"]
+  },
+  {
+    method: "GET",
+    path: "/api/servers/:id/logs",
+    description: "Get server logs",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      logs: [
+        {
+          timestamp: "2025-05-01T12:00:00Z",
+          level: "info",
+          message: "Server started successfully"
+        }
+      ]
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "logs"]
+  },
+  {
+    method: "GET",
+    path: "/api/servers/:id/templates",
+    description: "Get available OS templates for a server",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      templates: [
+        {
+          id: 1,
+          name: "Ubuntu 22.04 LTS",
+          version: "22.04",
+          os: "ubuntu"
+        }
+      ]
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "templates"]
+  },
+  {
+    method: "GET",
+    path: "/api/servers/:id/firewall/:interface",
+    description: "Get firewall rules for a server interface",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      },
+      {
+        name: "interface",
+        type: "string",
+        required: true,
+        description: "Network interface name",
+        example: "eth0"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      rules: [
+        {
+          port: 22,
+          protocol: "tcp",
+          action: "allow",
+          source: "0.0.0.0/0"
+        }
+      ]
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "firewall", "security"]
+  },
+  {
+    method: "GET",
+    path: "/api/servers/:id/backups",
+    description: "Get available backups for a server",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      backups: [
+        {
+          id: 1,
+          name: "daily-backup-2025-05-01",
+          created: "2025-05-01T02:00:00Z",
+          size: "10GB"
+        }
+      ]
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "backups"]
+  },
+  {
+    method: "GET",
+    path: "/api/servers/:id/notes",
+    description: "Get notes for a server",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      notes: [
+        {
+          id: 1,
+          title: "Server Configuration",
+          content: "Updated nginx configuration",
+          createdAt: "2025-05-01T12:00:00Z"
+        }
+      ]
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "notes"]
+  },
+  {
+    method: "POST",
+    path: "/api/servers/:id/notes",
+    description: "Add a note to a server",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      },
+      {
+        name: "title",
+        type: "string",
+        required: true,
+        description: "Note title",
+        example: "Configuration Update"
+      },
+      {
+        name: "content",
+        type: "string",
+        required: true,
+        description: "Note content",
+        example: "Updated nginx configuration for better performance"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      noteId: 1,
+      message: "Note added successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "notes"]
+  },
+  {
+    method: "PUT",
+    path: "/api/servers/:id/notes/:noteId",
+    description: "Update a server note",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      },
+      {
+        name: "noteId",
+        type: "number",
+        required: true,
+        description: "The note ID",
+        example: "1"
+      },
+      {
+        name: "title",
+        type: "string",
+        required: false,
+        description: "Updated note title",
+        example: "Configuration Update - Completed"
+      },
+      {
+        name: "content",
+        type: "string",
+        required: false,
+        description: "Updated note content",
+        example: "Nginx configuration successfully updated and tested"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Note updated successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "notes"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/servers/:id/notes/:noteId",
+    description: "Delete a server note",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The server ID",
+        example: "123"
+      },
+      {
+        name: "noteId",
+        type: "number",
+        required: true,
+        description: "The note ID",
+        example: "1"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Note deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["servers", "notes"]
   }
 ];
 
@@ -1321,6 +1798,422 @@ const billingEndpoints: ApiEndpoint[] = [
     }, null, 2),
     requiresAuth: true,
     tags: ["billing", "credits"]
+  }
+];
+
+// DNS endpoints
+const dnsEndpoints: ApiEndpoint[] = [
+  {
+    method: "GET",
+    path: "/api/dns/domains",
+    description: "Get all DNS domains for the authenticated user",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "example.com",
+        status: "active",
+        recordCount: 5,
+        createdAt: "2025-05-01T12:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["dns", "domains"]
+  },
+  {
+    method: "POST",
+    path: "/api/dns/domains",
+    description: "Add a new DNS domain",
+    parameters: [
+      {
+        name: "domain",
+        type: "string",
+        required: true,
+        description: "The domain name to add",
+        example: "example.com"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      domainId: 1,
+      message: "Domain added successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["dns", "domains"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/dns/domains/:id",
+    description: "Delete a DNS domain",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The domain ID",
+        example: "1"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Domain deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["dns", "domains"]
+  },
+  {
+    method: "GET",
+    path: "/api/dns/domains/:id/records",
+    description: "Get DNS records for a domain",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The domain ID",
+        example: "1"
+      }
+    ],
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "@",
+        type: "A",
+        content: "192.168.1.1",
+        ttl: 300,
+        priority: null
+      },
+      {
+        id: 2,
+        name: "www",
+        type: "CNAME",
+        content: "example.com",
+        ttl: 300,
+        priority: null
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["dns", "records"]
+  },
+  {
+    method: "POST",
+    path: "/api/dns/domains/:id/records",
+    description: "Add a DNS record to a domain",
+    parameters: [
+      {
+        name: "id",
+        type: "number",
+        required: true,
+        description: "The domain ID",
+        example: "1"
+      },
+      {
+        name: "name",
+        type: "string",
+        required: true,
+        description: "Record name",
+        example: "www"
+      },
+      {
+        name: "type",
+        type: "string",
+        required: true,
+        description: "Record type (A, AAAA, CNAME, MX, TXT)",
+        example: "A"
+      },
+      {
+        name: "content",
+        type: "string",
+        required: true,
+        description: "Record content",
+        example: "192.168.1.1"
+      },
+      {
+        name: "ttl",
+        type: "number",
+        required: false,
+        description: "Time to live in seconds",
+        example: "300"
+      },
+      {
+        name: "priority",
+        type: "number",
+        required: false,
+        description: "Priority (for MX records)",
+        example: "10"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      recordId: 1,
+      message: "DNS record added successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["dns", "records"]
+  },
+  {
+    method: "PUT",
+    path: "/api/dns/domains/:domainId/records/:recordId",
+    description: "Update a DNS record",
+    parameters: [
+      {
+        name: "domainId",
+        type: "number",
+        required: true,
+        description: "The domain ID",
+        example: "1"
+      },
+      {
+        name: "recordId",
+        type: "number",
+        required: true,
+        description: "The record ID",
+        example: "1"
+      },
+      {
+        name: "name",
+        type: "string",
+        required: false,
+        description: "Updated record name",
+        example: "api"
+      },
+      {
+        name: "content",
+        type: "string",
+        required: false,
+        description: "Updated record content",
+        example: "192.168.1.2"
+      },
+      {
+        name: "ttl",
+        type: "number",
+        required: false,
+        description: "Updated TTL",
+        example: "600"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "DNS record updated successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["dns", "records"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/dns/domains/:domainId/records/:recordId",
+    description: "Delete a DNS record",
+    parameters: [
+      {
+        name: "domainId",
+        type: "number",
+        required: true,
+        description: "The domain ID",
+        example: "1"
+      },
+      {
+        name: "recordId",
+        type: "number",
+        required: true,
+        description: "The record ID",
+        example: "1"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "DNS record deleted successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["dns", "records"]
+  },
+  {
+    method: "GET",
+    path: "/api/dns-plans",
+    description: "Get available DNS plans",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        name: "Basic",
+        description: "Basic DNS hosting",
+        price: 0,
+        maxDomains: 5,
+        maxRecords: 50,
+        features: ["Basic DNS", "Email Support"]
+      },
+      {
+        id: 2,
+        name: "Pro",
+        description: "Professional DNS hosting",
+        price: 5.00,
+        maxDomains: 25,
+        maxRecords: 500,
+        features: ["Advanced DNS", "Priority Support", "API Access"]
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["dns", "plans"]
+  },
+  {
+    method: "GET",
+    path: "/api/dns-plans/subscriptions",
+    description: "Get user's DNS plan subscriptions",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        planId: 2,
+        planName: "Pro",
+        status: "active",
+        expiresAt: "2025-06-01T00:00:00Z",
+        autoRenew: true
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["dns", "plans", "subscriptions"]
+  },
+  {
+    method: "POST",
+    path: "/api/dns-plans/purchase",
+    description: "Purchase a DNS plan",
+    parameters: [
+      {
+        name: "planId",
+        type: "number",
+        required: true,
+        description: "The plan ID to purchase",
+        example: "2"
+      },
+      {
+        name: "duration",
+        type: "number",
+        required: true,
+        description: "Duration in months",
+        example: "12"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      subscriptionId: 1,
+      message: "DNS plan purchased successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["dns", "plans", "purchase"]
+  }
+];
+
+// Coupon endpoints
+const couponEndpoints: ApiEndpoint[] = [
+  {
+    method: "POST",
+    path: "/api/coupons/claim",
+    description: "Claim a coupon code for credits or discounts",
+    parameters: [
+      {
+        name: "code",
+        type: "string",
+        required: true,
+        description: "The coupon code to claim",
+        example: "SAVE20"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "Coupon claimed successfully",
+      creditsAdded: 20,
+      discount: 20
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["coupons", "billing"]
+  },
+  {
+    method: "GET",
+    path: "/api/coupons/history",
+    description: "Get coupon claim history for the authenticated user",
+    responseExample: JSON.stringify([
+      {
+        id: 1,
+        code: "SAVE20",
+        claimedAt: "2025-05-01T12:00:00Z",
+        value: 20,
+        type: "credits"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["coupons", "history"]
+  }
+];
+
+// OAuth endpoints  
+const oauthEndpoints: ApiEndpoint[] = [
+  {
+    method: "GET",
+    path: "/api/oauth/providers/enabled/public",
+    description: "Get publicly available OAuth providers (no authentication required)",
+    responseExample: JSON.stringify([
+      {
+        name: "google",
+        displayName: "Google",
+        enabled: true
+      },
+      {
+        name: "github",
+        displayName: "GitHub", 
+        enabled: true
+      }
+    ], null, 2),
+    requiresAuth: false,
+    tags: ["oauth", "authentication", "public"]
+  },
+  {
+    method: "GET",
+    path: "/api/oauth/login/:providerName",
+    description: "Initiate OAuth login with a provider",
+    parameters: [
+      {
+        name: "providerName",
+        type: "string",
+        required: true,
+        description: "OAuth provider name (google, github, discord, etc.)",
+        example: "google"
+      }
+    ],
+    responseExample: JSON.stringify({
+      redirectUrl: "https://accounts.google.com/oauth/authorize?client_id=..."
+    }, null, 2),
+    requiresAuth: false,
+    tags: ["oauth", "authentication"]
+  },
+  {
+    method: "GET",
+    path: "/api/oauth/accounts",
+    description: "Get linked OAuth accounts for the authenticated user",
+    responseExample: JSON.stringify([
+      {
+        provider: "google",
+        email: "user@gmail.com",
+        linkedAt: "2025-05-01T12:00:00Z"
+      }
+    ], null, 2),
+    requiresAuth: true,
+    tags: ["oauth", "account"]
+  },
+  {
+    method: "DELETE",
+    path: "/api/oauth/accounts/:providerName",
+    description: "Unlink an OAuth account",
+    parameters: [
+      {
+        name: "providerName",
+        type: "string",
+        required: true,
+        description: "OAuth provider name to unlink",
+        example: "google"
+      }
+    ],
+    responseExample: JSON.stringify({
+      success: true,
+      message: "OAuth account unlinked successfully"
+    }, null, 2),
+    requiresAuth: true,
+    tags: ["oauth", "account"]
   }
 ];
 
@@ -1931,6 +2824,18 @@ export default function ApiDocsPage() {
                   <CreditCard className="h-4 w-4" />
                   <span>Billing</span>
                 </TabsTrigger>
+                <TabsTrigger value="dns" className="flex items-center gap-2">
+                  <Code className="h-4 w-4" />
+                  <span>DNS</span>
+                </TabsTrigger>
+                <TabsTrigger value="coupons" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  <span>Coupons</span>
+                </TabsTrigger>
+                <TabsTrigger value="oauth" className="flex items-center gap-2">
+                  <Key className="h-4 w-4" />
+                  <span>OAuth</span>
+                </TabsTrigger>
                 <TabsTrigger value="api-keys" className="flex items-center gap-2">
                   <Key className="h-4 w-4" />
                   <span>API Keys</span>
@@ -2001,6 +2906,36 @@ export default function ApiDocsPage() {
                 title="Billing Endpoints"
                 description="Manage billing information, view invoices, and add credits to your account."
                 endpoints={getFilteredEndpoints(billingEndpoints)}
+                onTagSelect={handleTagSelect}
+                selectedTags={selectedTags}
+              />
+            </TabsContent>
+
+            <TabsContent value="dns" className="space-y-6">
+              <ApiCategory
+                title="DNS Management"
+                description="Endpoints for managing DNS domains and records."
+                endpoints={getFilteredEndpoints(dnsEndpoints)}
+                onTagSelect={handleTagSelect}
+                selectedTags={selectedTags}
+              />
+            </TabsContent>
+
+            <TabsContent value="coupons" className="space-y-6">
+              <ApiCategory
+                title="Coupon Management"
+                description="Endpoints for claiming and managing discount coupons."
+                endpoints={getFilteredEndpoints(couponEndpoints)}
+                onTagSelect={handleTagSelect}
+                selectedTags={selectedTags}
+              />
+            </TabsContent>
+
+            <TabsContent value="oauth" className="space-y-6">
+              <ApiCategory
+                title="OAuth Authentication"
+                description="Endpoints for OAuth provider integration and social login."
+                endpoints={getFilteredEndpoints(oauthEndpoints)}
                 onTagSelect={handleTagSelect}
                 selectedTags={selectedTags}
               />
