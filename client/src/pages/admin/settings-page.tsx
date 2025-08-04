@@ -2079,6 +2079,20 @@ export default function SettingsPage() {
                         </p>
                       </div>
 
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="selfServiceHourlyCredit">Self Service Hourly Credit</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable hourly credit billing for self-service users
+                          </p>
+                        </div>
+                        <Switch
+                          id="selfServiceHourlyCredit"
+                          checked={virtFusionForm.watch("selfServiceHourlyCredit")}
+                          onCheckedChange={(checked) => virtFusionForm.setValue("selfServiceHourlyCredit", checked, { shouldDirty: true })}
+                        />
+                      </div>
+
                       <div className="space-y-2">
                         <Label htmlFor="selfServiceHourlyResourcePackId">Self Service Hourly Resource Pack ID</Label>
                         <Input
