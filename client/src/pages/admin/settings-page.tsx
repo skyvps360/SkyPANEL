@@ -2076,21 +2076,7 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="serverHourlyBillingEnabled">Enable Hourly Billing</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Enable automatic hourly billing for server uptime
-                          </p>
-                        </div>
-                        <Switch
-                          id="serverHourlyBillingEnabled"
-                          checked={virtFusionForm.watch("serverHourlyBillingEnabled")}
-                          onCheckedChange={(checked) => {
-                            virtFusionForm.setValue("serverHourlyBillingEnabled", checked, { shouldDirty: true });
-                          }}
-                        />
-                      </div>
+
 
                       <div className="space-y-2">
                         <Label htmlFor="serverHoursPerMonth">Hours Per Month</Label>
