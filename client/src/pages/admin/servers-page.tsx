@@ -310,13 +310,10 @@ export default function ServersListPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Create Server
-              </Button>
+              {/* Create Server button temporarily hidden */}
+              <div className="text-sm text-muted-foreground">
+                Server creation is temporarily disabled
+              </div>
             </div>
           </CardHeader>
           <CardContent>

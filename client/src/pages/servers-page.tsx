@@ -667,22 +667,12 @@ export default function ServersPage() {
                   >
                     Clear Filters
                   </Button>
-                  <Button
-                    onClick={() => setShowCreateModal(true)}
-                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                  >
-                    <Server className="h-4 w-4" />
-                    Create New Server
-                  </Button>
+                  {/* Create Server button temporarily hidden */}
                 </div>
               ) : (
-                <Button
-                  onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
-                >
-                  <Server className="h-4 w-4" />
-                  Create Your First Server
-                </Button>
+                <div className="text-sm text-muted-foreground">
+                  Server creation is temporarily disabled
+                </div>
               )}
             </CardContent>
           </Card>
