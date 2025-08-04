@@ -2,13 +2,24 @@ import cron from 'node-cron';
 import { serverUptimeService } from './infrastructure/server-uptime-service';
 import { dnsBillingService } from './dns-billing-service';
 import { storage } from '../storage';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { serverHourlyBillingSettings } from '../../shared/schemas/server-uptime-schema';
 import { dnsBillingSettings } from '../../shared/schemas/dns-billing-schema';
+import { 
+  virtfusionCronSettings,
+  virtfusionHourlyBilling,
+  virtfusionHourlyTransactions,
+  type VirtfusionCronSettings
+} from '../../shared/schemas/virtfusion-billing-schema';
+import { users } from '../../shared/schemas/user-schema';
+import { packagePricing } from '../../shared/schemas/package-schema';
+import { transactions } from '../../shared/schemas/transaction-schema';
 
 export class CronService {
   private hourlyBillingJob: cron.ScheduledTask | null = null;
   private dnsBillingJob: cron.ScheduledTask | null = null;
+  private virtfusionHourlyJob: cron.ScheduledTask | null = null;
+  private virtfusionMonthlyJob: cron.ScheduledTask | null = null;
 
   constructor() {
     this.initializeCronJobs();
@@ -21,6 +32,7 @@ export class CronService {
     try {
       await this.initializeHourlyBillingJob();
       await this.initializeDnsBillingJob();
+      await this.initializeVirtFusionCronJobs();
       console.log('✅ Cron jobs initialized successfully');
     } catch (error) {
       console.error('❌ Error initializing cron jobs:', error);
@@ -351,6 +363,318 @@ export class CronService {
   }
 
   /**
+   * Initialize VirtFusion cron jobs (hourly and monthly)
+   */
+  private async initializeVirtFusionCronJobs() {
+    try {
+      // Get VirtFusion cron settings
+      const settings = await storage.db.select()
+        .from(virtfusionCronSettings)
+        .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+        .limit(1);
+
+      if (settings.length === 0) {
+        console.log('No VirtFusion cron settings found, creating default settings');
+        await storage.db.insert(virtfusionCronSettings).values({
+          enabled: false,
+          hoursPerMonth: 730,
+          billingOnFirstEnabled: true,
+          hourlyBillingEnabled: true
+        });
+        return;
+      }
+
+      const setting = settings[0];
+      
+      if (!setting.enabled) {
+        console.log('VirtFusion cron is disabled');
+        return;
+      }
+
+      // Initialize hourly billing job (runs every hour)
+      if (setting.hourly_billing_enabled) {
+        this.virtfusionHourlyJob = cron.schedule(
+          '0 * * * *', // Every hour at minute 0
+          async () => {
+            await this.runVirtFusionHourlyBilling();
+          },
+          {
+            timezone: 'UTC'
+          }
+        );
+        this.virtfusionHourlyJob.start();
+        console.log('✅ VirtFusion hourly billing cron job started (every hour)');
+      }
+
+      // Initialize monthly billing job (runs on 1st of every month at 3 AM UTC)
+      if (setting.billing_on_first_enabled) {
+        this.virtfusionMonthlyJob = cron.schedule(
+          '0 3 1 * *', // 1st day of month at 3 AM UTC
+          async () => {
+            await this.runVirtFusionMonthlyBilling();
+          },
+          {
+            timezone: 'UTC'
+          }
+        );
+        this.virtfusionMonthlyJob.start();
+        console.log('✅ VirtFusion monthly billing cron job started (1st of month at 3 AM UTC)');
+      }
+
+    } catch (error) {
+      console.error('Error initializing VirtFusion cron jobs:', error);
+    }
+  }
+
+  /**
+   * Update VirtFusion cron settings
+   */
+  async updateVirtFusionCron(enabled: boolean, hourlyEnabled?: boolean, monthlyEnabled?: boolean, hoursPerMonth?: number): Promise<void> {
+    try {
+      // Stop existing jobs
+      if (this.virtfusionHourlyJob) {
+        this.virtfusionHourlyJob.stop();
+        this.virtfusionHourlyJob.destroy();
+        this.virtfusionHourlyJob = null;
+      }
+      
+      if (this.virtfusionMonthlyJob) {
+        this.virtfusionMonthlyJob.stop();
+        this.virtfusionMonthlyJob.destroy();
+        this.virtfusionMonthlyJob = null;
+      }
+
+      // Get current settings to update
+      const currentSettings = await storage.db.select()
+        .from(virtfusionCronSettings)
+        .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+        .limit(1);
+
+      if (currentSettings.length > 0) {
+        // Update existing settings
+        await storage.db.update(virtfusionCronSettings)
+          .set({
+            enabled,
+            ...(hourlyEnabled !== undefined && { hourlyBillingEnabled: hourlyEnabled }),
+            ...(monthlyEnabled !== undefined && { billingOnFirstEnabled: monthlyEnabled }),
+            ...(hoursPerMonth !== undefined && { hoursPerMonth }),
+            updatedAt: sql`CURRENT_TIMESTAMP`
+          })
+          .where(eq(virtfusionCronSettings.id, currentSettings[0].id));
+      } else {
+        // Create new settings
+        await storage.db.insert(virtfusionCronSettings).values({
+          enabled,
+          hourlyBillingEnabled: hourlyEnabled ?? true,
+          billingOnFirstEnabled: monthlyEnabled ?? true,
+          hoursPerMonth: hoursPerMonth ?? 730
+        });
+      }
+
+      if (enabled) {
+        // Reinitialize jobs with new settings
+        await this.initializeVirtFusionCronJobs();
+      } else {
+        console.log('✅ VirtFusion cron jobs disabled');
+      }
+
+    } catch (error) {
+      console.error('Error updating VirtFusion cron:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Run VirtFusion hourly billing process
+   */
+  private async runVirtFusionHourlyBilling() {
+    console.log('🕐 Starting VirtFusion hourly billing process...');
+    
+    try {
+      const startTime = Date.now();
+      
+      // Get all active billing records using proper Drizzle joins
+      const billingRecords = await storage.db.select({
+        id: virtfusionHourlyBilling.id,
+        userId: virtfusionHourlyBilling.userId,
+        serverId: virtfusionHourlyBilling.serverId,
+        virtfusionServerId: virtfusionHourlyBilling.virtfusionServerId,
+        packageId: virtfusionHourlyBilling.packageId,
+        packageName: virtfusionHourlyBilling.packageName,
+        monthlyPrice: virtfusionHourlyBilling.monthlyPrice,
+        hourlyRate: virtfusionHourlyBilling.hourlyRate,
+        hoursInMonth: virtfusionHourlyBilling.hoursInMonth,
+        userCredits: users.credits,
+        userActive: users.active,
+        packagePrice: packagePricing.monthlyPrice
+      })
+      .from(virtfusionHourlyBilling)
+      .innerJoin(users, eq(virtfusionHourlyBilling.userId, users.id))
+      .innerJoin(packagePricing, eq(virtfusionHourlyBilling.packageId, packagePricing.id))
+      .where(eq(virtfusionHourlyBilling.billingEnabled, true));
+
+      let processed = 0;
+      let successful = 0;
+      let failed = 0;
+      const errors: any[] = [];
+
+      for (const record of billingRecords) {
+        try {
+          processed++;
+          
+          // Calculate hourly charge
+          const monthlyPrice = parseFloat(record.monthlyPrice || '0');
+          const hoursInMonth = record.hoursInMonth || 730;
+          const hourlyRate = monthlyPrice / hoursInMonth;
+          
+          // Check if user has sufficient credits
+          const userCredits = parseFloat(record.userCredits || '0');
+          if (userCredits < hourlyRate) {
+            console.warn(`⚠️ User ${record.userId} has insufficient credits (${userCredits}) for hourly charge (${hourlyRate})`);
+            // Create failed transaction record
+            await storage.db.insert(virtfusionHourlyTransactions).values({
+              billingId: record.id,
+              userId: record.userId,
+              serverId: record.serverId,
+              hoursBilled: '1.0',
+              amountCharged: hourlyRate.toString(),
+              billingPeriodStart: sql`datetime('now', '-1 hour')`,
+              billingPeriodEnd: sql`datetime('now')`,
+              status: 'insufficient_credits'
+            });
+            failed++;
+            continue;
+          }
+
+          // Deduct credits from user
+          await storage.db.update(users)
+            .set({
+              credits: sql`${users.credits} - ${hourlyRate}`
+            })
+            .where(eq(users.id, record.userId));
+
+          // Create transaction record
+          const transactionResults = await storage.db.insert(transactions).values({
+            userId: record.userId,
+            description: `VirtFusion Server ${record.serverId} - Hourly Billing`,
+            amount: hourlyRate,
+            type: 'debit',
+            status: 'completed',
+            createdAt: sql`datetime('now')`
+          }).returning({ id: transactions.id });
+
+          const transactionId = transactionResults[0]?.id;
+
+          // Create hourly billing transaction record
+          await storage.db.insert(virtfusionHourlyTransactions).values({
+            billingId: record.id,
+            userId: record.userId,
+            serverId: record.serverId,
+            transactionId,
+            hoursBilled: '1.0',
+            amountCharged: hourlyRate.toString(),
+            billingPeriodStart: sql`datetime('now', '-1 hour')`,
+            billingPeriodEnd: sql`datetime('now')`,
+            status: 'completed'
+          });
+
+          // Update last billed timestamp
+          await storage.db.update(virtfusionHourlyBilling)
+            .set({
+              lastBilledAt: sql`datetime('now')`
+            })
+            .where(eq(virtfusionHourlyBilling.id, record.id));
+
+          successful++;
+          
+        } catch (error: any) {
+          console.error(`❌ Error processing hourly billing for user ${record.userId}:`, error);
+          errors.push({
+            userId: record.userId,
+            serverId: record.serverId,
+            error: error.message
+          });
+          failed++;
+        }
+      }
+      
+      // Update last hourly billing timestamp
+      const currentSettings = await storage.db.select()
+        .from(virtfusionCronSettings)
+        .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+        .limit(1);
+      
+      if (currentSettings.length > 0) {
+        await storage.db.update(virtfusionCronSettings)
+          .set({
+            lastHourlyBilling: sql`datetime('now')`
+          })
+          .where(eq(virtfusionCronSettings.id, currentSettings[0].id));
+      }
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.log(`✅ VirtFusion hourly billing completed in ${duration}ms`);
+      console.log(`📊 Results: ${processed} records processed, ${successful} successful, ${failed} failed`);
+      
+      if (errors.length > 0) {
+        console.error(`❌ Errors encountered: ${errors.length}`);
+        errors.forEach(error => console.error(`  - User ${error.userId} Server ${error.serverId}: ${error.error}`));
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in VirtFusion hourly billing process:', error);
+    }
+  }
+
+  /**
+   * Run VirtFusion monthly billing process (1st of month)
+   */
+  private async runVirtFusionMonthlyBilling() {
+    console.log('🗓️ Starting VirtFusion monthly billing process...');
+    
+    try {
+      // Update last monthly billing timestamp
+      const currentSettings = await storage.db.select()
+        .from(virtfusionCronSettings)
+        .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+        .limit(1);
+      
+      if (currentSettings.length > 0) {
+        await storage.db.update(virtfusionCronSettings)
+          .set({
+            lastMonthlyBilling: sql`datetime('now')`
+          })
+          .where(eq(virtfusionCronSettings.id, currentSettings[0].id));
+      }
+      
+      // Here you could add any special monthly billing logic
+      // For now, just log that monthly billing ran
+      console.log('✅ VirtFusion monthly billing process completed');
+      
+    } catch (error) {
+      console.error('❌ Error in VirtFusion monthly billing process:', error);
+    }
+  }
+
+  /**
+   * Manually trigger VirtFusion hourly billing
+   */
+  async triggerVirtFusionHourlyBilling() {
+    console.log('🔄 Manually triggering VirtFusion hourly billing...');
+    await this.runVirtFusionHourlyBilling();
+  }
+
+  /**
+   * Manually trigger VirtFusion monthly billing
+   */
+  async triggerVirtFusionMonthlyBilling() {
+    console.log('🔄 Manually triggering VirtFusion monthly billing...');
+    await this.runVirtFusionMonthlyBilling();
+  }
+
+  /**
    * Stop all cron jobs
    */
   stopAllJobs() {
@@ -364,6 +688,18 @@ export class CronService {
       this.dnsBillingJob.stop();
       this.dnsBillingJob.destroy();
       console.log('✅ DNS billing cron job stopped');
+    }
+    
+    if (this.virtfusionHourlyJob) {
+      this.virtfusionHourlyJob.stop();
+      this.virtfusionHourlyJob.destroy();
+      console.log('✅ VirtFusion hourly billing cron job stopped');
+    }
+    
+    if (this.virtfusionMonthlyJob) {
+      this.virtfusionMonthlyJob.stop();
+      this.virtfusionMonthlyJob.destroy();
+      console.log('✅ VirtFusion monthly billing cron job stopped');
     }
   }
 }

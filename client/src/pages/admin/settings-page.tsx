@@ -53,11 +53,12 @@ import {
   MessageCircle,
   Globe,
   MessageSquare,
-
   Upload,
   Image,
   Trash2,
-  BarChart3
+  BarChart3,
+  Clock,
+  Calendar
 } from "lucide-react";
 
 interface Setting {
@@ -183,6 +184,29 @@ interface DnsBillingData {
     subscriptionsDueToday: number;
     suspendedSubscriptions: number;
     totalMonthlyRevenue: number;
+  };
+}
+
+// VirtFusion Cron Data interface
+interface VirtFusionCronData {
+  success: boolean;
+  cronStatus: {
+    virtfusionHourly: {
+      enabled: boolean;
+      schedule: string;
+      isRunning: boolean;
+    };
+    virtfusionMonthly: {
+      enabled: boolean;
+      schedule: string;
+      isRunning: boolean;
+    };
+  };
+  virtfusionStats: {
+    totalActiveServers: number;
+    transactionsToday: number;
+    failedTransactions: number;
+    totalHourlyRevenue: number;
   };
 }
 
@@ -399,6 +423,16 @@ export default function SettingsPage() {
     refetchInterval: 60000, // Refetch every minute
   });
 
+  // Fetch VirtFusion cron status (uses same endpoint as DNS cron status)
+  const { data: virtfusionCronData } = useQuery<VirtFusionCronData>({
+    queryKey: ['/api/admin/cron/status', 'virtfusion'],
+    queryFn: async () => {
+      return apiRequest('/api/admin/cron/status');
+    },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: 60000, // Refetch every minute
+  });
+
   // Fetch ticket departments
   const { data: departments = [], isLoading: isLoadingDepartments } = useQuery<TicketDepartment[]>({
     queryKey: ["/api/ticket-departments"],
@@ -563,7 +597,62 @@ export default function SettingsPage() {
         method: "POST",
         body: { key, value }
       });
+    }
+  });
+
+  // VirtFusion cron mutations
+  const updateVirtFusionCronMutation = useMutation({
+    mutationFn: async ({ enabled, hoursPerMonth, cronSchedule }: { enabled: boolean, hoursPerMonth: number, cronSchedule: string }) => {
+      return apiRequest('/api/admin/virtfusion/cron/update', {
+        method: 'POST',
+        body: { enabled, hoursPerMonth, cronSchedule }
+      });
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['virtfusion-cron-status'] });
+    }
+  });
+
+  const triggerVirtFusionHourlyBillingMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/virtfusion/cron/trigger-hourly', {
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'VirtFusion hourly billing triggered',
+        description: 'Hourly billing process has been started manually.'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error triggering hourly billing',
+        description: error.message || 'Failed to trigger hourly billing',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  const triggerVirtFusionMonthlyBillingMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/virtfusion/cron/trigger-monthly', {
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'VirtFusion monthly billing triggered',
+        description: 'Monthly billing process has been started manually.'
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error triggering monthly billing',
+        description: error.message || 'Failed to trigger monthly billing',
+        variant: 'destructive'
+      });
+    }
   });
 
   // Logo upload mutation
@@ -1624,17 +1713,20 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "virtfusion_self_service_hourly_resource_pack_id", value: data.selfServiceHourlyResourcePackId.toString() });
       await updateSettingMutation.mutateAsync({ key: "virtfusion_default_resource_pack_id", value: data.defaultResourcePackId.toString() });
 
-      // Save hourly billing settings
-      await updateSettingMutation.mutateAsync({ key: "server_hourly_billing_enabled", value: data.serverHourlyBillingEnabled.toString() });
-      await updateSettingMutation.mutateAsync({ key: "server_hours_per_month", value: data.serverHoursPerMonth.toString() });
-      await updateSettingMutation.mutateAsync({ key: "server_hourly_billing_cron_schedule", value: data.serverHourlyBillingCronSchedule });
+      // Update VirtFusion cron settings via API
+      await updateVirtFusionCronMutation.mutateAsync({
+        enabled: data.serverHourlyBillingEnabled,
+        hoursPerMonth: data.serverHoursPerMonth,
+        cronSchedule: data.serverHourlyBillingCronSchedule
+      });
 
       toast({
         title: "Settings saved",
-        description: "VirtFusion API settings have been updated",
+        description: "VirtFusion API settings and cron configuration have been updated",
       });
 
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["virtfusion-cron-status"] });
     } catch (error: any) {
       toast({
         title: "Error saving settings",
@@ -2113,6 +2205,205 @@ export default function SettingsPage() {
                         <p className="text-sm text-muted-foreground mt-1">
                           Cron schedule for hourly billing (default: 0 * * * * = every hour)
                         </p>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* VirtFusion Cron Management */}
+                    <div>
+                      <h3 className="text-lg font-medium">VirtFusion Hourly Billing Automation</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Manage automated hourly billing for VirtFusion servers
+                      </p>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border rounded-lg p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="virtfusionBillingEnabled">Enable VirtFusion Billing Automation</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Automatically bill customers for VirtFusion server usage
+                          </p>
+                        </div>
+                        <Switch
+                          id="virtfusionBillingEnabled"
+                          checked={virtfusionCronData?.cronStatus?.virtfusionHourly?.enabled || false}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              await apiRequest("/api/admin/cron/virtfusion-billing", {
+                                method: "POST",
+                                body: { enabled: checked }
+                              });
+                              queryClient.invalidateQueries({
+                                queryKey: ["/api/admin/cron/status"],
+                                exact: true
+                              });
+                              toast({
+                                title: "Settings updated",
+                                description: `VirtFusion billing automation ${checked ? 'enabled' : 'disabled'}`,
+                              });
+                            } catch (error: any) {
+                              toast({
+                                title: "Error",
+                                description: error.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground">Hourly Schedule</Label>
+                          <p className="text-sm">{virtfusionCronData?.cronStatus?.virtfusionHourly?.schedule || '0 * * * *'}</p>
+                          <p className="text-xs text-muted-foreground">Runs every hour for active servers</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            ⏰ Cron format: minute hour day month day-of-week
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground">Monthly Schedule</Label>
+                          <p className="text-sm">{virtfusionCronData?.cronStatus?.virtfusionMonthly?.schedule || '0 2 1 * *'}</p>
+                          <p className="text-xs text-muted-foreground">Runs at 2 AM on the 1st of each month</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            📅 Monthly catch-up billing
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground">Hourly Status</Label>
+                          <p className="text-sm flex items-center">
+                            {virtfusionCronData?.cronStatus?.virtfusionHourly?.isRunning ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+                                Running
+                              </>
+                            ) : (
+                              <>
+                                <X className="h-3 w-3 mr-1 text-red-500" />
+                                Stopped
+                              </>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {virtfusionCronData?.cronStatus?.virtfusionHourly?.isRunning 
+                              ? "Hourly billing is active and processing charges"
+                              : "Hourly billing is disabled - no automatic charges"
+                            }
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground">Monthly Status</Label>
+                          <p className="text-sm flex items-center">
+                            {virtfusionCronData?.cronStatus?.virtfusionMonthly?.isRunning ? (
+                              <>
+                                <CheckCircle className="h-3 w-3 mr-1 text-green-500" />
+                                Running
+                              </>
+                            ) : (
+                              <>
+                                <X className="h-3 w-3 mr-1 text-red-500" />
+                                Stopped
+                              </>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {virtfusionCronData?.cronStatus?.virtfusionMonthly?.isRunning 
+                              ? "Monthly catch-up billing is active"
+                              : "Monthly catch-up billing is disabled"
+                            }
+                          </p>
+                        </div>
+                      </div>
+
+                      {virtfusionCronData?.virtfusionStats && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2 border-t">
+                          <div className="text-center">
+                            <p className="text-lg font-semibold">{virtfusionCronData.virtfusionStats.totalActiveServers}</p>
+                            <p className="text-xs text-muted-foreground">Active Servers</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">Servers being billed hourly</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-semibold">{virtfusionCronData.virtfusionStats.transactionsToday}</p>
+                            <p className="text-xs text-muted-foreground">Transactions Today</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">Billing transactions processed today</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-semibold">{virtfusionCronData.virtfusionStats.failedTransactions}</p>
+                            <p className="text-xs text-muted-foreground">Failed Transactions</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">Transactions that failed processing</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-lg font-semibold">${virtfusionCronData.virtfusionStats.totalHourlyRevenue?.toFixed(2)}</p>
+                            <p className="text-xs text-muted-foreground">Hourly Revenue</p>
+                            <p className="text-xs text-blue-600 dark:text-blue-400">Total revenue from hourly billing</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await apiRequest("/api/admin/cron/virtfusion-billing/trigger-hourly", {
+                                method: "POST"
+                              });
+                              queryClient.invalidateQueries({
+                                queryKey: ["/api/admin/cron/status"],
+                                exact: true
+                              });
+                              toast({
+                                title: "Success",
+                                description: "VirtFusion hourly billing triggered successfully",
+                              });
+                            } catch (error: any) {
+                              toast({
+                                title: "Error",
+                                description: error.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <Clock className="h-4 w-4 mr-2" />
+                          Trigger Hourly Billing
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await apiRequest("/api/admin/cron/virtfusion-billing/trigger-monthly", {
+                                method: "POST"
+                              });
+                              queryClient.invalidateQueries({
+                                queryKey: ["/api/admin/cron/status"],
+                                exact: true
+                              });
+                              toast({
+                                title: "Success",
+                                description: "VirtFusion monthly billing triggered successfully",
+                              });
+                            } catch (error: any) {
+                              toast({
+                                title: "Error",
+                                description: error.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Trigger Monthly Billing
+                        </Button>
                       </div>
                     </div>
 

@@ -148,18 +148,25 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
   const hasVirtFusionAccount = !!user?.virtFusionId;
 
   // Fetch VirtFusion packages
-  const { data: packagesData, isLoading: packagesLoading, error: packagesError } = useQuery({
-    queryKey: ['/api/packages'],
+  const { data: packages = [], isLoading: packagesLoading } = useQuery({
+    queryKey: ["/api/packages"],
     queryFn: async () => {
-      const response = await fetch('/api/packages');
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch packages');
-      }
-      const data = await response.json();
-      return data;
+      const response = await fetch("/api/packages");
+      if (!response.ok) throw new Error("Failed to fetch packages");
+      return response.json();
     },
-    enabled: open,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch VirtFusion cron settings for hours per month calculation
+  const { data: virtfusionCronData } = useQuery({
+    queryKey: ['cron-status'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/cron/status');
+      if (!response.ok) throw new Error('Failed to fetch VirtFusion cron settings');
+      return response.json();
+    },
+    staleTime: 30000,
   });
 
   // Fetch VirtFusion hypervisor groups (required for server creation)
@@ -320,15 +327,15 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
   }, [selectedOsTemplate, form]);
 
   // ---------------- Package dropdown filtering / pagination ----------------
-  const packages = Array.isArray(packagesData) ? packagesData : [];
-  console.log('Client packages data:', packagesData);
-  console.log('Processed packages:', packages);
+  const processedPackages = Array.isArray(packages) ? packages : [];
+  console.log('Client packages data:', packages);
+  console.log('Processed packages:', processedPackages);
   const filteredPackages = useMemo(() => {
-    if (!packageSearch) return packages;
-    return packages.filter((p: any) =>
+    if (!packageSearch) return processedPackages;
+    return processedPackages.filter((p: any) =>
       `${p.name} ${p.cpuCores} ${p.memory} ${p.primaryStorage}`.toLowerCase().includes(packageSearch.toLowerCase())
     );
-  }, [packages, packageSearch]);
+  }, [processedPackages, packageSearch]);
 
   const totalPackagePages = Math.max(1, Math.ceil(filteredPackages.length / pageSize));
   const paginatedPackages = useMemo(
@@ -847,7 +854,12 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                                   <div className="flex items-center gap-2">
                                     {(pkg.pricing || pkg.price) && (
                                       <Badge variant="secondary" className="text-xs">
-                                        ${((pkg.pricing?.price || pkg.price || 0)).toFixed(2)}
+                                        ${(() => {
+                                          const monthlyPrice = pkg.pricing?.price || pkg.price || 0;
+                                          const hoursPerMonth = virtfusionCronData?.hoursPerMonth || 730;
+                                          const hourlyRate = monthlyPrice / hoursPerMonth;
+                                          return hourlyRate.toFixed(4);
+                                        })()} /hr
                                       </Badge>
                                     )}
                                   </div>

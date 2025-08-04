@@ -21,6 +21,9 @@ import { betterStackService } from "./betterstack-service";
 import { geminiService } from "./gemini-service";
 import { cacheService } from "./services/infrastructure/cache-service";
 import { serverLoggingService } from "./server-logging-service";
+import { cronService } from "./services/cron-service";
+import { dnsBillingService } from "./services/dns-billing-service";
+import { virtfusionCronSettings, virtfusionHourlyBilling } from "../shared/schemas/virtfusion-billing-schema";
 import {
   getMaintenanceStatus,
   getMaintenanceToken,
@@ -6950,6 +6953,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the server creation if uptime tracking fails
       }
 
+      // Add server to VirtFusion hourly billing system
+      try {
+        // Get package details for billing calculation
+        const packageDetails = await storage.db.select()
+          .from(schema.packages)
+          .where(eq(schema.packages.id, validatedData.packageId))
+          .limit(1);
+
+        if (packageDetails.length > 0) {
+          const pkg = packageDetails[0];
+          const monthlyPrice = parseFloat(pkg.monthlyPrice || '0');
+          
+          // Get hours per month from cron settings (default 730)
+          const cronSettings = await storage.db.select()
+            .from(virtfusionCronSettings)
+            .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+            .limit(1);
+          
+          const hoursPerMonth = cronSettings.length > 0 ? cronSettings[0].hoursPerMonth : 730;
+          const hourlyRate = monthlyPrice / hoursPerMonth;
+
+          // Create hourly billing record
+          await storage.db.insert(virtfusionHourlyBilling).values({
+            userId: user.id,
+            serverId: result.data.id,
+            virtfusionServerId: result.data.id,
+            packageId: validatedData.packageId,
+            packageName: pkg.name || 'Unknown Package',
+            monthlyPrice: monthlyPrice.toString(),
+            hourlyRate: hourlyRate.toString(),
+            hoursInMonth: hoursPerMonth,
+            billingEnabled: true
+          });
+
+          console.log(`Added server ${result.data.id} to VirtFusion hourly billing system (${hourlyRate.toFixed(6)}/hour)`);
+        } else {
+          console.warn(`Package ${validatedData.packageId} not found for hourly billing setup`);
+        }
+      } catch (billingError) {
+        console.error('Error setting up VirtFusion hourly billing:', billingError);
+        // Don't fail the server creation if billing setup fails
+      }
+
       // Note: Transaction for token deduction was already created in the deduction step above
 
       res.json({
@@ -9240,6 +9286,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error updating DNS billing cron:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Update VirtFusion cron settings (admin only)
+  app.post("/api/admin/cron/virtfusion-billing", isAdmin, async (req, res) => {
+    try {
+      const { enabled, hourlyEnabled, monthlyEnabled, hoursPerMonth } = req.body;
+
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: "enabled must be a boolean" });
+      }
+
+      if (hourlyEnabled !== undefined && typeof hourlyEnabled !== 'boolean') {
+        return res.status(400).json({ error: "hourlyEnabled must be a boolean" });
+      }
+
+      if (monthlyEnabled !== undefined && typeof monthlyEnabled !== 'boolean') {
+        return res.status(400).json({ error: "monthlyEnabled must be a boolean" });
+      }
+
+      if (hoursPerMonth !== undefined && (typeof hoursPerMonth !== 'number' || hoursPerMonth < 1 || hoursPerMonth > 8760)) {
+        return res.status(400).json({ error: "hoursPerMonth must be a number between 1 and 8760" });
+      }
+
+      await cronService.updateVirtFusionCron(enabled, hourlyEnabled, monthlyEnabled, hoursPerMonth);
+
+      res.json({
+        success: true,
+        message: "VirtFusion cron settings updated successfully",
+        enabled,
+        hourlyEnabled,
+        monthlyEnabled,
+        hoursPerMonth
+      });
+    } catch (error: any) {
+      console.error("Error updating VirtFusion cron:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Manually trigger VirtFusion hourly billing (admin only)
+  app.post("/api/admin/cron/virtfusion-billing/trigger-hourly", isAdmin, async (req, res) => {
+    try {
+      await cronService.triggerVirtFusionHourlyBilling();
+      res.json({
+        success: true,
+        message: "VirtFusion hourly billing triggered successfully"
+      });
+    } catch (error: any) {
+      console.error("Error triggering VirtFusion hourly billing:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Manually trigger VirtFusion monthly billing (admin only)
+  app.post("/api/admin/cron/virtfusion-billing/trigger-monthly", isAdmin, async (req, res) => {
+    try {
+      await cronService.triggerVirtFusionMonthlyBilling();
+      res.json({
+        success: true,
+        message: "VirtFusion monthly billing triggered successfully"
+      });
+    } catch (error: any) {
+      console.error("Error triggering VirtFusion monthly billing:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get VirtFusion cron settings (admin only)
+  app.get("/api/admin/cron/virtfusion-billing", isAdmin, async (req, res) => {
+    try {
+      const settings = await storage.db.select()
+        .from(virtfusionCronSettings)
+        .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+        .limit(1);
+
+      if (settings.length === 0) {
+        return res.json({
+          enabled: false,
+          hoursPerMonth: 730,
+          billingOnFirstEnabled: true,
+          hourlyBillingEnabled: true,
+          lastMonthlyBilling: null,
+          lastHourlyBilling: null
+        });
+      }
+
+      res.json(settings[0]);
+    } catch (error: any) {
+      console.error("Error fetching VirtFusion cron settings:", error);
       res.status(500).json({ error: error.message });
     }
   });
