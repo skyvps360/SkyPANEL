@@ -6760,7 +6760,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         additionalStorage1Profile: z.number().int().positive().optional(),
         additionalStorage2Profile: z.number().int().positive().optional(),
         additionalStorage1Capacity: z.number().int().positive().optional(),
-        additionalStorage2Capacity: z.number().int().positive().optional()
+        additionalStorage2Capacity: z.number().int().positive().optional(),
+        // Self-service billing flags
+        selfService: z.number().int().min(0).max(1).default(1),
+        selfServiceHourlyCredit: z.boolean().default(true),
+        selfServiceHourlyResourcePack: z.number().int().positive().default(1)
       });
 
       // Override userId to use the current user's ID
@@ -6853,15 +6857,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Get self-service settings from database
-      const selfServiceSetting = await storage.getSetting('virtfusion_self_service');
-      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
-      const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
+      // Use self-service settings from client request (with fallback defaults)
+      const selfService = validatedData.selfService ?? 1;
+      const selfServiceHourlyCredit = validatedData.selfServiceHourlyCredit ?? true;
+      const selfServiceHourlyResourcePack = validatedData.selfServiceHourlyResourcePack ?? 1;
       
-      // Parse settings with fallbacks to defaults
-      const selfService = selfServiceSetting ? parseInt(selfServiceSetting.value, 10) : 1;
-      const selfServiceHourlyCredit = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
-      const selfServiceHourlyResourcePack = selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1;
+      console.log('DEBUG - Self-service values from validatedData:', {
+        selfService,
+        selfServiceHourlyCredit,
+        selfServiceHourlyResourcePack,
+        validatedDataKeys: Object.keys(validatedData)
+      });
 
       // Prepare server creation data for VirtFusion API
       const virtFusionServerData = {
@@ -6918,6 +6924,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log(`Client creating server for user ${user.id}:`, virtFusionServerData);
+      console.log('DEBUG - Self-service flags in VirtFusion payload:', {
+        selfService: virtFusionServerData.selfService,
+        selfServiceHourlyCredit: virtFusionServerData.selfServiceHourlyCredit,
+        selfServiceHourlyResourcePack: virtFusionServerData.selfServiceHourlyResourcePack
+      });
 
       // Create server using VirtFusion API
       const result = await virtFusionApi.createServer(virtFusionServerData);
@@ -6926,7 +6937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Start uptime tracking for the new server
       try {
-        const { serverUptimeService } = await import('../services/infrastructure/server-uptime-service');
+        const { serverUptimeService } = await import('./services/infrastructure/server-uptime-service');
         await serverUptimeService.startUptimeTracking(
           result.data.id, // SkyPANEL server ID
           result.data.id, // VirtFusion server ID (same in this case)

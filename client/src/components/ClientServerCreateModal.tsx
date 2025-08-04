@@ -78,6 +78,11 @@ const serverCreateSchema = z.object({
   additionalStorage2Profile: z.number().int().positive().optional(),
   additionalStorage1Capacity: z.number().int().positive().optional(),
   additionalStorage2Capacity: z.number().int().positive().optional(),
+
+  // Self-Service Billing Flags
+  selfService: z.number().int().min(0).max(1).default(1),
+  selfServiceHourlyCredit: z.boolean().default(true),
+  selfServiceHourlyResourcePack: z.number().int().positive().default(1),
   
   // Server Build Fields
   operatingSystemId: z.number().int().positive("Operating System is required"),
@@ -95,6 +100,16 @@ type ServerCreateFormData = z.infer<typeof serverCreateSchema>;
 export default function ClientServerCreateModal({ open, onOpenChange, onSuccess, companyName }: ClientServerCreateModalProps) {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  // Fetch public settings to obtain self-service billing flag defaults
+  const { data: publicSettings } = useQuery({
+    queryKey: ["/api/settings/public"],
+    queryFn: async () => {
+      const res = await fetch("/api/settings/public");
+      if (!res.ok) throw new Error("Failed to fetch public settings");
+      return res.json();
+    },
+    staleTime: 10 * 60 * 1000 // cache for 10 minutes
+  });
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [selectedHypervisorGroup, setSelectedHypervisorGroup] = useState<any>(null);
   const [selectedOsTemplate, setSelectedOsTemplate] = useState<any>(null);
@@ -532,7 +547,17 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
 
   const onSubmit = (data: ServerCreateFormData) => {
     setServerName(data.name);
-    createServerMutation.mutate(data);
+
+    // Merge self-service billing flags from settings (fallback defaults)
+    const settings: Record<string, any> = publicSettings?.data ?? publicSettings ?? {};
+    const payload = {
+      ...data,
+      selfService: Number(settings["virtfusion_self_service"] ?? 1),
+      selfServiceHourlyCredit: (settings["virtfusion_self_service_hourly_credit"] ?? "true") === "true",
+      selfServiceHourlyResourcePack: Number(settings["virtfusion_self_service_hourly_resource_pack_id"] ?? 1)
+    } as ServerCreateFormData;
+
+    createServerMutation.mutate(payload);
   };
 
   // Clear poller on unmount
