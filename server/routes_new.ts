@@ -5559,13 +5559,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 1 = hourly billing (enabled)
           const selfServiceValue = enabled ? 1 : 0;
 
+          // Get self-service settings from database
+          const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
+          const selfServiceHourlyResourcePack = selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1;
+
           // Prepare the update data
           const updateData = {
             name: user.fullName, // Required by the VirtFusion API
             email: user.email,   // Required by the VirtFusion API
             selfService: selfServiceValue, // This controls whether user can access the system
             selfServiceHourlyCredit: true, // Always true as per our app's default
-            selfServiceHourlyResourcePack: 1, // Default resource pack ID
+            selfServiceHourlyResourcePack: selfServiceHourlyResourcePack, // From settings
             enabled: enabled // Controls whether VirtFusion emails the user
           };
 
@@ -6222,6 +6226,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .json({ error: "User is already linked to VirtFusion" });
         }
 
+        // Get self-service settings from database
+        const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
+        const selfServiceHourlyResourcePack = selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1;
+
         // Create user in VirtFusion
         try {
           const response = await virtFusionApi.createUser({
@@ -6230,7 +6238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             extRelationId: user.id,
             selfService: 1, // 1 = hourly billing enabled
             selfServiceHourlyCredit: true, // Enable credit balance billing for hourly self service
-            selfServiceHourlyResourcePack: 1, // Setting the hourly resource pack to ID 1 (default pack)
+            selfServiceHourlyResourcePack: selfServiceHourlyResourcePack, // From settings
             userData: {
               emails: [user.email],
             },
@@ -6308,6 +6316,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: user.email,
       };
 
+      // Get self-service settings from database
+      const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
+      const selfServiceHourlyResourcePack = selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1;
+
       // Make sure selfService and selfServiceHourlyCredit are always set properly
       if (updateData.selfService === undefined) {
         updateData.selfService = 1; // 1 = hourly enabled
@@ -6317,9 +6329,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updateData.selfServiceHourlyCredit = true; // Enable credit balance billing for hourly self service
       }
 
-      // Always set the hourly resource pack to ID 1 if not specified
+      // Always set the hourly resource pack from settings if not specified
       if (updateData.selfServiceHourlyResourcePack === undefined) {
-        updateData.selfServiceHourlyResourcePack = 1; // Default pack
+        updateData.selfServiceHourlyResourcePack = selfServiceHourlyResourcePack; // From settings
       }
 
       console.log(
@@ -6804,6 +6816,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Get self-service settings from database
+      const selfServiceSetting = await storage.getSetting('virtfusion_self_service');
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
+      
+      // Parse settings with fallbacks to defaults
+      const selfService = selfServiceSetting ? parseInt(selfServiceSetting.value, 10) : 1;
+      const selfServiceHourlyCredit = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      const selfServiceHourlyResourcePack = selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1;
+
       // Prepare server creation data for VirtFusion API
       const virtFusionServerData = {
         packageId: validatedData.packageId,
@@ -6822,11 +6844,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         additionalStorage1Enable: validatedData.additionalStorage1Enable,
         additionalStorage2Enable: validatedData.additionalStorage2Enable,
         // Self-service server configuration for hourly billing
-        selfService: 1, // 1 = hourly self-service enabled
-        selfServiceHourlyCredit: true, // Enable credit balance billing for hourly self-service
-        selfServiceHourlyGroupProfiles: [], // Required array field - empty for default
-        selfServiceResourceGroupProfiles: [], // Required array field - empty for default
-        selfServiceHourlyResourcePack: 1 // Default hourly resource pack
+        selfService: selfService, // From settings (1 = hourly self-service enabled)
+        selfServiceHourlyCredit: selfServiceHourlyCredit, // From settings
+        selfServiceHourlyResourcePack: selfServiceHourlyResourcePack // From settings
       };
 
       // Only include networkProfile if it's not 0
@@ -7026,6 +7046,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = validationResult.data;
 
+      // Get self-service settings from database
+      const selfServiceSetting = await storage.getSetting('virtfusion_self_service');
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
+      
+      // Parse settings with fallbacks to defaults
+      const selfService = selfServiceSetting ? parseInt(selfServiceSetting.value, 10) : 1;
+      const selfServiceHourlyCredit = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      const selfServiceHourlyResourcePack = selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1;
+
       // Get the SkyPANEL user to obtain their VirtFusion user ID
       const skyPanelUser = await storage.getUser(validatedData.userId);
       if (!skyPanelUser) {
@@ -7061,11 +7091,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         additionalStorage1Enable: validatedData.additionalStorage1Enable,
         additionalStorage2Enable: validatedData.additionalStorage2Enable,
         // Self-service server configuration for hourly billing
-        selfService: 1, // 1 = hourly self-service enabled
-        selfServiceHourlyCredit: true, // Enable credit balance billing for hourly self-service
-        selfServiceHourlyGroupProfiles: [], // Required array field - empty for default
-        selfServiceResourceGroupProfiles: [], // Required array field - empty for default
-        selfServiceHourlyResourcePack: 1 // Default hourly resource pack
+        selfService: selfService, // From settings (1 = hourly self-service enabled)
+        selfServiceHourlyCredit: selfServiceHourlyCredit, // From settings
+        selfServiceHourlyResourcePack: selfServiceHourlyResourcePack // From settings
       };
 
       // Add additional storage configurations if enabled
