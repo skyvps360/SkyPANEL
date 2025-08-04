@@ -6783,28 +6783,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let packageName = 'Unknown Package';
       
       try {
-        // Get package details to determine cost
-        const packageDetails = await virtFusionApi.getPackage(validatedData.packageId);
-        packageCost = packageDetails?.data?.pricing?.price || 0; // Cost in tokens (100 tokens = $1)
-        packageName = packageDetails?.data?.name || 'Unknown Package';
+        // Get package pricing from database (not from VirtFusion API)
+        const packagePricing = await storage.getPackagePricingByVirtFusionId(validatedData.packageId);
+        if (packagePricing && packagePricing.enabled) {
+          packageCost = packagePricing.price; // Price is stored in cents (100 = $1.00)
+          packageName = packagePricing.name;
+        } else {
+          // Fallback to VirtFusion API if no pricing found in database
+          const packageDetails = await virtFusionApi.getPackage(validatedData.packageId);
+          packageCost = packageDetails?.data?.pricing?.price || 0;
+          packageName = packageDetails?.data?.name || 'Unknown Package';
+        }
         
         // Deduct tokens from user's VirtFusion account if package has a cost
         if (packageCost > 0) {
           console.log(`Deducting ${packageCost} tokens from user ${user.id} for package ${packageName}`);
           
-          // Deduct credits from the user's VirtFusion account
-          const creditResponse = await virtFusionApi.removeCreditFromUserByExtRelationId(
-            user.id, // Use SkyPANEL user ID as extRelationId
-            {
-              tokens: packageCost,
-              reference_1: null, // Optional reference ID
-              reference_2: `Server creation charge for package ${packageName}`,
-            }
-          );
+          // Use the same approach as admin user page - create transaction first, then call VirtFusion API
+          const dollarAmount = packageCost / 100; // Convert tokens to dollars
           
-          if (!creditResponse || !creditResponse.data) {
-            throw new Error(`Failed to deduct ${packageCost} tokens from user account`);
+          // Create a transaction record first to get the transaction ID
+          const createdTransaction = await storage.createTransaction({
+            userId: user.id,
+            amount: -Math.abs(dollarAmount), // Negative amount for debit
+            description: `Server creation charge for package ${packageName}`,
+            type: "server_creation",
+            status: "pending",
+            paymentMethod: "virtfusion_tokens"
+          });
+
+          // Call VirtFusion API using the same method as admin user page
+          await virtFusionApi.updateSettings();
+          
+          if (!virtFusionApi.isConfigured()) {
+            // Rollback transaction if VirtFusion API is not configured
+            await storage.updateTransaction(createdTransaction.id, { status: "failed" });
+            throw new Error("VirtFusion API configuration is incomplete");
           }
+
+          // Format the data for VirtFusion API (same as admin user page)
+          const tokenData = {
+            tokens: packageCost,
+            reference_1: createdTransaction.id, // Use transaction ID as reference
+            reference_2: `Server creation charge for package ${packageName}`
+          };
+
+          console.log(`Sending to VirtFusion API with extRelationId=${user.id}:`, tokenData);
+
+          // Call the VirtFusion API to remove tokens (same method as admin user page)
+          const virtFusionResult = await virtFusionApi.removeCreditFromUserByExtRelationId(
+            user.id, // Use SkyPANEL user ID as extRelationId
+            tokenData
+          );
+
+          console.log("VirtFusion token removal result:", virtFusionResult);
+
+          // Update transaction status to completed
+          await storage.updateTransaction(createdTransaction.id, { status: "completed" });
           
           console.log(`Successfully deducted ${packageCost} tokens from user ${user.id}`);
         }
@@ -6887,30 +6922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("VirtFusion create server response:", JSON.stringify(result, null, 2));
 
-      // Create billing transaction for server creation
-      try {
-        if (packageCost > 0) {
-          const costInDollars = packageCost / 100; // Convert tokens to dollars
-          
-          // Create a transaction record for the server creation
-          const transaction: InsertTransaction = {
-            userId: user.id,
-            amount: -costInDollars, // Negative amount for debit
-            type: "server_creation",
-            description: `Server creation charge for package ${packageName} (Server ID: ${result.data?.id})`,
-            status: "completed",
-            paymentMethod: "virtfusion_credit",
-            virtFusionCreditId: null, // Will be set when VirtFusion processes the charge
-          };
-
-          console.log("Creating server creation transaction:", transaction);
-          const createdTransaction = await storage.createTransaction(transaction);
-          console.log("Server creation transaction created with ID:", createdTransaction.id);
-        }
-      } catch (billingError) {
-        console.error("Error creating billing transaction:", billingError);
-        // Don't fail the server creation if billing fails
-      }
+      // Note: Transaction for token deduction was already created in the deduction step above
 
       res.json({
         success: true,

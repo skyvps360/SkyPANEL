@@ -2069,8 +2069,11 @@ export class DatabaseStorage implements IStorage {
     throw new Error('Not implemented: getPackagePricingById');
   }
   async getPackagePricingByVirtFusionId(virtFusionPackageId: number): Promise<PackagePricing | undefined> {
-    // TODO: Implement actual DB query
-    throw new Error('Not implemented: getPackagePricingByVirtFusionId');
+    const [pricing] = await db.select()
+      .from(packagePricing)
+      .where(eq(packagePricing.virtFusionPackageId, virtFusionPackageId))
+      .limit(1);
+    return pricing;
   }
   async createPackagePricing(data: InsertPackagePricing): Promise<PackagePricing> {
     // TODO: Implement actual DB insert
