@@ -449,11 +449,17 @@ export default function SettingsPage() {
       apiToken: getSettingValue("virtfusion_api_token", ""),
       sslVerify: getSettingValue("virtfusion_ssl_verify", "true") === "true",
 
-      // User registration settings with safer parsing
-      selfServiceValue: Number(getSettingValue("virtfusion_self_service", "1")) || 1,
+      // User registration settings with proper handling of 0 values
+      selfServiceValue: Number(getSettingValue("virtfusion_self_service", "1")),
       selfServiceHourlyCredit: getSettingValue("virtfusion_self_service_hourly_credit", "true") === "true",
-      selfServiceHourlyResourcePackId: Number(getSettingValue("virtfusion_self_service_hourly_resource_pack_id", "1")) || 1,
-      defaultResourcePackId: Number(getSettingValue("virtfusion_default_resource_pack_id", "1")) || 1,
+      selfServiceHourlyResourcePackId: (() => {
+        const value = Number(getSettingValue("virtfusion_self_service_hourly_resource_pack_id", "1"));
+        return isNaN(value) ? 1 : value;
+      })(),
+      defaultResourcePackId: (() => {
+        const value = Number(getSettingValue("virtfusion_default_resource_pack_id", "1"));
+        return isNaN(value) ? 1 : value;
+      })(),
     },
   });
 
@@ -1415,15 +1421,21 @@ export default function SettingsPage() {
 
       // Update VirtFusion form with all settings
       virtFusionForm.reset({
-        apiUrl: getSettingValue("virtfusion_api_url", "https://skyvps360.xyz/api/v1"),
+        apiUrl: getSettingValue("virtfusion_api_url", ""),
         apiToken: getSettingValue("virtfusion_api_token", ""),
         sslVerify: getSettingValue("virtfusion_ssl_verify", "true") === "true",
 
-        // Add user registration settings
-        selfServiceValue: Number(getSettingValue("virtfusion_self_service", "1")) || 1,
+        // Add user registration settings with proper handling of 0 values
+        selfServiceValue: Number(getSettingValue("virtfusion_self_service", "1")),
         selfServiceHourlyCredit: getSettingValue("virtfusion_self_service_hourly_credit", "true") === "true",
-        selfServiceHourlyResourcePackId: Number(getSettingValue("virtfusion_self_service_hourly_resource_pack_id", "1")) || 1,
-        defaultResourcePackId: Number(getSettingValue("virtfusion_default_resource_pack_id", "1")) || 1,
+        selfServiceHourlyResourcePackId: (() => {
+          const value = Number(getSettingValue("virtfusion_self_service_hourly_resource_pack_id", "1"));
+          return isNaN(value) ? 1 : value;
+        })(),
+        defaultResourcePackId: (() => {
+          const value = Number(getSettingValue("virtfusion_default_resource_pack_id", "1"));
+          return isNaN(value) ? 1 : value;
+        })(),
       });
 
       // Update Billing form
@@ -1465,8 +1477,6 @@ export default function SettingsPage() {
         accentColor: getSettingValue("accent_color", "f59e0b"),
         platformServerCount: getSettingValue("platform_server_count", ""),
         platformHypervisorCount: getSettingValue("platform_hypervisor_count", ""),
-        platformCpuCores: getSettingValue("platform_cpu_cores", ""),
-        platformMemoryGB: getSettingValue("platform_memory_gb", ""),
       });
 
       // Update logo preview if logo exists - handle both file URLs and base64
@@ -2077,20 +2087,6 @@ export default function SettingsPage() {
                         <p className="text-sm text-muted-foreground mt-1">
                           Controls whether users can use hourly billing in VirtFusion
                         </p>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="selfServiceHourlyCredit">Self Service Hourly Credit</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Enable hourly credit billing for self-service users
-                          </p>
-                        </div>
-                        <Switch
-                          id="selfServiceHourlyCredit"
-                          checked={virtFusionForm.watch("selfServiceHourlyCredit")}
-                          onCheckedChange={(checked) => virtFusionForm.setValue("selfServiceHourlyCredit", checked, { shouldDirty: true })}
-                        />
                       </div>
 
                       <div className="space-y-2">
