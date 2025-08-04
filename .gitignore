@@ -13,10 +13,7 @@ logs/
 
 # Dot Directories
 .vscode-test/
-.cursor/
-.windsurf/
 .codacy/
-.trae/
 
 # DotFiles & Directories
 .env
