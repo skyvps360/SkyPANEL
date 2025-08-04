@@ -29,6 +29,7 @@ export const packagePricing = pgTable("package_pricing", {
   name: text("name").notNull(),
   description: text("description"),
   price: integer("price").notNull(), // In dollars (e.g., 250 = $2.50)
+  billingCycle: text("billing_cycle").default('monthly'), // 'monthly' or 'hourly'
   displayOrder: integer("display_order").default(0),
   enabled: boolean("enabled").default(true).notNull(),
   categoryId: integer("category_id").references(() => packageCategories.id, { onDelete: 'set null' }), // Optional category assignment

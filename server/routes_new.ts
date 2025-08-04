@@ -1769,6 +1769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             price: pricingRecord ? pricingRecord.price / 100 : null, // Add direct price property for backward compatibility
             pricing: pricingRecord ? {
               price: pricingRecord.price / 100, // Convert cents to dollars
+              billingCycle: pricingRecord.billingCycle,
               displayOrder: pricingRecord.displayOrder,
               enabled: pricingRecord.enabled
             } : null,
