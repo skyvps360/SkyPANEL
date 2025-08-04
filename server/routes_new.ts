@@ -50,7 +50,8 @@ import codeSnippetsRoutes from "./routes/code-snippets";
 
 import { cronService } from "./services/cron-service";
 import { dnsBillingService } from "./services/dns-billing-service";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql, isNull } from "drizzle-orm";
+import { serverUptimeLogs } from "../shared/schemas/server-uptime-schema";
 import PDFDocument from "pdfkit";
 import { formatTicketPdf } from "./ticket-download";
 import * as schema from "../shared/schema";
@@ -6922,6 +6923,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("VirtFusion create server response:", JSON.stringify(result, null, 2));
 
+      // Start uptime tracking for the new server
+      try {
+        const { serverUptimeService } = await import('../services/infrastructure/server-uptime-service');
+        await serverUptimeService.startUptimeTracking(
+          result.data.id, // SkyPANEL server ID
+          result.data.id, // VirtFusion server ID (same in this case)
+          user.id,
+          validatedData.packageId
+        );
+        console.log(`Started uptime tracking for server ${result.data.id}`);
+      } catch (uptimeError) {
+        console.error('Error starting uptime tracking:', uptimeError);
+        // Don't fail the server creation if uptime tracking fails
+      }
+
       // Note: Transaction for token deduction was already created in the deduction step above
 
       res.json({
@@ -6934,6 +6950,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error creating server:", error.message);
       res.status(500).json({ 
         error: "Failed to create server",
+        message: error.message 
+      });
+    }
+  });
+
+  // 🖥️ Server Uptime Management - Get user uptime stats (authenticated users)
+  app.get("/api/user/server-uptime/stats", isAuthenticated, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { serverUptimeService } = await import('./services/infrastructure/server-uptime-service');
+      const stats = await serverUptimeService.getUserUptimeStats(user.id);
+
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error: any) {
+      console.error("Error getting user uptime stats:", error);
+      res.status(500).json({ 
+        error: "Failed to get uptime stats",
+        message: error.message 
+      });
+    }
+  });
+
+  // 🖥️ Server Uptime Management - Get server uptime logs (authenticated users)
+  app.get("/api/user/servers/:serverId/uptime-logs", isAuthenticated, async (req, res) => {
+    try {
+      const { serverId } = req.params;
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { serverUptimeService } = await import('./services/infrastructure/server-uptime-service');
+      const logs = await serverUptimeService.getServerUptimeLogs(parseInt(serverId));
+
+      res.json({
+        success: true,
+        data: logs
+      });
+    } catch (error: any) {
+      console.error("Error getting server uptime logs:", error);
+      res.status(500).json({ 
+        error: "Failed to get uptime logs",
+        message: error.message 
+      });
+    }
+  });
+
+  // 🖥️ Admin Server Uptime Management - Get all uptime stats (admin only)
+  app.get("/api/admin/server-uptime/stats", isAdmin, async (req, res) => {
+    try {
+      const { serverUptimeService } = await import('./services/infrastructure/server-uptime-service');
+      
+      // Get all running servers
+      const runningServers = await storage.db.select()
+        .from(serverUptimeLogs)
+        .where(
+          and(
+            eq(serverUptimeLogs.status, 'running'),
+            isNull(serverUptimeLogs.endTime)
+          )
+        );
+
+      const stats = {
+        totalRunningServers: runningServers.length,
+        totalActiveUsers: new Set(runningServers.map(s => s.userId)).size,
+        estimatedHourlyRevenue: runningServers.reduce((sum, server) => {
+          return sum + parseFloat(server.hourlyRate || '0');
+        }, 0)
+      };
+
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error: any) {
+      console.error("Error getting admin uptime stats:", error);
+      res.status(500).json({ 
+        error: "Failed to get admin uptime stats",
+        message: error.message 
+      });
+    }
+  });
+
+  // 🖥️ Admin Server Uptime Management - Trigger hourly billing manually (admin only)
+  app.post("/api/admin/server-uptime/trigger-billing", isAdmin, async (req, res) => {
+    try {
+      const { serverUptimeService } = await import('./services/infrastructure/server-uptime-service');
+      const result = await serverUptimeService.processHourlyBilling();
+
+      res.json({
+        success: true,
+        data: result,
+        message: `Hourly billing completed. Processed ${result.processedServers} servers, billed $${result.totalBilled.toFixed(4)}`
+      });
+    } catch (error: any) {
+      console.error("Error triggering hourly billing:", error);
+      res.status(500).json({ 
+        error: "Failed to trigger hourly billing",
         message: error.message 
       });
     }

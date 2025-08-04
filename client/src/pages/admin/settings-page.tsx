@@ -78,6 +78,11 @@ const virtFusionSchema = z.object({
   selfServiceHourlyCredit: z.boolean().default(true),
   selfServiceHourlyResourcePackId: z.coerce.number().min(1).default(1),
   defaultResourcePackId: z.coerce.number().min(1).default(1),
+
+  // Hourly billing settings
+  serverHourlyBillingEnabled: z.boolean().default(true),
+  serverHoursPerMonth: z.coerce.number().min(1).max(8760).default(730),
+  serverHourlyBillingCronSchedule: z.string().default('0 * * * *'),
 });
 
 type VirtFusionFormData = z.infer<typeof virtFusionSchema>;
@@ -460,8 +465,46 @@ export default function SettingsPage() {
         const value = Number(getSettingValue("virtfusion_default_resource_pack_id", "1"));
         return isNaN(value) ? 1 : value;
       })(),
+
+      // Hourly billing settings
+              serverHourlyBillingEnabled: getSettingValue("server_hourly_billing_enabled", "false") === "true",
+      serverHoursPerMonth: (() => {
+        const value = Number(getSettingValue("server_hours_per_month", "730"));
+        return isNaN(value) ? 730 : value;
+      })(),
+      serverHourlyBillingCronSchedule: getSettingValue("server_hourly_billing_cron_schedule", "0 * * * *"),
     },
   });
+
+  // Reset form when settings are loaded
+  useEffect(() => {
+    if (settings && settings.length > 0) {
+      const hourlyBillingValue = getSettingValue("server_hourly_billing_enabled", "true") === "true";
+      console.log('🔄 Resetting form with hourly billing value:', hourlyBillingValue);
+      
+      virtFusionForm.reset({
+        apiUrl: getSettingValue("virtfusion_api_url", "https://skyvps360.xyz/api/v1"),
+        apiToken: getSettingValue("virtfusion_api_token", ""),
+        sslVerify: getSettingValue("virtfusion_ssl_verify", "true") === "true",
+        selfServiceValue: Number(getSettingValue("virtfusion_self_service", "1")),
+        selfServiceHourlyCredit: getSettingValue("virtfusion_self_service_hourly_credit", "true") === "true",
+        selfServiceHourlyResourcePackId: (() => {
+          const value = Number(getSettingValue("virtfusion_self_service_hourly_resource_pack_id", "1"));
+          return isNaN(value) ? 1 : value;
+        })(),
+        defaultResourcePackId: (() => {
+          const value = Number(getSettingValue("virtfusion_default_resource_pack_id", "1"));
+          return isNaN(value) ? 1 : value;
+        })(),
+        serverHourlyBillingEnabled: hourlyBillingValue,
+        serverHoursPerMonth: (() => {
+          const value = Number(getSettingValue("server_hours_per_month", "730"));
+          return isNaN(value) ? 730 : value;
+        })(),
+        serverHourlyBillingCronSchedule: getSettingValue("server_hourly_billing_cron_schedule", "0 * * * *"),
+      }, { keepDirty: false });
+    }
+  }, [settings]);
 
   // Billing form
   const billingForm = useForm<BillingFormData>({
@@ -1623,6 +1666,11 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "virtfusion_self_service_hourly_resource_pack_id", value: data.selfServiceHourlyResourcePackId.toString() });
       await updateSettingMutation.mutateAsync({ key: "virtfusion_default_resource_pack_id", value: data.defaultResourcePackId.toString() });
 
+      // Save hourly billing settings
+      await updateSettingMutation.mutateAsync({ key: "server_hourly_billing_enabled", value: data.serverHourlyBillingEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "server_hours_per_month", value: data.serverHoursPerMonth.toString() });
+      await updateSettingMutation.mutateAsync({ key: "server_hourly_billing_cron_schedule", value: data.serverHourlyBillingCronSchedule });
+
       toast({
         title: "Settings saved",
         description: "VirtFusion API settings have been updated",
@@ -2056,6 +2104,74 @@ export default function SettingsPage() {
                           checked={virtFusionForm.watch("sslVerify")}
                           onCheckedChange={(checked) => virtFusionForm.setValue("sslVerify", checked)}
                         />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Hourly Billing Settings */}
+                    <div>
+                      <h3 className="text-lg font-medium">Server Hourly Billing Settings</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Configure hourly billing for server uptime tracking
+                      </p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="serverHourlyBillingEnabled">Enable Hourly Billing</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable automatic hourly billing for server uptime
+                          </p>
+                        </div>
+                        <Switch
+                          id="serverHourlyBillingEnabled"
+                          checked={virtFusionForm.watch("serverHourlyBillingEnabled")}
+                          onCheckedChange={(checked) => {
+                            console.log('🔄 Toggle changed to:', checked);
+                            virtFusionForm.setValue("serverHourlyBillingEnabled", checked, { shouldDirty: true });
+                          }}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="serverHoursPerMonth">Hours Per Month</Label>
+                        <Input
+                          id="serverHoursPerMonth"
+                          type="number"
+                          min="1"
+                          max="8760"
+                          step="1"
+                          value={virtFusionForm.watch("serverHoursPerMonth") ?? 730}
+                          onChange={(e) => virtFusionForm.setValue("serverHoursPerMonth", parseInt(e.target.value) || 730, { shouldDirty: true })}
+                        />
+                        {virtFusionForm.formState.errors.serverHoursPerMonth && (
+                          <p className="text-sm text-destructive mt-1">
+                            {virtFusionForm.formState.errors.serverHoursPerMonth.message}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Number of hours in a full month (default: 730 hours = 30.4 days)
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="serverHourlyBillingCronSchedule">Cron Schedule</Label>
+                        <Input
+                          id="serverHourlyBillingCronSchedule"
+                          placeholder="0 * * * *"
+                          value={virtFusionForm.watch("serverHourlyBillingCronSchedule") ?? '0 * * * *'}
+                          onChange={(e) => virtFusionForm.setValue("serverHourlyBillingCronSchedule", e.target.value, { shouldDirty: true })}
+                        />
+                        {virtFusionForm.formState.errors.serverHourlyBillingCronSchedule && (
+                          <p className="text-sm text-destructive mt-1">
+                            {virtFusionForm.formState.errors.serverHourlyBillingCronSchedule.message}
+                          </p>
+                        )}
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Cron schedule for hourly billing (default: 0 * * * * = every hour)
+                        </p>
                       </div>
                     </div>
 

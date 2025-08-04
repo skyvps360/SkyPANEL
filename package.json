@@ -88,6 +88,7 @@
     "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "cron": "^4.3.3",
     "cross-env": "^7.0.3",
     "date-fns": "^3.6.0",
     "discord.js": "^14.19.2",

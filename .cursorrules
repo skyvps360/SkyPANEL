@@ -1,0 +1,450 @@
+# SkyPANEL Cursor Rules
+
+## Project Overview
+SkyPANEL is a full-stack VPS hosting management platform built with React/TypeScript frontend and Node.js/Express backend. It integrates with VirtFusion API for server management, PayPal for billing, Discord for support, and Google Gemini AI for intelligent assistance.
+
+## Technology Stack
+- **Frontend**: React 18, TypeScript, Vite, TailwindCSS, Shadcn/UI, Radix UI
+- **Backend**: Node.js, Express, TypeScript, PostgreSQL, Drizzle ORM
+- **Integrations**: VirtFusion API, PayPal, Discord, Google Gemini AI, BetterStack
+- **Build Tools**: Vite, ESBuild, Drizzle Kit, PM2
+- **Deployment**: Docker, Cloudflare Wrangler, PM2
+
+## File Structure Conventions
+
+### Frontend Structure (client/src/)
+- `components/` - Reusable UI components organized by feature
+  - `admin/` - Admin-specific components
+  - `ui/` - Base UI components (Shadcn/UI)
+  - `layout/` - Layout components
+  - `auth/` - Authentication components
+  - `billing/` - Billing and payment components
+  - `servers/` - Server management components
+  - `tickets/` - Support ticket components
+  - `dns/` - DNS management components
+- `pages/` - Page components organized by route
+- `hooks/` - Custom React hooks
+- `lib/` - Utility functions and configurations
+- `types/` - TypeScript type definitions
+- `styles/` - Global styles and CSS modules
+
+### Backend Structure (server/)
+- `routes/` - Express route handlers organized by feature
+- `services/` - Business logic and external API integrations
+- `middleware/` - Express middleware functions
+- `discord/` - Discord bot and integration services
+- `auth.ts` - Authentication logic
+- `index.ts` - Main server entry point
+- `db.ts` - Database connection and configuration
+
+### Shared Structure (shared/)
+- `schema.ts` - Database schema definitions
+- `schemas/` - Zod validation schemas
+- `dns-record-types.ts` - DNS-specific types
+- `dns-record-utils.ts` - DNS utility functions
+
+## Coding Standards
+
+### TypeScript Configuration
+- Use strict TypeScript configuration
+- Prefer explicit types over inference when clarity is needed
+- Use interface for object shapes, type for unions/primitives
+- Always use proper type imports/exports
+
+### React Component Patterns
+- Use functional components with hooks
+- Prefer named exports over default exports
+- Use TypeScript interfaces for component props
+- Follow Shadcn/UI component patterns
+- Use proper error boundaries and loading states
+
+### API Design Patterns
+- RESTful API design with proper HTTP status codes
+- Use Zod for request/response validation
+- Implement proper error handling with consistent error formats
+- Use middleware for authentication and authorization
+- Follow the established route structure in routes_new.ts
+
+### Database Patterns
+- Use Drizzle ORM for all database operations
+- Define schemas in shared/schema.ts
+- Use proper migrations for schema changes
+- Implement proper error handling for database operations
+- Use transactions for multi-step operations
+
+## Key Integration Points
+
+### VirtFusion API Integration
+- All VirtFusion calls use local user.id as extRelationId
+- Implement proper error handling for API failures
+- Use the established virtfusion-api.ts service
+- Follow the existing patterns for server management
+
+### Authentication System
+- Use Passport.js with local strategy
+- Implement session-based authentication
+- Use bcrypt for password hashing
+- Follow the established auth.ts patterns
+
+### Discord Integration
+- Use discord.js for bot functionality
+- Implement webhook notifications
+- Follow the established discord/ service structure
+- Use proper permission checking
+
+### PayPal Integration
+- Use PayPal SDK for payment processing
+- Implement webhook validation
+- Follow the established billing patterns
+- Use proper error handling for payment failures
+
+## Environment Variables
+Always use environment variables for configuration:
+- Database connection strings
+- API keys and secrets
+- Service URLs and endpoints
+- Feature flags and settings
+
+## Error Handling
+- Use consistent error response formats
+- Implement proper logging for debugging
+- Use try-catch blocks for async operations
+- Provide user-friendly error messages
+
+## Security Considerations
+- Validate all user inputs with Zod
+- Use proper CSRF protection
+- Implement rate limiting
+- Sanitize data before database operations
+- Use secure session management
+
+## Performance Optimization
+- Use React.memo for expensive components
+- Implement proper caching strategies
+- Use database indexes for frequently queried fields
+- Optimize bundle size with proper imports
+
+## Testing Patterns
+- Write unit tests for utility functions
+- Test API endpoints with proper mocking
+- Use proper test data and fixtures
+- Follow the established test patterns
+
+## Deployment Considerations
+- Use PM2 for process management
+- Implement proper health checks
+- Use environment-specific configurations
+- Follow the established Docker patterns
+
+## Code Organization
+- Keep components small and focused
+- Use proper separation of concerns
+- Follow the established folder structure
+- Use consistent naming conventions
+
+## Documentation
+- Write clear JSDoc comments for complex functions
+- Document API endpoints with proper examples
+- Maintain README files for major features
+- Use TypeScript for self-documenting code
+
+## Common Patterns to Follow
+
+### Component Structure
+```typescript
+interface ComponentProps {
+  // Define props interface
+}
+
+export function ComponentName({ prop1, prop2 }: ComponentProps) {
+  // Component logic
+  return (
+    // JSX
+  );
+}
+```
+
+### API Route Structure
+```typescript
+router.get('/api/endpoint', async (req, res) => {
+  try {
+    // Route logic
+    res.json({ data });
+  } catch (error) {
+    // Error handling
+    res.status(500).json({ error: 'Message' });
+  }
+});
+```
+
+### Database Query Pattern
+```typescript
+const result = await db.query.table.findMany({
+  where: eq(schema.table.field, value),
+  with: {
+    relation: true
+  }
+});
+```
+
+### Service Pattern
+```typescript
+export class ServiceName {
+  async methodName(params: ParamsType): Promise<ResultType> {
+    // Service logic
+  }
+}
+```
+
+## Avoid These Patterns
+- Don't use any type without proper justification
+- Don't hardcode configuration values
+- Don't skip error handling
+- Don't use console.log in production code
+- Don't commit sensitive information
+- Don't use deprecated APIs or patterns
+
+## Migration Scripts
+- Always import and configure dotenv in migration scripts
+- Follow the pattern in add-todo-table.ts
+- Use npx tsx for running TypeScript migration scripts
+- Test migrations in development before production
+
+## Build and Deployment
+- Use 'npm run build-restart:pm2:windows' for Windows builds
+- Use 'npm run build' for general builds
+- Always test builds before deployment
+- Use proper environment variables for different environments
+
+## Integration Guidelines
+- Use the /admin/settings system for configuration instead of hardcoding
+- Follow the established VirtFusion integration patterns
+- Use the existing Discord bot patterns for new Discord features
+- Follow the established billing patterns for payment processing
+
+## Code Quality
+- Use camelCase for property names
+- Follow ESLint and Prettier configurations
+- Write self-documenting code
+- Use proper TypeScript types throughout
+- Implement proper error boundaries
+- Use React Query for data fetching
+- Follow the established component patterns
+
+## Security Best Practices
+- Validate all inputs with Zod schemas
+- Use proper authentication middleware
+- Implement rate limiting on sensitive endpoints
+- Use secure session management
+- Sanitize data before database operations
+- Use environment variables for sensitive configuration
+- Implement proper CSRF protection
+- Use secure headers and CORS configuration
+
+## Performance Guidelines
+- Use React.memo for expensive components
+- Implement proper caching strategies
+- Use database indexes for frequently queried fields
+- Optimize bundle size with proper imports
+- Use lazy loading for routes and components
+- Implement proper error boundaries
+- Use React Query for efficient data fetching
+- Optimize images and assets
+
+## Testing Strategy
+- Write unit tests for utility functions
+- Test API endpoints with proper mocking
+- Use proper test data and fixtures
+- Follow the established test patterns
+- Test error scenarios and edge cases
+- Use proper TypeScript types in tests
+- Mock external API calls appropriately
+
+## Documentation Standards
+- Write clear JSDoc comments for complex functions
+- Document API endpoints with proper examples
+- Maintain README files for major features
+- Use TypeScript for self-documenting code
+- Document environment variables and configuration
+- Maintain API documentation in md-docs/
+- Document integration patterns and workflows
+
+## Deployment Guidelines
+- Use PM2 for process management
+- Implement proper health checks
+- Use environment-specific configurations
+- Follow the established Docker patterns
+- Use proper logging and monitoring
+- Implement proper backup strategies
+- Use secure deployment practices
+- Monitor application performance
+
+## Maintenance and Updates
+- Keep dependencies up to date
+- Monitor for security vulnerabilities
+- Maintain proper logging and monitoring
+- Regular database maintenance
+- Backup strategies for data and configuration
+- Performance monitoring and optimization
+- Security audits and updates
+- Documentation updates
+
+## Integration Patterns
+- Follow established VirtFusion API patterns
+- Use proper Discord bot patterns
+- Follow PayPal integration guidelines
+- Implement proper error handling for external APIs
+- Use proper authentication for external services
+- Implement proper rate limiting
+- Use secure communication protocols
+- Monitor external service health
+
+## Error Handling Patterns
+- Use consistent error response formats
+- Implement proper logging for debugging
+- Use try-catch blocks for async operations
+- Provide user-friendly error messages
+- Handle external API failures gracefully
+- Implement proper fallback mechanisms
+- Use proper HTTP status codes
+- Log errors with appropriate context
+
+## Security Patterns
+- Validate all user inputs with Zod
+- Use proper CSRF protection
+- Implement rate limiting
+- Sanitize data before database operations
+- Use secure session management
+- Implement proper authentication
+- Use secure headers and CORS
+- Monitor for security vulnerabilities
+
+## Performance Patterns
+- Use React.memo for expensive components
+- Implement proper caching strategies
+- Use database indexes for frequently queried fields
+- Optimize bundle size with proper imports
+- Use lazy loading for routes and components
+- Implement proper error boundaries
+- Use React Query for efficient data fetching
+- Optimize images and assets
+
+## Testing Patterns
+- Write unit tests for utility functions
+- Test API endpoints with proper mocking
+- Use proper test data and fixtures
+- Follow the established test patterns
+- Test error scenarios and edge cases
+- Use proper TypeScript types in tests
+- Mock external API calls appropriately
+- Test integration points thoroughly
+
+## Documentation Patterns
+- Write clear JSDoc comments for complex functions
+- Document API endpoints with proper examples
+- Maintain README files for major features
+- Use TypeScript for self-documenting code
+- Document environment variables and configuration
+- Maintain API documentation in md-docs/
+- Document integration patterns and workflows
+- Keep documentation up to date
+
+## Deployment Patterns
+- Use PM2 for process management
+- Implement proper health checks
+- Use environment-specific configurations
+- Follow the established Docker patterns
+- Use proper logging and monitoring
+- Implement proper backup strategies
+- Use secure deployment practices
+- Monitor application performance
+
+## Maintenance Patterns
+- Keep dependencies up to date
+- Monitor for security vulnerabilities
+- Maintain proper logging and monitoring
+- Regular database maintenance
+- Backup strategies for data and configuration
+- Performance monitoring and optimization
+- Security audits and updates
+- Documentation updates
+
+## Integration Guidelines
+- Follow established VirtFusion API patterns
+- Use proper Discord bot patterns
+- Follow PayPal integration guidelines
+- Implement proper error handling for external APIs
+- Use proper authentication for external services
+- Implement proper rate limiting
+- Use secure communication protocols
+- Monitor external service health
+
+## Error Handling Guidelines
+- Use consistent error response formats
+- Implement proper logging for debugging
+- Use try-catch blocks for async operations
+- Provide user-friendly error messages
+- Handle external API failures gracefully
+- Implement proper fallback mechanisms
+- Use proper HTTP status codes
+- Log errors with appropriate context
+
+## Security Guidelines
+- Validate all user inputs with Zod
+- Use proper CSRF protection
+- Implement rate limiting
+- Sanitize data before database operations
+- Use secure session management
+- Implement proper authentication
+- Use secure headers and CORS
+- Monitor for security vulnerabilities
+
+## Performance Guidelines
+- Use React.memo for expensive components
+- Implement proper caching strategies
+- Use database indexes for frequently queried fields
+- Optimize bundle size with proper imports
+- Use lazy loading for routes and components
+- Implement proper error boundaries
+- Use React Query for efficient data fetching
+- Optimize images and assets
+
+## Testing Guidelines
+- Write unit tests for utility functions
+- Test API endpoints with proper mocking
+- Use proper test data and fixtures
+- Follow the established test patterns
+- Test error scenarios and edge cases
+- Use proper TypeScript types in tests
+- Mock external API calls appropriately
+- Test integration points thoroughly
+
+## Documentation Guidelines
+- Write clear JSDoc comments for complex functions
+- Document API endpoints with proper examples
+- Maintain README files for major features
+- Use TypeScript for self-documenting code
+- Document environment variables and configuration
+- Maintain API documentation in md-docs/
+- Document integration patterns and workflows
+- Keep documentation up to date
+
+## Deployment Guidelines
+- Use PM2 for process management
+- Implement proper health checks
+- Use environment-specific configurations
+- Follow the established Docker patterns
+- Use proper logging and monitoring
+- Implement proper backup strategies
+- Use secure deployment practices
+- Monitor application performance
+
+## Maintenance Guidelines
+- Keep dependencies up to date
+- Monitor for security vulnerabilities
+- Maintain proper logging and monitoring
+- Regular database maintenance
+- Backup strategies for data and configuration
+- Performance monitoring and optimization
+- Security audits and updates
+- Documentation updates 

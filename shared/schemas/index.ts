@@ -27,3 +27,4 @@ export * from './discord-verification-schema';
 export * from './oauth-schema';
 export * from './code-snippets-schema';
 export * from './email-template-schema';
+export * from './server-uptime-schema';
