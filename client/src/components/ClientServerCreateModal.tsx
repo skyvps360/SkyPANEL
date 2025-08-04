@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -93,6 +94,7 @@ type ServerCreateFormData = z.infer<typeof serverCreateSchema>;
 
 export default function ClientServerCreateModal({ open, onOpenChange, onSuccess, companyName }: ClientServerCreateModalProps) {
   const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [selectedHypervisorGroup, setSelectedHypervisorGroup] = useState<any>(null);
   const [selectedOsTemplate, setSelectedOsTemplate] = useState<any>(null);
@@ -707,9 +709,22 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                 </div>
               </div>
             )}
-            <Button onClick={resetAndClose}>
-              Close
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button 
+                onClick={() => {
+                  if (createdServer?.data?.id) {
+                    navigate(`/servers/${createdServer.data.id}`);
+                    resetAndClose();
+                  }
+                }}
+                disabled={!createdServer?.data?.id}
+              >
+                View Server
+              </Button>
+              <Button variant="outline" onClick={resetAndClose}>
+                Close
+              </Button>
+            </div>
           </div>
         ) : step === 'failed' ? (
           <div className="text-center py-8">
