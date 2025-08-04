@@ -455,7 +455,10 @@ export default function SettingsPage() {
       sslVerify: getSettingValue("virtfusion_ssl_verify", "true") === "true",
 
       // User registration settings with proper handling of 0 values
-      selfServiceValue: Number(getSettingValue("virtfusion_self_service", "1")),
+      selfServiceValue: (() => {
+        const value = Number(getSettingValue("virtfusion_self_service", "1"));
+        return isNaN(value) ? 1 : value;
+      })(),
       selfServiceHourlyCredit: getSettingValue("virtfusion_self_service_hourly_credit", "true") === "true",
       selfServiceHourlyResourcePackId: (() => {
         const value = Number(getSettingValue("virtfusion_self_service_hourly_resource_pack_id", "1"));
@@ -467,7 +470,7 @@ export default function SettingsPage() {
       })(),
 
       // Hourly billing settings
-              serverHourlyBillingEnabled: getSettingValue("server_hourly_billing_enabled", "false") === "true",
+      serverHourlyBillingEnabled: getSettingValue("server_hourly_billing_enabled", "true") === "true",
       serverHoursPerMonth: (() => {
         const value = Number(getSettingValue("server_hours_per_month", "730"));
         return isNaN(value) ? 730 : value;
