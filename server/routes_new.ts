@@ -6622,77 +6622,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 🖥️ Admin Server Management - Build server with OS (LEGACY, renamed to avoid conflict)
-  app.post("/api/admin/servers/:serverId/build-legacy", isAdmin, async (req, res) => {
+  // -------------------------
+  // Admin Queue Inspection
+  // -------------------------
+
+  // 📝 Admin Queue Management - Get queue item details (admin only)
+  app.get("/api/admin/queue/:id", isAdmin, async (req, res) => {
     try {
-      const { serverId } = req.params;
-      const {
-        operatingSystemId,
-        name,
-        hostname,
-        sshKeys = [],
-        vnc = false,
-        ipv6 = false,
-        email = true,
-        swap = 512
-      } = req.body;
+      const queueId = parseInt(req.params.id);
 
-      console.log(`Admin building server ${serverId} with OS ${operatingSystemId}`);
+      if (isNaN(queueId)) {
+        return res.status(400).json({ error: "Invalid queue ID" });
+      }
 
-      // Build the server using VirtFusion API
-      const result = await virtFusionApi.buildServer(parseInt(serverId), {
-        operatingSystemId,
-        name,
-        hostname: hostname || name,
-        sshKeys,
-        vnc,
-        ipv6,
-        email,
-        swap
-      });
+      console.log(`Admin fetching VirtFusion queue item ${queueId}`);
 
-      console.log("VirtFusion build server response:", JSON.stringify(result, null, 2));
+      // Fetch queue item details via VirtFusion API wrapper
+      const result = await virtFusionApi.getQueueItem(queueId);
 
-      res.json({
-        success: true,
-        data: result.data,
-        message: "Server build initiated successfully"
-      });
-
-      // -------------------------
-      // Admin Queue Inspection
-      // -------------------------
-
-      // Note: we insert the queue route immediately after the build route definition so it's easy to locate
-
-      // 📝 Admin Queue Management - Get queue item details (admin only)
-      app.get("/api/admin/queue/:id", isAdmin, async (req, res) => {
-        try {
-          const queueId = parseInt(req.params.id);
-
-          if (isNaN(queueId)) {
-            return res.status(400).json({ error: "Invalid queue ID" });
-          }
-
-          console.log(`Admin fetching VirtFusion queue item ${queueId}`);
-
-          // Fetch queue item details via VirtFusion API wrapper
-          const result = await virtFusionApi.getQueueItem(queueId);
-
-          res.json(result);
-        } catch (error: any) {
-          console.error(`Error fetching queue item ${req.params.id}:`, error.message);
-          res.status(500).json({
-            error: "Failed to fetch queue item",
-            message: error.message
-          });
-        }
-      });
-
+      res.json(result);
     } catch (error: any) {
-      console.error("Error building server:", error.message);
+      console.error(`Error fetching queue item ${req.params.id}:`, error.message);
       res.status(500).json({
-        error: "Failed to build server",
+        error: "Failed to fetch queue item",
         message: error.message
       });
     }
@@ -7198,279 +7150,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 🖥️ Admin Server Management - Create new server (admin only)
-  app.post("/api/admin/servers", isAdmin, async (req, res) => {
-    try {
-      console.log("Admin creating new server:", JSON.stringify(req.body, null, 2));
 
-      // Validation schema for server creation
-      const createServerSchema = z.object({
-        packageId: z.number().int().positive("Package ID must be a positive integer"),
-        userId: z.number().int().positive("User ID must be a positive integer"),
-        hypervisorId: z.number().int().positive("Hypervisor Group ID must be a positive integer"),
-        ipv4: z.number().int().min(0).default(1),
-        storage: z.number().int().positive("Storage must be a positive integer"),
-        traffic: z.number().int().min(0, "Traffic must be a non-negative integer (0 = unlimited)"),
-        memory: z.number().int().positive("Memory must be a positive integer"),
-        cpuCores: z.number().int().positive("CPU cores must be a positive integer"),
-        networkSpeedInbound: z.number().int().positive().default(1000),
-        networkSpeedOutbound: z.number().int().positive().default(1000),
-        storageProfile: z.number().int().min(0).default(0),
-        networkProfile: z.number().int().optional().default(0),
-        firewallRulesets: z.array(z.number().int()).default([]),
-        hypervisorAssetGroups: z.array(z.number().int()).default([]),
-        additionalStorage1Enable: z.boolean().default(false),
-        additionalStorage2Enable: z.boolean().default(false),
-        additionalStorage1Profile: z.number().int().positive().optional(),
-        additionalStorage2Profile: z.number().int().positive().optional(),
-        additionalStorage1Capacity: z.number().int().positive().optional(),
-        additionalStorage2Capacity: z.number().int().positive().optional(),
-        // Self-service billing flags
-        selfService: z.number().int().min(0).max(1).default(1),
-        selfServiceHourlyCredit: z.boolean().default(true),
-        selfServiceHourlyResourcePack: z.number().int().positive().default(1)
-      });
 
-      // Validate request body
-      const validationResult = createServerSchema.safeParse(req.body);
-      if (!validationResult.success) {
-        return res.status(400).json({
-          error: "Validation failed",
-          details: validationResult.error.errors
-        });
-      }
 
-      const validatedData = validationResult.data;
-
-      // Get self-service settings from database as fallbacks
-      const selfServiceSetting = await storage.getSetting('virtfusion_self_service');
-      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
-      const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
-      
-      // Use validated request data with database settings as fallbacks
-      const selfService = validatedData.selfService ?? (selfServiceSetting ? parseInt(selfServiceSetting.value, 10) : 1);
-      const selfServiceHourlyCredit = validatedData.selfServiceHourlyCredit ?? (selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true);
-      const selfServiceHourlyResourcePack = validatedData.selfServiceHourlyResourcePack ?? (selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1);
-
-      // Get the SkyPANEL user to obtain their VirtFusion user ID
-      const skyPanelUser = await storage.getUser(validatedData.userId);
-      if (!skyPanelUser) {
-        return res.status(400).json({
-          error: "Invalid user ID",
-          message: "The specified user does not exist"
-        });
-      }
-
-      if (!skyPanelUser.virtFusionId) {
-        return res.status(400).json({
-          error: "User not linked to VirtFusion",
-          message: "The specified user does not have a VirtFusion account associated"
-        });
-      }
-
-      // Prepare server creation data for VirtFusion API
-      const serverData = {
-        packageId: validatedData.packageId,
-        userId: skyPanelUser.virtFusionId, // Use VirtFusion user ID, not local SkyPANEL user ID
-        hypervisorId: validatedData.hypervisorId,
-        ipv4: validatedData.ipv4,
-        storage: validatedData.storage,
-        traffic: validatedData.traffic,
-        memory: validatedData.memory,
-        cpuCores: validatedData.cpuCores,
-        networkSpeedInbound: validatedData.networkSpeedInbound,
-        networkSpeedOutbound: validatedData.networkSpeedOutbound,
-        storageProfile: validatedData.storageProfile,
-        networkProfile: validatedData.networkProfile,
-        firewallRulesets: validatedData.firewallRulesets,
-        hypervisorAssetGroups: validatedData.hypervisorAssetGroups,
-        additionalStorage1Enable: validatedData.additionalStorage1Enable,
-        additionalStorage2Enable: validatedData.additionalStorage2Enable,
-        // Self-service server configuration for hourly billing
-        selfService: selfService, // From settings (1 = hourly self-service enabled)
-        selfServiceHourlyCredit: selfServiceHourlyCredit, // From settings
-        selfServiceHourlyResourcePack: selfServiceHourlyResourcePack // From settings
-      };
-
-      // Add additional storage configurations if enabled
-      if (validatedData.additionalStorage1Enable && validatedData.additionalStorage1Profile !== undefined && validatedData.additionalStorage1Capacity !== undefined) {
-        (serverData as any).additionalStorage1Profile = validatedData.additionalStorage1Profile;
-        (serverData as any).additionalStorage1Capacity = validatedData.additionalStorage1Capacity;
-      }
-
-      if (validatedData.additionalStorage2Enable && validatedData.additionalStorage2Profile !== undefined && validatedData.additionalStorage2Capacity !== undefined) {
-        (serverData as any).additionalStorage2Profile = validatedData.additionalStorage2Profile;
-        (serverData as any).additionalStorage2Capacity = validatedData.additionalStorage2Capacity;
-      }
-
-      // 🔍 Clean out optional fields that are empty or have sentinel values VirtFusion rejects
-      Object.keys(serverData).forEach((key) => {
-        const value: any = (serverData as any)[key];
-        if (value === undefined || value === null) {
-          delete (serverData as any)[key];
-        }
-        if (Array.isArray(value) && value.length === 0) {
-          delete (serverData as any)[key];
-        }
-        // Remove networkProfile when 0 as VirtFusion expects a valid profile id
-        if ((key === "networkProfile" || key === "storageProfile") && value === 0) {
-          delete (serverData as any)[key];
-        }
-      });
-
-      console.log("Sending server creation request to VirtFusion API:", JSON.stringify(serverData, null, 2));
-
-      // Create server via VirtFusion API
-      const result = await virtFusionApi.createServer(serverData);
-
-      console.log("VirtFusion server creation response:", JSON.stringify(result, null, 2));
-
-      // Log server creation action
-      if (result && result.data && result.data.id) {
-        try {
-          await serverLoggingService.logServerAction(
-            result.data.id,
-            req.user!.id,
-            'create',
-            'Server created via admin panel',
-            {
-              packageId: validatedData.packageId,
-              hypervisorId: validatedData.hypervisorId,
-              memory: validatedData.memory,
-              storage: validatedData.storage,
-              cpuCores: validatedData.cpuCores,
-              adminUser: req.user!.username
-            }
-          );
-        } catch (logError) {
-          console.error("Error logging server creation:", logError);
-          // Don't fail the request if logging fails
-        }
-      }
-
-      res.status(201).json({
-        success: true,
-        message: "Server created successfully",
-        data: result.data || result
-      });
-
-    } catch (error: any) {
-      console.error("Error creating server:", error.message);
-      res.status(500).json({
-        error: "Failed to create server",
-        message: error.message
-      });
-    }
-  });
-
-  // 🖥️ Admin Server Management - Build server with OS template (admin only)
-  app.post("/api/admin/servers/:id/build", isAdmin, async (req, res) => {
-    try {
-      const serverId = parseInt(req.params.id);
-
-      if (isNaN(serverId)) {
-        return res.status(400).json({ error: "Invalid server ID" });
-      }
-
-      console.log(`Admin building server ${serverId}:`, JSON.stringify(req.body, null, 2));
-
-      // Validation schema for server build
-      const buildServerSchema = z.object({
-        operatingSystemId: z.number().int().positive("Operating System ID must be a positive integer"),
-        name: z.string().min(1, "Server name is required").max(255, "Server name too long"),
-        hostname: z.string().min(1, "Hostname is required").max(255, "Hostname too long").optional(),
-        sshKeys: z.array(z.number().int()).default([]),
-        vnc: z.boolean().default(false),
-        ipv6: z.boolean().default(false),
-        email: z.boolean().default(true),
-        swap: z.number().int().min(0).max(8192).default(512)
-      });
-
-      // Validate request body
-      const validationResult = buildServerSchema.safeParse(req.body);
-      if (!validationResult.success) {
-        return res.status(400).json({
-          error: "Validation failed",
-          details: validationResult.error.errors
-        });
-      }
-
-      const validatedData = validationResult.data;
-
-      // Prepare build data for VirtFusion API
-      const buildData = {
-        operatingSystemId: validatedData.operatingSystemId,
-        name: validatedData.name,
-        hostname: validatedData.hostname || validatedData.name,
-        sshKeys: validatedData.sshKeys,
-        vnc: validatedData.vnc,
-        ipv6: validatedData.ipv6,
-        email: validatedData.email,
-        swap: validatedData.swap
-      };
-
-      // Clean out optional fields just like server creation
-      Object.keys(buildData).forEach((key) => {
-        const value: any = (buildData as any)[key];
-        if (value === undefined || value === null) {
-          delete (buildData as any)[key];
-        }
-        if (Array.isArray(value) && value.length === 0) {
-          delete (buildData as any)[key];
-        }
-        if (typeof value === 'string' && value.trim() === '') {
-          delete (buildData as any)[key];
-        }
-        if (key === 'hostname' && typeof value === 'string' && !value.includes('.')) {
-          // Hostname must be FQDN; remove if invalid so VirtFusion can set automatically
-          delete (buildData as any)[key];
-        }
-      });
-
-      console.log("Sending server build request to VirtFusion API:", JSON.stringify(buildData, null, 2));
-
-      // Build server via VirtFusion API
-      const result = await virtFusionApi.buildServer(serverId, buildData);
-
-      console.log("VirtFusion server build response:", JSON.stringify(result, null, 2));
-
-      // Log server build action
-      try {
-        await serverLoggingService.logServerAction(
-          serverId,
-          req.user!.id,
-          'build',
-          'Server build initiated via admin panel',
-          {
-            operatingSystemId: validatedData.operatingSystemId,
-            name: validatedData.name,
-            hostname: validatedData.hostname,
-            vnc: validatedData.vnc,
-            ipv6: validatedData.ipv6,
-            email: validatedData.email,
-            swap: validatedData.swap,
-            adminUser: req.user!.username
-          }
-        );
-      } catch (logError) {
-        console.error("Error logging server build:", logError);
-        // Don't fail the request if logging fails
-      }
-
-      res.json({
-        success: true,
-        message: "Server build initiated successfully",
-        data: result.data || result
-      });
-
-    } catch (error: any) {
-      console.error(`Error building server ${req.params.id}:`, error.message);
-      res.status(500).json({
-        error: "Failed to build server",
-        message: error.message
-      });
-    }
-  });
 
   // Get server details by ID (admin only)
   app.get("/api/admin/servers/:id", isAdmin, async (req, res) => {
