@@ -14,6 +14,7 @@
     "build:start": "npm run build && pm2 start pm2.config.cjs",
     "build-restart:pm2:windows": "rm -rf dist && npm run build && pm2 delete all && npm run start:pm2:windows",
     "start": "cross-env NODE_ENV=production node dist/index.js",
+    "build:start:windows": "npm run build && npm run start:pm2:windows",
     "start:pm2:linux": "pm2 start pm2.config.cjs",
     "start:pm2:windows": "pm2 start dist/index.js --name skypanel --node-args \"\" --max-memory-restart 2G",
     "stop:pm2": "pm2 stop skypanel",
