@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Cpu, HardDrive, MemoryStick, Zap, Settings } from "lucide-react";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
-import ClientServerCreateModal from "@/components/ClientServerCreateModal";
+// ClientServerCreateModal import removed - server creation disabled to prevent billing conflicts
 import {
   Table,
   TableBody,
@@ -224,7 +224,7 @@ export default function ServersPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshClicks, setRefreshClicks] = useState<number[]>([]);
   const [isRateLimited, setIsRateLimited] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  // Server creation modal removed - users must create servers through VirtFusion
 
   const { data: brandingData } = useQuery<{
     company_name: string;
@@ -486,15 +486,8 @@ export default function ServersPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
-              {isVirtFusionEnabled && (
-                <Button
-                  onClick={() => setShowCreateModal(true)}
-                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
-                >
-                  <Server className="h-4 w-4" />
-                  Create Server in {brandingData?.company_name || 'SkyPANEL'}
-                </Button>
-              )}
+              {/* Server creation via SkyPANEL is temporarily disabled to prevent billing conflicts */}
+              {/* Users must create servers through VirtFusion until API supports self-service flag */}
               <VirtFusionSsoButton text="Create Server" />
               <Button
                 onClick={handleRefresh}
@@ -852,29 +845,22 @@ export default function ServersPage() {
                   >
                     Clear Filters
                   </Button>
-                  {/* Create Server button temporarily hidden */}
+                  <VirtFusionSsoButton text="Create Server in VirtFusion" />
                 </div>
               ) : (
-                <div className="text-sm text-muted-foreground">
-                  Server creation is temporarily disabled
+                <div className="flex flex-col items-center gap-3">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Create servers through VirtFusion control panel
+                  </div>
+                  <VirtFusionSsoButton text="Create Server in VirtFusion" />
                 </div>
               )}
             </CardContent>
           </Card>
         )}
 
-        {/* Client Server Create Modal - only render if VirtFusion is enabled */}
-        {isVirtFusionEnabled && (
-          <ClientServerCreateModal
-            open={showCreateModal}
-            onOpenChange={setShowCreateModal}
-            onSuccess={() => {
-              // Refresh the server list after successful creation
-              refetch();
-            }}
-            companyName={brandingData?.company_name}
-          />
-        )}
+        {/* Client Server Create Modal - disabled to prevent billing conflicts */}
+        {/* Modal removed - users must create servers through VirtFusion until API supports self-service flag */}
       </div>
     </DashboardLayout>
   );
