@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { queryClient } from "@/lib/queryClient";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 
@@ -52,6 +52,9 @@ export default function BillingPage() {
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
 
+  // Ref for the Billing & Transactions card
+  const billingTransactionsRef = useRef<HTMLDivElement>(null);
+
 
 
 
@@ -76,6 +79,24 @@ export default function BillingPage() {
   // Handle tab changes
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+  };
+
+  // Scroll to billing card function
+  const scrollToBillingCard = () => {
+    setActiveTab("addCredits");
+    
+    // Use a longer delay and ensure element is ready
+    setTimeout(() => {
+      if (billingTransactionsRef.current) {
+        // Force a reflow to ensure layout is complete
+        billingTransactionsRef.current.offsetHeight;
+        
+        billingTransactionsRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }
+    }, 300);
   };
 
   // Fetch transactions
@@ -576,7 +597,7 @@ export default function BillingPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={() => handleTabChange("addCredits")}>
+                    <DropdownMenuItem onClick={scrollToBillingCard}>
                       <DollarSign className="h-4 w-4 mr-2" />
                       VirtFusion Tokens
                     </DropdownMenuItem>
@@ -666,7 +687,7 @@ export default function BillingPage() {
         {/* Add Credits Button under the 3 cards has been removed as requested. */}
 
         {/* Tabs: Transactions, Add Credits, Invoices */}
-        <Card className="bg-card border border-border shadow-sm overflow-hidden">
+        <Card ref={billingTransactionsRef} className="bg-card border border-border shadow-sm overflow-hidden">
           <CardHeader className="border-b border-border px-6 py-4">
             <h2 className="text-lg font-semibold text-foreground">Billing & Transactions</h2>
           </CardHeader>
@@ -761,7 +782,7 @@ export default function BillingPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="center" className="w-56">
-                            <DropdownMenuItem onClick={() => handleTabChange("addCredits")}>
+                            <DropdownMenuItem onClick={scrollToBillingCard}>
                               <DollarSign className="h-4 w-4 mr-2" />
                               VirtFusion Tokens
                             </DropdownMenuItem>
