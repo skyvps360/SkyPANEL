@@ -1250,7 +1250,7 @@ export class VirtFusionApi {
    * Verify server ownership by UUID - checks if user still owns the server with specified UUID
    * This method is more accurate than ID-based checking as it uses the server's UUID
    * @param serverUuid The server UUID to verify
-   * @param expectedOwnerId The expected owner's VirtFusion user ID
+   * @param expectedOwnerId The expected owner's SkyPANEL user ID (extRelationId)
    * @returns true if user still owns the server, false otherwise
    */
   async verifyServerOwnershipByUuid(serverUuid: string, expectedOwnerId: number): Promise<boolean> {
@@ -1261,13 +1261,24 @@ export class VirtFusionApi {
         return false;
       }
 
-      console.log(`🔍 Verifying server ownership by UUID: ${serverUuid} for user: ${expectedOwnerId}`);
+      console.log(`🔍 Verifying server ownership by UUID: ${serverUuid} for SkyPANEL user: ${expectedOwnerId}`);
       
-      // Get all servers for the specific user
-      const userServersResponse = await this.getUserServers(expectedOwnerId);
+      // First, get the VirtFusion user data using the SkyPANEL user ID as extRelationId
+      const userResponse = await this.getUserByExtRelationId(expectedOwnerId);
+      
+      if (!userResponse || !userResponse.data) {
+        console.log(`📭 No VirtFusion user found for SkyPANEL user ${expectedOwnerId}`);
+        return false;
+      }
+
+      const virtFusionUserId = userResponse.data.id;
+      console.log(`🔄 Found VirtFusion user ID: ${virtFusionUserId} for SkyPANEL user: ${expectedOwnerId}`);
+      
+      // Get all servers for the VirtFusion user
+      const userServersResponse = await this.getUserServers(virtFusionUserId);
       
       if (!userServersResponse || !userServersResponse.data || !Array.isArray(userServersResponse.data)) {
-        console.log(`📭 No servers found for user ${expectedOwnerId}`);
+        console.log(`📭 No servers found for VirtFusion user ${virtFusionUserId}`);
         return false;
       }
 
@@ -1275,10 +1286,10 @@ export class VirtFusionApi {
       const ownedServer = userServersResponse.data.find((server: any) => server.uuid === serverUuid);
       
       if (ownedServer) {
-        console.log(`✅ Server with UUID ${serverUuid} is still owned by user ${expectedOwnerId}`);
+        console.log(`✅ Server with UUID ${serverUuid} is still owned by VirtFusion user ${virtFusionUserId} (SkyPANEL user: ${expectedOwnerId})`);
         return true;
       } else {
-        console.log(`❌ Server with UUID ${serverUuid} is NOT owned by user ${expectedOwnerId}`);
+        console.log(`❌ Server with UUID ${serverUuid} is NOT owned by VirtFusion user ${virtFusionUserId} (SkyPANEL user: ${expectedOwnerId})`);
         return false;
       }
       

@@ -7984,34 +7984,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // WebSocket handler for VNC proxy
   const handleWebSocketUpgrade = (request: any, socket: any, head: any) => {
-    console.log('WebSocket upgrade request received:', {
-      url: request.url,
-      headers: request.headers,
-      method: request.method
-    });
+    try {
+      console.log('WebSocket upgrade request received:', {
+        url: request.url,
+        headers: request.headers,
+        method: request.method
+      });
 
-    const url = new URL(request.url, `http://${request.headers.host}`);
+      const url = new URL(request.url, `http://${request.headers.host}`);
 
-    // Check if this is a VNC WebSocket request
-    if (url.pathname === '/vnc-proxy') {
-      const host = url.searchParams.get('host');
-      const port = url.searchParams.get('port');
+      // Check if this is a VNC WebSocket request
+      if (url.pathname === '/vnc-proxy') {
+        const host = url.searchParams.get('host');
+        const port = url.searchParams.get('port');
 
-      console.log('VNC WebSocket proxy request:', { host, port });
+        console.log('VNC WebSocket proxy request:', { host, port });
 
-      if (!host || !port) {
-        console.error('Missing host or port parameters for VNC proxy');
-        socket.destroy();
-        return;
-      }
+        if (!host || !port) {
+          console.error('Missing host or port parameters for VNC proxy');
+          socket.destroy();
+          return;
+        }
 
-      // Validate port number
-      const portNum = parseInt(port);
-      if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-        console.error('Invalid port number for VNC proxy:', port);
-        socket.destroy();
-        return;
-      }
+        // Validate port number
+        const portNum = parseInt(port);
+        if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+          console.error('Invalid port number for VNC proxy:', port);
+          socket.destroy();
+          return;
+        }
 
       // Use static imports (already imported at top of file)
 
@@ -8198,7 +8199,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This should not happen since we're routing at the server level now
       socket.destroy();
     }
-  };
+  } catch (error) {
+    console.error('Error in handleWebSocketUpgrade:', error);
+    socket.destroy();
+  }
+};
 
   // Sync hypervisors from VirtFusion (admin only)
   app.post("/api/admin/hypervisors/sync", isAdmin, async (req, res) => {
@@ -12468,33 +12473,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create HTTP server
   const httpServer = createServer(app);
 
-
-
-  // Create a manual WebSocket server for VNC
-  const vncWebSocketServer = new WebSocketServer({ noServer: true });
-
   // Attach WebSocket handlers to HTTP server - Handle routing manually
   httpServer.on('upgrade', (request: any, socket: any, head: any) => {
-    const url = new URL(request.url, `http://${request.headers.host}`);
+    try {
+      const url = new URL(request.url, `http://${request.headers.host}`);
 
-    console.log(`WebSocket upgrade request: ${url.pathname}`);
-    console.log(`Full WebSocket upgrade URL: ${request.url}`);
-    console.log(`WebSocket upgrade headers:`, request.headers);
+      console.log(`WebSocket upgrade request: ${url.pathname}`);
+      console.log(`Full WebSocket upgrade URL: ${request.url}`);
 
-    // Handle VNC WebSocket requests
-    if (url.pathname === '/vnc-proxy') {
-      console.log('Handling VNC WebSocket upgrade directly');
-      handleWebSocketUpgrade(request, socket, head);
-
-
-
-    } else if (url.pathname === '/' && process.env.NODE_ENV === 'development') {
-      // Allow Vite HMR WebSocket connections in development
-      console.log('Vite HMR WebSocket request - allowing passthrough');
-      // Don't handle this - let Vite handle its own HMR WebSocket
-    } else {
-      // Close any other WebSocket connection attempts
-      console.log(`Unknown WebSocket path: ${url.pathname}, closing connection`);
+      // Handle VNC WebSocket requests
+      if (url.pathname === '/vnc-proxy') {
+        console.log('Handling VNC WebSocket upgrade directly');
+        handleWebSocketUpgrade(request, socket, head);
+      } else if (url.pathname === '/' && process.env.NODE_ENV === 'development') {
+        // Allow Vite HMR WebSocket connections in development
+        console.log('Vite HMR WebSocket request - allowing passthrough');
+        // Don't handle this - let Vite handle its own HMR WebSocket
+      } else {
+        // Close any other WebSocket connection attempts
+        console.log(`Unknown WebSocket path: ${url.pathname}, closing connection`);
+        socket.destroy();
+      }
+    } catch (error) {
+      console.error('Error in WebSocket upgrade handler:', error);
       socket.destroy();
     }
   });
