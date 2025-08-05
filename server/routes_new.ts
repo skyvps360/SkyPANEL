@@ -6772,20 +6772,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hourlyRate = monthlyPriceDollars / hoursPerMonth;
         }
         
-        // Charge only 1 hour upfront instead of full monthly cost
+        // Check billing mode and charge accordingly
         if (packageCost > 0) {
-          const hourlyTokens = Math.ceil(hourlyRate * 100); // Convert back to tokens (cents), round up
+          // Check if hourly or monthly billing is enabled
+          const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+          const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
           
-          console.log(`Monthly cost: $${monthlyPriceDollars}, Hourly rate: $${hourlyRate.toFixed(6)}, Charging ${hourlyTokens} tokens (1 hour) upfront for user ${user.id} for package ${packageName}`);
+          let chargeAmount: number;
+          let chargePeriod: string;
+          let dollarAmount: number;
           
-          // Use the same approach as admin user page - create transaction first, then call VirtFusion API
-          const dollarAmount = hourlyTokens / 100; // Convert hourly tokens to dollars
+          if (isHourlyBilling) {
+            // Charge only 1 hour upfront for hourly billing
+            chargeAmount = Math.ceil(hourlyRate * 100); // Convert back to tokens (cents), round up
+            chargePeriod = "1 hour";
+            dollarAmount = chargeAmount / 100; // Convert hourly tokens to dollars
+            console.log(`HOURLY BILLING: Monthly cost: $${monthlyPriceDollars}, Hourly rate: $${hourlyRate.toFixed(6)}, Charging ${chargeAmount} tokens (1 hour) upfront for user ${user.id} for package ${packageName}`);
+          } else {
+            // Charge full monthly cost upfront for monthly billing
+            chargeAmount = packageCost; // Use full monthly cost in tokens
+            chargePeriod = "1 month";
+            dollarAmount = monthlyPriceDollars; // Use full monthly cost in dollars
+            console.log(`MONTHLY BILLING: Monthly cost: $${monthlyPriceDollars}, Charging ${chargeAmount} tokens (1 month) upfront for user ${user.id} for package ${packageName}`);
+          }
           
           // Create a transaction record first to get the transaction ID
           const createdTransaction = await storage.createTransaction({
             userId: user.id,
             amount: -Math.abs(dollarAmount), // Negative amount for debit
-            description: `Server creation hourly charge (1 hour) for package ${packageName}`,
+            description: `Server creation ${isHourlyBilling ? 'hourly' : 'monthly'} charge (${chargePeriod}) for package ${packageName}`,
             type: "server_creation",
             status: "pending",
             paymentMethod: "virtfusion_tokens"
@@ -6802,9 +6817,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Format the data for VirtFusion API (same as admin user page)
           const tokenData = {
-            tokens: hourlyTokens, // Use hourly tokens instead of full monthly cost
+            tokens: chargeAmount, // Use appropriate charge amount based on billing mode
             reference_1: createdTransaction.id, // Use transaction ID as reference
-            reference_2: `Server creation hourly charge (1 hour) for package ${packageName}`
+            reference_2: `Server creation ${isHourlyBilling ? 'hourly' : 'monthly'} charge (${chargePeriod}) for package ${packageName}`
           };
 
           console.log(`Sending to VirtFusion API with extRelationId=${user.id}:`, tokenData);
@@ -6820,20 +6835,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update transaction status to completed
           await storage.updateTransaction(createdTransaction.id, { status: "completed" });
           
-          console.log(`Successfully deducted ${hourlyTokens} tokens (1 hour upfront) from user ${user.id}`);
+          console.log(`Successfully deducted ${chargeAmount} tokens (${chargePeriod} upfront) from user ${user.id}`);
         }
       } catch (deductError: any) {
-        console.error("Error deducting hourly credits:", deductError);
+        console.error("Error deducting credits:", deductError);
         return res.status(400).json({
           error: "Insufficient credits",
-          message: `Failed to deduct hourly credits for package ${packageName}: ${deductError.message}`
+          message: `Failed to deduct credits for package ${packageName}: ${deductError.message}`
         });
       }
 
-      // Use self-service settings from client request (with fallback defaults)
-      const selfService = validatedData.selfService ?? 1;
-      const selfServiceHourlyCredit = validatedData.selfServiceHourlyCredit ?? true;
-      const selfServiceHourlyResourcePack = validatedData.selfServiceHourlyResourcePack ?? 1;
+      // Get self-service settings from database (same as VirtFusionUserService)
+      const selfServiceSetting = await storage.getSetting('virtfusion_self_service');
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
+      
+      const selfService = selfServiceSetting ? parseInt(selfServiceSetting.value, 10) : 1;
+      const selfServiceHourlyCredit = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      const selfServiceHourlyResourcePack = selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1;
       
       console.log('DEBUG - Self-service values from validatedData:', {
         selfService,

@@ -35,7 +35,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle, ChevronsUpDown, Dices, Key, AlertCircle, CreditCard, Clock, Loader2 } from "lucide-react";
+import { Server, User, HardDrive, Cpu, MemoryStick, Network, CheckCircle, ChevronsUpDown, Dices, Key, AlertCircle, CreditCard, Clock, Loader2, Monitor, Terminal, Smartphone } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
   Command,
@@ -180,6 +180,17 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
     queryFn: async () => {
       const response = await fetch('/api/admin/cron/status');
       if (!response.ok) throw new Error('Failed to fetch VirtFusion cron settings');
+      return response.json();
+    },
+    staleTime: 30000,
+  });
+
+  // Fetch VirtFusion settings to check billing mode (hourly vs monthly)
+  const { data: virtfusionSettings } = useQuery({
+    queryKey: ['virtfusion-settings'],
+    queryFn: async () => {
+      const response = await fetch('/api/settings/virtfusion');
+      if (!response.ok) throw new Error('Failed to fetch VirtFusion settings');
       return response.json();
     },
     staleTime: 30000,
@@ -370,6 +381,31 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
     const number = Math.floor(Math.random() * 999) + 1;
     return `${adjective}-${noun}-${number}`;
+  };
+
+  const getOSIcon = (osName: string) => {
+    const name = osName.toLowerCase();
+    
+    // Windows
+    if (name.includes('windows')) {
+      return Monitor;
+    }
+    
+    // Linux distributions
+    if (name.includes('ubuntu') || name.includes('debian') || name.includes('centos') || 
+        name.includes('redhat') || name.includes('fedora') || name.includes('almalinux') ||
+        name.includes('rocky') || name.includes('arch') || name.includes('suse') ||
+        name.includes('mint') || name.includes('kali') || name.includes('linux')) {
+      return Terminal;
+    }
+    
+    // Mobile/Android
+    if (name.includes('android') || name.includes('mobile')) {
+      return Smartphone;
+    }
+    
+    // Default fallback
+    return HardDrive;
   };
 
   // Helper to poll VirtFusion queue item status (preferred when we have queueId)
@@ -818,7 +854,16 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                         <p className="text-sm text-muted-foreground">{user.username}</p>
                       </div>
                       <div>
-                        <label className="text-sm font-medium">VirtFusion Credits</label>
+                        <label className="text-sm font-medium">
+                          VirtFusion Credits {(() => {
+                            const isHourlyBilling = virtfusionSettings?.selfServiceHourlyCredit !== false;
+                            return (
+                              <span className="text-xs font-normal text-muted-foreground">
+                                ({isHourlyBilling ? 'Hourly Billing' : 'Monthly Billing'})
+                              </span>
+                            );
+                          })()}
+                        </label>
                         <p 
                           className="text-sm font-semibold"
                           style={{ color: brandColors.secondary.full }}
@@ -867,10 +912,62 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                           >
                             <FormControl>
                               <SelectTrigger className="h-12">
-                                <SelectValue placeholder="Select a package..." />
+                                <SelectValue placeholder="Select a package...">
+                                  {selectedPackage && (
+                                    <div className="flex items-center justify-between w-full px-2 py-1">
+                                      <div className="flex items-center gap-4">
+                                        <div 
+                                          className="p-2 rounded"
+                                          style={{ backgroundColor: brandColors.primary.extraLight }}
+                                        >
+                                          <Cpu 
+                                            className="h-4 w-4" 
+                                            style={{ color: brandColors.primary.full }}
+                                          />
+                                        </div>
+                                        <span className="font-medium text-sm">{selectedPackage.name}</span>
+                                      </div>
+                                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                          <span>{selectedPackage.cpuCores} vCPU</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                          <span>{selectedPackage.memory}MB RAM</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                          <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                                          <span>{selectedPackage.primaryStorage}GB SSD</span>
+                                        </div>
+                                        {(selectedPackage.pricing || selectedPackage.price) && (
+                                          <div 
+                                            className="px-3 py-1 rounded-full text-xs font-semibold text-white ml-3"
+                                            style={{ backgroundColor: brandColors.primary.full }}
+                                          >
+                                            ${(() => {
+                                              const monthlyPrice = selectedPackage.pricing?.price || selectedPackage.price || 0;
+                                              
+                                              // Check if hourly billing is enabled from VirtFusion settings
+                                              const isHourlyBilling = virtfusionSettings?.selfServiceHourlyCredit !== false;
+                                              
+                                              if (isHourlyBilling) {
+                                                const hoursPerMonth = virtfusionCronData?.hoursPerMonth || 730;
+                                                const hourlyRate = monthlyPrice / hoursPerMonth;
+                                                return hourlyRate.toFixed(4) + ' /hr';
+                                              } else {
+                                                return monthlyPrice.toFixed(2) + ' /mo';
+                                              }
+                                            })()}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </SelectValue>
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="max-h-80">
+                            <SelectContent className="max-h-[28rem]">
                               <div className="p-2">
                                 <Input
                                   placeholder="Search packages..."
@@ -879,49 +976,92 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                                   className="mb-2"
                                 />
                               </div>
-                              {paginatedPackages.map((pkg: any) => (
-                                <SelectItem 
-                                  key={pkg.id} 
-                                  value={pkg.id.toString()} 
-                                  className="p-3 hover:bg-muted/50 data-[highlighted]:bg-muted/50 data-[state=checked]:bg-muted/50"
-                                >
-                                  <div className="flex items-center justify-between w-full">
-                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                              {paginatedPackages.map((pkg: any) => {
+                                const isSelected = selectedPackage?.id === pkg.id;
+                                return (
+                                  <SelectItem 
+                                    key={pkg.id} 
+                                    value={pkg.id.toString()} 
+                                    className="p-3 hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[state=checked]:bg-gray-100 text-gray-900 hover:text-gray-900 data-[highlighted]:text-gray-900 data-[state=checked]:text-gray-900 relative [&>span:first-child]:hidden overflow-hidden"
+                                  >
+                                    <div className="flex items-center w-full gap-3">
+                                      {/* Selection Indicator */}
+                                      {isSelected && (
+                                        <div 
+                                          className="w-1 h-8 rounded-full shrink-0"
+                                          style={{ backgroundColor: brandColors.primary.full }}
+                                        />
+                                      )}
+                                      {!isSelected && (
+                                        <div className="w-1 h-8 shrink-0" />
+                                      )}
+                                      
+                                      {/* Icon */}
                                       <div 
-                                        className="p-2 rounded"
-                                        style={{ backgroundColor: brandColors.primary.extraLight }}
+                                        className="p-2 rounded shrink-0 mt-0.5"
+                                        style={{ 
+                                          backgroundColor: isSelected ? brandColors.primary.light : brandColors.primary.extraLight,
+                                          border: isSelected ? `2px solid ${brandColors.primary.full}` : 'none'
+                                        }}
                                       >
                                         <Cpu 
                                           className="h-4 w-4" 
                                           style={{ color: brandColors.primary.full }}
                                         />
                                       </div>
-                                      <div>
-                                        <div className="font-medium truncate text-foreground">{pkg.name}</div>
-                                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                          <span>{pkg.cpuCores} CPU</span>
-                                          <span>•</span>
-                                          <span>{pkg.memory}MB RAM</span>
-                                          <span>•</span>
-                                          <span>{pkg.primaryStorage}GB SSD</span>
-                                        </div>
+                                    
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                      {/* Package Name */}
+                                      <div className="mb-1.5">
+                                        <h4 className="font-medium text-foreground truncate">{pkg.name}</h4>
                                       </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {(pkg.pricing || pkg.price) && (
-                                        <Badge variant="secondary" className="text-xs font-semibold">
-                                          ${(() => {
-                                            const monthlyPrice = pkg.pricing?.price || pkg.price || 0;
-                                            const hoursPerMonth = virtfusionCronData?.hoursPerMonth || 730;
-                                            const hourlyRate = monthlyPrice / hoursPerMonth;
-                                            return hourlyRate.toFixed(4);
-                                          })()} /hr
-                                        </Badge>
-                                      )}
+                                      
+                                      {/* Specifications and Price Row */}
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                          <div className="flex items-center gap-1">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                            <span>{pkg.cpuCores} vCPU</span>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                                            <span>{pkg.memory}MB RAM</span>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
+                                            <span>{pkg.primaryStorage}GB SSD</span>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Price Badge */}
+                                        {(pkg.pricing || pkg.price) && (
+                                          <div 
+                                            className="px-2.5 py-1 rounded-full text-xs font-semibold text-white shrink-0 ml-2"
+                                            style={{ backgroundColor: brandColors.primary.full }}
+                                          >
+                                            ${(() => {
+                                              const monthlyPrice = pkg.pricing?.price || pkg.price || 0;
+                                              
+                                              // Check if hourly billing is enabled from VirtFusion settings
+                                              const isHourlyBilling = virtfusionSettings?.selfServiceHourlyCredit !== false;
+                                              
+                                              if (isHourlyBilling) {
+                                                const hoursPerMonth = virtfusionCronData?.hoursPerMonth || 730;
+                                                const hourlyRate = monthlyPrice / hoursPerMonth;
+                                                return hourlyRate.toFixed(4) + ' /hr';
+                                              } else {
+                                                return monthlyPrice.toFixed(2) + ' /mo';
+                                              }
+                                            })()}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </SelectItem>
-                              ))}
+                                );
+                              })}
                               {totalPackagePages > 1 && (
                                 <div className="border-t bg-muted/30 p-2">
                                   <Pagination
@@ -976,26 +1116,43 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {hypervisorsData?.map((group: any) => (
-                                <SelectItem 
-                                  key={group.id} 
-                                  value={group.id.toString()} 
-                                  className="p-3 hover:bg-muted/50 data-[highlighted]:bg-muted/50 data-[state=checked]:bg-muted/50"
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div 
-                                      className="p-2 rounded"
-                                      style={{ backgroundColor: brandColors.secondary.extraLight }}
-                                    >
-                                      <Network 
-                                        className="h-4 w-4" 
-                                        style={{ color: brandColors.secondary.full }}
-                                      />
+                              {hypervisorsData?.map((group: any) => {
+                                const isSelected = selectedHypervisorGroup?.id === group.id;
+                                return (
+                                  <SelectItem 
+                                    key={group.id} 
+                                    value={group.id.toString()} 
+                                    className="p-3 hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[state=checked]:bg-gray-100 text-gray-900 hover:text-gray-900 data-[highlighted]:text-gray-900 data-[state=checked]:text-gray-900 relative [&>span:first-child]:hidden overflow-hidden"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      {/* Selection Indicator */}
+                                      {isSelected && (
+                                        <div 
+                                          className="w-1 h-8 rounded-full shrink-0"
+                                          style={{ backgroundColor: brandColors.secondary.full }}
+                                        />
+                                      )}
+                                      {!isSelected && (
+                                        <div className="w-1 h-8 shrink-0" />
+                                      )}
+                                      
+                                      <div 
+                                        className="p-2 rounded"
+                                        style={{ 
+                                          backgroundColor: isSelected ? brandColors.secondary.light : brandColors.secondary.extraLight,
+                                          border: isSelected ? `2px solid ${brandColors.secondary.full}` : 'none'
+                                        }}
+                                      >
+                                        <Network 
+                                          className="h-4 w-4" 
+                                          style={{ color: brandColors.secondary.full }}
+                                        />
+                                      </div>
+                                      <span className="font-medium text-foreground">{group.name}</span>
                                     </div>
-                                    <span className="font-medium text-foreground">{group.name}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                           <FormDescription className="text-xs mt-2">
@@ -1019,7 +1176,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                           style={{ color: brandColors.accent.full }}
                         />
                       </div>
-                      <h3 className="text-lg font-semibold">Server Name</h3>
+                      <h3 className="text-lg font-semibold">Server Name <span className="text-red-500">*</span></h3>
                     </div>
                     <FormField
                       control={form.control}
@@ -1029,7 +1186,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                           <div className="flex gap-2">
                             <FormControl>
                               <Input 
-                                placeholder="Enter server name..." 
+                                placeholder="Enter server name (required)..." 
                                 className="h-12" 
                                 {...field} 
                               />
@@ -1045,7 +1202,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                             </Button>
                           </div>
                           <FormDescription className="text-xs mt-2">
-                            Choose a unique identifier for your server
+                            Choose a unique identifier for your server (required field)
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -1063,10 +1220,15 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                         className="p-2 rounded-lg"
                         style={{ backgroundColor: brandColors.primary.light }}
                       >
-                        <HardDrive 
-                          className="h-5 w-5" 
-                          style={{ color: brandColors.primary.full }}
-                        />
+                        {(() => {
+                          const OSIcon = selectedOsTemplate ? getOSIcon(selectedOsTemplate.name) : HardDrive;
+                          return (
+                            <OSIcon 
+                              className="h-5 w-5" 
+                              style={{ color: brandColors.primary.full }}
+                            />
+                          );
+                        })()}
                       </div>
                       <h3 className="text-lg font-semibold">Operating System</h3>
                     </div>
@@ -1100,46 +1262,64 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                                   className="mb-2"
                                 />
                               </div>
-                              {paginatedOsTemplates.map((template: any) => (
-                                <SelectItem 
-                                  key={template.id} 
-                                  value={template.id.toString()} 
-                                  className="p-3 hover:bg-muted/50 data-[highlighted]:bg-muted/50 data-[state=checked]:bg-muted/50"
-                                >
-                                  <div className="flex items-center justify-between w-full">
-                                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                                      <div 
-                                        className="p-2 rounded"
-                                        style={{ backgroundColor: brandColors.primary.extraLight }}
-                                      >
-                                        <HardDrive 
-                                          className="h-4 w-4" 
-                                          style={{ color: brandColors.primary.full }}
-                                        />
-                                      </div>
-                                      <div>
-                                        <div className="font-medium truncate text-foreground">{template.name}</div>
-                                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                          <span>{template.version}</span>
-                                          {template.variant && (
-                                            <>
-                                              <span>•</span>
-                                              <span>{template.variant}</span>
-                                            </>
-                                          )}
+                              {paginatedOsTemplates.map((template: any) => {
+                                const OSIcon = getOSIcon(template.name);
+                                const isSelected = selectedOsTemplate?.id === template.id;
+                                return (
+                                  <SelectItem 
+                                    key={template.id} 
+                                    value={template.id.toString()} 
+                                    className="p-3 hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[state=checked]:bg-gray-100 text-gray-900 hover:text-gray-900 data-[highlighted]:text-gray-900 data-[state=checked]:text-gray-900 relative [&>span:first-child]:hidden overflow-hidden"
+                                  >
+                                    <div className="flex items-center justify-between w-full">
+                                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                                        {/* Selection Indicator */}
+                                        {isSelected && (
+                                          <div 
+                                            className="w-1 h-8 rounded-full shrink-0"
+                                            style={{ backgroundColor: brandColors.primary.full }}
+                                          />
+                                        )}
+                                        {!isSelected && (
+                                          <div className="w-1 h-8 shrink-0" />
+                                        )}
+                                        
+                                        <div 
+                                          className="p-2 rounded"
+                                          style={{ 
+                                            backgroundColor: isSelected ? brandColors.primary.light : brandColors.primary.extraLight,
+                                            border: isSelected ? `2px solid ${brandColors.primary.full}` : 'none'
+                                          }}
+                                        >
+                                          <OSIcon 
+                                            className="h-4 w-4" 
+                                            style={{ color: brandColors.primary.full }}
+                                          />
+                                        </div>
+                                        <div>
+                                          <div className="font-medium truncate text-foreground">{template.name}</div>
+                                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                            <span>{template.version}</span>
+                                            {template.variant && (
+                                              <>
+                                                <span>•</span>
+                                                <span>{template.variant}</span>
+                                              </>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
+                                      <div className="flex items-center gap-1 ml-2">
+                                        {template.eol && (
+                                          <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                                            EOL
+                                          </Badge>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-1 ml-2">
-                                      {template.eol && (
-                                        <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
-                                          EOL
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                </SelectItem>
-                              ))}
+                                  </SelectItem>
+                                );
+                              })}
                               {totalOsPages > 1 && (
                                 <div className="border-t bg-muted/30 p-2">
                                   <Pagination
@@ -1239,7 +1419,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                                 <SelectItem 
                                   key={key.id} 
                                   value={key.id.toString()} 
-                                  className="p-3 hover:bg-muted/50 data-[highlighted]:bg-muted/50 data-[state=checked]:bg-muted/50"
+                                  className="p-3 hover:bg-gray-100 data-[highlighted]:bg-gray-100 data-[state=checked]:bg-gray-100 text-gray-900 hover:text-gray-900 data-[highlighted]:text-gray-900 data-[state=checked]:text-gray-900 [&>span:first-child]:hidden"
                                 >
                                   <div className="flex items-center gap-3">
                                     <div 
@@ -1366,7 +1546,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={createServerMutation.isPending || !selectedPackage || !selectedHypervisorGroup || !selectedOsTemplate}
+                  disabled={createServerMutation.isPending || !selectedPackage || !selectedHypervisorGroup || !selectedOsTemplate || !form.watch('name')?.trim()}
                   className="px-8"
                   style={{
                     background: `linear-gradient(to right, ${brandColors.primary.full}, ${brandColors.primary.dark})`,

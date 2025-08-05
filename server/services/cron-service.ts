@@ -537,10 +537,10 @@ export class CronService {
    * Run VirtFusion hourly billing process
    */
   private async runVirtFusionHourlyBilling() {
-    console.log('🕐 Starting VirtFusion hourly billing process...');
+    console.log('🕐 Starting VirtFusion billing process...');
     
     try {
-      // First, check if hourly billing is actually enabled
+      // First, check if billing is actually enabled
       const settings = await storage.db.select()
         .from(virtfusionCronSettings)
         .orderBy(sql`${virtfusionCronSettings.id} DESC`)
@@ -549,8 +549,19 @@ export class CronService {
       const setting = settings[0];
 
       if (!setting || !setting.enabled || !setting.hourlyBillingEnabled) {
-        console.log('VirtFusion hourly billing is disabled in settings. Aborting.');
+        console.log('VirtFusion billing is disabled in settings. Aborting.');
         return;
+      }
+
+      // Check if hourly or monthly billing is enabled
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      
+      console.log(`💰 Billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
+      
+      if (!isHourlyBilling) {
+        console.log('📅 Monthly billing mode detected - switching to monthly billing logic');
+        return await this.runVirtFusionMonthlyBilling();
       }
 
       const startTime = Date.now();
@@ -793,6 +804,170 @@ export class CronService {
     console.log('🗓️ Starting VirtFusion monthly billing process...');
     
     try {
+      const startTime = Date.now();
+      
+      // Get all active billing records for monthly billing
+      const billingRecords = await storage.db.select({
+        id: virtfusionHourlyBilling.id,
+        userId: virtfusionHourlyBilling.userId,
+        serverId: virtfusionHourlyBilling.serverId,
+        virtfusionServerId: virtfusionHourlyBilling.virtfusionServerId,
+        serverUuid: virtfusionHourlyBilling.serverUuid,
+        packageId: virtfusionHourlyBilling.packageId,
+        packageName: virtfusionHourlyBilling.packageName,
+        monthlyPrice: virtfusionHourlyBilling.monthlyPrice,
+        serverCreatedAt: virtfusionHourlyBilling.serverCreatedAt,
+        lastBilledAt: virtfusionHourlyBilling.lastBilledAt,
+        userActive: users.isActive,
+        packagePrice: packagePricing.price
+      })
+      .from(virtfusionHourlyBilling)
+      .innerJoin(users, eq(virtfusionHourlyBilling.userId, users.id))
+      .innerJoin(packagePricing, eq(virtfusionHourlyBilling.packageId, packagePricing.virtFusionPackageId))
+      .where(and(
+        eq(virtfusionHourlyBilling.billingEnabled, true),
+        eq(users.isActive, true),
+        sql`${virtfusionHourlyBilling.monthlyPrice} IS NOT NULL`
+      ));
+
+      let processed = 0;
+      let successful = 0;
+      let failed = 0;
+      const errors: any[] = [];
+
+      for (const record of billingRecords) {
+        try {
+          processed++;
+          
+          // Validate required fields
+          if (!record.monthlyPrice) {
+            console.warn(`⚠️ Skipping record ${record.id} - missing monthly price`);
+            continue;
+          }
+          
+          // Verify server still exists in VirtFusion
+          console.log(`🔍 Cross-checking server ownership with VirtFusion API using UUID: ${record.serverUuid} for user ${record.userId}...`);
+          
+          const serverStillOwned = await virtFusionApi.verifyServerOwnershipByUuid(
+            record.serverUuid, 
+            record.userId
+          );
+          
+          if (!serverStillOwned) {
+            console.warn(`⚠️ Server with UUID ${record.serverUuid} is no longer owned by user ${record.userId}. Disabling billing.`);
+            
+            // Disable billing for this server
+            await storage.db.update(virtfusionHourlyBilling)
+              .set({
+                billingEnabled: false,
+                updatedAt: sql`now()`
+              })
+              .where(eq(virtfusionHourlyBilling.id, record.id));
+            
+            console.log(`✅ Disabled billing for server with UUID ${record.serverUuid}`);
+            continue;
+          }
+
+          // Check if server is due for monthly billing
+          const now = new Date();
+          const serverCreatedAt = record.serverCreatedAt ? new Date(record.serverCreatedAt) : null;
+          const lastBilledAt = record.lastBilledAt ? new Date(record.lastBilledAt) : serverCreatedAt;
+          
+          if (!serverCreatedAt) {
+            console.warn(`⚠️ Skipping server ${record.serverId} - missing server creation timestamp.`);
+            continue;
+          }
+
+          // Calculate if a month has passed since last billing (or creation)
+          const daysSinceLastBilling = lastBilledAt ? 
+            (now.getTime() - lastBilledAt.getTime()) / (1000 * 60 * 60 * 24) : 
+            (now.getTime() - serverCreatedAt.getTime()) / (1000 * 60 * 60 * 24);
+          
+          // Bill monthly (30 days)
+          if (daysSinceLastBilling < 30) {
+            console.log(`⏰ Server ${record.serverId} not due for monthly billing yet. Days since last billing: ${daysSinceLastBilling.toFixed(2)}`);
+            continue;
+          }
+
+          console.log(`⏰ Server ${record.serverId} is due for monthly billing. Days since last billing: ${daysSinceLastBilling.toFixed(2)}`);
+          
+          // Calculate monthly charge
+          const monthlyPrice = parseFloat(record.monthlyPrice.toString());
+          const monthlyTokens = Math.ceil(monthlyPrice * 100); // Convert to tokens (cents), round up
+
+          console.log(`💰 Charging user ${record.userId} ${monthlyTokens} tokens (${monthlyPrice.toFixed(2)} dollars) for server ${record.virtfusionServerId} - MONTHLY BILLING`);
+
+          // Create transaction record
+          const createdTransaction = await storage.createTransaction({
+            userId: record.userId,
+            amount: -Math.abs(monthlyPrice), // Negative amount for debit
+            description: `VirtFusion Server ${record.serverId} - Monthly Billing (1 month)`,
+            type: "debit",
+            status: "pending",
+            paymentMethod: "virtfusion_tokens"
+          });
+
+          // Prepare VirtFusion API token deduction data
+          const tokenData = {
+            tokens: monthlyTokens,
+            reference_1: createdTransaction.id,
+            reference_2: `Monthly billing for server ${record.serverId} - User ID: ${record.userId}`
+          };
+
+          console.log(`🌐 Sending to VirtFusion API with extRelationId=${record.userId}:`, tokenData);
+
+          try {
+            // Deduct VirtFusion tokens
+            const virtFusionResult = await virtFusionApi.removeCreditFromUserByExtRelationId(
+              record.userId,
+              tokenData
+            );
+
+            console.log("✅ VirtFusion token deduction result:", virtFusionResult);
+
+            // Update transaction status to completed
+            await storage.updateTransaction(createdTransaction.id, { status: "completed" });
+
+            // Update last billed timestamp
+            await storage.db.update(virtfusionHourlyBilling)
+              .set({
+                lastBilledAt: sql`now()`
+              })
+              .where(eq(virtfusionHourlyBilling.id, record.id));
+
+            console.log(`✅ Successfully charged user ${record.userId} ${monthlyTokens} tokens for server ${record.virtfusionServerId} - MONTHLY`);
+            successful++;
+
+          } catch (virtFusionError: any) {
+            console.error(`❌ VirtFusion API error for user ${record.userId}:`, virtFusionError);
+            
+            // Update transaction status to failed
+            await storage.updateTransaction(createdTransaction.id, { 
+              status: "failed",
+              failureReason: virtFusionError.message || 'VirtFusion API error'
+            });
+            
+            failed++;
+            errors.push({
+              userId: record.userId,
+              serverId: record.serverId,
+              error: virtFusionError.message || 'VirtFusion API error'
+            });
+          }
+
+        } catch (recordError: any) {
+          console.error(`❌ Error processing billing record ${record.id}:`, recordError);
+          failed++;
+          errors.push({
+            recordId: record.id,
+            error: recordError.message
+          });
+        }
+      }
+
+      const endTime = Date.now();
+      const duration = (endTime - startTime) / 1000;
+
       // Update last monthly billing timestamp
       const currentSettings = await storage.db.select()
         .from(virtfusionCronSettings)
@@ -807,9 +982,11 @@ export class CronService {
           .where(eq(virtfusionCronSettings.id, currentSettings[0].id));
       }
       
-      // Here you could add any special monthly billing logic
-      // For now, just log that monthly billing ran
-      console.log('✅ VirtFusion monthly billing process completed');
+      console.log(`✅ VirtFusion monthly billing completed in ${duration}s - Processed: ${processed}, Successful: ${successful}, Failed: ${failed}`);
+      
+      if (errors.length > 0) {
+        console.error('❌ Monthly billing errors:', errors);
+      }
       
     } catch (error) {
       console.error('❌ Error in VirtFusion monthly billing process:', error);
