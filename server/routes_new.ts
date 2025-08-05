@@ -9147,6 +9147,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test VirtFusion billing mode detection (admin only)
+  app.get("/api/admin/cron/virtfusion-billing/test-mode", isAdmin, async (req, res) => {
+    try {
+      const result = await cronService.testBillingModeDetection();
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error: any) {
+      console.error("Error testing VirtFusion billing mode:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Manually trigger DNS billing renewal (admin only)
   app.post("/api/admin/cron/dns-billing/trigger", isAdmin, async (req, res) => {
     try {

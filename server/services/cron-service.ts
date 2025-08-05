@@ -449,6 +449,7 @@ export class CronService {
 
   /**
    * Update VirtFusion cron settings
+   * This method is called when VirtFusion settings are saved from the admin panel
    */
   async updateVirtFusionCron(enabled: boolean, hourlyEnabled?: boolean, monthlyEnabled?: boolean, hoursPerMonth?: number): Promise<void> {
     try {
@@ -496,6 +497,14 @@ export class CronService {
         // Reinitialize jobs with new settings
         await this.initializeVirtFusionCronJobs();
         console.log('✅ VirtFusion cron jobs reinitialized and started');
+        
+        // Log the current billing mode for verification
+        try {
+          const testResult = await this.testBillingModeDetection();
+          console.log(`📊 Current billing mode after restart: ${testResult.billingMode}`);
+        } catch (error) {
+          console.warn('Could not test billing mode after restart:', error);
+        }
       } else {
         console.log('✅ VirtFusion cron jobs disabled');
       }
@@ -535,6 +544,10 @@ export class CronService {
 
   /**
    * Run VirtFusion hourly billing process
+   * This method determines whether to use hourly or monthly billing based on the
+   * "Self Service Hourly Credit" setting:
+   * - If enabled (true): Uses hourly billing (deducts credits every hour)
+   * - If disabled (false): Uses monthly billing (charges full package price monthly)
    */
   private async runVirtFusionHourlyBilling() {
     console.log('🕐 Starting VirtFusion billing process...');
@@ -553,11 +566,16 @@ export class CronService {
         return;
       }
 
-      // Check if hourly or monthly billing is enabled
+      // Check if hourly or monthly billing is enabled based on Self Service Hourly Credit setting
       const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
-      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
       
-      console.log(`💰 Billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
+      // If setting doesn't exist, default to monthly billing (safer default)
+      // If setting exists and is 'true' -> hourly billing, otherwise -> monthly billing
+      const isHourlyBilling = selfServiceCreditSetting && selfServiceCreditSetting.value === 'true';
+      
+      console.log(`💰 Billing mode determination:`);
+      console.log(`   - Self Service Hourly Credit setting: ${selfServiceCreditSetting ? selfServiceCreditSetting.value : 'NOT_SET'}`);
+      console.log(`   - Resulting billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
       
       if (!isHourlyBilling) {
         console.log('📅 Monthly billing mode detected - switching to monthly billing logic');
@@ -878,24 +896,29 @@ export class CronService {
             continue;
           }
 
-          // Calculate if a month has passed since last billing (or creation)
+          // Calculate if billing is due for this server
+          // For monthly billing, we should bill approximately every 30 days
+          // or if this is the first time billing (lastBilledAt is null)
           const daysSinceLastBilling = lastBilledAt ? 
             (now.getTime() - lastBilledAt.getTime()) / (1000 * 60 * 60 * 24) : 
             (now.getTime() - serverCreatedAt.getTime()) / (1000 * 60 * 60 * 24);
           
-          // Bill monthly (30 days)
-          if (daysSinceLastBilling < 30) {
+          // For monthly billing: bill if 30 days have passed OR if this is the monthly billing run
+          // and the server hasn't been billed this month
+          const shouldBillThisMonth = !lastBilledAt || daysSinceLastBilling >= 25; // Bill a bit early to avoid missing cycles
+          
+          if (!shouldBillThisMonth) {
             console.log(`⏰ Server ${record.serverId} not due for monthly billing yet. Days since last billing: ${daysSinceLastBilling.toFixed(2)}`);
             continue;
           }
 
-          console.log(`⏰ Server ${record.serverId} is due for monthly billing. Days since last billing: ${daysSinceLastBilling.toFixed(2)}`);
+          console.log(`⏰ Server ${record.serverId} is due for monthly billing. Days since last billing: ${daysSinceLastBilling.toFixed(2)} (${!lastBilledAt ? 'FIRST TIME' : 'RECURRING'})`);
           
-          // Calculate monthly charge
-          const monthlyPrice = parseFloat(record.monthlyPrice.toString());
+          // Calculate monthly charge - use package price (record.packagePrice) or fallback to monthlyPrice
+          const monthlyPrice = record.packagePrice ? parseFloat(record.packagePrice.toString()) : parseFloat(record.monthlyPrice.toString());
           const monthlyTokens = Math.ceil(monthlyPrice * 100); // Convert to tokens (cents), round up
 
-          console.log(`💰 Charging user ${record.userId} ${monthlyTokens} tokens (${monthlyPrice.toFixed(2)} dollars) for server ${record.virtfusionServerId} - MONTHLY BILLING`);
+          console.log(`💰 Charging user ${record.userId} ${monthlyTokens} tokens (${monthlyPrice.toFixed(2)} dollars) for server ${record.virtfusionServerId} - MONTHLY BILLING (Package: ${record.packageName})`);
 
           // Create transaction record
           const createdTransaction = await storage.createTransaction({
@@ -1002,8 +1025,56 @@ export class CronService {
   }
 
   /**
-   * Manually trigger VirtFusion monthly billing
+   * Test billing mode detection (for debugging)
+   * This method helps troubleshoot billing mode issues by logging current settings
    */
+  async testBillingModeDetection(): Promise<{
+    billingEnabled: boolean;
+    hourlyCreditEnabled: boolean;
+    billingMode: 'HOURLY' | 'MONTHLY';
+    cronSettings: any;
+  }> {
+    try {
+      console.log('🔍 Testing VirtFusion billing mode detection...');
+      
+      // Get VirtFusion cron settings
+      const cronSettings = await storage.db.select()
+        .from(virtfusionCronSettings)
+        .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+        .limit(1);
+
+      const setting = cronSettings[0];
+      
+      // Get billing automation setting
+      const billingEnabledSetting = await storage.getSetting('server_hourly_billing_enabled');
+      const billingEnabled = billingEnabledSetting ? billingEnabledSetting.value === 'true' : false;
+      
+      // Get self service hourly credit setting
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const hourlyCreditEnabled = selfServiceCreditSetting && selfServiceCreditSetting.value === 'true';
+      
+      const billingMode = hourlyCreditEnabled ? 'HOURLY' : 'MONTHLY';
+      
+      console.log('📊 Billing Mode Detection Results:');
+      console.log(`   - Billing Automation Enabled: ${billingEnabled}`);
+      console.log(`   - Self Service Hourly Credit: ${selfServiceCreditSetting ? selfServiceCreditSetting.value : 'NOT_SET'}`);
+      console.log(`   - Resulting Billing Mode: ${billingMode}`);
+      console.log(`   - Cron Enabled: ${setting?.enabled || false}`);
+      console.log(`   - Hourly Billing Enabled: ${setting?.hourlyBillingEnabled || false}`);
+      console.log(`   - Monthly Billing Enabled: ${setting?.billingOnFirstEnabled || false}`);
+      
+      return {
+        billingEnabled,
+        hourlyCreditEnabled,
+        billingMode,
+        cronSettings: setting || null
+      };
+      
+    } catch (error) {
+      console.error('❌ Error testing billing mode detection:', error);
+      throw error;
+    }
+  }
   async triggerVirtFusionMonthlyBilling() {
     console.log('🔄 Manually triggering VirtFusion monthly billing...');
     await this.runVirtFusionMonthlyBilling();

@@ -1741,6 +1741,22 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["virtfusion-cron-status"] });
 
+      // Test billing mode detection to verify the changes (optional)
+      try {
+        const testResult = await apiRequest("/api/admin/cron/virtfusion-billing/test-mode");
+        console.log("📊 Billing mode verification after settings save:", testResult);
+        
+        // Show a more detailed success message
+        toast({
+          title: "Settings applied successfully",
+          description: `Billing mode is now: ${testResult.billingMode} (${testResult.hourlyCreditEnabled ? 'Hourly credit enabled' : 'Monthly billing enabled'})`,
+          duration: 5000,
+        });
+      } catch (testError) {
+        console.warn("Could not verify billing mode:", testError);
+        // Don't fail the save if the test fails
+      }
+
       // Reset the form with the new values to clear dirty state
       virtFusionForm.reset({
         apiUrl: data.apiUrl,
@@ -2250,7 +2266,13 @@ export default function SettingsPage() {
                         <div className="space-y-0.5">
                           <Label htmlFor="virtfusionBillingEnabled">Enable VirtFusion Billing Automation</Label>
                           <p className="text-sm text-muted-foreground">
-                            Automatically bill customers for VirtFusion server usage
+                            {virtFusionForm.watch("serverHourlyBillingEnabled")
+                              ? "✅ Billing automation is enabled - customers will be charged automatically"
+                              : "❌ Billing automation is disabled - no automatic charges will occur"
+                            }
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                            ⚠️ This must be enabled for any VirtFusion billing to work (hourly or monthly)
                           </p>
                         </div>
                         <Switch
@@ -2447,7 +2469,13 @@ export default function SettingsPage() {
                         <div className="space-y-0.5">
                           <Label htmlFor="selfServiceHourlyCredit">Self Service Hourly Credit</Label>
                           <p className="text-sm text-muted-foreground">
-                            Enable hourly credit for self service users
+                            {virtFusionForm.watch("selfServiceHourlyCredit") 
+                              ? "🕐 Hourly billing: Deduct credits per hour based on server usage"
+                              : "📅 Monthly billing: Charge full package price monthly"
+                            }
+                          </p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
+                            💡 Toggle this to switch between hourly credit deduction and monthly package billing
                           </p>
                         </div>
                         <Switch
@@ -2505,7 +2533,7 @@ export default function SettingsPage() {
                     <Separator />
 
                     <div className="flex justify-between">
-                      <div>
+                      <div className="flex space-x-2">
                         <Button
                           type="button"
                           variant="outline"
@@ -2523,9 +2551,34 @@ export default function SettingsPage() {
                           ) : (
                             <>
                               <RefreshCw className="mr-2 h-4 w-4" />
-                              Test VirtFusion Connection
+                              Test Connection
                             </>
                           )}
+                        </Button>
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-auto"
+                          onClick={async () => {
+                            try {
+                              const result = await apiRequest("/api/admin/cron/virtfusion-billing/test-mode");
+                              toast({
+                                title: "Billing Mode Test",
+                                description: `Current mode: ${result.billingMode} ${result.billingEnabled ? '(Automation enabled)' : '(Automation disabled)'}`,
+                                duration: 5000,
+                              });
+                            } catch (error: any) {
+                              toast({
+                                title: "Test failed",
+                                description: error.message || "Could not test billing mode",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <BarChart3 className="mr-2 h-4 w-4" />
+                          Test Billing Mode
                         </Button>
                       </div>
                       <div>
