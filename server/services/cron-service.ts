@@ -24,6 +24,8 @@ export class CronService {
 
   constructor() {
     this.initializeCronJobs();
+    // Initialize VirtFusion billing mode on startup
+    this.initializeVirtFusionBillingMode();
   }
 
   /**
@@ -37,6 +39,36 @@ export class CronService {
       console.log('✅ Cron jobs initialized successfully');
     } catch (error) {
       console.error('❌ Error initializing cron jobs:', error);
+    }
+  }
+
+  /**
+   * Initialize VirtFusion billing mode on startup
+   * This ensures the correct cron jobs are running based on the current billing mode setting
+   */
+  private async initializeVirtFusionBillingMode(): Promise<void> {
+    try {
+      // Wait a bit for the database connections to be ready
+      setTimeout(async () => {
+        try {
+          console.log('🔧 Initializing VirtFusion billing mode on startup...');
+          
+          // Check current billing mode from the Self Service Hourly Credit setting
+          const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+          const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+          
+          console.log(`💰 Current billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
+          
+          // Update cron jobs to match current billing mode
+          await this.updateVirtFusionCronJobsForBillingMode(isHourlyBilling);
+          
+          console.log('✅ VirtFusion billing mode initialized successfully');
+        } catch (error) {
+          console.error('❌ Error initializing VirtFusion billing mode:', error);
+        }
+      }, 5000); // Wait 5 seconds for startup
+    } catch (error) {
+      console.error('Error setting up VirtFusion billing mode initialization:', error);
     }
   }
 

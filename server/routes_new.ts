@@ -9147,6 +9147,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update VirtFusion billing mode based on current settings (admin only)
+  app.post("/api/admin/virtfusion/billing-mode/update", isAdmin, async (req, res) => {
+    try {
+      console.log('🔄 Manually triggering VirtFusion billing mode update...');
+      
+      // Check current billing mode from the Self Service Hourly Credit setting
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      
+      console.log(`💰 Current billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
+      
+      // Update cron jobs to match current billing mode
+      await cronService.updateVirtFusionCronJobsForBillingMode(isHourlyBilling);
+      
+      res.json({
+        success: true,
+        message: `VirtFusion billing mode updated successfully to ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'} billing`,
+        billingMode: isHourlyBilling ? 'hourly' : 'monthly',
+        hourlyBillingEnabled: isHourlyBilling,
+        monthlyBillingEnabled: !isHourlyBilling
+      });
+    } catch (error: any) {
+      console.error("Error updating VirtFusion billing mode:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Manually trigger DNS billing renewal (admin only)
   app.post("/api/admin/cron/dns-billing/trigger", isAdmin, async (req, res) => {
     try {
