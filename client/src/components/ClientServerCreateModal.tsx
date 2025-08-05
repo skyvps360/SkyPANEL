@@ -47,6 +47,7 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
 
 interface ClientServerCreateModalProps {
   open: boolean;
@@ -109,6 +110,21 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
       return res.json();
     },
     staleTime: 10 * 60 * 1000 // cache for 10 minutes
+  });
+
+  // Fetch branding data for consistent theming
+  const { data: brandingData } = useQuery<{
+    primary_color: string;
+    secondary_color: string;
+    accent_color: string;
+  }>({
+    queryKey: ["/api/settings/branding"],
+  });
+
+  const brandColors = getBrandColors({
+    primaryColor: brandingData?.primary_color || '',
+    secondaryColor: brandingData?.secondary_color || '',
+    accentColor: brandingData?.accent_color || '',
   });
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [selectedHypervisorGroup, setSelectedHypervisorGroup] = useState<any>(null);
@@ -623,7 +639,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent 
         className={cn(
-          "max-w-4xl max-h-[90vh] overflow-y-auto",
+          "max-w-6xl max-h-[95vh] overflow-y-auto",
           // Hide close button during building/installing
           (step === 'building' || step === 'installing') && "[&>button]:hidden"
         )}
@@ -776,371 +792,597 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* User Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    User Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Username</label>
-                      <p className="text-sm text-muted-foreground">{user.username}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">VirtFusion Credits</label>
-                      <p className="text-sm text-muted-foreground">
-                        {balanceData?.virtFusionCredits?.toFixed(2) || '0.00'} USD
-                      </p>
-                    </div>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              {/* User Information Header */}
+              <div 
+                className="p-6 rounded-xl border"
+                style={{
+                  background: `linear-gradient(to right, ${brandColors.primary.extraLight}, ${brandColors.primary.lighter})`,
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="p-3 rounded-lg"
+                    style={{ backgroundColor: brandColors.primary.light }}
+                  >
+                    <User 
+                      className="h-6 w-6" 
+                      style={{ color: brandColors.primary.full }}
+                    />
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Server Configuration */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Server className="h-5 w-5" />
-                    Server Configuration
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Package Selection */}
-                  <FormField
-                    control={form.control}
-                    name="packageId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Server Package</FormLabel>
-                        <Select
-                          value={selectedPackage?.id?.toString() || ""}
-                          onValueChange={(value) => {
-                            const pkg = packages.find((p: any) => p.id.toString() === value);
-                            if (pkg) {
-                              field.onChange(pkg.id);
-                              setSelectedPackage(pkg);
-                            }
-                          }}
-                          disabled={packagesLoading}
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold">User Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                      <div>
+                        <label className="text-sm font-medium">Username</label>
+                        <p className="text-sm text-muted-foreground">{user.username}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">VirtFusion Credits</label>
+                        <p 
+                          className="text-sm font-semibold"
+                          style={{ color: brandColors.secondary.full }}
                         >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a package..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <div className="p-2">
-                              <Input
-                                placeholder="Search packages..."
-                                value={packageSearch}
-                                onChange={(e) => setPackageSearch(e.target.value)}
-                                className="mb-2"
-                              />
-                            </div>
-                            {paginatedPackages.map((pkg: any) => (
-                              <SelectItem key={pkg.id} value={pkg.id.toString()}>
-                                <div className="flex items-center justify-between w-full">
-                                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <span className="font-medium truncate">{pkg.name}</span>
-                                    <Badge variant="outline" className="text-xs">
-                                      {pkg.cpuCores}C•{pkg.memory}MB•{pkg.primaryStorage}GB
-                                    </Badge>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {(pkg.pricing || pkg.price) && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        ${(() => {
-                                          const monthlyPrice = pkg.pricing?.price || pkg.price || 0;
-                                          const hoursPerMonth = virtfusionCronData?.hoursPerMonth || 730;
-                                          const hourlyRate = monthlyPrice / hoursPerMonth;
-                                          return hourlyRate.toFixed(4);
-                                        })()} /hr
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                            {totalPackagePages > 1 && (
-                              <div className="border-t bg-muted/30 p-2">
-                                <Pagination
-                                  currentPage={packagePage}
-                                  totalPages={totalPackagePages}
-                                  onPageChange={setPackagePage}
-                                  className="justify-center [&>*]:h-7 [&>*]:text-xs"
-                                />
-                              </div>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Select a VirtFusion package that defines the server resources
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Hypervisor Group Selection */}
-                  <FormField
-                    control={form.control}
-                    name="hypervisorId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Datacenter Location</FormLabel>
-                        <Select
-                          value={selectedHypervisorGroup?.id?.toString() || ""}
-                          onValueChange={(value) => {
-                            const group = hypervisorsData?.find((g: any) => g.id.toString() === value);
-                            setSelectedHypervisorGroup(group);
-                          }}
-                          disabled={hypervisorsLoading}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a datacenter..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {hypervisorsData?.map((group: any) => (
-                              <SelectItem key={group.id} value={group.id.toString()}>
-                                {group.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Server Name */}
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Server Name</FormLabel>
-                        <div className="flex gap-2">
-                          <FormControl>
-                            <Input placeholder="Enter server name..." {...field} />
-                          </FormControl>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => field.onChange(generateRandomServerName())}
-                          >
-                            <Dices className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <FormDescription>
-                          Choose a unique name for your server.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Operating System */}
-                  <FormField
-                    control={form.control}
-                    name="operatingSystemId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>OS Template</FormLabel>
-                        <Select
-                          value={selectedOsTemplate?.id?.toString() || ""}
-                          onValueChange={(value) => {
-                            const template = flatOsTemplates.find((t: any) => t.id.toString() === value);
-                            if (template) {
-                              field.onChange(template.id);
-                              setSelectedOsTemplate(template);
-                            }
-                          }}
-                          disabled={!selectedPackage || osTemplatesLoading || flatOsTemplates.length === 0}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select an operating system" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <div className="p-2">
-                              <Input
-                                placeholder="Search operating systems..."
-                                value={osSearch}
-                                onChange={(e) => setOsSearch(e.target.value)}
-                                className="mb-2"
-                              />
-                            </div>
-                            {paginatedOsTemplates.map((template: any) => (
-                              <SelectItem key={template.id} value={template.id.toString()}>
-                                <div className="flex items-center justify-between w-full">
-                                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                                    <span className="font-medium truncate">{template.name}</span>
-                                    <span className="text-sm text-muted-foreground">{template.version}</span>
-                                    {template.variant && (
-                                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                                        {template.variant}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-1 ml-2">
-                                    {template.eol && (
-                                      <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
-                                        EOL
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                            {totalOsPages > 1 && (
-                              <div className="border-t bg-muted/30 p-2">
-                                <Pagination
-                                  currentPage={osPage}
-                                  totalPages={totalOsPages}
-                                  onPageChange={setOsPage}
-                                  className="justify-center [&>*]:h-7 [&>*]:text-xs"
-                                />
-                              </div>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          The operating system template to install on the server
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {selectedOsTemplate && (
-                    <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                      <h4 className="font-medium text-sm mb-2">OS Details:</h4>
-                      <div className="text-xs space-y-1">
-                        <div>Name: {selectedOsTemplate.name} {selectedOsTemplate.version}</div>
-                        <div>Type: {selectedOsTemplate.type}</div>
-                        {selectedOsTemplate.description && (
-                          <div>Description: {selectedOsTemplate.description}</div>
-                        )}
-                        <div>VNC Support: {selectedOsTemplate.vnc ? 'Yes' : 'No'}</div>
+                          ${balanceData?.virtFusionCredits?.toFixed(2) || '0.00'} USD
+                        </p>
                       </div>
                     </div>
-                  )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Server Configuration Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Package Selection */}
+                  <div className="bg-card border rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div 
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: brandColors.primary.light }}
+                      >
+                        <Server 
+                          className="h-5 w-5" 
+                          style={{ color: brandColors.primary.full }}
+                        />
+                      </div>
+                      <h3 className="text-lg font-semibold">Server Package</h3>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="packageId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Select
+                            value={selectedPackage?.id?.toString() || ""}
+                            onValueChange={(value) => {
+                              const pkg = packages.find((p: any) => p.id.toString() === value);
+                              if (pkg) {
+                                field.onChange(pkg.id);
+                                setSelectedPackage(pkg);
+                              }
+                            }}
+                            disabled={packagesLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-12">
+                                <SelectValue placeholder="Select a package..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-80">
+                              <div className="p-2">
+                                <Input
+                                  placeholder="Search packages..."
+                                  value={packageSearch}
+                                  onChange={(e) => setPackageSearch(e.target.value)}
+                                  className="mb-2"
+                                />
+                              </div>
+                              {paginatedPackages.map((pkg: any) => (
+                                <SelectItem 
+                                  key={pkg.id} 
+                                  value={pkg.id.toString()} 
+                                  className="p-3 hover:bg-muted/50 data-[highlighted]:bg-muted/50 data-[state=checked]:bg-muted/50"
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                      <div 
+                                        className="p-2 rounded"
+                                        style={{ backgroundColor: brandColors.primary.extraLight }}
+                                      >
+                                        <Cpu 
+                                          className="h-4 w-4" 
+                                          style={{ color: brandColors.primary.full }}
+                                        />
+                                      </div>
+                                      <div>
+                                        <div className="font-medium truncate text-foreground">{pkg.name}</div>
+                                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                          <span>{pkg.cpuCores} CPU</span>
+                                          <span>•</span>
+                                          <span>{pkg.memory}MB RAM</span>
+                                          <span>•</span>
+                                          <span>{pkg.primaryStorage}GB SSD</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {(pkg.pricing || pkg.price) && (
+                                        <Badge variant="secondary" className="text-xs font-semibold">
+                                          ${(() => {
+                                            const monthlyPrice = pkg.pricing?.price || pkg.price || 0;
+                                            const hoursPerMonth = virtfusionCronData?.hoursPerMonth || 730;
+                                            const hourlyRate = monthlyPrice / hoursPerMonth;
+                                            return hourlyRate.toFixed(4);
+                                          })()} /hr
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                              {totalPackagePages > 1 && (
+                                <div className="border-t bg-muted/30 p-2">
+                                  <Pagination
+                                    currentPage={packagePage}
+                                    totalPages={totalPackagePages}
+                                    onPageChange={setPackagePage}
+                                    className="justify-center [&>*]:h-7 [&>*]:text-xs"
+                                  />
+                                </div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-xs mt-2">
+                            Choose the hardware specifications for your server
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Datacenter Location */}
+                  <div className="bg-card border rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div 
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: brandColors.secondary.light }}
+                      >
+                        <Network 
+                          className="h-5 w-5" 
+                          style={{ color: brandColors.secondary.full }}
+                        />
+                      </div>
+                      <h3 className="text-lg font-semibold">Datacenter Location</h3>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="hypervisorId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Select
+                            value={selectedHypervisorGroup?.id?.toString() || ""}
+                            onValueChange={(value) => {
+                              const group = hypervisorsData?.find((g: any) => g.id.toString() === value);
+                              setSelectedHypervisorGroup(group);
+                            }}
+                            disabled={hypervisorsLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-12">
+                                <SelectValue placeholder="Select a datacenter..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {hypervisorsData?.map((group: any) => (
+                                <SelectItem 
+                                  key={group.id} 
+                                  value={group.id.toString()} 
+                                  className="p-3 hover:bg-muted/50 data-[highlighted]:bg-muted/50 data-[state=checked]:bg-muted/50"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div 
+                                      className="p-2 rounded"
+                                      style={{ backgroundColor: brandColors.secondary.extraLight }}
+                                    >
+                                      <Network 
+                                        className="h-4 w-4" 
+                                        style={{ color: brandColors.secondary.full }}
+                                      />
+                                    </div>
+                                    <span className="font-medium text-foreground">{group.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-xs mt-2">
+                            Choose the geographical location for your server
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Server Name */}
+                  <div className="bg-card border rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div 
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: brandColors.accent.light }}
+                      >
+                        <Server 
+                          className="h-5 w-5" 
+                          style={{ color: brandColors.accent.full }}
+                        />
+                      </div>
+                      <h3 className="text-lg font-semibold">Server Name</h3>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter server name..." 
+                                className="h-12" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-12 w-12 shrink-0"
+                              onClick={() => field.onChange(generateRandomServerName())}
+                            >
+                              <Dices className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <FormDescription className="text-xs mt-2">
+                            Choose a unique identifier for your server
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Operating System */}
+                  <div className="bg-card border rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div 
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: brandColors.primary.light }}
+                      >
+                        <HardDrive 
+                          className="h-5 w-5" 
+                          style={{ color: brandColors.primary.full }}
+                        />
+                      </div>
+                      <h3 className="text-lg font-semibold">Operating System</h3>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="operatingSystemId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Select
+                            value={selectedOsTemplate?.id?.toString() || ""}
+                            onValueChange={(value) => {
+                              const template = flatOsTemplates.find((t: any) => t.id.toString() === value);
+                              if (template) {
+                                field.onChange(template.id);
+                                setSelectedOsTemplate(template);
+                              }
+                            }}
+                            disabled={!selectedPackage || osTemplatesLoading || flatOsTemplates.length === 0}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-12">
+                                <SelectValue placeholder="Select an operating system" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="max-h-80">
+                              <div className="p-2">
+                                <Input
+                                  placeholder="Search operating systems..."
+                                  value={osSearch}
+                                  onChange={(e) => setOsSearch(e.target.value)}
+                                  className="mb-2"
+                                />
+                              </div>
+                              {paginatedOsTemplates.map((template: any) => (
+                                <SelectItem 
+                                  key={template.id} 
+                                  value={template.id.toString()} 
+                                  className="p-3 hover:bg-muted/50 data-[highlighted]:bg-muted/50 data-[state=checked]:bg-muted/50"
+                                >
+                                  <div className="flex items-center justify-between w-full">
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                      <div 
+                                        className="p-2 rounded"
+                                        style={{ backgroundColor: brandColors.primary.extraLight }}
+                                      >
+                                        <HardDrive 
+                                          className="h-4 w-4" 
+                                          style={{ color: brandColors.primary.full }}
+                                        />
+                                      </div>
+                                      <div>
+                                        <div className="font-medium truncate text-foreground">{template.name}</div>
+                                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                          <span>{template.version}</span>
+                                          {template.variant && (
+                                            <>
+                                              <span>•</span>
+                                              <span>{template.variant}</span>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 ml-2">
+                                      {template.eol && (
+                                        <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                                          EOL
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                              {totalOsPages > 1 && (
+                                <div className="border-t bg-muted/30 p-2">
+                                  <Pagination
+                                    currentPage={osPage}
+                                    totalPages={totalOsPages}
+                                    onPageChange={setOsPage}
+                                    className="justify-center [&>*]:h-7 [&>*]:text-xs"
+                                  />
+                                </div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-xs mt-2">
+                            Choose the operating system to install
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {selectedOsTemplate && (
+                      <div 
+                        className="mt-4 p-4 rounded-lg border"
+                        style={{
+                          background: `linear-gradient(to right, ${brandColors.secondary.extraLight}, ${brandColors.secondary.lighter})`,
+                        }}
+                      >
+                        <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                          <CheckCircle 
+                            className="h-4 w-4" 
+                            style={{ color: brandColors.secondary.full }}
+                          />
+                          OS Details
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <span className="text-muted-foreground">Name:</span>
+                            <div className="font-medium">{selectedOsTemplate.name} {selectedOsTemplate.version}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Type:</span>
+                            <div className="font-medium">{selectedOsTemplate.type}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">VNC:</span>
+                            <div className="font-medium">{selectedOsTemplate.vnc ? 'Supported' : 'Not Available'}</div>
+                          </div>
+                          {selectedOsTemplate.description && (
+                            <div className="col-span-2">
+                              <span className="text-muted-foreground">Description:</span>
+                              <div className="font-medium">{selectedOsTemplate.description}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   {/* SSH Keys */}
-                  <FormField
-                    control={form.control}
-                    name="sshKeys"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>SSH Keys (Optional)</FormLabel>
-                        <Select
-                          value=""
-                          onValueChange={(value) => {
-                            const keyId = parseInt(value);
-                            const currentKeys = field.value || [];
-                            if (!currentKeys.includes(keyId)) {
-                              field.onChange([...currentKeys, keyId]);
-                            }
-                          }}
-                          disabled={sshKeysLoading}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Add SSH key..." />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {sshKeysData?.data?.map((key: any) => (
-                              <SelectItem key={key.id} value={key.id.toString()}>
-                                {key.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {field.value && field.value.length > 0 && (
-                          <div className="mt-2 space-y-2">
-                            {field.value.map((keyId: number) => {
-                              const key = sshKeysData?.data?.find((k: any) => k.id === keyId);
-                              return key ? (
-                                <div key={keyId} className="flex items-center justify-between p-2 bg-muted rounded">
-                                  <span className="text-sm">{key.name}</span>
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      field.onChange(field.value.filter((id: number) => id !== keyId));
+                  <div className="bg-card border rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div 
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: brandColors.accent.light }}
+                      >
+                        <Key 
+                          className="h-5 w-5" 
+                          style={{ color: brandColors.accent.full }}
+                        />
+                      </div>
+                      <h3 className="text-lg font-semibold">SSH Keys</h3>
+                      <Badge variant="secondary" className="text-xs">Optional</Badge>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="sshKeys"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Select
+                            value=""
+                            onValueChange={(value) => {
+                              const keyId = parseInt(value);
+                              const currentKeys = field.value || [];
+                              if (!currentKeys.includes(keyId)) {
+                                field.onChange([...currentKeys, keyId]);
+                              }
+                            }}
+                            disabled={sshKeysLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-12">
+                                <SelectValue placeholder="Add SSH key..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {sshKeysData?.data?.map((key: any) => (
+                                <SelectItem 
+                                  key={key.id} 
+                                  value={key.id.toString()} 
+                                  className="p-3 hover:bg-muted/50 data-[highlighted]:bg-muted/50 data-[state=checked]:bg-muted/50"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div 
+                                      className="p-2 rounded"
+                                      style={{ backgroundColor: brandColors.accent.extraLight }}
+                                    >
+                                      <Key 
+                                        className="h-4 w-4" 
+                                        style={{ color: brandColors.accent.full }}
+                                      />
+                                    </div>
+                                    <span className="font-medium text-foreground">{key.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {field.value && field.value.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {field.value.map((keyId: number) => {
+                                const key = sshKeysData?.data?.find((k: any) => k.id === keyId);
+                                return key ? (
+                                  <div 
+                                    key={keyId} 
+                                    className="flex items-center justify-between p-3 rounded-lg border"
+                                    style={{
+                                      background: `linear-gradient(to right, ${brandColors.secondary.extraLight}, ${brandColors.secondary.lighter})`,
+                                      borderColor: brandColors.secondary.border
                                     }}
                                   >
-                                    Remove
-                                  </Button>
-                                </div>
-                              ) : null;
-                            })}
-                          </div>
-                        )}
-                        <FormDescription>
-                          Select SSH keys to be installed on your server.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                                    <div className="flex items-center gap-3">
+                                      <div 
+                                        className="p-1.5 rounded"
+                                        style={{ backgroundColor: brandColors.secondary.light }}
+                                      >
+                                        <Key 
+                                          className="h-3 w-3" 
+                                          style={{ color: brandColors.secondary.full }}
+                                        />
+                                      </div>
+                                      <span className="text-sm font-medium">{key.name}</span>
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-8 w-8 p-0"
+                                      onClick={() => {
+                                        field.onChange(field.value.filter((id: number) => id !== keyId));
+                                      }}
+                                    >
+                                      ×
+                                    </Button>
+                                  </div>
+                                ) : null;
+                              })}
+                            </div>
+                          )}
+                          <FormDescription className="text-xs mt-2">
+                            Add SSH keys for secure server access
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   {/* Additional Options */}
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="bg-card border rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div 
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: brandColors.primary.light }}
+                      >
+                        <CheckCircle 
+                          className="h-5 w-5" 
+                          style={{ color: brandColors.primary.full }}
+                        />
+                      </div>
+                      <h3 className="text-lg font-semibold">Additional Options</h3>
+                    </div>
                     <FormField
                       control={form.control}
                       name="vnc"
                       render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormItem 
+                          className="flex flex-row items-start space-x-3 space-y-0 p-4 rounded-lg border"
+                          style={{
+                            background: `linear-gradient(to right, ${brandColors.accent.extraLight}, ${brandColors.accent.lighter})`,
+                            borderColor: brandColors.accent.border
+                          }}
+                        >
                           <FormControl>
                             <Checkbox
                               checked={field.value}
                               onCheckedChange={field.onChange}
+                              className="mt-0.5"
                             />
                           </FormControl>
                           <div className="space-y-1 leading-none">
-                            <FormLabel>Enable VNC Console</FormLabel>
-                            <FormDescription>
-                              Allow VNC access to your server console.
+                            <FormLabel className="text-sm font-medium">Enable VNC Console</FormLabel>
+                            <FormDescription className="text-xs">
+                              Allow remote desktop access to your server console
                             </FormDescription>
                           </div>
                         </FormItem>
                       )}
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-3 pt-6 border-t">
                 <Button
                   type="button"
                   variant="outline"
+                  size="lg"
                   onClick={() => onOpenChange(false)}
+                  className="px-8"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
+                  size="lg"
                   disabled={createServerMutation.isPending || !selectedPackage || !selectedHypervisorGroup || !selectedOsTemplate}
+                  className="px-8"
+                  style={{
+                    background: `linear-gradient(to right, ${brandColors.primary.full}, ${brandColors.primary.dark})`,
+                    color: 'white'
+                  }}
                 >
                   {createServerMutation.isPending ? (
                     <>
                       <Spinner className="mr-2 h-4 w-4" />
-                      Creating...
+                      Creating Server...
                     </>
                   ) : (
-                    "Create Server"
+                    <>
+                      <Server className="mr-2 h-4 w-4" />
+                      Create Server
+                    </>
                   )}
                 </Button>
               </div>
