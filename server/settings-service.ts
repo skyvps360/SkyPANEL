@@ -84,16 +84,26 @@ export class SettingsService {
       console.log(`🔄 VirtFusion billing mode changed to: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
       
       // Import cronService here to avoid circular dependencies
-      const { cronService } = await import('./services/cron-service');
+      // Using dynamic import in a try-catch to handle potential module loading issues
+      const cronServiceModule = await import('./services/cron-service').catch((error) => {
+        console.error('Failed to import cron service:', error);
+        throw new Error('Cron service unavailable');
+      });
+      
+      if (!cronServiceModule.cronService) {
+        throw new Error('Cron service not initialized');
+      }
       
       // Update VirtFusion cron jobs based on billing mode
       // When hourly billing is enabled: enable hourly job, disable monthly job
       // When hourly billing is disabled: disable hourly job, enable monthly job
-      await cronService.updateVirtFusionCronJobsForBillingMode(isHourlyBilling);
+      await cronServiceModule.cronService.updateVirtFusionCronJobsForBillingMode(isHourlyBilling);
       
       console.log(`✅ VirtFusion cron jobs updated for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode`);
     } catch (error) {
       console.error('Error handling VirtFusion billing mode change:', error);
+      // Don't throw the error to prevent settings update from failing
+      // Log the issue but allow the settings change to complete
     }
   }
   

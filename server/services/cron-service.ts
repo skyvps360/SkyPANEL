@@ -46,29 +46,35 @@ export class CronService {
    * Initialize VirtFusion billing mode on startup
    * This ensures the correct cron jobs are running based on the current billing mode setting
    */
-  private async initializeVirtFusionBillingMode(): Promise<void> {
+  private initializeVirtFusionBillingMode(): void {
+    // Wait a bit for the database connections to be ready
+    setTimeout(() => {
+      this.performVirtFusionBillingModeInitialization().catch((error) => {
+        console.error('❌ Error initializing VirtFusion billing mode:', error);
+      });
+    }, 5000); // Wait 5 seconds for startup
+  }
+
+  /**
+   * Perform the actual VirtFusion billing mode initialization
+   */
+  private async performVirtFusionBillingModeInitialization(): Promise<void> {
     try {
-      // Wait a bit for the database connections to be ready
-      setTimeout(async () => {
-        try {
-          console.log('🔧 Initializing VirtFusion billing mode on startup...');
-          
-          // Check current billing mode from the Self Service Hourly Credit setting
-          const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
-          const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
-          
-          console.log(`💰 Current billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
-          
-          // Update cron jobs to match current billing mode
-          await this.updateVirtFusionCronJobsForBillingMode(isHourlyBilling);
-          
-          console.log('✅ VirtFusion billing mode initialized successfully');
-        } catch (error) {
-          console.error('❌ Error initializing VirtFusion billing mode:', error);
-        }
-      }, 5000); // Wait 5 seconds for startup
+      console.log('🔧 Initializing VirtFusion billing mode on startup...');
+      
+      // Check current billing mode from the Self Service Hourly Credit setting
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      
+      console.log(`💰 Current billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
+      
+      // Update cron jobs to match current billing mode
+      await this.updateVirtFusionCronJobsForBillingMode(isHourlyBilling);
+      
+      console.log('✅ VirtFusion billing mode initialized successfully');
     } catch (error) {
-      console.error('Error setting up VirtFusion billing mode initialization:', error);
+      console.error('❌ Error initializing VirtFusion billing mode:', error);
+      throw error;
     }
   }
 
@@ -494,18 +500,13 @@ export class CronService {
     try {
       console.log(`🔄 Updating VirtFusion cron jobs for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode...`);
       
-      // Stop existing VirtFusion jobs
-      if (this.virtfusionHourlyJob) {
-        this.virtfusionHourlyJob.stop();
-        this.virtfusionHourlyJob.destroy();
-        this.virtfusionHourlyJob = null;
+      // Validate input parameter
+      if (typeof isHourlyBilling !== 'boolean') {
+        throw new Error('Invalid billing mode parameter: must be boolean');
       }
       
-      if (this.virtfusionMonthlyJob) {
-        this.virtfusionMonthlyJob.stop();
-        this.virtfusionMonthlyJob.destroy();
-        this.virtfusionMonthlyJob = null;
-      }
+      // Stop existing VirtFusion jobs safely
+      this.stopVirtFusionJobs();
 
       // Get current VirtFusion cron settings
       const settings = await storage.db.select()
@@ -530,6 +531,10 @@ export class CronService {
           .orderBy(sql`${virtfusionCronSettings.id} DESC`)
           .limit(1);
         setting = newSettings[0];
+        
+        if (!setting) {
+          throw new Error('Failed to create VirtFusion cron settings');
+        }
       } else {
         // Update existing settings based on billing mode
         await storage.db.update(virtfusionCronSettings)
@@ -549,34 +554,92 @@ export class CronService {
 
       // Start the appropriate cron job based on billing mode
       if (isHourlyBilling && setting.hourlyBillingEnabled) {
-        this.virtfusionHourlyJob = cron.schedule(
-          '0 * * * *', // Every hour at minute 0
-          async () => {
-            await this.runVirtFusionHourlyBilling();
-          },
-          {
-            timezone: 'UTC'
-          }
-        );
-        this.virtfusionHourlyJob.start();
-        console.log('✅ VirtFusion hourly billing cron job started (every hour)');
+        this.startVirtFusionHourlyJob();
       } else if (!isHourlyBilling && setting.billingOnFirstEnabled) {
-        this.virtfusionMonthlyJob = cron.schedule(
-          '0 3 1 * *', // 1st day of month at 3 AM UTC
-          async () => {
-            await this.runVirtFusionMonthlyBilling();
-          },
-          {
-            timezone: 'UTC'
-          }
-        );
-        this.virtfusionMonthlyJob.start();
-        console.log('✅ VirtFusion monthly billing cron job started (1st of month at 3 AM UTC)');
+        this.startVirtFusionMonthlyJob();
+      } else {
+        console.log('ℹ️ No VirtFusion cron job started based on current configuration');
       }
 
       console.log(`✅ VirtFusion cron jobs updated for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode`);
     } catch (error) {
       console.error('Error updating VirtFusion cron jobs for billing mode:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Safely stop VirtFusion jobs
+   */
+  private stopVirtFusionJobs(): void {
+    try {
+      if (this.virtfusionHourlyJob) {
+        this.virtfusionHourlyJob.stop();
+        this.virtfusionHourlyJob.destroy();
+        this.virtfusionHourlyJob = null;
+        console.log('🛑 Stopped VirtFusion hourly job');
+      }
+      
+      if (this.virtfusionMonthlyJob) {
+        this.virtfusionMonthlyJob.stop();
+        this.virtfusionMonthlyJob.destroy();
+        this.virtfusionMonthlyJob = null;
+        console.log('🛑 Stopped VirtFusion monthly job');
+      }
+    } catch (error) {
+      console.error('Error stopping VirtFusion jobs:', error);
+      // Don't throw here as this is a cleanup operation
+    }
+  }
+
+  /**
+   * Start VirtFusion hourly job
+   */
+  private startVirtFusionHourlyJob(): void {
+    try {
+      this.virtfusionHourlyJob = cron.schedule(
+        '0 * * * *', // Every hour at minute 0
+        async () => {
+          try {
+            await this.runVirtFusionHourlyBilling();
+          } catch (error) {
+            console.error('Error in VirtFusion hourly billing job:', error);
+          }
+        },
+        {
+          timezone: 'UTC'
+        }
+      );
+      this.virtfusionHourlyJob.start();
+      console.log('✅ VirtFusion hourly billing cron job started (every hour)');
+    } catch (error) {
+      console.error('Error starting VirtFusion hourly job:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start VirtFusion monthly job
+   */
+  private startVirtFusionMonthlyJob(): void {
+    try {
+      this.virtfusionMonthlyJob = cron.schedule(
+        '0 3 1 * *', // 1st day of month at 3 AM UTC
+        async () => {
+          try {
+            await this.runVirtFusionMonthlyBilling();
+          } catch (error) {
+            console.error('Error in VirtFusion monthly billing job:', error);
+          }
+        },
+        {
+          timezone: 'UTC'
+        }
+      );
+      this.virtfusionMonthlyJob.start();
+      console.log('✅ VirtFusion monthly billing cron job started (1st of month at 3 AM UTC)');
+    } catch (error) {
+      console.error('Error starting VirtFusion monthly job:', error);
       throw error;
     }
   }

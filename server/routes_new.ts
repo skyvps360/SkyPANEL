@@ -9158,19 +9158,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`💰 Current billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
       
+      // Validate that cronService is available
+      if (!cronService || typeof cronService.updateVirtFusionCronJobsForBillingMode !== 'function') {
+        throw new Error('Cron service is not available or method is missing');
+      }
+      
       // Update cron jobs to match current billing mode
       await cronService.updateVirtFusionCronJobsForBillingMode(isHourlyBilling);
       
-      res.json({
+      const response = {
         success: true,
         message: `VirtFusion billing mode updated successfully to ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'} billing`,
         billingMode: isHourlyBilling ? 'hourly' : 'monthly',
         hourlyBillingEnabled: isHourlyBilling,
-        monthlyBillingEnabled: !isHourlyBilling
-      });
+        monthlyBillingEnabled: !isHourlyBilling,
+        timestamp: new Date().toISOString()
+      };
+      
+      res.json(response);
     } catch (error: any) {
       console.error("Error updating VirtFusion billing mode:", error);
-      res.status(500).json({ error: error.message });
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      res.status(500).json({ 
+        success: false,
+        error: errorMessage,
+        timestamp: new Date().toISOString()
+      });
     }
   });
 
