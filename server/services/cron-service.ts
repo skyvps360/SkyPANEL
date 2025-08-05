@@ -540,6 +540,19 @@ export class CronService {
     console.log('🕐 Starting VirtFusion hourly billing process...');
     
     try {
+      // First, check if hourly billing is actually enabled
+      const settings = await storage.db.select()
+        .from(virtfusionCronSettings)
+        .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+        .limit(1);
+
+      const setting = settings[0];
+
+      if (!setting || !setting.enabled || !setting.hourlyBillingEnabled) {
+        console.log('VirtFusion hourly billing is disabled in settings. Aborting.');
+        return;
+      }
+
       const startTime = Date.now();
       
       // Get all active billing records using proper Drizzle joins

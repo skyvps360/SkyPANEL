@@ -22,6 +22,150 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+// OS Icon Components
+const UbuntuIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+const DebianIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+const CentOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+const RockyLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+const AlmaLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+const FedoraIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+const WindowsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M0 3.5L9.5 2.1V12H0V3.5zM10.5 2.1L24 0V12H10.5V2.1zM0 13h9.5V21.9L0 20.5V13zM10.5 21.9V13H24v8.5L10.5 21.9z"/>
+  </svg>
+);
+
+const ArchLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+const FreeBSDIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+const AlpineIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+const UnknownOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  </svg>
+);
+
+// Helper function to get OS icon based on OS name
+function getOSIconAndColor(osName: string) {
+  const name = osName?.toLowerCase() || '';
+
+  if (name.includes('ubuntu')) {
+    return { icon: UbuntuIcon };
+  } else if (name.includes('debian')) {
+    return { icon: DebianIcon };
+  } else if (name.includes('centos')) {
+    return { icon: CentOSIcon };
+  } else if (name.includes('rocky')) {
+    return { icon: RockyLinuxIcon };
+  } else if (name.includes('alma')) {
+    return { icon: AlmaLinuxIcon };
+  } else if (name.includes('fedora')) {
+    return { icon: FedoraIcon };
+  } else if (name.includes('arch')) {
+    return { icon: ArchLinuxIcon };
+  } else if (name.includes('freebsd')) {
+    return { icon: FreeBSDIcon };
+  } else if (name.includes('alpine')) {
+    return { icon: AlpineIcon };
+  } else if (name.includes('windows')) {
+    return { icon: WindowsIcon };
+  } else {
+    return { icon: UnknownOSIcon };
+  }
+}
+
+// Helper function to extract OS template ID from server data
+function extractOSTemplateId(serverData: any): number | null {
+  // Try multiple possible locations for OS template ID
+  const possiblePaths = [
+    serverData?.settings?.osTemplateInstallId,
+    serverData?.osTemplateInstallId,
+    serverData?.osTemplateId,
+    serverData?.templateId,
+    serverData?.os?.templateId,
+    serverData?.os?.id,
+    serverData?.template?.id
+  ];
+
+  for (const path of possiblePaths) {
+    if (path && typeof path === 'number') {
+      return path;
+    }
+  }
+
+  return null;
+}
+
+// Helper function to get OS info for a server
+function getServerOSInfo(serverData: any) {
+  // Fallback to OS name from server data if available
+  const osName = serverData?.os?.name || serverData?.operatingSystem;
+  if (osName && typeof osName === 'string') {
+    const { icon } = getOSIconAndColor(osName);
+    return {
+      name: osName,
+      icon
+    };
+  }
+
+  // If no OS name found, return unknown
+  return { name: "Unknown OS", icon: UnknownOSIcon };
+}
+
 function getStatusBadgeVariant(status: string) {
   const normalizedStatus = status.toLowerCase();
 
@@ -91,6 +235,34 @@ export default function ServersPage() {
     queryKey: ['/api/settings/branding'],
   });
 
+  // Fetch VirtFusion cron status to determine if server creation should be available
+  const { data: virtfusionCronData } = useQuery<{
+    success: boolean;
+    cronStatus: {
+      virtfusionHourly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+      virtfusionMonthly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+    };
+  }>({
+    queryKey: ['/api/admin/cron/status', 'virtfusion'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/cron/status');
+      if (!response.ok) {
+        throw new Error('Failed to fetch VirtFusion cron status');
+      }
+      return response.json();
+    },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: 60000, // Refetch every minute
+  });
+
   const brandColors = getBrandColors({
     primaryColor: brandingData?.primary_color,
     secondaryColor: brandingData?.secondary_color,
@@ -101,6 +273,10 @@ export default function ServersPage() {
   const patterns = getPatternBackgrounds({
     primaryColor: brandingData?.primary_color
   });
+
+  // Check if VirtFusion cron sync is enabled (either hourly or monthly billing)
+  const isVirtFusionEnabled = virtfusionCronData?.cronStatus?.virtfusionHourly?.enabled || 
+                             virtfusionCronData?.cronStatus?.virtfusionMonthly?.enabled;
 
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
     queryKey: ['/api/user/servers'],
@@ -310,13 +486,15 @@ export default function ServersPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hidden"
-              >
-                <Server className="h-4 w-4" />
-                Create Server in {brandingData?.company_name || 'SkyPANEL'}
-              </Button>
+              {isVirtFusionEnabled && (
+                <Button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+                >
+                  <Server className="h-4 w-4" />
+                  Create Server in {brandingData?.company_name || 'SkyPANEL'}
+                </Button>
+              )}
               <VirtFusionSsoButton text="Create Server" />
               <Button
                 onClick={handleRefresh}
@@ -465,18 +643,24 @@ export default function ServersPage() {
                     >
                         <TableCell className="px-8 py-6">
                         <div className="flex items-center gap-6 flex-1 min-w-0">
-                          <div
-                            className="flex items-center justify-center h-12 w-12 rounded-full text-white shadow-sm transition-all duration-200 flex-shrink-0"
-                            style={{
-                              backgroundColor: isRunning 
-                                ? brandColors.primary.full 
-                                : isSuspended 
-                                ? '#ef4444' 
-                                : '#6b7280'
-                            }}
-                          >
-                            <Server className="h-6 w-6" />
-                          </div>
+                          {(() => {
+                            const osInfo = getServerOSInfo(server);
+                            const OSIcon = osInfo.icon;
+                            return (
+                              <div
+                                className="flex items-center justify-center h-12 w-12 rounded-full text-white shadow-sm transition-all duration-200 flex-shrink-0"
+                                style={{
+                                  backgroundColor: isRunning 
+                                    ? brandColors.primary.full 
+                                    : isSuspended 
+                                    ? '#ef4444' 
+                                    : '#6b7280'
+                                }}
+                              >
+                                <OSIcon className="h-6 w-6" />
+                              </div>
+                            );
+                          })()}
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-1">
@@ -679,16 +863,18 @@ export default function ServersPage() {
           </Card>
         )}
 
-        {/* Client Server Create Modal */}
-        <ClientServerCreateModal
-          open={showCreateModal}
-          onOpenChange={setShowCreateModal}
-          onSuccess={() => {
-            // Refresh the server list after successful creation
-            refetch();
-          }}
-          companyName={brandingData?.company_name}
-        />
+        {/* Client Server Create Modal - only render if VirtFusion is enabled */}
+        {isVirtFusionEnabled && (
+          <ClientServerCreateModal
+            open={showCreateModal}
+            onOpenChange={setShowCreateModal}
+            onSuccess={() => {
+              // Refresh the server list after successful creation
+              refetch();
+            }}
+            companyName={brandingData?.company_name}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

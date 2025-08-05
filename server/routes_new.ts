@@ -6908,16 +6908,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("VirtFusion create server response:", JSON.stringify(result, null, 2));
 
+      // Get the server ID from the result
+      const serverId = result.data.id;
+
+      // Now that we have the server ID, update the transaction description
+      try {
+        const hourlyTokens = Math.ceil(hourlyRate * 100);
+        const dollarAmount = hourlyTokens / 100;
+        
+        // Find the transaction we created earlier
+        const initialTransaction = await storage.db.select()
+          .from(transactions)
+          .where(and(
+            eq(transactions.userId, user.id),
+            eq(transactions.description, `Server creation hourly charge (1 hour) for package ${packageName}`),
+            eq(transactions.status, 'completed')
+          ))
+          .orderBy(desc(transactions.createdAt))
+          .limit(1);
+
+        if (initialTransaction.length > 0) {
+          const transactionToUpdate = initialTransaction[0];
+          const newDescription = `Server #${serverId} - Hourly Charge (1 hour) for package ${packageName}`;
+          
+          await storage.updateTransaction(transactionToUpdate.id, {
+            description: newDescription
+          });
+          
+          console.log(`Updated transaction ${transactionToUpdate.id} with server ID ${serverId}`);
+        } else {
+          console.warn(`Could not find the initial transaction to update for user ${user.id} and package ${packageName}`);
+        }
+      } catch (updateError) {
+        console.error('Error updating transaction with server ID:', updateError);
+        // Don't fail the request if this fails, just log it
+      }
+
       // Start uptime tracking for the new server
       try {
         const { serverUptimeService } = await import('./services/infrastructure/server-uptime-service');
         await serverUptimeService.startUptimeTracking(
-          result.data.id, // SkyPANEL server ID
-          result.data.id, // VirtFusion server ID (same in this case)
+          serverId, // Use the server ID from the result
+          serverId, // VirtFusion server ID is the same
           user.id,
           validatedData.packageId
         );
-        console.log(`Started uptime tracking for server ${result.data.id}`);
+        console.log(`Started uptime tracking for server ${serverId}`);
       } catch (uptimeError) {
         console.error('Error starting uptime tracking:', uptimeError);
         // Don't fail the server creation if uptime tracking fails
@@ -6929,8 +6965,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create hourly billing record using values calculated earlier
           await storage.db.insert(virtfusionHourlyBilling).values({
             userId: user.id,
-            serverId: result.data.id,
-            virtfusionServerId: result.data.id,
+            serverId: serverId,
+            virtfusionServerId: serverId,
             serverUuid: result.data.uuid || null, // Store VirtFusion server UUID for accurate identification
             packageId: validatedData.packageId,
             packageName: packageName,
@@ -6940,7 +6976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             billingEnabled: true
           });
 
-          console.log(`Added server ${result.data.id} to VirtFusion hourly billing system (${hourlyRate.toFixed(6)}/hour)`);
+          console.log(`Added server ${serverId} to VirtFusion hourly billing system (${hourlyRate.toFixed(6)}/hour)`);
         } else {
           console.warn(`Package ${validatedData.packageId} not found or has no cost for hourly billing setup`);
         }

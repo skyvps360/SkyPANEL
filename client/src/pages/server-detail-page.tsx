@@ -1902,13 +1902,13 @@ export default function ServerDetailPage() {
               {/* Action Buttons */}
               {!isLoading && !error && server && (
                 <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
-                  <Button
+                  {/* <Button
                     onClick={openVNCConsole}
                     className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                   >
                     <Monitor className="h-4 w-4" />
                     VNC Console
-                  </Button>
+                  </Button> */}
                   <Button
                     onClick={() => {
                       const now = Date.now();
@@ -2180,7 +2180,7 @@ export default function ServerDetailPage() {
               { id: "traffic", label: "Traffic", icon: Activity },
               { id: "storage", label: "Storage", icon: HardDrive },
               { id: "notes", label: "Notes", icon: FileText },
-              { id: "vnc", label: "VNC", icon: Monitor },
+              // { id: "vnc", label: "VNC", icon: Monitor },
             ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -3520,9 +3520,9 @@ export default function ServerDetailPage() {
             </TabsContent>
 
             {/* VNC Tab */}
-            <TabsContent value="vnc" className="space-y-4">
+            {/* <TabsContent value="vnc" className="space-y-4">
               <VNCTab serverId={serverId} />
-            </TabsContent>
+            </TabsContent> */}
 
 
 
