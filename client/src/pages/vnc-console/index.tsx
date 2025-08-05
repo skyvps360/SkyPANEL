@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Monitor, Wifi, WifiOff, RotateCcw } from 'lucide-react';
+import { Monitor, Wifi, WifiOff, RotateCcw, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { getBrandColors } from '@/lib/brand-theme';
@@ -23,11 +23,33 @@ const VNCConsole: React.FC = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  // Get connection parameters from URL
-  const host = searchParams.get('host');
-  const port = searchParams.get('port');
-  const password = searchParams.get('password');
+  // Get serverId from URL parameters
   const serverId = searchParams.get('serverId');
+
+  // Fetch VNC status for the server
+  const { data: vncData, isLoading: vncLoading, error: vncError, refetch: refetchVNC } = useQuery({
+    queryKey: ['/api/user/servers', serverId, 'vnc'],
+    queryFn: async () => {
+      if (!serverId) {
+        throw new Error('Server ID is required');
+      }
+      const response = await fetch(`/api/user/servers/${serverId}/vnc`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch VNC status');
+      }
+      return response.json();
+    },
+    enabled: !!serverId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchInterval: false, // Disable automatic refetching
+  });
+
+  // Extract VNC credentials from the response
+  const vncStatus = vncData?.data?.data?.vnc;
+  const isVNCEnabled = vncStatus?.enabled === true;
+  const host = vncStatus?.ip;
+  const port = vncStatus?.port;
+  const password = vncStatus?.password;
 
   // Fetch brand colors from database with caching
   const { data: brandingData } = useQuery<{
@@ -46,14 +68,16 @@ const VNCConsole: React.FC = () => {
     accentColor: brandingData?.accent_color || '',
   });
 
-
-  // Load NoVNC and initialize when parameters are available
+  // Load NoVNC and initialize when VNC credentials are available
   useEffect(() => {
-    if (host && port && password) {
+    if (host && port && password && isVNCEnabled) {
       loadNoVNCAndInitialize();
-    } else {
-      console.error('Missing VNC connection parameters:', { host, port, password: !!password });
-      setConnectionError('Missing VNC connection parameters');
+    } else if (!vncLoading && !vncError) {
+      if (!isVNCEnabled) {
+        setConnectionError('VNC is not enabled for this server');
+      } else if (!host || !port || !password) {
+        setConnectionError('VNC credentials are incomplete');
+      }
     }
 
     return () => {
@@ -66,7 +90,7 @@ const VNCConsole: React.FC = () => {
         }
       }
     };
-  }, [host, port, password]);
+  }, [host, port, password, isVNCEnabled, vncLoading, vncError]);
 
   const loadNoVNCAndInitialize = async () => {
     try {
@@ -307,28 +331,129 @@ const VNCConsole: React.FC = () => {
       console.log('Error clearing window objects:', error);
     }
 
-    // Restart the connection process after a short delay
-    setTimeout(() => {
-      loadNoVNCAndInitialize();
-    }, 500);
+    // Refetch VNC status and restart the connection process
+    refetchVNC().then(() => {
+      setTimeout(() => {
+        loadNoVNCAndInitialize();
+      }, 500);
+    });
   };
 
+  // Show loading state while fetching VNC status
+  if (vncLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 mr-3" style={{ borderBottomColor: brandColors.primary.full }}></div>
+              Loading VNC Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Fetching VNC connection details for server {serverId}...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
+  // Show error if serverId is missing
+  if (!serverId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center text-red-600">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              Missing Server ID
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Server ID is required to connect to VNC console. Please close this window and try again.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  if (!host || !port || !password) {
+  // Show error if VNC status fetch failed
+  if (vncError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center text-red-600">
+              <AlertCircle className="h-5 w-5 mr-2" />
+              Failed to Load VNC Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground mb-4">
+              {vncError instanceof Error ? vncError.message : 'An unknown error occurred while fetching VNC status'}
+            </p>
+            <Button
+              onClick={() => refetchVNC()}
+              className="w-full"
+              style={{
+                backgroundColor: brandColors.primary.full,
+                color: 'white'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = brandColors.primary.dark;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = brandColors.primary.full;
+              }}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show error if VNC is not enabled or credentials are missing
+  if (!isVNCEnabled || !host || !port || !password) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center text-red-600">
               <WifiOff className="h-5 w-5 mr-2" />
-              Connection Error
+              VNC Not Available
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
-              Missing VNC connection parameters. Please close this window and try again.
+            <p className="text-muted-foreground mb-4">
+              {!isVNCEnabled 
+                ? 'VNC is not enabled for this server. Please enable VNC in the server details page.'
+                : 'VNC credentials are incomplete. Please try refreshing the page or contact support.'
+              }
             </p>
+            <Button
+              onClick={() => refetchVNC()}
+              className="w-full"
+              style={{
+                backgroundColor: brandColors.primary.full,
+                color: 'white'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = brandColors.primary.dark;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = brandColors.primary.full;
+              }}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Refresh VNC Status
+            </Button>
           </CardContent>
         </Card>
       </div>

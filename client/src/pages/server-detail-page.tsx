@@ -409,8 +409,8 @@ const VNCTab = ({ serverId }: { serverId: number }) => {
       return;
     }
 
-    // Create VNC console popup
-    const vncUrl = `/vnc-console?host=${encodeURIComponent(vncStatus.ip)}&port=${vncStatus.port}&password=${encodeURIComponent(vncStatus.password)}&serverId=${serverId}`;
+    // Create VNC console popup - only pass serverId for security
+    const vncUrl = `/vnc-console?serverId=${serverId}`;
 
     // Open VNC console in a new popup window
     const popup = window.open(
@@ -1046,8 +1046,8 @@ export default function ServerDetailPage() {
       return;
     }
 
-    // Create VNC console popup
-    const vncUrl = `/vnc-console?host=${encodeURIComponent(vncStatus.ip)}&port=${vncStatus.port}&password=${encodeURIComponent(vncStatus.password)}&serverId=${serverId}`;
+    // Create VNC console popup - only pass serverId for security
+    const vncUrl = `/vnc-console?serverId=${serverId}`;
 
     // Open VNC console in a new popup window
     const popup = window.open(

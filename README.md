@@ -7,8 +7,10 @@
 
   [![Discord](https://img.shields.io/discord/1310474963865833483?style=social&logo=discord)](https://skyvps360.xyz/discord)
   
+  
   </div>
-
+  
+  
   ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
   ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
   ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
@@ -19,6 +21,10 @@
   ![Google AI](https://img.shields.io/badge/Google_AI-4285F4?style=for-the-badge&logo=google&logoColor=white)
   ![VirtFusion](https://img.shields.io/badge/VirtFusion-FF6B35?style=for-the-badge&logo=server&logoColor=white)
 </div>
+
+<p align="center">
+  <img src="https://img.shields.io/coderabbit/prs/github/skyvps360/SkyPANEL?utm_source=oss&utm_medium=github&utm_campaign=skyvps360%2FSkyPANEL&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews" alt="CodeRabbit Pull Request Reviews" />
+</p>
 
 ## 💝 Support My Work
 If you find my work helpful, consider supporting me:

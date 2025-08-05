@@ -485,7 +485,7 @@ export default function PackagesPage() {
                         </TableCell>
                         <TableCell>
                           {pkg.enabled ? (
-                            <VirtFusionSsoButton packageId={pkg.id} />
+                            <VirtFusionSsoButton text="Create Server" packageId={pkg.id} />
                           ) : (
                             <Button variant="ghost" size="sm" disabled>
                               Unavailable
