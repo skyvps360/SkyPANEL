@@ -82,7 +82,7 @@ export class VirtFusionApi {
   }
 
   // Generic request method
-  async request(method: string, endpoint: string, data?: unknown) {
+  async request(method: string, endpoint: string, data?: unknown, suppressErrorLogging = false) {
     try {
       // Validate required settings
       if (!this.apiUrl || !this.apiToken) {
@@ -203,31 +203,37 @@ export class VirtFusionApi {
       } catch (axiosError: any) {
         // Handle Axios specific errors
         if (axiosError.isAxiosError) {
-          console.error(`Axios Error: ${axiosError.message}`);
+          // Only log detailed errors if not suppressed
+          if (!suppressErrorLogging) {
+            console.error(`Axios Error: ${axiosError.message}`);
+
+            if (axiosError.response) {
+              // The request was made and the server responded with a status code outside of 2xx
+              console.error(`Response status: ${axiosError.response.status}`);
+
+              if (axiosError.response.headers) {
+                console.error(
+                  `Response headers:`,
+                  JSON.stringify(axiosError.response.headers, null, 2),
+                );
+              }
+
+              // Log response data safely
+              try {
+                console.error(
+                  `Response data:`,
+                  typeof axiosError.response.data === "object"
+                    ? JSON.stringify(axiosError.response.data, null, 2)
+                    : axiosError.response.data,
+                );
+              } catch (e: any) {
+                console.error(`Could not stringify response data: ${e.message}`);
+                console.error(`Raw response data:`, axiosError.response.data);
+              }
+            }
+          }
 
           if (axiosError.response) {
-            // The request was made and the server responded with a status code outside of 2xx
-            console.error(`Response status: ${axiosError.response.status}`);
-
-            if (axiosError.response.headers) {
-              console.error(
-                `Response headers:`,
-                JSON.stringify(axiosError.response.headers, null, 2),
-              );
-            }
-
-            // Log response data safely
-            try {
-              console.error(
-                `Response data:`,
-                typeof axiosError.response.data === "object"
-                  ? JSON.stringify(axiosError.response.data, null, 2)
-                  : axiosError.response.data,
-              );
-            } catch (e: any) {
-              console.error(`Could not stringify response data: ${e.message}`);
-              console.error(`Raw response data:`, axiosError.response.data);
-            }
 
             // Include error details from the API if available
             if (
@@ -1142,6 +1148,101 @@ export class VirtFusionApi {
     } catch (error) {
       console.error(`Error deleting SSH key ${keyId}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Get all servers from VirtFusion
+   * @param options Query options (type, results, hypervisorId)
+   * @returns Array of servers from VirtFusion
+   */
+  async getServers(options: { type?: 'simple' | 'full', results?: number, hypervisorId?: number } = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (options.type) params.append('type', options.type);
+      if (options.results) params.append('results', options.results.toString());
+      if (options.hypervisorId) params.append('hypervisorId', options.hypervisorId.toString());
+      
+      const queryString = params.toString();
+      const endpoint = queryString ? `/servers?${queryString}` : '/servers';
+      
+      return this.request("GET", endpoint);
+    } catch (error) {
+      console.error('Error fetching servers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get servers owned by a specific user (by checking owner field from all servers)
+   * @param userId The VirtFusion user ID
+   * @returns Array of servers owned by the user
+   */
+  async getServersByOwner(userId: number) {
+    try {
+      // VirtFusion API doesn't have owner filtering, so we get all servers and filter
+      const response = await this.getServers({ type: 'simple', results: 200 });
+      
+      if (response && response.data && Array.isArray(response.data)) {
+        return {
+          ...response,
+          data: response.data.filter((server: any) => server.owner === userId)
+        };
+      }
+      
+      return { data: [] };
+    } catch (error) {
+      console.error(`Error fetching servers for user ${userId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a server exists and is owned by a specific user
+   * @param serverId The VirtFusion server ID
+   * @param expectedOwnerId The expected owner user ID
+   * @returns True if server exists and is owned by the user, false otherwise
+   */
+  async verifyServerOwnership(serverId: number, expectedOwnerId: number): Promise<boolean> {
+    try {
+      // Suppress error logging for 404s since they're expected when servers are deleted
+      const response = await this.request("GET", `/servers/${serverId}`, undefined, true);
+      
+      if (response && response.data) {
+        return response.data.ownerId === expectedOwnerId;
+      }
+      
+      return false;
+    } catch (error) {
+      // If server doesn't exist, API will return 404 - this is expected, don't log it
+      if ((error as any).response?.status === 404) {
+        return false;
+      }
+      // Only log unexpected errors (not 404s)
+      console.error(`Unexpected error verifying server ${serverId} ownership:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a server exists by UUID
+   * @param serverUuid The VirtFusion server UUID
+   * @returns Server data if exists, null if not found
+   */
+  async getServerByUuid(serverUuid: string): Promise<any | null> {
+    try {
+      // Get all servers and find by UUID since VirtFusion doesn't have UUID endpoint
+      const response = await this.getServers({ type: 'simple', results: 200 });
+      
+      if (response && response.data && Array.isArray(response.data)) {
+        const server = response.data.find((s: any) => s.uuid === serverUuid);
+        return server || null;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Error finding server by UUID ${serverUuid}:`, error);
+      return null;
     }
   }
 }

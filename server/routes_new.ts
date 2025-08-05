@@ -6790,6 +6790,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Step 1: Get package details and deduct tokens if needed
       let packageCost = 0;
       let packageName = 'Unknown Package';
+      let monthlyPriceDollars = 0;
+      let hourlyRate = 0;
+      let hoursPerMonth = 730;
       
       try {
         // Get package pricing from database (not from VirtFusion API)
@@ -6803,19 +6806,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           packageCost = packageDetails?.data?.pricing?.price || 0;
           packageName = packageDetails?.data?.name || 'Unknown Package';
         }
-        
-        // Deduct tokens from user's VirtFusion account if package has a cost
+
+        // Calculate hourly rate for use in both charging and billing setup
         if (packageCost > 0) {
-          console.log(`Deducting ${packageCost} tokens from user ${user.id} for package ${packageName}`);
+          // Get hours per month from cron settings (default 730)
+          const cronSettings = await storage.db.select()
+            .from(virtfusionCronSettings)
+            .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+            .limit(1);
+          
+          hoursPerMonth = cronSettings.length > 0 ? cronSettings[0].hoursPerMonth : 730;
+          monthlyPriceDollars = packageCost / 100; // Convert tokens to dollars
+          hourlyRate = monthlyPriceDollars / hoursPerMonth;
+        }
+        
+        // Charge only 1 hour upfront instead of full monthly cost
+        if (packageCost > 0) {
+          const hourlyTokens = Math.ceil(hourlyRate * 100); // Convert back to tokens (cents), round up
+          
+          console.log(`Monthly cost: $${monthlyPriceDollars}, Hourly rate: $${hourlyRate.toFixed(6)}, Charging ${hourlyTokens} tokens (1 hour) upfront for user ${user.id} for package ${packageName}`);
           
           // Use the same approach as admin user page - create transaction first, then call VirtFusion API
-          const dollarAmount = packageCost / 100; // Convert tokens to dollars
+          const dollarAmount = hourlyTokens / 100; // Convert hourly tokens to dollars
           
           // Create a transaction record first to get the transaction ID
           const createdTransaction = await storage.createTransaction({
             userId: user.id,
             amount: -Math.abs(dollarAmount), // Negative amount for debit
-            description: `Server creation charge for package ${packageName}`,
+            description: `Server creation hourly charge (1 hour) for package ${packageName}`,
             type: "server_creation",
             status: "pending",
             paymentMethod: "virtfusion_tokens"
@@ -6832,9 +6850,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Format the data for VirtFusion API (same as admin user page)
           const tokenData = {
-            tokens: packageCost,
+            tokens: hourlyTokens, // Use hourly tokens instead of full monthly cost
             reference_1: createdTransaction.id, // Use transaction ID as reference
-            reference_2: `Server creation charge for package ${packageName}`
+            reference_2: `Server creation hourly charge (1 hour) for package ${packageName}`
           };
 
           console.log(`Sending to VirtFusion API with extRelationId=${user.id}:`, tokenData);
@@ -6850,13 +6868,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update transaction status to completed
           await storage.updateTransaction(createdTransaction.id, { status: "completed" });
           
-          console.log(`Successfully deducted ${packageCost} tokens from user ${user.id}`);
+          console.log(`Successfully deducted ${hourlyTokens} tokens (1 hour upfront) from user ${user.id}`);
         }
       } catch (deductError: any) {
-        console.error("Error deducting credits:", deductError);
+        console.error("Error deducting hourly credits:", deductError);
         return res.status(400).json({
           error: "Insufficient credits",
-          message: `Failed to deduct credits for package ${packageName}: ${deductError.message}`
+          message: `Failed to deduct hourly credits for package ${packageName}: ${deductError.message}`
         });
       }
 
@@ -6896,8 +6914,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Only include networkProfile if it's not 0
-      if (validatedData.networkProfile && validatedData.networkProfile !== 0) {
-        virtFusionServerData.networkProfile = validatedData.networkProfile;
+      if (validatedData.networkProfile !== undefined && validatedData.networkProfile !== 0) {
+        (virtFusionServerData as any).networkProfile = validatedData.networkProfile;
       }
 
       // 🔍 Clean out optional fields that are empty or have sentinel values VirtFusion rejects
@@ -6916,14 +6934,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Add additional storage configurations if enabled
-      if (validatedData.additionalStorage1Enable && validatedData.additionalStorage1Profile && validatedData.additionalStorage1Capacity) {
-        virtFusionServerData.additionalStorage1Profile = validatedData.additionalStorage1Profile;
-        virtFusionServerData.additionalStorage1Capacity = validatedData.additionalStorage1Capacity;
+      if (validatedData.additionalStorage1Enable && validatedData.additionalStorage1Profile !== undefined && validatedData.additionalStorage1Capacity !== undefined) {
+        (virtFusionServerData as any).additionalStorage1Profile = validatedData.additionalStorage1Profile;
+        (virtFusionServerData as any).additionalStorage1Capacity = validatedData.additionalStorage1Capacity;
       }
 
-      if (validatedData.additionalStorage2Enable && validatedData.additionalStorage2Profile && validatedData.additionalStorage2Capacity) {
-        virtFusionServerData.additionalStorage2Profile = validatedData.additionalStorage2Profile;
-        virtFusionServerData.additionalStorage2Capacity = validatedData.additionalStorage2Capacity;
+      if (validatedData.additionalStorage2Enable && validatedData.additionalStorage2Profile !== undefined && validatedData.additionalStorage2Capacity !== undefined) {
+        (virtFusionServerData as any).additionalStorage2Profile = validatedData.additionalStorage2Profile;
+        (virtFusionServerData as any).additionalStorage2Capacity = validatedData.additionalStorage2Capacity;
       }
 
       console.log(`Client creating server for user ${user.id}:`, virtFusionServerData);
@@ -6955,33 +6973,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Add server to VirtFusion hourly billing system
       try {
-        // Get package details for billing calculation
-        const packageDetails = await storage.db.select()
-          .from(schema.packages)
-          .where(eq(schema.packages.id, validatedData.packageId))
-          .limit(1);
-
-        if (packageDetails.length > 0) {
-          const pkg = packageDetails[0];
-          const monthlyPrice = parseFloat(pkg.monthlyPrice || '0');
-          
-          // Get hours per month from cron settings (default 730)
-          const cronSettings = await storage.db.select()
-            .from(virtfusionCronSettings)
-            .orderBy(sql`${virtfusionCronSettings.id} DESC`)
-            .limit(1);
-          
-          const hoursPerMonth = cronSettings.length > 0 ? cronSettings[0].hoursPerMonth : 730;
-          const hourlyRate = monthlyPrice / hoursPerMonth;
-
-          // Create hourly billing record
+        if (packageCost > 0 && monthlyPriceDollars > 0) {
+          // Create hourly billing record using values calculated earlier
           await storage.db.insert(virtfusionHourlyBilling).values({
             userId: user.id,
             serverId: result.data.id,
             virtfusionServerId: result.data.id,
+            serverUuid: result.data.uuid || null, // Store VirtFusion server UUID for accurate identification
             packageId: validatedData.packageId,
-            packageName: pkg.name || 'Unknown Package',
-            monthlyPrice: monthlyPrice.toString(),
+            packageName: packageName,
+            monthlyPrice: monthlyPriceDollars.toString(),
             hourlyRate: hourlyRate.toString(),
             hoursInMonth: hoursPerMonth,
             billingEnabled: true
@@ -6989,7 +6990,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           console.log(`Added server ${result.data.id} to VirtFusion hourly billing system (${hourlyRate.toFixed(6)}/hour)`);
         } else {
-          console.warn(`Package ${validatedData.packageId} not found for hourly billing setup`);
+          console.warn(`Package ${validatedData.packageId} not found or has no cost for hourly billing setup`);
         }
       } catch (billingError) {
         console.error('Error setting up VirtFusion hourly billing:', billingError);
@@ -7223,7 +7224,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         additionalStorage1Profile: z.number().int().positive().optional(),
         additionalStorage2Profile: z.number().int().positive().optional(),
         additionalStorage1Capacity: z.number().int().positive().optional(),
-        additionalStorage2Capacity: z.number().int().positive().optional()
+        additionalStorage2Capacity: z.number().int().positive().optional(),
+        // Self-service billing flags
+        selfService: z.number().int().min(0).max(1).default(1),
+        selfServiceHourlyCredit: z.boolean().default(true),
+        selfServiceHourlyResourcePack: z.number().int().positive().default(1)
       });
 
       // Validate request body
@@ -7237,15 +7242,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const validatedData = validationResult.data;
 
-      // Get self-service settings from database
+      // Get self-service settings from database as fallbacks
       const selfServiceSetting = await storage.getSetting('virtfusion_self_service');
       const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
       const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
       
-      // Parse settings with fallbacks to defaults
-      const selfService = selfServiceSetting ? parseInt(selfServiceSetting.value, 10) : 1;
-      const selfServiceHourlyCredit = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
-      const selfServiceHourlyResourcePack = selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1;
+      // Use validated request data with database settings as fallbacks
+      const selfService = validatedData.selfService ?? (selfServiceSetting ? parseInt(selfServiceSetting.value, 10) : 1);
+      const selfServiceHourlyCredit = validatedData.selfServiceHourlyCredit ?? (selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true);
+      const selfServiceHourlyResourcePack = validatedData.selfServiceHourlyResourcePack ?? (selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1);
 
       // Get the SkyPANEL user to obtain their VirtFusion user ID
       const skyPanelUser = await storage.getUser(validatedData.userId);
@@ -7288,14 +7293,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Add additional storage configurations if enabled
-      if (validatedData.additionalStorage1Enable && validatedData.additionalStorage1Profile && validatedData.additionalStorage1Capacity) {
-        serverData.additionalStorage1Profile = validatedData.additionalStorage1Profile;
-        serverData.additionalStorage1Capacity = validatedData.additionalStorage1Capacity;
+      if (validatedData.additionalStorage1Enable && validatedData.additionalStorage1Profile !== undefined && validatedData.additionalStorage1Capacity !== undefined) {
+        (serverData as any).additionalStorage1Profile = validatedData.additionalStorage1Profile;
+        (serverData as any).additionalStorage1Capacity = validatedData.additionalStorage1Capacity;
       }
 
-      if (validatedData.additionalStorage2Enable && validatedData.additionalStorage2Profile && validatedData.additionalStorage2Capacity) {
-        serverData.additionalStorage2Profile = validatedData.additionalStorage2Profile;
-        serverData.additionalStorage2Capacity = validatedData.additionalStorage2Capacity;
+      if (validatedData.additionalStorage2Enable && validatedData.additionalStorage2Profile !== undefined && validatedData.additionalStorage2Capacity !== undefined) {
+        (serverData as any).additionalStorage2Profile = validatedData.additionalStorage2Profile;
+        (serverData as any).additionalStorage2Capacity = validatedData.additionalStorage2Capacity;
       }
 
       // 🔍 Clean out optional fields that are empty or have sentinel values VirtFusion rejects

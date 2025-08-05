@@ -115,6 +115,16 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
   const [userSearch, setUserSearch] = useState("");
   const [userPage, setUserPage] = useState(1);
 
+  // Fetch public settings to obtain self-service billing flag defaults
+  const { data: publicSettings } = useQuery({
+    queryKey: ["/api/settings/public"],
+    queryFn: async () => {
+      const res = await fetch("/api/settings/public");
+      if (!res.ok) throw new Error("Failed to fetch public settings");
+      return res.json();
+    },
+  });
+
   // Fetch VirtFusion packages
   const { data: packagesData, isLoading: packagesLoading, error: packagesError } = useQuery({
     queryKey: ['/api/admin/packages'],
@@ -280,7 +290,11 @@ export default function ServerCreateModal({ open, onOpenChange, onSuccess }: Ser
         additionalStorage1Profile: data.additionalStorage1Profile,
         additionalStorage2Profile: data.additionalStorage2Profile,
         additionalStorage1Capacity: data.additionalStorage1Capacity,
-        additionalStorage2Capacity: data.additionalStorage2Capacity
+        additionalStorage2Capacity: data.additionalStorage2Capacity,
+        // Self-service billing flags from admin settings
+        selfService: Number((publicSettings?.data ?? publicSettings ?? {})["virtfusion_self_service"] ?? 1),
+        selfServiceHourlyCredit: ((publicSettings?.data ?? publicSettings ?? {})["virtfusion_self_service_hourly_credit"] ?? "true") === "true",
+        selfServiceHourlyResourcePack: Number((publicSettings?.data ?? publicSettings ?? {})["virtfusion_self_service_hourly_resource_pack_id"] ?? 1)
       };
       
       

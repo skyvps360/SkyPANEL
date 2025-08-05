@@ -5,9 +5,10 @@ import { z } from 'zod';
 // VirtFusion Hourly Billing Configuration Table
 export const virtfusionHourlyBilling = pgTable('virtfusion_hourly_billing', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').notNull(),
+  userId: integer('user_id').notNull(), 
   serverId: integer('server_id').notNull(),
   virtfusionServerId: integer('virtfusion_server_id').notNull(),
+  serverUuid: text('server_uuid'), // VirtFusion server UUID for accurate identification
   packageId: integer('package_id').notNull(),
   packageName: text('package_name').notNull(),
   monthlyPrice: decimal('monthly_price', { precision: 10, scale: 4 }).notNull(),
