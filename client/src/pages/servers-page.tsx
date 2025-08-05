@@ -312,11 +312,12 @@ export default function ServersPage() {
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <Button
                 onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hidden"
               >
                 <Server className="h-4 w-4" />
                 Create Server in {brandingData?.company_name || 'SkyPANEL'}
               </Button>
+              <VirtFusionSsoButton text="Create Server" />
               <Button
                 onClick={handleRefresh}
                 disabled={isRefreshing || isRateLimited}
