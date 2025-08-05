@@ -9093,6 +9093,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current VirtFusion billing mode (admin only - for debugging)
+  app.get("/api/admin/cron/virtfusion-billing/mode", isAdmin, async (req, res) => {
+    try {
+      const billingMode = await cronService.getVirtFusionBillingMode();
+      res.json({
+        success: true,
+        ...billingMode
+      });
+    } catch (error: any) {
+      console.error("Error getting VirtFusion billing mode:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Restart VirtFusion cron jobs (admin only)
+  app.post("/api/admin/cron/virtfusion-billing/restart", isAdmin, async (req, res) => {
+    try {
+      await cronService.restartVirtFusionCronJobs();
+      res.json({
+        success: true,
+        message: "VirtFusion cron jobs restarted successfully"
+      });
+    } catch (error: any) {
+      console.error("Error restarting VirtFusion cron jobs:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Manually trigger VirtFusion hourly billing (admin only)
   app.post("/api/admin/cron/virtfusion-billing/trigger-hourly", isAdmin, async (req, res) => {
     try {

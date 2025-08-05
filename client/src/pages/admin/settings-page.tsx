@@ -1724,10 +1724,25 @@ export default function SettingsPage() {
           method: "POST",
           body: {
             enabled: data.serverHourlyBillingEnabled,
-            hourlyEnabled: data.serverHourlyBillingEnabled,
-            monthlyEnabled: true // Keep monthly enabled for catch-up billing
+            hourlyEnabled: data.serverHourlyBillingEnabled, 
+            monthlyEnabled: true, // Keep monthly enabled for catch-up billing
+            hoursPerMonth: data.serverHoursPerMonth
           }
         });
+
+        // If billing automation is enabled, restart the cron jobs to pick up the new settings
+        if (data.serverHourlyBillingEnabled) {
+          try {
+            console.log('🔄 Restarting VirtFusion cron jobs to apply new billing mode settings...');
+            await apiRequest("/api/admin/cron/virtfusion-billing/restart", {
+              method: "POST"
+            });
+            console.log('✅ VirtFusion cron jobs restarted successfully');
+          } catch (restartError: any) {
+            console.error("Error restarting VirtFusion cron jobs:", restartError);
+            // Don't fail the save if restart fails, just log it
+          }
+        }
       } catch (error: any) {
         console.error("Error updating VirtFusion cron settings:", error);
         // Don't fail the entire save if cron update fails

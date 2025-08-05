@@ -412,19 +412,19 @@ export class CronService {
         return;
       }
 
-      // Initialize hourly billing job (runs every hour)
+      // Initialize billing job (runs every hour and determines billing mode based on settings)
               if (setting.hourlyBillingEnabled) {
         this.virtfusionHourlyJob = cron.schedule(
           '0 * * * *', // Every hour at minute 0
           async () => {
-            await this.runVirtFusionHourlyBilling();
+            await this.runVirtFusionBillingProcess();
           },
           {
             timezone: 'UTC'
           }
         );
         this.virtfusionHourlyJob.start();
-        console.log('✅ VirtFusion hourly billing cron job started (every hour)');
+        console.log('✅ VirtFusion billing cron job started (runs hourly, mode determined by settings)');
       }
 
       // Initialize monthly billing job (runs on 1st of every month at 3 AM UTC)
@@ -534,9 +534,9 @@ export class CronService {
   }
 
   /**
-   * Run VirtFusion hourly billing process
+   * Run VirtFusion billing process (handles both hourly and monthly based on settings)
    */
-  private async runVirtFusionHourlyBilling() {
+  private async runVirtFusionBillingProcess() {
     console.log('🕐 Starting VirtFusion billing process...');
     
     try {
@@ -553,16 +553,50 @@ export class CronService {
         return;
       }
 
-      // Check if hourly or monthly billing is enabled
+      // Check if hourly or monthly billing is enabled - get fresh settings each time
+      console.log('🔍 Checking billing mode from settings...');
       const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
-      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      const billingAutomationSetting = await storage.getSetting('server_hourly_billing_enabled');
       
-      console.log(`💰 Billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
+      // Debug logging for settings
+      console.log('📊 VirtFusion Billing Settings:', {
+        selfServiceCreditSetting: selfServiceCreditSetting ? {
+          key: selfServiceCreditSetting.key,
+          value: selfServiceCreditSetting.value,
+          type: typeof selfServiceCreditSetting.value
+        } : 'NOT FOUND',
+        billingAutomationSetting: billingAutomationSetting ? {
+          key: billingAutomationSetting.key,
+          value: billingAutomationSetting.value,
+          type: typeof billingAutomationSetting.value
+        } : 'NOT FOUND'
+      });
+
+      // Determine billing mode:
+      // - If selfServiceCreditSetting is true (or missing) → HOURLY billing (deduct credits per hour)
+      // - If selfServiceCreditSetting is false → MONTHLY billing (charge package price monthly)
+      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting.value === 'true' : false;
+      
+      console.log(`💰 Billing Configuration:`, {
+        mode: isHourlyBilling ? 'HOURLY (Credit-based)' : 'MONTHLY (Package-based)',
+        automationEnabled: isBillingAutomationEnabled,
+        selfServiceHourlyCredit: selfServiceCreditSetting?.value || 'undefined',
+        decision: isHourlyBilling ? 'Will run HOURLY billing logic' : 'Will run MONTHLY billing logic'
+      });
+
+      // If automation is disabled, log and exit
+      if (!isBillingAutomationEnabled) {
+        console.log('⚠️ VirtFusion billing automation is disabled. Skipping billing process.');
+        return;
+      }
       
       if (!isHourlyBilling) {
         console.log('📅 Monthly billing mode detected - switching to monthly billing logic');
         return await this.runVirtFusionMonthlyBilling();
       }
+
+      console.log('⏰ Hourly billing mode confirmed - proceeding with hourly billing logic');
 
       const startTime = Date.now();
       
@@ -798,12 +832,35 @@ export class CronService {
   }
 
   /**
-   * Run VirtFusion monthly billing process (1st of month)
+   * Run VirtFusion monthly billing process (1st of month or when hourly billing is disabled)
    */
   private async runVirtFusionMonthlyBilling() {
     console.log('🗓️ Starting VirtFusion monthly billing process...');
     
     try {
+      // Verify we should be in monthly billing mode
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const billingAutomationSetting = await storage.getSetting('server_hourly_billing_enabled');
+      
+      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting.value === 'true' : false;
+      
+      console.log(`📋 Monthly Billing Configuration Check:`, {
+        expectedMode: 'MONTHLY (Package-based)',
+        currentSetting: isHourlyBilling ? 'HOURLY' : 'MONTHLY',
+        automationEnabled: isBillingAutomationEnabled,
+        selfServiceHourlyCredit: selfServiceCreditSetting?.value || 'undefined',
+        shouldProceed: !isHourlyBilling && isBillingAutomationEnabled
+      });
+
+      if (isHourlyBilling) {
+        console.log('⚠️ Monthly billing called but system is configured for HOURLY billing. This might indicate a configuration issue.');
+      }
+
+      if (!isBillingAutomationEnabled) {
+        console.log('⚠️ VirtFusion billing automation is disabled. Skipping monthly billing process.');
+        return;
+      }
       const startTime = Date.now();
       
       // Get all active billing records for monthly billing
@@ -994,11 +1051,32 @@ export class CronService {
   }
 
   /**
-   * Manually trigger VirtFusion hourly billing
+   * Manually trigger VirtFusion billing (handles both hourly and monthly based on settings)
    */
   async triggerVirtFusionHourlyBilling() {
-    console.log('🔄 Manually triggering VirtFusion hourly billing...');
-    await this.runVirtFusionHourlyBilling();
+    console.log('🔄 Manually triggering VirtFusion billing process...');
+    await this.runVirtFusionBillingProcess();
+  }
+
+  /**
+   * Get current VirtFusion billing mode for debugging
+   */
+  async getVirtFusionBillingMode() {
+    const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+    const billingAutomationSetting = await storage.getSetting('server_hourly_billing_enabled');
+    
+    const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+    const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting.value === 'true' : false;
+    
+    return {
+      mode: isHourlyBilling ? 'hourly' : 'monthly',
+      description: isHourlyBilling ? 'HOURLY (Credit-based)' : 'MONTHLY (Package-based)',
+      automationEnabled: isBillingAutomationEnabled,
+      settings: {
+        selfServiceHourlyCredit: selfServiceCreditSetting?.value || 'undefined',
+        billingAutomationEnabled: billingAutomationSetting?.value || 'undefined'
+      }
+    };
   }
 
   /**
