@@ -6962,6 +6962,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add server to VirtFusion hourly billing system
       try {
         if (packageCost > 0 && monthlyPriceDollars > 0) {
+          // Fetch server details from VirtFusion API to get creation timestamp
+          let serverCreatedAt = null;
+          try {
+            console.log(`Fetching server details from VirtFusion API for server ${serverId} to get creation timestamp...`);
+            const serverDetails = await virtFusionApi.getServer(serverId, true);
+            
+            if (serverDetails?.data?.created) {
+              serverCreatedAt = new Date(serverDetails.data.created);
+              console.log(`Server ${serverId} was created at: ${serverCreatedAt.toISOString()}`);
+            } else {
+              console.warn(`Could not get creation timestamp for server ${serverId}, using current time as fallback`);
+              serverCreatedAt = new Date(); // Fallback to current time
+            }
+          } catch (serverDetailsError) {
+            console.error('Error fetching server details for creation timestamp:', serverDetailsError);
+            serverCreatedAt = new Date(); // Fallback to current time
+          }
+
           // Create hourly billing record using values calculated earlier
           await storage.db.insert(virtfusionHourlyBilling).values({
             userId: user.id,
@@ -6973,10 +6991,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             monthlyPrice: monthlyPriceDollars.toString(),
             hourlyRate: hourlyRate.toString(),
             hoursInMonth: hoursPerMonth,
-            billingEnabled: true
+            billingEnabled: true,
+            serverCreatedAt: serverCreatedAt // Store VirtFusion server creation timestamp for accurate hourly billing
           });
 
-          console.log(`Added server ${serverId} to VirtFusion hourly billing system (${hourlyRate.toFixed(6)}/hour)`);
+          console.log(`Added server ${serverId} to VirtFusion hourly billing system (${hourlyRate.toFixed(6)}/hour) with creation time: ${serverCreatedAt?.toISOString()}`);
         } else {
           console.warn(`Package ${validatedData.packageId} not found or has no cost for hourly billing setup`);
         }

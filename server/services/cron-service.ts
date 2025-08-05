@@ -567,6 +567,8 @@ export class CronService {
         monthlyPrice: virtfusionHourlyBilling.monthlyPrice,
         hourlyRate: virtfusionHourlyBilling.hourlyRate,
         hoursInMonth: virtfusionHourlyBilling.hoursInMonth,
+        serverCreatedAt: virtfusionHourlyBilling.serverCreatedAt,
+        lastBilledAt: virtfusionHourlyBilling.lastBilledAt,
         userActive: users.isActive,
         packagePrice: packagePricing.price
       })
@@ -616,6 +618,43 @@ export class CronService {
             console.log(`✅ Disabled billing for server with UUID ${record.serverUuid} (VirtFusion Server ID: ${record.virtfusionServerId})`);
             continue;
           }
+
+          // Check if server is due for billing based on its creation time
+          const now = new Date();
+          const serverCreatedAt = record.serverCreatedAt ? new Date(record.serverCreatedAt) : null;
+          
+          if (!serverCreatedAt) {
+            console.warn(`⚠️ Skipping server ${record.serverId} - missing server creation timestamp. Please run migration to populate serverCreatedAt field.`);
+            continue;
+          }
+
+          // Calculate how many hours have passed since server creation
+          const hoursSinceCreation = (now.getTime() - serverCreatedAt.getTime()) / (1000 * 60 * 60);
+          
+          // Calculate how many full hours should have been billed (excluding the upfront payment)
+          const fullHoursSinceCreation = Math.floor(hoursSinceCreation);
+          
+          // Count how many hours we've already billed by counting transactions
+          const billedHoursResult = await storage.db.select({
+            count: sql<number>`count(*)`
+          })
+          .from(virtfusionHourlyTransactions)
+          .where(and(
+            eq(virtfusionHourlyTransactions.billingId, record.id),
+            eq(virtfusionHourlyTransactions.status, 'completed')
+          ));
+          
+          const hoursBilled = Number(billedHoursResult[0]?.count || 0);
+          
+          // Check if we need to bill for additional hours
+          // We should bill if: fullHoursSinceCreation > hoursBilled
+          // This means there are unbilled hours that have passed
+          if (fullHoursSinceCreation <= hoursBilled) {
+            console.log(`⏰ Server ${record.serverId} not due for billing yet. Hours since creation: ${hoursSinceCreation.toFixed(2)}, Hours billed: ${hoursBilled}, Full hours since creation: ${fullHoursSinceCreation}`);
+            continue;
+          }
+
+          console.log(`⏰ Server ${record.serverId} is due for billing. Hours since creation: ${hoursSinceCreation.toFixed(2)}, Hours billed: ${hoursBilled}, Full hours since creation: ${fullHoursSinceCreation}`);
           
           // Calculate hourly charge
           const monthlyPrice = parseFloat(record.monthlyPrice.toString());
