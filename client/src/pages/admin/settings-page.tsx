@@ -1718,12 +1718,42 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "server_hours_per_month", value: data.serverHoursPerMonth.toString() });
       await updateSettingMutation.mutateAsync({ key: "server_hourly_billing_cron_schedule", value: data.serverHourlyBillingCronSchedule });
 
+      // Update VirtFusion cron settings
+      try {
+        await apiRequest("/api/admin/cron/virtfusion-billing", {
+          method: "POST",
+          body: {
+            enabled: data.serverHourlyBillingEnabled,
+            hourlyEnabled: data.serverHourlyBillingEnabled,
+            monthlyEnabled: true // Keep monthly enabled for catch-up billing
+          }
+        });
+      } catch (error: any) {
+        console.error("Error updating VirtFusion cron settings:", error);
+        // Don't fail the entire save if cron update fails
+      }
+
       toast({
         title: "Settings saved",
-        description: "VirtFusion API settings have been updated",
+        description: "VirtFusion API settings and cron configuration have been updated",
       });
 
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["virtfusion-cron-status"] });
+
+      // Reset the form with the new values to clear dirty state
+      virtFusionForm.reset({
+        apiUrl: data.apiUrl,
+        apiToken: data.apiToken,
+        sslVerify: data.sslVerify,
+        selfServiceValue: data.selfServiceValue,
+        selfServiceHourlyCredit: data.selfServiceHourlyCredit,
+        selfServiceHourlyResourcePackId: data.selfServiceHourlyResourcePackId,
+        defaultResourcePackId: data.defaultResourcePackId,
+        serverHourlyBillingEnabled: data.serverHourlyBillingEnabled,
+        serverHoursPerMonth: data.serverHoursPerMonth,
+        serverHourlyBillingCronSchedule: data.serverHourlyBillingCronSchedule,
+      });
     } catch (error: any) {
       toast({
         title: "Error saving settings",
