@@ -576,11 +576,16 @@ export class CronService {
       console.log(`💰 Billing mode determination:`);
       console.log(`   - Self Service Hourly Credit setting: ${selfServiceCreditSetting ? selfServiceCreditSetting.value : 'NOT_SET'}`);
       console.log(`   - Resulting billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
+      console.log(`   - VirtFusion automation enabled: ${setting?.enabled || false}`);
+      console.log(`   - Hourly billing cron enabled: ${setting?.hourlyBillingEnabled || false}`);
+      console.log(`   - Monthly billing cron enabled: ${setting?.billingOnFirstEnabled || false}`);
       
       if (!isHourlyBilling) {
         console.log('📅 Monthly billing mode detected - switching to monthly billing logic');
         return await this.runVirtFusionMonthlyBilling();
       }
+
+      console.log('🕐 Hourly billing mode detected - proceeding with hourly billing logic');
 
       const startTime = Date.now();
       
