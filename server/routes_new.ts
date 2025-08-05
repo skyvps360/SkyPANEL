@@ -6536,7 +6536,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Admin fetching servers (page ${page}, perPage ${perPage})`);
 
       // VirtFusion API already supports pagination
-      const result = await virtFusionApi.getServers(page, perPage, {});
+      const result = await virtFusionApi.getServersPaginated(page, perPage, {});
 
       // Return the paginated response from VirtFusion
       // This includes data array, current_page, last_page, total, etc.

@@ -636,7 +636,7 @@ export class VirtFusionApi {
   }
 
   // Get all servers from VirtFusion API with pagination support
-  async getServers(page: number = 1, perPage: number = 10, params: any = {}) {
+  async getServersPaginated(page: number = 1, perPage: number = 10, params: any = {}) {
     const queryParams = new URLSearchParams();
 
     // Add pagination parameters
