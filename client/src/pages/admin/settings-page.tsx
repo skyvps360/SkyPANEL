@@ -1713,20 +1713,17 @@ export default function SettingsPage() {
       await updateSettingMutation.mutateAsync({ key: "virtfusion_self_service_hourly_resource_pack_id", value: data.selfServiceHourlyResourcePackId.toString() });
       await updateSettingMutation.mutateAsync({ key: "virtfusion_default_resource_pack_id", value: data.defaultResourcePackId.toString() });
 
-      // Update VirtFusion cron settings via API
-      await updateVirtFusionCronMutation.mutateAsync({
-        enabled: data.serverHourlyBillingEnabled,
-        hoursPerMonth: data.serverHoursPerMonth,
-        cronSchedule: data.serverHourlyBillingCronSchedule
-      });
+      // Save hourly billing settings
+      await updateSettingMutation.mutateAsync({ key: "server_hourly_billing_enabled", value: data.serverHourlyBillingEnabled.toString() });
+      await updateSettingMutation.mutateAsync({ key: "server_hours_per_month", value: data.serverHoursPerMonth.toString() });
+      await updateSettingMutation.mutateAsync({ key: "server_hourly_billing_cron_schedule", value: data.serverHourlyBillingCronSchedule });
 
       toast({
         title: "Settings saved",
-        description: "VirtFusion API settings and cron configuration have been updated",
+        description: "VirtFusion API settings have been updated",
       });
 
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
-      queryClient.invalidateQueries({ queryKey: ["virtfusion-cron-status"] });
     } catch (error: any) {
       toast({
         title: "Error saving settings",
@@ -2228,29 +2225,8 @@ export default function SettingsPage() {
                         </div>
                         <Switch
                           id="virtfusionBillingEnabled"
-                          checked={virtfusionCronData?.cronStatus?.virtfusionHourly?.enabled || false}
-                          onCheckedChange={async (checked) => {
-                            try {
-                              await apiRequest("/api/admin/cron/virtfusion-billing", {
-                                method: "POST",
-                                body: { enabled: checked }
-                              });
-                              queryClient.invalidateQueries({
-                                queryKey: ["/api/admin/cron/status"],
-                                exact: true
-                              });
-                              toast({
-                                title: "Settings updated",
-                                description: `VirtFusion billing automation ${checked ? 'enabled' : 'disabled'}`,
-                              });
-                            } catch (error: any) {
-                              toast({
-                                title: "Error",
-                                description: error.message,
-                                variant: "destructive",
-                              });
-                            }
-                          }}
+                          checked={virtFusionForm.watch("serverHourlyBillingEnabled")}
+                          onCheckedChange={(checked) => virtFusionForm.setValue("serverHourlyBillingEnabled", checked, { shouldDirty: true })}
                         />
                       </div>
 
