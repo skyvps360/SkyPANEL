@@ -1245,6 +1245,48 @@ export class VirtFusionApi {
       return null;
     }
   }
+
+  /**
+   * Verify server ownership by UUID - checks if user still owns the server with specified UUID
+   * This method is more accurate than ID-based checking as it uses the server's UUID
+   * @param serverUuid The server UUID to verify
+   * @param expectedOwnerId The expected owner's VirtFusion user ID
+   * @returns true if user still owns the server, false otherwise
+   */
+  async verifyServerOwnershipByUuid(serverUuid: string, expectedOwnerId: number): Promise<boolean> {
+    try {
+      // Skip verification if UUID is not provided
+      if (!serverUuid) {
+        console.warn('⚠️ No server UUID provided for ownership verification');
+        return false;
+      }
+
+      console.log(`🔍 Verifying server ownership by UUID: ${serverUuid} for user: ${expectedOwnerId}`);
+      
+      // Get all servers for the specific user
+      const userServersResponse = await this.getUserServers(expectedOwnerId);
+      
+      if (!userServersResponse || !userServersResponse.data || !Array.isArray(userServersResponse.data)) {
+        console.log(`📭 No servers found for user ${expectedOwnerId}`);
+        return false;
+      }
+
+      // Check if any of the user's servers has the matching UUID
+      const ownedServer = userServersResponse.data.find((server: any) => server.uuid === serverUuid);
+      
+      if (ownedServer) {
+        console.log(`✅ Server with UUID ${serverUuid} is still owned by user ${expectedOwnerId}`);
+        return true;
+      } else {
+        console.log(`❌ Server with UUID ${serverUuid} is NOT owned by user ${expectedOwnerId}`);
+        return false;
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error verifying server ownership by UUID ${serverUuid}:`, error);
+      return false;
+    }
+  }
 }
 
 // Create a singleton instance of the VirtFusion API client

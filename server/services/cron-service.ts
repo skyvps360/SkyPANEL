@@ -548,6 +548,7 @@ export class CronService {
         userId: virtfusionHourlyBilling.userId,
         serverId: virtfusionHourlyBilling.serverId,
         virtfusionServerId: virtfusionHourlyBilling.virtfusionServerId,
+        serverUuid: virtfusionHourlyBilling.serverUuid,
         packageId: virtfusionHourlyBilling.packageId,
         packageName: virtfusionHourlyBilling.packageName,
         monthlyPrice: virtfusionHourlyBilling.monthlyPrice,
@@ -580,16 +581,16 @@ export class CronService {
             continue;
           }
           
-          // CRITICAL: Verify server still exists in VirtFusion before charging
-          console.log(`🔍 Verifying server ${record.virtfusionServerId} exists for user ${record.userId}...`);
+          // CRITICAL: Verify server still exists in VirtFusion before charging using UUID cross-check
+          console.log(`🔍 Cross-checking server ownership with VirtFusion API using UUID: ${record.serverUuid} for user ${record.userId}...`);
           
-          const serverExists = await virtFusionApi.verifyServerOwnership(
-            record.virtfusionServerId, 
+          const serverStillOwned = await virtFusionApi.verifyServerOwnershipByUuid(
+            record.serverUuid, 
             record.userId
           );
           
-          if (!serverExists) {
-            console.warn(`⚠️ Server ${record.virtfusionServerId} no longer exists or user ${record.userId} is not the owner. Disabling billing.`);
+          if (!serverStillOwned) {
+            console.warn(`⚠️ Server with UUID ${record.serverUuid} is no longer owned by user ${record.userId}. Disabling billing.`);
             
             // Disable billing for this server
             await storage.db.update(virtfusionHourlyBilling)
@@ -599,7 +600,7 @@ export class CronService {
               })
               .where(eq(virtfusionHourlyBilling.id, record.id));
             
-            console.log(`✅ Disabled billing for server ${record.virtfusionServerId}`);
+            console.log(`✅ Disabled billing for server with UUID ${record.serverUuid} (VirtFusion Server ID: ${record.virtfusionServerId})`);
             continue;
           }
           
