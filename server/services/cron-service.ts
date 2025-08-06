@@ -73,7 +73,7 @@ export class CronService {
       
       // First, check if VirtFusion billing automation is enabled via the main setting
       const billingAutomationSetting = await storage.getSetting('server_hourly_billing_enabled');
-      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting === 'true' : false;
+      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting.value === 'true' : false;
       
       if (!isBillingAutomationEnabled) {
         console.log('🚫 VirtFusion billing automation is disabled in settings - VirtFusion cron jobs will not run');
@@ -451,7 +451,7 @@ export class CronService {
     try {
       // First, check if VirtFusion billing automation is enabled via the main setting
       const billingAutomationSetting = await storage.getSetting('server_hourly_billing_enabled');
-      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting === 'true' : false;
+      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting.value === 'true' : false;
       
       if (!isBillingAutomationEnabled) {
         console.log('🚫 VirtFusion billing automation is disabled in settings - skipping cron job initialization');
@@ -574,7 +574,7 @@ export class CronService {
 
       // First, check if VirtFusion billing automation is enabled via the main setting
       const billingAutomationSetting = await storage.getSetting('server_hourly_billing_enabled');
-      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting === 'true' : false;
+      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting.value === 'true' : false;
       
       if (!isBillingAutomationEnabled) {
         console.log('🚫 VirtFusion billing automation is disabled in settings - stopping all VirtFusion cron jobs');
