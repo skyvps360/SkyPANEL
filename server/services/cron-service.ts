@@ -62,6 +62,20 @@ export class CronService {
     try {
       console.log('🔧 Initializing VirtFusion billing mode on startup...');
       
+      // First check if VirtFusion cron is enabled in database settings
+      const virtfusionSettings = await storage.db.select()
+        .from(virtfusionCronSettings)
+        .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+        .limit(1);
+
+      const virtfusionSetting = virtfusionSettings[0];
+      
+      // If cron is disabled, don't start any jobs
+      if (!virtfusionSetting || !virtfusionSetting.enabled) {
+        console.log('🚫 VirtFusion cron is disabled in database settings. No cron jobs will be started.');
+        return;
+      }
+      
       // Check current billing mode from the Self Service Hourly Credit setting
       const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
       const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
@@ -440,13 +454,13 @@ export class CronService {
         const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
         
         await storage.db.insert(virtfusionCronSettings).values({
-          enabled: false,
+          enabled: false, // Default to disabled - admin must explicitly enable
           hoursPerMonth: 730,
           billingOnFirstEnabled: !isHourlyBilling, // Enable monthly when hourly is disabled
           hourlyBillingEnabled: isHourlyBilling    // Enable hourly when hourly billing is enabled
         });
         
-        console.log(`Created VirtFusion cron settings for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode`);
+        console.log(`Created VirtFusion cron settings for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode (DISABLED by default)`);
         return;
       }
 
@@ -522,7 +536,7 @@ export class CronService {
       // Create default settings if none exist
       if (!setting) {
         await storage.db.insert(virtfusionCronSettings).values({
-          enabled: true,
+          enabled: false, // Default to disabled
           hourlyBillingEnabled: isHourlyBilling,
           billingOnFirstEnabled: !isHourlyBilling, // Enable monthly when hourly is disabled
           hoursPerMonth: 730 // Default hours per month
@@ -542,7 +556,6 @@ export class CronService {
         // Update existing settings based on billing mode
         await storage.db.update(virtfusionCronSettings)
           .set({
-            enabled: true,
             hourlyBillingEnabled: isHourlyBilling,
             billingOnFirstEnabled: !isHourlyBilling,
             updatedAt: sql`CURRENT_TIMESTAMP`
@@ -552,7 +565,12 @@ export class CronService {
         // Update local setting object
         setting.hourlyBillingEnabled = isHourlyBilling;
         setting.billingOnFirstEnabled = !isHourlyBilling;
-        setting.enabled = true;
+      }
+
+      // Check if cron is globally enabled before starting any jobs
+      if (!setting.enabled) {
+        console.log('🚫 VirtFusion cron is disabled in database settings. No cron jobs will be started.');
+        return;
       }
 
       // Start the appropriate cron job based on billing mode
