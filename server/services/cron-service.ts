@@ -29,6 +29,15 @@ export class CronService {
   }
 
   /**
+   * Public initialization method for external use
+   */
+  async initialize(): Promise<void> {
+    console.log('🔧 Cron service initialization completed');
+    // The actual initialization happens in the constructor
+    // This method exists for compatibility with the startup sequence
+  }
+
+  /**
    * Initialize all cron jobs
    */
   private async initializeCronJobs() {
@@ -61,6 +70,20 @@ export class CronService {
   private async performVirtFusionBillingModeInitialization(): Promise<void> {
     try {
       console.log('🔧 Initializing VirtFusion billing mode on startup...');
+      
+      // First, check if VirtFusion billing automation is enabled via the main setting
+      const billingAutomationSetting = await storage.getSetting('server_hourly_billing_enabled');
+      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting === 'true' : false;
+      
+      if (!isBillingAutomationEnabled) {
+        console.log('🚫 VirtFusion billing automation is disabled in settings - VirtFusion cron jobs will not run');
+        
+        // Stop any existing VirtFusion jobs that might be running
+        this.stopVirtFusionJobs();
+        return;
+      }
+
+      console.log('✅ VirtFusion billing automation is enabled - proceeding with billing mode initialization');
       
       // Check current billing mode from the Self Service Hourly Credit setting
       const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
@@ -426,6 +449,17 @@ export class CronService {
    */
   private async initializeVirtFusionCronJobs() {
     try {
+      // First, check if VirtFusion billing automation is enabled via the main setting
+      const billingAutomationSetting = await storage.getSetting('server_hourly_billing_enabled');
+      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting === 'true' : false;
+      
+      if (!isBillingAutomationEnabled) {
+        console.log('🚫 VirtFusion billing automation is disabled in settings - skipping cron job initialization');
+        return;
+      }
+
+      console.log('✅ VirtFusion billing automation is enabled - proceeding with cron job initialization');
+
       // Get VirtFusion cron settings
       const settings = await storage.db.select()
         .from(virtfusionCronSettings)
@@ -440,26 +474,56 @@ export class CronService {
         const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
         
         await storage.db.insert(virtfusionCronSettings).values({
-          enabled: false,
+          enabled: true, // Enable since billing automation is enabled
           hoursPerMonth: 730,
           billingOnFirstEnabled: !isHourlyBilling, // Enable monthly when hourly is disabled
           hourlyBillingEnabled: isHourlyBilling    // Enable hourly when hourly billing is enabled
         });
         
         console.log(`Created VirtFusion cron settings for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode`);
+        
+        // Fetch the newly created settings
+        const newSettings = await storage.db.select()
+          .from(virtfusionCronSettings)
+          .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+          .limit(1);
+        
+        if (newSettings.length === 0) {
+          console.error('Failed to create VirtFusion cron settings');
+          return;
+        }
+        
+        // Use the newly created settings
+        const setting = newSettings[0];
+        await this.startVirtFusionJobsBasedOnBillingMode(setting);
         return;
       }
 
       const setting = settings[0];
       
       if (!setting.enabled) {
-        console.log('VirtFusion cron is disabled');
+        console.log('VirtFusion cron is disabled in cron settings');
         return;
       }
 
+      await this.startVirtFusionJobsBasedOnBillingMode(setting);
+
+    } catch (error) {
+      console.error('Error initializing VirtFusion cron jobs:', error);
+    }
+  }
+
+  /**
+   * Start VirtFusion cron jobs based on current billing mode
+   * @param setting VirtFusion cron settings
+   */
+  private async startVirtFusionJobsBasedOnBillingMode(setting: any): Promise<void> {
+    try {
       // Check current billing mode from the Self Service Hourly Credit setting
       const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
       const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      
+      console.log(`🔧 Starting VirtFusion cron jobs for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode`);
       
       // Only start the appropriate job based on billing mode
       if (isHourlyBilling && setting.hourlyBillingEnabled) {
@@ -487,11 +551,11 @@ export class CronService {
         this.virtfusionMonthlyJob.start();
         console.log('✅ VirtFusion monthly billing cron job started (1st of month at 3 AM UTC)');
       } else {
-        console.log(`ℹ️ No VirtFusion cron job started - billing mode: ${isHourlyBilling ? 'hourly' : 'monthly'}`);
+        console.log(`ℹ️ No VirtFusion cron job started - billing mode: ${isHourlyBilling ? 'hourly' : 'monthly'}, hourly enabled: ${setting.hourlyBillingEnabled}, monthly enabled: ${setting.billingOnFirstEnabled}`);
       }
-
     } catch (error) {
-      console.error('Error initializing VirtFusion cron jobs:', error);
+      console.error('Error starting VirtFusion jobs based on billing mode:', error);
+      throw error;
     }
   }
 
@@ -507,6 +571,20 @@ export class CronService {
       if (typeof isHourlyBilling !== 'boolean') {
         throw new Error('Invalid billing mode parameter: must be boolean');
       }
+
+      // First, check if VirtFusion billing automation is enabled via the main setting
+      const billingAutomationSetting = await storage.getSetting('server_hourly_billing_enabled');
+      const isBillingAutomationEnabled = billingAutomationSetting ? billingAutomationSetting === 'true' : false;
+      
+      if (!isBillingAutomationEnabled) {
+        console.log('🚫 VirtFusion billing automation is disabled in settings - stopping all VirtFusion cron jobs');
+        
+        // Stop existing VirtFusion jobs safely
+        this.stopVirtFusionJobs();
+        return;
+      }
+
+      console.log('✅ VirtFusion billing automation is enabled - proceeding with cron job update');
       
       // Stop existing VirtFusion jobs safely
       this.stopVirtFusionJobs();
