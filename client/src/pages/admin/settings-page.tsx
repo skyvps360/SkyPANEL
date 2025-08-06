@@ -2260,6 +2260,7 @@ export default function SettingsPage() {
                         />
                       </div>
 
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                           <Label className="text-xs font-medium text-muted-foreground">Hourly Schedule</Label>
@@ -2324,6 +2325,22 @@ export default function SettingsPage() {
                             }
                           </p>
                         </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="selfServiceHourlyCredit">Self Service Hourly/Monthly Credit</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable hourly cron billing system for VirtFusion Enabled Billing Automation
+                            <br /> 
+                            This allows users to be billed hourly for their server usage. When Disabled We Bill Monthly.
+                          </p>
+                        </div>
+                        <Switch
+                          id="selfServiceHourlyCredit"
+                          checked={virtFusionForm.watch("selfServiceHourlyCredit")}
+                          onCheckedChange={(checked) => virtFusionForm.setValue("selfServiceHourlyCredit", checked, { shouldDirty: true })}
+                        />
                       </div>
 
                       {virtfusionCronData?.virtfusionStats && (
@@ -2445,22 +2462,6 @@ export default function SettingsPage() {
                           <code>1 </code>
                              to enable <code>SelfService</code> flag for new users, allowing them to manage their own servers, needed as 1 for whole system to fully work with the virtfusion token system.
                         </p>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="selfServiceHourlyCredit">Self Service Hourly Credit</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Enable hourly cron billing system for <code>VirtFusion Enabled Billing Automation</code>
-                            <br /> 
-                            This allows users to be billed hourly for their server usage When Disabled We Bill Monthly.
-                          </p>
-                        </div>
-                        <Switch
-                          id="selfServiceHourlyCredit"
-                          checked={virtFusionForm.watch("selfServiceHourlyCredit")}
-                          onCheckedChange={(checked) => virtFusionForm.setValue("selfServiceHourlyCredit", checked, { shouldDirty: true })}
-                        />
                       </div>
 
                       <div className="space-y-2">
