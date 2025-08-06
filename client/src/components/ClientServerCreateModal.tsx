@@ -130,6 +130,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
   const [selectedHypervisorGroup, setSelectedHypervisorGroup] = useState<any>(null);
   const [selectedOsTemplate, setSelectedOsTemplate] = useState<any>(null);
   const [step, setStep] = useState<'create' | 'building' | 'installing' | 'success' | 'failed'>('create');
+  const [currentStep, setCurrentStep] = useState<'package' | 'location' | 'os' | 'details' | 'review'>('package');
   const [createdServer, setCreatedServer] = useState<any>(null);
   const [serverName, setServerName] = useState<string>('');
   const queryClient = useQueryClient();
@@ -408,6 +409,46 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
     return HardDrive;
   };
 
+  // Step navigation functions
+  const nextStep = () => {
+    const steps: Array<'package' | 'location' | 'os' | 'details' | 'review'> = ['package', 'location', 'os', 'details', 'review'];
+    const currentIndex = steps.indexOf(currentStep);
+    if (currentIndex < steps.length - 1) {
+      setCurrentStep(steps[currentIndex + 1]);
+    }
+  };
+
+  const prevStep = () => {
+    const steps: Array<'package' | 'location' | 'os' | 'details' | 'review'> = ['package', 'location', 'os', 'details', 'review'];
+    const currentIndex = steps.indexOf(currentStep);
+    if (currentIndex > 0) {
+      setCurrentStep(steps[currentIndex - 1]);
+    }
+  };
+
+  const canGoNext = () => {
+    switch (currentStep) {
+      case 'package':
+        return !!selectedPackage;
+      case 'location':
+        return !!selectedHypervisorGroup;
+      case 'os':
+        return !!selectedOsTemplate;
+      case 'details':
+        return !!form.watch('name')?.trim();
+      case 'review':
+        return true;
+      default:
+        return false;
+    }
+  };
+
+  const canGoPrev = () => {
+    const steps: Array<'package' | 'location' | 'os' | 'details' | 'review'> = ['package', 'location', 'os', 'details', 'review'];
+    const currentIndex = steps.indexOf(currentStep);
+    return currentIndex > 0;
+  };
+
   // Helper to poll VirtFusion queue item status (preferred when we have queueId)
   const startQueuePolling = (vfQueueId: number, serverId: number) => {
     // Clear any existing poller first
@@ -637,6 +678,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
     setSelectedHypervisorGroup(null);
     setSelectedOsTemplate(null);
     setStep('create');
+    setCurrentStep('package');
     setCreatedServer(null);
     setServerName('');
     setQueueId(null);
@@ -713,6 +755,70 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
             {step === 'failed' && 'An error occurred while creating your server. Please try again.'}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Step Indicator */}
+        {step === 'create' && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Server Creation Progress</h3>
+              <span className="text-xs text-muted-foreground">
+                Step {['package', 'location', 'os', 'details', 'review'].indexOf(currentStep) + 1} of 5
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              {['package', 'location', 'os', 'details', 'review'].map((stepName, index) => {
+                const isActive = currentStep === stepName;
+                const isCompleted = ['package', 'location', 'os', 'details', 'review'].indexOf(currentStep) > index;
+                const stepLabels = {
+                  package: 'Package',
+                  location: 'Location', 
+                  os: 'OS',
+                  details: 'Details',
+                  review: 'Review'
+                };
+                
+                return (
+                  <div key={stepName} className="flex items-center">
+                    <div className="flex items-center">
+                      <div 
+                        className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium border-2",
+                          isActive 
+                            ? "bg-primary text-primary-foreground border-primary" 
+                            : isCompleted
+                            ? "bg-green-500 text-white border-green-500"
+                            : "bg-muted text-muted-foreground border-muted"
+                        )}
+                      >
+                        {isCompleted ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : (
+                          index + 1
+                        )}
+                      </div>
+                      <span 
+                        className={cn(
+                          "ml-2 text-xs font-medium",
+                          isActive ? "text-foreground" : "text-muted-foreground"
+                        )}
+                      >
+                        {stepLabels[stepName as keyof typeof stepLabels]}
+                      </span>
+                    </div>
+                    {index < 4 && (
+                      <div 
+                        className={cn(
+                          "w-8 h-0.5 mx-2",
+                          isCompleted ? "bg-green-500" : "bg-muted"
+                        )}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
@@ -877,11 +983,9 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                 </div>
               </div>
 
-              {/* Server Configuration Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left Column */}
+              {/* Step Content */}
+              {currentStep === 'package' && (
                 <div className="space-y-6">
-                  {/* Package Selection */}
                   <div className="bg-card border rounded-xl p-6 shadow-sm">
                     <div className="flex items-center gap-3 mb-4">
                       <div 
@@ -1085,8 +1189,11 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                       )}
                     />
                   </div>
+                </div>
+              )}
 
-                  {/* Datacenter Location */}
+              {currentStep === 'location' && (
+                <div className="space-y-6">
                   <div className="bg-card border rounded-xl p-6 shadow-sm">
                     <div className="flex items-center gap-3 mb-4">
                       <div 
@@ -1166,57 +1273,11 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                       )}
                     />
                   </div>
-
-                  {/* Server Name */}
-                  <div className="bg-card border rounded-xl p-6 shadow-sm">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div 
-                        className="p-2 rounded-lg"
-                        style={{ backgroundColor: brandColors.accent.light }}
-                      >
-                        <Server 
-                          className="h-5 w-5" 
-                          style={{ color: brandColors.accent.full }}
-                        />
-                      </div>
-                      <h3 className="text-lg font-semibold">Server Name <span className="text-red-500">*</span></h3>
-                    </div>
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <div className="flex gap-2">
-                            <FormControl>
-                              <Input 
-                                placeholder="Enter server name (required)..." 
-                                className="h-12" 
-                                {...field} 
-                              />
-                            </FormControl>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-12 w-12 shrink-0"
-                              onClick={() => field.onChange(generateRandomServerName())}
-                            >
-                              <Dices className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <FormDescription className="text-xs mt-2">
-                            Choose a unique identifier for your server (required field)
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
                 </div>
+              )}
 
-                {/* Right Column */}
+              {currentStep === 'os' && (
                 <div className="space-y-6">
-                  {/* Operating System */}
                   <div className="bg-card border rounded-xl p-6 shadow-sm">
                     <div className="flex items-center gap-3 mb-4">
                       <div 
@@ -1380,6 +1441,56 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {currentStep === 'details' && (
+                <div className="space-y-6">
+                  {/* Server Name */}
+                  <div className="bg-card border rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div 
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: brandColors.accent.light }}
+                      >
+                        <Server 
+                          className="h-5 w-5" 
+                          style={{ color: brandColors.accent.full }}
+                        />
+                      </div>
+                      <h3 className="text-lg font-semibold">Server Name <span className="text-red-500">*</span></h3>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input 
+                                placeholder="Enter server name (required)..." 
+                                className="h-12" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              className="h-12 w-12 shrink-0"
+                              onClick={() => field.onChange(generateRandomServerName())}
+                            >
+                              <Dices className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <FormDescription className="text-xs mt-2">
+                            Choose a unique identifier for your server (required field)
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   {/* SSH Keys */}
                   <div className="bg-card border rounded-xl p-6 shadow-sm">
@@ -1533,41 +1644,205 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                     />
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-6 border-t">
+              {currentStep === 'review' && (
+                <div className="space-y-6">
+                  <div className="bg-card border rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div 
+                        className="p-2 rounded-lg"
+                        style={{ backgroundColor: brandColors.primary.light }}
+                      >
+                        <CheckCircle 
+                          className="h-5 w-5" 
+                          style={{ color: brandColors.primary.full }}
+                        />
+                      </div>
+                      <h3 className="text-lg font-semibold">Review Configuration</h3>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {/* Package Review */}
+                      <div className="p-4 rounded-lg border bg-muted/30">
+                        <h4 className="font-medium mb-2 flex items-center gap-2">
+                          <Server className="h-4 w-4" />
+                          Server Package
+                        </h4>
+                        {selectedPackage && (
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Name:</span>
+                              <div className="font-medium">{selectedPackage.name}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Price:</span>
+                              <div className="font-medium">
+                                ${(() => {
+                                  const monthlyPrice = selectedPackage.pricing?.price || selectedPackage.price || 0;
+                                  const settings = publicSettings?.data ?? publicSettings ?? {};
+                                  const isHourlyBilling = (settings["virtfusion_self_service_hourly_credit"] ?? "true") === "true";
+                                  
+                                  if (isHourlyBilling) {
+                                    const hoursPerMonth = virtfusionCronData?.hoursPerMonth || 730;
+                                    const hourlyRate = monthlyPrice / hoursPerMonth;
+                                    return hourlyRate.toFixed(4) + ' /hr';
+                                  } else {
+                                    return monthlyPrice.toFixed(2) + ' /mo';
+                                  }
+                                })()}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">CPU:</span>
+                              <div className="font-medium">{selectedPackage.cpuCores} vCPU</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">RAM:</span>
+                              <div className="font-medium">{selectedPackage.memory}MB</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Storage:</span>
+                              <div className="font-medium">{selectedPackage.primaryStorage}GB SSD</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Location Review */}
+                      <div className="p-4 rounded-lg border bg-muted/30">
+                        <h4 className="font-medium mb-2 flex items-center gap-2">
+                          <Network className="h-4 w-4" />
+                          Datacenter Location
+                        </h4>
+                        {selectedHypervisorGroup && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Location:</span>
+                            <div className="font-medium">{selectedHypervisorGroup.name}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* OS Review */}
+                      <div className="p-4 rounded-lg border bg-muted/30">
+                        <h4 className="font-medium mb-2 flex items-center gap-2">
+                          <HardDrive className="h-4 w-4" />
+                          Operating System
+                        </h4>
+                        {selectedOsTemplate && (
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">OS:</span>
+                              <div className="font-medium">{selectedOsTemplate.name} {selectedOsTemplate.version}</div>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Type:</span>
+                              <div className="font-medium">{selectedOsTemplate.type}</div>
+                            </div>
+                            {selectedOsTemplate.variant && (
+                              <div>
+                                <span className="text-muted-foreground">Variant:</span>
+                                <div className="font-medium">{selectedOsTemplate.variant}</div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Server Details Review */}
+                      <div className="p-4 rounded-lg border bg-muted/30">
+                        <h4 className="font-medium mb-2 flex items-center gap-2">
+                          <Server className="h-4 w-4" />
+                          Server Details
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Name:</span>
+                            <div className="font-medium">{form.watch('name') || 'Not set'}</div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">SSH Keys:</span>
+                            <div className="font-medium">
+                              {form.watch('sshKeys')?.length > 0 
+                                ? `${form.watch('sshKeys').length} key(s)` 
+                                : 'None'
+                              }
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">VNC Console:</span>
+                            <div className="font-medium">{form.watch('vnc') ? 'Enabled' : 'Disabled'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step Navigation */}
+              <div className="flex justify-between gap-3 pt-6 border-t">
                 <Button
                   type="button"
                   variant="outline"
                   size="lg"
-                  onClick={() => onOpenChange(false)}
+                  onClick={prevStep}
+                  disabled={!canGoPrev()}
                   className="px-8"
                 >
-                  Cancel
+                  Previous
                 </Button>
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={createServerMutation.isPending || !selectedPackage || !selectedHypervisorGroup || !selectedOsTemplate || !form.watch('name')?.trim()}
-                  className="px-8"
-                  style={{
-                    background: `linear-gradient(to right, ${brandColors.primary.full}, ${brandColors.primary.dark})`,
-                    color: 'white'
-                  }}
-                >
-                  {createServerMutation.isPending ? (
-                    <>
-                      <Spinner className="mr-2 h-4 w-4" />
-                      Creating Server...
-                    </>
+                
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    onClick={() => onOpenChange(false)}
+                    className="px-8"
+                  >
+                    Cancel
+                  </Button>
+                  
+                  {currentStep === 'review' ? (
+                    <Button
+                      type="submit"
+                      size="lg"
+                      disabled={createServerMutation.isPending || !canGoNext()}
+                      className="px-8"
+                      style={{
+                        background: `linear-gradient(to right, ${brandColors.primary.full}, ${brandColors.primary.dark})`,
+                        color: 'white'
+                      }}
+                    >
+                      {createServerMutation.isPending ? (
+                        <>
+                          <Spinner className="mr-2 h-4 w-4" />
+                          Creating Server...
+                        </>
+                      ) : (
+                        <>
+                          <Server className="mr-2 h-4 w-4" />
+                          Create Server
+                        </>
+                      )}
+                    </Button>
                   ) : (
-                    <>
-                      <Server className="mr-2 h-4 w-4" />
-                      Create Server
-                    </>
+                    <Button
+                      type="button"
+                      size="lg"
+                      onClick={nextStep}
+                      disabled={!canGoNext()}
+                      className="px-8"
+                      style={{
+                        background: `linear-gradient(to right, ${brandColors.primary.full}, ${brandColors.primary.dark})`,
+                        color: 'white'
+                      }}
+                    >
+                      Next
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             </form>
           </Form>
