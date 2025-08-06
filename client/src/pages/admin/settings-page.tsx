@@ -2239,9 +2239,9 @@ export default function SettingsPage() {
 
                     {/* VirtFusion Cron Management */}
                     <div>
-                      <h3 className="text-lg font-medium">VirtFusion Hourly Billing Automation</h3>
+                      <h3 className="text-lg font-medium">VirtFusion Hourly/Monthly Billing Automation</h3>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Manage automated hourly billing for VirtFusion servers
+                        Manage automated hourly and monthly billing for VirtFusion servers
                       </p>
                     </div>
 
@@ -2429,17 +2429,21 @@ export default function SettingsPage() {
                         <Select
                           value={String(virtFusionForm.watch("selfServiceValue") ?? 1)}
                           onValueChange={(value) => virtFusionForm.setValue("selfServiceValue", parseInt(value), { shouldDirty: true, shouldValidate: true })}
+                          disabled
                         >
-                          <SelectTrigger id="selfServiceValue" className="w-full">
+                          <SelectTrigger id="selfServiceValue" className="w-full" disabled>
                             <SelectValue placeholder="Select self service value" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="0">0 - Disabled (No hourly billing)</SelectItem>
-                            <SelectItem value="1">1 - Enabled (Hourly billing enabled)</SelectItem>
+                            <SelectItem value="1">1 - Enabled (Hourly/Monthly billing enabled)</SelectItem>
                           </SelectContent>
                         </Select>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Controls whether users can use hourly billing in VirtFusion
+                          Controls whether users are created with the <code>SelfService Flag</code> in <code>VirtFusion</code>. 
+                          <br />
+                          <code>1 </code>
+                             to enable <code>SelfService</code> flag for new users, allowing them to manage their own servers, needed as 1 for whole system to fully work with the virtfusion token system.
                         </p>
                       </div>
 
@@ -2447,7 +2451,9 @@ export default function SettingsPage() {
                         <div className="space-y-0.5">
                           <Label htmlFor="selfServiceHourlyCredit">Self Service Hourly Credit</Label>
                           <p className="text-sm text-muted-foreground">
-                            Enable hourly credit for self service users
+                            Enable hourly cron billing system for <code>VirtFusion Enabled Billing Automation</code>
+                            <br /> 
+                            This allows users to be billed hourly for their server usage When Disabled We Bill Monthly.
                           </p>
                         </div>
                         <Switch
