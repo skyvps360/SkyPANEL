@@ -6952,15 +6952,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Now that we have the server ID, update the transaction description
       try {
-        const hourlyTokens = Math.ceil(hourlyRate * 100);
-        const dollarAmount = hourlyTokens / 100;
+        // Check if hourly or monthly billing is enabled
+        const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+        const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+        
+        // Determine the original transaction description based on billing mode
+        const originalDescription = `Server creation ${isHourlyBilling ? 'hourly' : 'monthly'} charge (${isHourlyBilling ? '1 hour' : '1 month'}) for package ${packageName}`;
         
         // Find the transaction we created earlier
         const initialTransaction = await storage.db.select()
           .from(transactions)
           .where(and(
             eq(transactions.userId, user.id),
-            eq(transactions.description, `Server creation hourly charge (1 hour) for package ${packageName}`),
+            eq(transactions.description, originalDescription),
             eq(transactions.status, 'completed')
           ))
           .orderBy(desc(transactions.createdAt))
@@ -6968,15 +6972,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (initialTransaction.length > 0) {
           const transactionToUpdate = initialTransaction[0];
-          const newDescription = `Server #${serverId} - Hourly Charge (1 hour) for package ${packageName}`;
+          const newDescription = `Server #${serverId} - ${isHourlyBilling ? 'Hourly' : 'Monthly'} Charge (${isHourlyBilling ? '1 hour' : '1 month'}) for package ${packageName}`;
           
           await storage.updateTransaction(transactionToUpdate.id, {
             description: newDescription
           });
           
-          console.log(`Updated transaction ${transactionToUpdate.id} with server ID ${serverId}`);
+          console.log(`Updated transaction ${transactionToUpdate.id} with server ID ${serverId} for ${isHourlyBilling ? 'hourly' : 'monthly'} billing`);
         } else {
-          console.warn(`Could not find the initial transaction to update for user ${user.id} and package ${packageName}`);
+          console.warn(`Could not find the initial transaction to update for user ${user.id} and package ${packageName} with description: ${originalDescription}`);
         }
       } catch (updateError) {
         console.error('Error updating transaction with server ID:', updateError);

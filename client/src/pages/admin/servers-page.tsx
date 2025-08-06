@@ -46,7 +46,6 @@ import { AlertCircle, ChevronRight, Server, RefreshCw, RotateCw, Plus } from "lu
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import ServerCreateModal from "@/components/admin/ServerCreateModal";
 
 
 function getStatusBadgeVariant(status: string) {
@@ -95,7 +94,6 @@ export default function ServersListPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Fetch all users to create VirtFusion ID -> User ID mapping
   const { data: users } = useQuery({
@@ -652,17 +650,6 @@ export default function ServersListPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Server Creation Modal */}
-        <ServerCreateModal 
-          open={showCreateModal}
-          onOpenChange={setShowCreateModal}
-          onSuccess={() => {
-            // Refresh the server list after successful creation
-            refetch();
-            setLastRefreshed(new Date());
-          }}
-        />
 
       </div>
     </AdminLayout>
