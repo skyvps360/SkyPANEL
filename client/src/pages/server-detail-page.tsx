@@ -2053,27 +2053,47 @@ export default function ServerDetailPage() {
               </div>
             </div>
 
-            {/* Hourly Cost Card */}
+            {/* Billing Cost Card */}
             <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
               <div className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <DollarSign className="h-4 w-4" />
-                      <span>Hourly Cost</span>
+                      <span>
+                        {billingData?.billingType === 'monthly' ? 'Monthly Cost' : 'Hourly Cost'}
+                      </span>
                     </div>
                     <div className="text-2xl font-bold text-foreground">
                       {billingLoading ? (
                         <span className="text-muted-foreground">Loading...</span>
-                      ) : billingData?.hourlyRate ? (
-                        `$${billingData.hourlyRate.toFixed(4)}`
+                      ) : billingData?.billingType === 'monthly' ? (
+                        billingData?.monthlyPrice ? (
+                          `$${billingData.monthlyPrice.toFixed(2)}`
+                        ) : '$0.00'
                       ) : (
-                        '$0.0000'
+                        billingData?.hourlyRate ? (
+                          `$${billingData.hourlyRate.toFixed(4)}`
+                        ) : '$0.0000'
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {billingData?.billingType === 'monthly' ? 'monthly billing' : 'per hour'}
+                      {billingData?.billingType === 'monthly' ? (
+                        <span>billed monthly on the 1st</span>
+                      ) : (
+                        <span>per hour of uptime</span>
+                      )}
                     </div>
+                    {/* Additional billing context for running servers */}
+                    {!billingLoading && billingData && isServerRunning && (
+                      <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border/50">
+                        {billingData.billingType === 'monthly' ? (
+                          <span>💡 Fixed monthly charge regardless of uptime</span>
+                        ) : (
+                          <span>💡 Currently accruing hourly charges</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
                     <DollarSign className="h-6 w-6 text-primary" />
@@ -2535,6 +2555,122 @@ export default function ServerDetailPage() {
                           <span className="text-sm font-semibold text-slate-800">{formatDate(server.updated)}</span>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Billing Information Card - Full Row */}
+                <div className="lg:col-span-3">
+                  <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="text-xl flex items-center gap-3 text-slate-800">
+                        <div className="p-2 rounded-lg" style={{ backgroundColor: brandColors.primary.light }}>
+                          <DollarSign className="h-5 w-5" style={{ color: brandColors.primary.full }} />
+                        </div>
+                        Billing Information
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {billingLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                          <span className="text-muted-foreground">Loading billing information...</span>
+                        </div>
+                      ) : billingData ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {/* Billing Mode */}
+                          <div className="flex flex-col space-y-2 p-4 rounded-lg" style={{ backgroundColor: brandColors.primary.extraLight }}>
+                            <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Billing Mode</span>
+                            <span className="text-sm font-semibold text-slate-800 capitalize">
+                              {billingData.billingType} Billing
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {billingData.billingType === 'monthly' 
+                                ? 'Charged monthly on the 1st'
+                                : 'Charged per hour of uptime'
+                              }
+                            </span>
+                          </div>
+
+                          {/* Current Cost */}
+                          <div className="flex flex-col space-y-2 p-4 rounded-lg" style={{ backgroundColor: brandColors.secondary.extraLight }}>
+                            <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                              {billingData.billingType === 'monthly' ? 'Monthly Rate' : 'Hourly Rate'}
+                            </span>
+                            <span className="text-lg font-bold text-slate-800">
+                              {billingData.billingType === 'monthly' 
+                                ? `$${billingData.monthlyPrice?.toFixed(2) || '0.00'}`
+                                : `$${billingData.hourlyRate?.toFixed(4) || '0.0000'}`
+                              }
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {billingData.billingType === 'monthly' ? 'per month' : 'per hour'}
+                            </span>
+                          </div>
+
+                          {/* Additional Info */}
+                          <div className="flex flex-col space-y-2 p-4 rounded-lg" style={{ backgroundColor: brandColors.accent.extraLight }}>
+                            <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">
+                              {billingData.billingType === 'monthly' ? 'Cost Calculation' : 'Monthly Estimate'}
+                            </span>
+                            <span className="text-sm font-semibold text-slate-800">
+                              {billingData.billingType === 'monthly' 
+                                ? 'Fixed monthly charge'
+                                : billingData.monthlyPrice 
+                                  ? `~$${billingData.monthlyPrice.toFixed(2)}`
+                                  : 'N/A'
+                              }
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {billingData.billingType === 'monthly' 
+                                ? 'Regardless of server uptime'
+                                : `Based on ${billingData.hoursInMonth || 730} hours/month`
+                              }
+                            </span>
+                          </div>
+
+                          {/* Server Status Impact */}
+                          {isServerRunning && (
+                            <div className="md:col-span-2 lg:col-span-3 p-4 rounded-lg bg-green-50 border border-green-200">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                                <div>
+                                  <p className="text-sm font-medium text-green-800">
+                                    {billingData.billingType === 'monthly' 
+                                      ? '💰 Monthly billing active - you pay the same amount regardless of server uptime'
+                                      : '⏱️ Server is running - hourly charges are being applied'
+                                    }
+                                  </p>
+                                  {billingData.billingType === 'hourly' && (
+                                    <p className="text-xs text-green-600 mt-1">
+                                      Current hour charge: ${billingData.hourlyRate?.toFixed(4) || '0.0000'}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {!isServerRunning && billingData.billingType === 'hourly' && (
+                            <div className="md:col-span-2 lg:col-span-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                                <div>
+                                  <p className="text-sm font-medium text-blue-800">
+                                    💡 Server is stopped - no hourly charges are being applied
+                                  </p>
+                                  <p className="text-xs text-blue-600 mt-1">
+                                    Start the server to begin hourly billing at ${billingData.hourlyRate?.toFixed(4) || '0.0000'}/hour
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center py-8">
+                          <span className="text-muted-foreground">No billing information available</span>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
