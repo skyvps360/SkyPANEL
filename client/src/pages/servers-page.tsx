@@ -567,7 +567,7 @@ export default function ServersPage() {
                   <TableHead className="hidden xl:table-cell px-3 py-4 w-32"><Skeleton className="h-4 w-16" /></TableHead>
                   <TableHead className="px-3 py-4 w-24"><Skeleton className="h-4 w-12" /></TableHead>
                   <TableHead className="hidden lg:table-cell px-3 py-4 w-40"><Skeleton className="h-4 w-20" /></TableHead>
-                  <TableHead className="hidden xl:table-cell px-3 py-4 w-28"><Skeleton className="h-4 w-14" /></TableHead>
+                  <TableHead className="px-3 py-4 w-28"><Skeleton className="h-4 w-14" /></TableHead>
                   <TableHead className="px-3 py-4 w-24"><Skeleton className="h-4 w-16" /></TableHead>
                 </TableRow>
               </TableHeader>
@@ -592,7 +592,7 @@ export default function ServersPage() {
                         <Skeleton className="h-3 w-16" />
                       </div>
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell px-3 py-4"><Skeleton className="h-5 w-12 rounded-full" /></TableCell>
+                    <TableCell className="px-3 py-4"><Skeleton className="h-5 w-12 rounded-full" /></TableCell>
                     <TableCell className="px-3 py-4"><Skeleton className="h-7 w-16 rounded-lg" /></TableCell>
                   </TableRow>
                 ))}
@@ -610,7 +610,7 @@ export default function ServersPage() {
                     <TableHead className="hidden xl:table-cell px-3 py-4 text-sm font-medium text-gray-600 w-32">Location</TableHead>
                     <TableHead className="px-3 py-4 text-sm font-medium text-gray-600 w-24">Status</TableHead>
                     <TableHead className="hidden lg:table-cell px-3 py-4 text-sm font-medium text-gray-600 w-40">Resources</TableHead>
-                    <TableHead className="hidden xl:table-cell px-3 py-4 text-sm font-medium text-gray-600 w-28">Billing</TableHead>
+                    <TableHead className="px-3 py-4 text-sm font-medium text-gray-600 w-28">Billing</TableHead>
                     <TableHead className="px-3 py-4 text-sm font-medium text-gray-600 w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -722,7 +722,7 @@ export default function ServersPage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell className="hidden xl:table-cell px-3 py-4">
+                        <TableCell className="px-3 py-4">
                           <Badge
                             variant={
                               server.billingCycle === 'Hourly' ? 'default' :
@@ -737,7 +737,7 @@ export default function ServersPage() {
                                 : 'bg-gray-100 text-gray-800 border-gray-200'
                             }`}
                           >
-                            {server.billingCycle || 'VirtFusion'}
+                            {server.billingCycle || 'Monthly'}
                           </Badge>
                         </TableCell>
                         <TableCell className="px-3 py-4">
