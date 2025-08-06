@@ -856,7 +856,8 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                       <div>
                         <label className="text-sm font-medium">
                           VirtFusion Credits {(() => {
-                            const isHourlyBilling = virtfusionSettings?.selfServiceHourlyCredit !== false;
+                            const settings = publicSettings?.data ?? publicSettings ?? {};
+                            const isHourlyBilling = (settings["virtfusion_self_service_hourly_credit"] ?? "true") === "true";
                             return (
                               <span className="text-xs font-normal text-muted-foreground">
                                 ({isHourlyBilling ? 'Hourly Billing' : 'Monthly Billing'})
@@ -948,8 +949,9 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                                             ${(() => {
                                               const monthlyPrice = selectedPackage.pricing?.price || selectedPackage.price || 0;
                                               
-                                              // Check if hourly billing is enabled from VirtFusion settings
-                                              const isHourlyBilling = virtfusionSettings?.selfServiceHourlyCredit !== false;
+                                              // Check if hourly billing is enabled from public settings
+                                              const settings = publicSettings?.data ?? publicSettings ?? {};
+                                              const isHourlyBilling = (settings["virtfusion_self_service_hourly_credit"] ?? "true") === "true";
                                               
                                               if (isHourlyBilling) {
                                                 const hoursPerMonth = virtfusionCronData?.hoursPerMonth || 730;
@@ -1043,8 +1045,9 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                                             ${(() => {
                                               const monthlyPrice = pkg.pricing?.price || pkg.price || 0;
                                               
-                                              // Check if hourly billing is enabled from VirtFusion settings
-                                              const isHourlyBilling = virtfusionSettings?.selfServiceHourlyCredit !== false;
+                                              // Check if hourly billing is enabled from public settings
+                                              const settings = publicSettings?.data ?? publicSettings ?? {};
+                                              const isHourlyBilling = (settings["virtfusion_self_service_hourly_credit"] ?? "true") === "true";
                                               
                                               if (isHourlyBilling) {
                                                 const hoursPerMonth = virtfusionCronData?.hoursPerMonth || 730;
@@ -1347,7 +1350,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                           background: `linear-gradient(to right, ${brandColors.secondary.extraLight}, ${brandColors.secondary.lighter})`,
                         }}
                       >
-                        <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
                           <CheckCircle 
                             className="h-4 w-4" 
                             style={{ color: brandColors.secondary.full }}

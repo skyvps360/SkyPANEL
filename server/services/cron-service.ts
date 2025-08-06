@@ -457,8 +457,12 @@ export class CronService {
         return;
       }
 
-      // Initialize hourly billing job (runs every hour)
-              if (setting.hourlyBillingEnabled) {
+      // Check current billing mode from the Self Service Hourly Credit setting
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      
+      // Only start the appropriate job based on billing mode
+      if (isHourlyBilling && setting.hourlyBillingEnabled) {
         this.virtfusionHourlyJob = cron.schedule(
           '0 * * * *', // Every hour at minute 0
           async () => {
@@ -470,10 +474,7 @@ export class CronService {
         );
         this.virtfusionHourlyJob.start();
         console.log('✅ VirtFusion hourly billing cron job started (every hour)');
-      }
-
-      // Initialize monthly billing job (runs on 1st of every month at 3 AM UTC)
-              if (setting.billingOnFirstEnabled) {
+      } else if (!isHourlyBilling && setting.billingOnFirstEnabled) {
         this.virtfusionMonthlyJob = cron.schedule(
           '0 3 1 * *', // 1st day of month at 3 AM UTC
           async () => {
@@ -485,6 +486,8 @@ export class CronService {
         );
         this.virtfusionMonthlyJob.start();
         console.log('✅ VirtFusion monthly billing cron job started (1st of month at 3 AM UTC)');
+      } else {
+        console.log(`ℹ️ No VirtFusion cron job started - billing mode: ${isHourlyBilling ? 'hourly' : 'monthly'}`);
       }
 
     } catch (error) {
@@ -520,9 +523,9 @@ export class CronService {
       if (!setting) {
         await storage.db.insert(virtfusionCronSettings).values({
           enabled: true,
-          hoursPerMonth: 730,
+          hourlyBillingEnabled: isHourlyBilling,
           billingOnFirstEnabled: !isHourlyBilling, // Enable monthly when hourly is disabled
-          hourlyBillingEnabled: isHourlyBilling     // Enable hourly when hourly billing is enabled
+          hoursPerMonth: 730 // Default hours per month
         });
         
         // Fetch the newly created settings
@@ -690,9 +693,18 @@ export class CronService {
       }
 
       if (enabled) {
-        // Reinitialize jobs with new settings
-        await this.initializeVirtFusionCronJobs();
-        console.log('✅ VirtFusion cron jobs reinitialized and started');
+        // Check current billing mode from the Self Service Hourly Credit setting
+        const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+        const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+        
+        // Only start the appropriate job based on billing mode
+        if (isHourlyBilling) {
+          this.startVirtFusionHourlyJob();
+        } else {
+          this.startVirtFusionMonthlyJob();
+        }
+        
+        console.log(`✅ VirtFusion cron jobs updated for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode`);
       } else {
         console.log('✅ VirtFusion cron jobs disabled');
       }
@@ -721,9 +733,18 @@ export class CronService {
         this.virtfusionMonthlyJob = null;
       }
 
-      // Reinitialize jobs
-      await this.initializeVirtFusionCronJobs();
-      console.log('✅ VirtFusion cron jobs restarted');
+      // Check current billing mode from the Self Service Hourly Credit setting
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      
+      // Only start the appropriate job based on billing mode
+      if (isHourlyBilling) {
+        this.startVirtFusionHourlyJob();
+      } else {
+        this.startVirtFusionMonthlyJob();
+      }
+      
+      console.log(`✅ VirtFusion cron jobs restarted for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode`);
     } catch (error) {
       console.error('Error restarting VirtFusion cron jobs:', error);
       throw error;

@@ -8736,6 +8736,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // VirtFusion URL for maintenance page direct access
             'virtfusion_api_url',
 
+            // VirtFusion billing settings - needed for client server creation modal
+            'virtfusion_self_service_hourly_credit',
+
             // Enterprise features settings
             'enterprise_features_heading',
             'enterprise_features_subheading',
