@@ -893,7 +893,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page as string) || 1;
       const perPage = parseInt(req.query.perPage as string) || 10;
 
-
+      // Get VirtFusion billing automation setting
+      let virtfusionBillingEnabled = true; // Default to enabled
+      try {
+        const { sql } = await import('drizzle-orm');
+        const cronSettings = await storage.db.select()
+          .from(virtfusionCronSettings)
+          .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+          .limit(1);
+        
+        if (cronSettings.length > 0) {
+          virtfusionBillingEnabled = cronSettings[0].hourlyBillingEnabled;
+        }
+      } catch (error) {
+        console.warn('Failed to fetch VirtFusion cron settings, defaulting to enabled:', error);
+      }
 
       // Get user to find their VirtFusion ID
       const user = await storage.getUser(userId);
@@ -1070,11 +1084,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   .limit(1);
 
                 if (billingRecord.length > 0) {
+                  // Server has hourly billing record (created through our app)
                   billingCycle = "Hourly";
                 } else {
-                  // Check if server exists in VirtFusion but not in hourly billing
-                  // This would indicate monthly billing (handled by VirtFusion directly)
-                  billingCycle = "Monthly";
+                  // Server has no hourly billing record (created externally)
+                  if (virtfusionBillingEnabled) {
+                    // When VirtFusion billing automation is ON, show "Monthly" 
+                    billingCycle = "Monthly";
+                  } else {
+                    // When VirtFusion billing automation is OFF, show "Virtfusion Controlled"
+                    billingCycle = "Virtfusion Controlled";
+                  }
                 }
               } catch (billingError) {
                 console.warn(`Failed to fetch billing info for server ${server.id}:`, billingError);
@@ -1113,7 +1133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ipv6s: [],
                 network: {},
                 isNat: false,
-                billingCycle: "VirtFusion Controlled"
+                billingCycle: virtfusionBillingEnabled ? "Monthly" : "VirtFusion Controlled"
               });
             }
           } catch (error) {
@@ -1126,7 +1146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ipv6s: [],
               network: {},
               isNat: false,
-              billingCycle: "VirtFusion Controlled"
+              billingCycle: virtfusionBillingEnabled ? "Monthly" : "VirtFusion Controlled"
             });
           }
         }
