@@ -2186,57 +2186,6 @@ export default function SettingsPage() {
 
                     <Separator />
 
-                    {/* Hourly Billing Settings */}
-                    <div>
-                      <h3 className="text-lg font-medium">Server Hourly Billing Settings</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Configure hourly billing for server uptime tracking
-                      </p>
-                    </div>
-
-                    <div className="space-y-4">
-
-
-                      <div className="space-y-2">
-                        <Label htmlFor="serverHoursPerMonth">Hours Per Month</Label>
-                        <Input
-                          id="serverHoursPerMonth"
-                          type="number"
-                          min="1"
-                          max="8760"
-                          step="1"
-                          {...virtFusionForm.register("serverHoursPerMonth")}
-                        />
-                        {virtFusionForm.formState.errors.serverHoursPerMonth && (
-                          <p className="text-sm text-destructive mt-1">
-                            {virtFusionForm.formState.errors.serverHoursPerMonth.message}
-                          </p>
-                        )}
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Number of hours in a full month (default: 730 hours = 30.4 days)
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="serverHourlyBillingCronSchedule">Cron Schedule</Label>
-                        <Input
-                          id="serverHourlyBillingCronSchedule"
-                          placeholder="0 * * * *"
-                          {...virtFusionForm.register("serverHourlyBillingCronSchedule")}
-                        />
-                        {virtFusionForm.formState.errors.serverHourlyBillingCronSchedule && (
-                          <p className="text-sm text-destructive mt-1">
-                            {virtFusionForm.formState.errors.serverHourlyBillingCronSchedule.message}
-                          </p>
-                        )}
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Cron schedule for hourly billing (default: 0 * * * * = every hour)
-                        </p>
-                      </div>
-                    </div>
-
-                    <Separator />
-
                     {/* VirtFusion Cron Management */}
                     <div>
                       <h3 className="text-lg font-medium">VirtFusion Hourly/Monthly Billing Automation</h3>
@@ -2341,6 +2290,55 @@ export default function SettingsPage() {
                           checked={virtFusionForm.watch("selfServiceHourlyCredit")}
                           onCheckedChange={(checked) => virtFusionForm.setValue("selfServiceHourlyCredit", checked, { shouldDirty: true })}
                         />
+                      </div>
+
+                      {/* Server Hourly Billing Settings */}
+                      <div className="border-t pt-4">
+                        <div className="mb-3">
+                          <h4 className="text-base font-medium">Server Hourly Billing Settings</h4>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Configure hourly billing for server uptime tracking
+                          </p>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="serverHoursPerMonth">Hours Per Month</Label>
+                            <Input
+                              id="serverHoursPerMonth"
+                              type="number"
+                              min="1"
+                              max="8760"
+                              step="1"
+                              {...virtFusionForm.register("serverHoursPerMonth")}
+                            />
+                            {virtFusionForm.formState.errors.serverHoursPerMonth && (
+                              <p className="text-sm text-destructive mt-1">
+                                {virtFusionForm.formState.errors.serverHoursPerMonth.message}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Number of hours in a full month (default: 730 hours = 30.4 days)
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="serverHourlyBillingCronSchedule">Cron Schedule</Label>
+                            <Input
+                              id="serverHourlyBillingCronSchedule"
+                              placeholder="0 * * * *"
+                              {...virtFusionForm.register("serverHourlyBillingCronSchedule")}
+                            />
+                            {virtFusionForm.formState.errors.serverHourlyBillingCronSchedule && (
+                              <p className="text-sm text-destructive mt-1">
+                                {virtFusionForm.formState.errors.serverHourlyBillingCronSchedule.message}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Cron schedule for hourly billing (default: 0 * * * * = every hour)
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
                       {virtfusionCronData?.virtfusionStats && (
