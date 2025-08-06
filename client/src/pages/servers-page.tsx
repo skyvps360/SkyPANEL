@@ -723,22 +723,44 @@ export default function ServersPage() {
                           </div>
                         </TableCell>
                         <TableCell className="px-3 py-4">
-                          <Badge
-                            variant={
-                              server.billingCycle === 'Hourly' ? 'default' :
-                              server.billingCycle === 'Monthly' ? 'secondary' :
-                              'outline'
+                          {(() => {
+                            // Determine billing badge text and variant based on VirtFusion automation status
+                            let billingText: string;
+                            let billingVariant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info";
+                            let billingClassName: string;
+                            
+                            // If VirtFusion automation is disabled, show "VirtFusion Controlled"
+                            if (!isVirtFusionEnabled) {
+                              billingText = 'VirtFusion Controlled';
+                              billingVariant = 'info';
+                              billingClassName = 'bg-blue-100 text-blue-800 border-blue-200';
                             }
-                            className={`text-xs font-medium px-2 py-1 rounded-full ${
-                              server.billingCycle === 'Hourly'
-                                ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                : server.billingCycle === 'Monthly'
-                                ? 'bg-green-100 text-green-800 border-green-200'
-                                : 'bg-gray-100 text-gray-800 border-gray-200'
-                            }`}
-                          >
-                            {server.billingCycle || 'Monthly'}
-                          </Badge>
+                            // If VirtFusion automation is enabled, show regular billing cycle
+                            else if (server.billingCycle === 'Hourly') {
+                              billingText = 'Hourly';
+                              billingVariant = 'default';
+                              billingClassName = 'bg-blue-100 text-blue-800 border-blue-200';
+                            }
+                            else if (server.billingCycle === 'Monthly') {
+                              billingText = 'Monthly';
+                              billingVariant = 'secondary';
+                              billingClassName = 'bg-green-100 text-green-800 border-green-200';
+                            }
+                            else {
+                              billingText = server.billingCycle || 'Monthly';
+                              billingVariant = 'outline';
+                              billingClassName = 'bg-gray-100 text-gray-800 border-gray-200';
+                            }
+                            
+                            return (
+                              <Badge
+                                variant={billingVariant}
+                                className={`text-xs font-medium px-2 py-1 rounded-full ${billingClassName}`}
+                              >
+                                {billingText}
+                              </Badge>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="px-3 py-4">
                             <Link href={`/servers/${server.id}`}>
