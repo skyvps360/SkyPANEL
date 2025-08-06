@@ -1273,7 +1273,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                       )}
                     />
                   </div>
-                </div>
+                      </div>
               )}
 
               {currentStep === 'os' && (
@@ -1660,8 +1660,8 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                         />
                       </div>
                       <h3 className="text-lg font-semibold">Review Configuration</h3>
-                    </div>
-                    
+              </div>
+
                     <div className="space-y-4">
                       {/* Package Review */}
                       <div className="p-4 rounded-lg border bg-muted/30">
@@ -1794,39 +1794,39 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                 </Button>
                 
                 <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="lg"
-                    onClick={() => onOpenChange(false)}
-                    className="px-8"
-                  >
-                    Cancel
-                  </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  onClick={() => onOpenChange(false)}
+                  className="px-8"
+                >
+                  Cancel
+                </Button>
                   
                   {currentStep === 'review' ? (
-                    <Button
-                      type="submit"
-                      size="lg"
+                <Button
+                  type="submit"
+                  size="lg"
                       disabled={createServerMutation.isPending || !canGoNext()}
-                      className="px-8"
-                      style={{
-                        background: `linear-gradient(to right, ${brandColors.primary.full}, ${brandColors.primary.dark})`,
-                        color: 'white'
-                      }}
-                    >
-                      {createServerMutation.isPending ? (
-                        <>
-                          <Spinner className="mr-2 h-4 w-4" />
-                          Creating Server...
-                        </>
-                      ) : (
-                        <>
-                          <Server className="mr-2 h-4 w-4" />
-                          Create Server
-                        </>
-                      )}
-                    </Button>
+                  className="px-8"
+                  style={{
+                    background: `linear-gradient(to right, ${brandColors.primary.full}, ${brandColors.primary.dark})`,
+                    color: 'white'
+                  }}
+                >
+                  {createServerMutation.isPending ? (
+                    <>
+                      <Spinner className="mr-2 h-4 w-4" />
+                      Creating Server...
+                    </>
+                  ) : (
+                    <>
+                      <Server className="mr-2 h-4 w-4" />
+                          Create {form.watch('name')?.trim() || 'Server'} Server
+                    </>
+                  )}
+                </Button>
                   ) : (
                     <Button
                       type="button"
@@ -1839,7 +1839,10 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
                         color: 'white'
                       }}
                     >
-                      Next
+                      {currentStep === 'details' && form.watch('name')?.trim() ? 
+                        `Create ${form.watch('name').trim()} Server` : 
+                        'Next'
+                      }
                     </Button>
                   )}
                 </div>

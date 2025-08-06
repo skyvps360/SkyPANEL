@@ -569,6 +569,7 @@ export default function ServersPage() {
                   <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-16" /></TableHead>
                   <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-16" /></TableHead>
                   <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-20" /></TableHead>
+                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-16" /></TableHead>
                   <TableHead className="px-8 py-5"><Skeleton className="h-5 w-24" /></TableHead>
                 </TableRow>
               </TableHeader>
@@ -589,6 +590,7 @@ export default function ServersPage() {
                     <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-16" /></TableCell>
                     <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
                     <TableCell className="px-8 py-6"><Skeleton className="h-9 w-24 rounded-lg" /></TableCell>
                   </TableRow>
                 ))}
@@ -624,6 +626,7 @@ export default function ServersPage() {
                     <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">CPU</TableHead>
                     <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">RAM</TableHead>
                     <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">Storage</TableHead>
+                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">Billing</TableHead>
                     <TableHead className="px-8 py-5 text-sm font-medium text-gray-600">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -743,6 +746,27 @@ export default function ServersPage() {
                                 ? `${server.storage[0].capacity}GB`
                                 : '—'}
                             </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell px-8 py-6">
+                          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                            <Zap className="h-4 w-4" />
+                            <Badge
+                              variant={
+                                server.billingCycle === 'Hourly' ? 'default' :
+                                server.billingCycle === 'Monthly' ? 'secondary' :
+                                'outline'
+                              }
+                              className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                server.billingCycle === 'Hourly'
+                                  ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                  : server.billingCycle === 'Monthly'
+                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  : 'bg-gray-100 text-gray-800 border-gray-200'
+                              }`}
+                            >
+                              {server.billingCycle || 'VirtFusion Controlled'}
+                            </Badge>
                           </div>
                         </TableCell>
                         <TableCell className="px-8 py-6">

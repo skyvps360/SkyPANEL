@@ -5,7 +5,7 @@ import axios from "axios";
 import * as net from "net";
 import { WebSocketServer } from "ws";
 import { storage } from "./storage";
-import { db, pool } from "./db";
+import { db, pool } from "./db.ts";
 import { hashPassword, setupAuth } from "./auth";
 import { AuthService } from "./services/auth/auth-service";
 import { OAuthService } from "./services/auth/oauth-service";
@@ -95,20 +95,6 @@ function isAdmin(req: Request, res: Response, next: Function) {
 }
 
 // Duplicate VirtFusion API class removed - using imported global instance instead
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export async function registerRoutes(app: Express): Promise<Server> {
 
@@ -1040,7 +1026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (server.package?.id) {
                 try {
                   // Import database and schema
-                  const { db } = await import('../db');
+                  const { db } = await import('./db.ts');
                   const { packagePricing, packageCategories } = await import('../../shared/schema');
                   const { eq } = await import('drizzle-orm');
 
@@ -1064,7 +1050,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               }
 
-              // Create processed server object with IP information and package category
+              // Get billing cycle information
+              let billingCycle = "VirtFusion Controlled";
+              try {
+                const { db } = await import('./db.ts');
+                const { eq } = await import('drizzle-orm');
+
+                // Check if server has hourly billing record
+                const billingRecord = await db
+                  .select()
+                  .from(virtfusionHourlyBilling)
+                  .where(
+                    and(
+                      eq(virtfusionHourlyBilling.serverId, server.id),
+                      eq(virtfusionHourlyBilling.userId, userId),
+                      eq(virtfusionHourlyBilling.billingEnabled, true)
+                    )
+                  )
+                  .limit(1);
+
+                if (billingRecord.length > 0) {
+                  billingCycle = "Hourly";
+                } else {
+                  // Check if server exists in VirtFusion but not in hourly billing
+                  // This would indicate monthly billing (handled by VirtFusion directly)
+                  billingCycle = "Monthly";
+                }
+              } catch (billingError) {
+                console.warn(`Failed to fetch billing info for server ${server.id}:`, billingError);
+                billingCycle = "VirtFusion Controlled";
+              }
+
+              // Create processed server object with IP information, package category, and billing cycle
               const processedServer = {
                 ...server,
                 id: server.id,
@@ -1081,7 +1098,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 os: server.os?.name || "Unknown",
                 package: server.package?.name || "Unknown",
                 packageCategory: packageCategory,
-                packageCategoryName: packageCategoryName
+                packageCategoryName: packageCategoryName,
+                billingCycle: billingCycle
               };
 
               detailedServers.push(processedServer);
@@ -1094,7 +1112,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ipv4s: [],
                 ipv6s: [],
                 network: {},
-                isNat: false
+                isNat: false,
+                billingCycle: "VirtFusion Controlled"
               });
             }
           } catch (error) {
@@ -1106,7 +1125,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ipv4s: [],
               ipv6s: [],
               network: {},
-              isNat: false
+              isNat: false,
+              billingCycle: "VirtFusion Controlled"
             });
           }
         }
