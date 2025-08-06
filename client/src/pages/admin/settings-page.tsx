@@ -2278,11 +2278,12 @@ export default function SettingsPage() {
 
                       <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
-                          <Label htmlFor="selfServiceHourlyCredit">Self Service Hourly/Monthly Credit</Label>
+                          <Label htmlFor="selfServiceHourlyCredit">Self Service Monthly/Hourly Credit</Label>
                           <p className="text-sm text-muted-foreground">
                             Enable hourly cron billing system for VirtFusion Enabled Billing Automation
-                            <br /> 
-                            This allows users to be billed hourly for their server usage. When Disabled We Bill Monthly.
+                            <br />
+                            This allows users to be billed hourly for their server usage. When Disabled We will bill <code>Monthly</code>, and when its Enabled We Will bill <code>Hourly</code>.
+                            <br /> This only works when the <code>Enable VirtFusion Billing Automation</code> option is enabled above.
                           </p>
                         </div>
                         <Switch
