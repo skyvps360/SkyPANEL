@@ -1989,7 +1989,7 @@ export default function ServerDetailPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Cpu className="h-4 w-4" />
-                      <span>CPU Cores</span>
+                      <span>vCPU</span>
                     </div>
                     <div className="text-2xl font-bold text-foreground">
                       {server?.cpu?.cores || server?.settings?.resources?.cpuCores || 'N/A'}
@@ -2012,7 +2012,7 @@ export default function ServerDetailPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <HardDrive className="h-4 w-4" />
-                      <span>Storage</span>
+                      <span>NVMe SSD</span>
                     </div>
                     <div className="text-2xl font-bold text-foreground">
                       {server?.settings?.resources?.storage ?
@@ -2495,7 +2495,7 @@ export default function ServerDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                   <Cpu className="h-12 w-12 text-primary mb-2" />
-                  <h3 className="font-semibold text-lg">CPU</h3>
+                  <h3 className="font-semibold text-lg">vCPU</h3>
                   <p className="text-2xl font-bold">{server?.cpu?.cores || "N/A"} Cores</p>
                 </div>
 
@@ -2511,7 +2511,7 @@ export default function ServerDetailPage() {
 
                 <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                   <HardDrive className="h-12 w-12 text-primary mb-2" />
-                  <h3 className="font-semibold text-lg">Storage</h3>
+                  <h3 className="font-semibold text-lg">NVMe SSD</h3>
                   <p className="text-2xl font-bold">
                     {server?.storage && server.storage.length > 0
                       ? `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB`
@@ -2526,25 +2526,25 @@ export default function ServerDetailPage() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Cpu className="h-5 w-5" />
-                    CPU Configuration
+                    vCPU Configuration
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <h3 className="font-semibold text-sm text-muted-foreground">CPU Details</h3>
+                      <h3 className="font-semibold text-sm text-muted-foreground">vCPU Details</h3>
                       <table className="w-full text-sm">
                         <tbody>
                           <tr>
-                            <td className="py-1 pr-2 text-muted-foreground w-1/3">CPU Cores:</td>
+                            <td className="py-1 pr-2 text-muted-foreground w-1/3">vCPU Cores:</td>
                             <td className="py-1 font-medium">{server?.cpu?.cores || 'N/A'}</td>
                           </tr>
                           <tr>
-                            <td className="py-1 pr-2 text-muted-foreground">CPU Type:</td>
+                            <td className="py-1 pr-2 text-muted-foreground">vCPU Type:</td>
                             <td className="py-1 font-medium">{server?.cpu?.typeExact || server?.cpu?.type || 'N/A'}</td>
                           </tr>
                           <tr>
-                            <td className="py-1 pr-2 text-muted-foreground">CPU Shares:</td>
+                            <td className="py-1 pr-2 text-muted-foreground">vCPU Shares:</td>
                             <td className="py-1 font-medium">{server?.cpu?.shares || 'N/A'}</td>
                           </tr>
                           <tr>
@@ -2557,7 +2557,7 @@ export default function ServerDetailPage() {
 
                     {server?.cpu?.topology?.enabled && (
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-sm text-muted-foreground">CPU Topology</h3>
+                        <h3 className="font-semibold text-sm text-muted-foreground">vCPU Topology</h3>
                         <table className="w-full text-sm">
                           <tbody>
                             <tr>
@@ -2695,7 +2695,7 @@ export default function ServerDetailPage() {
                       <table className="w-full text-sm">
                         <tbody>
                           <tr>
-                            <td className="py-1 pr-2 text-muted-foreground w-1/3">Storage:</td>
+                            <td className="py-1 pr-2 text-muted-foreground w-1/3">NVMe SSD:</td>
                             <td className="py-1 font-medium">
                               {server?.storage && server.storage.length > 0
                                 ? `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB`
@@ -3247,7 +3247,7 @@ export default function ServerDetailPage() {
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <HardDrive className="h-5 w-5" />
-                    Storage Information
+                    NVMe SSD Information
                   </CardTitle>
                   <CardDescription>
                     Storage devices, disks and volumes
@@ -3258,7 +3258,7 @@ export default function ServerDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                       <HardDrive className="h-12 w-12 text-primary mb-2" />
-                      <h3 className="font-semibold text-lg">Total Storage</h3>
+                      <h3 className="font-semibold text-lg">Total NVMe SSD</h3>
                       <p className="text-2xl font-bold">
                         {server?.storage && server.storage.length > 0
                           ? `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB`
@@ -3321,7 +3321,7 @@ export default function ServerDetailPage() {
                   {/* Storage Drives from VirtFusion API */}
                   {server?.storage && server.storage.length > 0 && (
                     <div className="mt-6">
-                      <h3 className="font-semibold text-md mb-3">Storage Drives</h3>
+                      <h3 className="font-semibold text-md mb-3">NVMe SSD Drives</h3>
                       <div className="space-y-4">
                         {server.storage.map((drive: any, idx: number) => (
                           <div key={idx} className="border rounded-md p-4">
