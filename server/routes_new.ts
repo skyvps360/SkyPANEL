@@ -1705,7 +1705,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid server ID" });
       }
 
-      // Get hourly billing information from database
+      // Get the VirtFusion billing mode from admin settings
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : false;
+      
+      console.log(`Server ${serverId} billing check - VirtFusion mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
+
+      // Get hourly billing information from database (even if we're in monthly mode, we might have historical data)
       const billingInfo = await storage.db
         .select()
         .from(virtfusionHourlyBilling)
@@ -1717,30 +1723,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )
         .limit(1);
 
+      // Determine billing type based on VirtFusion global setting, not database records
+      const billingType = isHourlyBilling ? 'hourly' : 'monthly';
+
       if (billingInfo.length > 0) {
         const billing = billingInfo[0];
-        return res.json({
-          hourlyRate: parseFloat(billing.hourlyRate),
-          monthlyPrice: parseFloat(billing.monthlyPrice),
-          billingType: 'hourly',
-          billingEnabled: billing.billingEnabled,
-          packageName: billing.packageName,
-          hoursInMonth: billing.hoursInMonth,
-          lastBilledAt: billing.lastBilledAt,
-          serverCreatedAt: billing.serverCreatedAt
-        });
+        
+        // For hourly billing mode, return the detailed billing information
+        if (isHourlyBilling) {
+          return res.json({
+            hourlyRate: parseFloat(billing.hourlyRate),
+            monthlyPrice: parseFloat(billing.monthlyPrice),
+            billingType: 'hourly',
+            billingEnabled: billing.billingEnabled,
+            packageName: billing.packageName,
+            hoursInMonth: billing.hoursInMonth,
+            lastBilledAt: billing.lastBilledAt,
+            serverCreatedAt: billing.serverCreatedAt
+          });
+        } else {
+          // For monthly billing mode, return monthly pricing (use monthlyPrice from billing record)
+          return res.json({
+            hourlyRate: parseFloat(billing.hourlyRate), // Keep for reference but not displayed
+            monthlyPrice: parseFloat(billing.monthlyPrice),
+            billingType: 'monthly',
+            billingEnabled: true, // Monthly billing is always enabled in monthly mode
+            packageName: billing.packageName,
+            hoursInMonth: billing.hoursInMonth,
+            lastBilledAt: billing.lastBilledAt,
+            serverCreatedAt: billing.serverCreatedAt
+          });
+        }
       } else {
-        // Check if this is a monthly server (no hourly billing record)
-        return res.json({
-          hourlyRate: 0,
-          monthlyPrice: 0,
-          billingType: 'monthly',
-          billingEnabled: true,
-          packageName: 'Unknown',
-          hoursInMonth: 730,
-          lastBilledAt: null,
-          serverCreatedAt: null
-        });
+        // No billing record found - return appropriate defaults based on billing mode
+        if (isHourlyBilling) {
+          // Hourly billing mode but no billing record - server not set up for hourly billing
+          return res.json({
+            hourlyRate: 0,
+            monthlyPrice: 0,
+            billingType: 'hourly',
+            billingEnabled: false, // Not enabled because no billing record
+            packageName: 'Unknown',
+            hoursInMonth: 730,
+            lastBilledAt: null,
+            serverCreatedAt: null
+          });
+        } else {
+          // Monthly billing mode - provide estimated monthly pricing if available
+          // Try to get package pricing from VirtFusion to provide estimated monthly cost
+          let estimatedMonthlyPrice = 0;
+          let packageName = 'Unknown';
+          
+          try {
+            // Get user and server details to fetch package information
+            const user = await storage.getUser(userId);
+            if (user && user.virtFusionId) {
+              const serverDetails = await virtFusionApi.getServer(serverId);
+              if (serverDetails?.data?.package) {
+                packageName = serverDetails.data.package.name || 'Unknown';
+                
+                // Try to get package pricing from our database
+                const packagePricing = await storage.db
+                  .select()
+                  .from(schema.packagePricing)
+                  .where(eq(schema.packagePricing.virtFusionPackageId, serverDetails.data.package.id))
+                  .limit(1);
+                
+                if (packagePricing.length > 0) {
+                  estimatedMonthlyPrice = parseFloat(packagePricing[0].price.toString());
+                }
+              }
+            }
+          } catch (error) {
+            console.warn(`Could not fetch package details for server ${serverId}:`, error);
+          }
+          
+          return res.json({
+            hourlyRate: 0, // Not applicable in monthly mode
+            monthlyPrice: estimatedMonthlyPrice,
+            billingType: 'monthly',
+            billingEnabled: true, // Monthly billing is handled by VirtFusion directly
+            packageName: packageName,
+            hoursInMonth: 730,
+            lastBilledAt: null,
+            serverCreatedAt: null
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error getting server billing info:', error);
