@@ -1054,7 +1054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               let billingCycle = "VirtFusion Controlled";
               try {
                 const { db } = await import('./db.ts');
-                const { eq } = await import('drizzle-orm');
+                const { eq, sql } = await import('drizzle-orm');
 
                 // Check if server has hourly billing record
                 const billingRecord = await db
@@ -1072,9 +1072,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 if (billingRecord.length > 0) {
                   billingCycle = "Hourly";
                 } else {
-                  // Check if server exists in VirtFusion but not in hourly billing
-                  // This would indicate monthly billing (handled by VirtFusion directly)
-                  billingCycle = "Monthly";
+                  // Check if VirtFusion cron system is enabled before showing "Monthly"
+                  const cronSettings = await db.select()
+                    .from(virtfusionCronSettings)
+                    .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+                    .limit(1);
+
+                  const isCronEnabled = cronSettings.length > 0 && cronSettings[0].enabled;
+                  
+                  if (isCronEnabled) {
+                    // VirtFusion cron is enabled, so servers without hourly billing records are monthly
+                    billingCycle = "Monthly";
+                  } else {
+                    // VirtFusion cron is disabled, so all servers without hourly billing are VirtFusion controlled
+                    billingCycle = "VirtFusion Controlled";
+                  }
                 }
               } catch (billingError) {
                 console.warn(`Failed to fetch billing info for server ${server.id}:`, billingError);
@@ -1732,12 +1744,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Server has no billing record - could be monthly or virtfusion controlled
         // Check if VirtFusion cron system is disabled
-        const virtfusionCronSettings = await storage.db.select()
+        const cronSettings = await storage.db.select()
           .from(virtfusionCronSettings)
           .orderBy(sql`${virtfusionCronSettings.id} DESC`)
           .limit(1);
 
-        const isCronDisabled = virtfusionCronSettings.length === 0 || !virtfusionCronSettings[0].enabled;
+        const isCronDisabled = cronSettings.length === 0 || !cronSettings[0].enabled;
         
         if (isCronDisabled) {
           // When cron is disabled, servers not created via our app should be marked as virtfusion controlled
