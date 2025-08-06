@@ -9147,6 +9147,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update VirtFusion billing mode based on current settings (admin only)
+  app.post("/api/admin/virtfusion/billing-mode/update", isAdmin, async (req, res) => {
+    try {
+      console.log('🔄 Manually triggering VirtFusion billing mode update...');
+      
+      // Check current billing mode from the Self Service Hourly Credit setting
+      const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
+      const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
+      
+      console.log(`💰 Current billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
+      
+      // Validate that cronService is available
+      if (!cronService || typeof cronService.updateVirtFusionCronJobsForBillingMode !== 'function') {
+        throw new Error('Cron service is not available or method is missing');
+      }
+      
+      // Update cron jobs to match current billing mode
+      await cronService.updateVirtFusionCronJobsForBillingMode(isHourlyBilling);
+      
+      const response = {
+        success: true,
+        message: `VirtFusion billing mode updated successfully to ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'} billing`,
+        billingMode: isHourlyBilling ? 'hourly' : 'monthly',
+        hourlyBillingEnabled: isHourlyBilling,
+        monthlyBillingEnabled: !isHourlyBilling,
+        timestamp: new Date().toISOString()
+      };
+      
+      res.json(response);
+    } catch (error: any) {
+      console.error("Error updating VirtFusion billing mode:", error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      res.status(500).json({ 
+        success: false,
+        error: errorMessage,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Manually trigger DNS billing renewal (admin only)
   app.post("/api/admin/cron/dns-billing/trigger", isAdmin, async (req, res) => {
     try {
