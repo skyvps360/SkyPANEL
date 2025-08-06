@@ -563,35 +563,37 @@ export default function ServersPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
-                  <TableHead className="px-8 py-5"><Skeleton className="h-5 w-32" /></TableHead>
-                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-24" /></TableHead>
-                  <TableHead className="px-8 py-5"><Skeleton className="h-5 w-20" /></TableHead>
-                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-16" /></TableHead>
-                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-16" /></TableHead>
-                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-20" /></TableHead>
-                  <TableHead className="hidden lg:table-cell px-8 py-5"><Skeleton className="h-5 w-16" /></TableHead>
-                  <TableHead className="px-8 py-5"><Skeleton className="h-5 w-24" /></TableHead>
+                  <TableHead className="px-4 py-4 w-1/3 min-w-[280px]"><Skeleton className="h-4 w-16" /></TableHead>
+                  <TableHead className="hidden xl:table-cell px-3 py-4 w-32"><Skeleton className="h-4 w-16" /></TableHead>
+                  <TableHead className="px-3 py-4 w-24"><Skeleton className="h-4 w-12" /></TableHead>
+                  <TableHead className="hidden lg:table-cell px-3 py-4 w-40"><Skeleton className="h-4 w-20" /></TableHead>
+                  <TableHead className="hidden xl:table-cell px-3 py-4 w-28"><Skeleton className="h-4 w-14" /></TableHead>
+                  <TableHead className="px-3 py-4 w-24"><Skeleton className="h-4 w-16" /></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {Array.from({ length: 6 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell className="px-8 py-6">
-                      <div className="flex items-center gap-6">
-                        <Skeleton className="h-12 w-12 rounded-full" />
+                    <TableCell className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
                         <div className="space-y-2">
-                          <Skeleton className="h-5 w-64" />
-                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-4 w-48" />
+                          <Skeleton className="h-3 w-16" />
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell className="px-8 py-6"><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
-                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell className="hidden lg:table-cell px-8 py-6"><Skeleton className="h-6 w-16 rounded-full" /></TableCell>
-                    <TableCell className="px-8 py-6"><Skeleton className="h-9 w-24 rounded-lg" /></TableCell>
+                    <TableCell className="hidden xl:table-cell px-3 py-4"><Skeleton className="h-3 w-20" /></TableCell>
+                    <TableCell className="px-3 py-4"><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                    <TableCell className="hidden lg:table-cell px-3 py-4">
+                      <div className="space-y-1">
+                        <Skeleton className="h-3 w-12" />
+                        <Skeleton className="h-3 w-14" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell px-3 py-4"><Skeleton className="h-5 w-12 rounded-full" /></TableCell>
+                    <TableCell className="px-3 py-4"><Skeleton className="h-7 w-16 rounded-lg" /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -604,30 +606,12 @@ export default function ServersPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50">
-                    <TableHead className="px-8 py-5">
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="p-2 rounded-lg text-white shadow-sm"
-                      style={{ backgroundColor: brandColors.primary.full }}
-                    >
-                      <Server className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">Server Infrastructure</h3>
-                      <p className="text-sm text-gray-600">
-                        {filteredServers.length} server{filteredServers.length !== 1 ? 's' : ''} • 
-                        {filteredServers.filter((s: any) => getServerStatus(s) === 'RUNNING').length} running
-                      </p>
-                    </div>
-                  </div>
-                    </TableHead>
-                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">Location</TableHead>
-                    <TableHead className="px-8 py-5 text-sm font-medium text-gray-600">Status</TableHead>
-                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">CPU</TableHead>
-                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">RAM</TableHead>
-                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">Storage</TableHead>
-                    <TableHead className="hidden lg:table-cell px-8 py-5 text-sm font-medium text-gray-600">Billing</TableHead>
-                    <TableHead className="px-8 py-5 text-sm font-medium text-gray-600">Actions</TableHead>
+                    <TableHead className="px-4 py-4 text-sm font-medium text-gray-600 w-1/3 min-w-[280px]">Server</TableHead>
+                    <TableHead className="hidden xl:table-cell px-3 py-4 text-sm font-medium text-gray-600 w-32">Location</TableHead>
+                    <TableHead className="px-3 py-4 text-sm font-medium text-gray-600 w-24">Status</TableHead>
+                    <TableHead className="hidden lg:table-cell px-3 py-4 text-sm font-medium text-gray-600 w-40">Resources</TableHead>
+                    <TableHead className="hidden xl:table-cell px-3 py-4 text-sm font-medium text-gray-600 w-28">Billing</TableHead>
+                    <TableHead className="px-3 py-4 text-sm font-medium text-gray-600 w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -644,14 +628,14 @@ export default function ServersPage() {
                         index % 2 === 0 ? 'bg-white' : 'bg-gray-25/20'
                       }`}
                     >
-                        <TableCell className="px-8 py-6">
-                        <div className="flex items-center gap-6 flex-1 min-w-0">
+                        <TableCell className="px-4 py-4">
+                        <div className="flex items-center gap-3 min-w-0">
                           {(() => {
                             const osInfo = getServerOSInfo(server);
                             const OSIcon = osInfo.icon;
                             return (
                               <div
-                                className="flex items-center justify-center h-12 w-12 rounded-full text-white shadow-sm transition-all duration-200 flex-shrink-0"
+                                className="flex items-center justify-center h-10 w-10 rounded-full text-white shadow-sm transition-all duration-200 flex-shrink-0"
                                 style={{
                                   backgroundColor: isRunning 
                                     ? brandColors.primary.full 
@@ -660,45 +644,37 @@ export default function ServersPage() {
                                     : '#6b7280'
                                 }}
                               >
-                                <OSIcon className="h-6 w-6" />
+                                <OSIcon className="h-5 w-5" />
                               </div>
                             );
                           })()}
                           
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-1">
-                              <h4 className="text-lg font-semibold text-gray-900 leading-tight group-hover:text-primary transition-colors">
-                                <span className="break-all">{server.name}</span>
-                              </h4>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
-                                ID: {server.id}
+                            <h4 className="font-semibold text-gray-900 leading-tight group-hover:text-primary transition-colors truncate text-sm">
+                              {server.name}
+                            </h4>
+                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                              <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-xs">
+                                Server ID: {server.id}
                               </span>
-                              {server.created && (
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {new Date(server.created).toLocaleDateString()}
-                                </span>
-                              )}
                             </div>
                           </div>
                         </div>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell px-8 py-6 text-sm font-medium text-gray-600">
+                        <TableCell className="hidden xl:table-cell px-3 py-4 text-sm text-gray-600">
                             {server.hypervisor?.name ? (
-                              <div className="flex items-center gap-2">
-                                <MapPin className="h-4 w-4" />
-                                <span className="truncate">{server.hypervisor.name}</span>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                <span className="truncate text-xs">{server.hypervisor.name}</span>
                               </div>
                             ) : (
                               <span className="text-gray-400">—</span>
                             )}
                         </TableCell>
-                        <TableCell className="px-8 py-6">
+                        <TableCell className="px-3 py-4">
                             <Badge
                               variant={getStatusBadgeVariant(status)}
-                              className={`text-xs font-medium px-3 py-1.5 rounded-full ${
+                              className={`text-xs font-medium px-2 py-1 rounded-full ${
                                 isRunning
                                   ? 'bg-green-100 text-green-800 border-green-200'
                                   : isSuspended
@@ -706,74 +682,69 @@ export default function ServersPage() {
                                   : 'bg-gray-100 text-gray-800 border-gray-200'
                               }`}
                             >
-                              <div className={`w-2 h-2 rounded-full mr-2 ${
+                              <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
                                 isRunning ? 'bg-green-500' : isSuspended ? 'bg-red-500' : 'bg-gray-500'
                               }`}></div>
                               {status}
                             </Badge>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell px-8 py-6">
-                          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                            <Cpu className="h-4 w-4" />
-                            <span>
-                              {server.cpu?.cores !== undefined && server.cpu?.cores !== null ? `${server.cpu.cores}c` : '—'}
-                            </span>
+                        <TableCell className="hidden lg:table-cell px-3 py-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                              <Cpu className="h-3 w-3" />
+                              <span>
+                                {server.cpu?.cores !== undefined && server.cpu?.cores !== null ? `${server.cpu.cores} vCPU` : '— vCPU'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                              <MemoryStick className="h-3 w-3" />
+                              <span>
+                                {(() => {
+                                  const memoryMb = server?.settings?.resources?.memory;
+                                  const legacyMemory = server.memory;
+                                  if (typeof memoryMb === 'number' && !isNaN(memoryMb)) {
+                                    return `${(memoryMb / 1024).toFixed(0)}GB RAM`;
+                                  } else if (legacyMemory && !isNaN(parseInt(legacyMemory, 10))) {
+                                    return `${(parseInt(legacyMemory, 10) / 1024).toFixed(0)}GB RAM`;
+                                  } else {
+                                    return '— RAM';
+                                  }
+                                })()}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                              <HardDrive className="h-3 w-3" />
+                              <span>
+                                {server.storage?.length > 0 && server.storage[0]?.capacity !== undefined && server.storage[0]?.capacity !== null
+                                  ? `${server.storage[0].capacity}GB NVMe SSD`
+                                  : '— NVMe SSD'}
+                              </span>
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell px-8 py-6">
-                          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                            <MemoryStick className="h-4 w-4" />
-                            <span>
-                              {(() => {
-                                const memoryMb = server?.settings?.resources?.memory;
-                                const legacyMemory = server.memory;
-                                if (typeof memoryMb === 'number' && !isNaN(memoryMb)) {
-                                  return `${(memoryMb / 1024).toFixed(0)}GB`;
-                                } else if (legacyMemory && !isNaN(parseInt(legacyMemory, 10))) {
-                                  return `${(parseInt(legacyMemory, 10) / 1024).toFixed(0)}GB`;
-                                } else {
-                                  return '—';
-                                }
-                              })()}
-                            </span>
-                          </div>
+                        <TableCell className="hidden xl:table-cell px-3 py-4">
+                          <Badge
+                            variant={
+                              server.billingCycle === 'Hourly' ? 'default' :
+                              server.billingCycle === 'Monthly' ? 'secondary' :
+                              'outline'
+                            }
+                            className={`text-xs font-medium px-2 py-1 rounded-full ${
+                              server.billingCycle === 'Hourly'
+                                ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                : server.billingCycle === 'Monthly'
+                                ? 'bg-green-100 text-green-800 border-green-200'
+                                : 'bg-gray-100 text-gray-800 border-gray-200'
+                            }`}
+                          >
+                            {server.billingCycle || 'VirtFusion'}
+                          </Badge>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell px-8 py-6">
-                          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                            <HardDrive className="h-4 w-4" />
-                            <span>
-                              {server.storage?.length > 0 && server.storage[0]?.capacity !== undefined && server.storage[0]?.capacity !== null
-                                ? `${server.storage[0].capacity}GB`
-                                : '—'}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell px-8 py-6">
-                          <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                            <Zap className="h-4 w-4" />
-                            <Badge
-                              variant={
-                                server.billingCycle === 'Hourly' ? 'default' :
-                                server.billingCycle === 'Monthly' ? 'secondary' :
-                                'outline'
-                              }
-                              className={`text-xs font-medium px-2 py-1 rounded-full ${
-                                server.billingCycle === 'Hourly'
-                                  ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                  : server.billingCycle === 'Monthly'
-                                  ? 'bg-green-100 text-green-800 border-green-200'
-                                  : 'bg-gray-100 text-gray-800 border-gray-200'
-                              }`}
-                            >
-                              {server.billingCycle || 'VirtFusion Controlled'}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-8 py-6">
+                        <TableCell className="px-3 py-4">
                             <Link href={`/servers/${server.id}`}>
                               <Button
                                 size="sm"
-                                className="text-white shadow-sm transition-all duration-300 group-hover:scale-105 hover:shadow-md w-full"
+                                className="text-white shadow-sm transition-all duration-300 group-hover:scale-105 hover:shadow-md text-xs px-2 py-1"
                                 style={{
                                   backgroundColor: brandColors.primary.full,
                                 }}
@@ -784,7 +755,7 @@ export default function ServersPage() {
                                   e.currentTarget.style.backgroundColor = brandColors.primary.full;
                                 }}
                               >
-                                <Settings className="mr-2 h-4 w-4" />
+                                <Settings className="mr-1 h-3 w-3" />
                                 Manage
                               </Button>
                             </Link>
