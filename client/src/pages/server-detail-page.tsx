@@ -850,8 +850,40 @@ export default function ServerDetailPage() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes since billing data doesn't change often
   });
 
+  // Fetch VirtFusion cron status to determine if billing features should be available
+  const { data: virtfusionCronData } = useQuery<{
+    success: boolean;
+    cronStatus: {
+      virtfusionHourly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+      virtfusionMonthly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+    };
+  }>({
+    queryKey: ['/api/admin/cron/status', 'virtfusion'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/cron/status?service=virtfusion');
+      if (!response.ok) {
+        throw new Error('Failed to fetch VirtFusion cron status');
+      }
+      return response.json();
+    },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: 60000, // Refetch every minute
+  });
+
   // Extract the server data from the response
   const server = serverResponse?.data;
+
+  // Check if VirtFusion cron sync is enabled (either hourly or monthly billing)
+  const isVirtFusionEnabled = virtfusionCronData?.cronStatus?.virtfusionHourly?.enabled || 
+                             virtfusionCronData?.cronStatus?.virtfusionMonthly?.enabled;
 
   // Fetch OS templates to get OS information
   const { data: osTemplates } = useQuery({
@@ -1978,7 +2010,11 @@ export default function ServerDetailPage() {
 
         {/* Modern Resource Cards */}
         {!isLoading && !error && server && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
+            (isVirtFusionEnabled || billingData?.billingType !== 'virtfusion controlled') 
+              ? 'lg:grid-cols-4' 
+              : 'lg:grid-cols-3'
+          }`}>
             {/* Memory Card */}
             <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
               <div className="p-6">
@@ -2053,64 +2089,66 @@ export default function ServerDetailPage() {
               </div>
             </div>
 
-            {/* Billing Cost Card */}
-            <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <DollarSign className="h-4 w-4" />
-                      <span>
-                        {billingData?.billingType === 'monthly' 
-                          ? 'Monthly Cost' 
-                          : billingData?.billingType === 'virtfusion controlled' 
-                            ? 'VirtFusion Managed' 
-                            : 'Hourly Cost'}
-                      </span>
-                    </div>
-                    <div className="text-2xl font-bold text-foreground">
-                      {billingLoading ? (
-                        <span className="text-muted-foreground">Loading...</span>
-                      ) : billingData?.billingType === 'monthly' ? (
-                        billingData?.monthlyPrice ? (
-                          `$${billingData.monthlyPrice.toFixed(2)}`
-                        ) : '$0.00'
-                      ) : billingData?.billingType === 'virtfusion controlled' ? (
-                        <span className="text-muted-foreground">N/A</span>
-                      ) : (
-                        billingData?.hourlyRate ? (
-                          `$${billingData.hourlyRate.toFixed(4)}`
-                        ) : '$0.0000'
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {billingData?.billingType === 'monthly' ? (
-                        <span>billed monthly on the 1st</span>
-                      ) : billingData?.billingType === 'virtfusion controlled' ? (
-                        <span>managed by VirtFusion directly</span>
-                      ) : (
-                        <span>per hour of uptime</span>
-                      )}
-                    </div>
-                    {/* Additional billing context for running servers */}
-                    {!billingLoading && billingData && isServerRunning && (
-                      <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border/50">
-                        {billingData.billingType === 'monthly' ? (
-                          <span>💡 Fixed monthly charge regardless of uptime</span>
-                        ) : billingData.billingType === 'virtfusion controlled' ? (
-                          <span>🛡️ Billing controlled by VirtFusion</span>
+            {/* Billing Cost Card - Only show if VirtFusion is enabled OR billing type is not virtfusion controlled */}
+            {(isVirtFusionEnabled || billingData?.billingType !== 'virtfusion controlled') && (
+              <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <DollarSign className="h-4 w-4" />
+                        <span>
+                          {billingData?.billingType === 'monthly' 
+                            ? 'Monthly Cost' 
+                            : billingData?.billingType === 'virtfusion controlled' 
+                              ? 'VirtFusion Managed' 
+                              : 'Hourly Cost'}
+                        </span>
+                      </div>
+                      <div className="text-2xl font-bold text-foreground">
+                        {billingLoading ? (
+                          <span className="text-muted-foreground">Loading...</span>
+                        ) : billingData?.billingType === 'monthly' ? (
+                          billingData?.monthlyPrice ? (
+                            `$${billingData.monthlyPrice.toFixed(2)}`
+                          ) : '$0.00'
+                        ) : billingData?.billingType === 'virtfusion controlled' ? (
+                          <span className="text-muted-foreground">N/A</span>
                         ) : (
-                          <span>💡 Currently accruing hourly charges</span>
+                          billingData?.hourlyRate ? (
+                            `$${billingData.hourlyRate.toFixed(4)}`
+                          ) : '$0.0000'
                         )}
                       </div>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
-                    <DollarSign className="h-6 w-6 text-primary" />
+                      <div className="text-xs text-muted-foreground">
+                        {billingData?.billingType === 'monthly' ? (
+                          <span>billed monthly on the 1st</span>
+                        ) : billingData?.billingType === 'virtfusion controlled' ? (
+                          <span>managed by VirtFusion directly</span>
+                        ) : (
+                          <span>per hour of uptime</span>
+                        )}
+                      </div>
+                      {/* Additional billing context for running servers */}
+                      {!billingLoading && billingData && isServerRunning && (
+                        <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border/50">
+                          {billingData.billingType === 'monthly' ? (
+                            <span>💡 Fixed monthly charge regardless of uptime</span>
+                          ) : billingData.billingType === 'virtfusion controlled' ? (
+                            <span>🛡️ Billing controlled by VirtFusion</span>
+                          ) : (
+                            <span>💡 Currently accruing hourly charges</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
+                      <DollarSign className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
