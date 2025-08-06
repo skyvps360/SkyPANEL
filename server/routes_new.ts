@@ -1770,33 +1770,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         } else {
           // Monthly billing mode - provide estimated monthly pricing if available
-          // Try to get package pricing from VirtFusion to provide estimated monthly cost
+          // Try to get package pricing from multiple sources
           let estimatedMonthlyPrice = 0;
           let packageName = 'Unknown';
           
           try {
-            // Get user and server details to fetch package information
-            const user = await storage.getUser(userId);
-            if (user && user.virtFusionId) {
-              const serverDetails = await virtFusionApi.getServer(serverId);
-              if (serverDetails?.data?.package) {
-                packageName = serverDetails.data.package.name || 'Unknown';
-                
-                // Try to get package pricing from our database
+            // Get server details to fetch package information
+            const serverDetails = await virtFusionApi.getServer(serverId);
+            console.log(`Server ${serverId} details for monthly pricing:`, serverDetails?.data?.package);
+            
+            if (serverDetails?.data?.package) {
+              packageName = serverDetails.data.package.name || 'Unknown';
+              const packageId = serverDetails.data.package.id;
+              
+              console.log(`Looking for pricing for package ID: ${packageId}, name: ${packageName}`);
+              
+              // Method 1: Try to get package pricing from our local database
+              try {
                 const packagePricing = await storage.db
                   .select()
                   .from(schema.packagePricing)
-                  .where(eq(schema.packagePricing.virtFusionPackageId, serverDetails.data.package.id))
+                  .where(eq(schema.packagePricing.virtFusionPackageId, packageId))
                   .limit(1);
                 
                 if (packagePricing.length > 0) {
-                  estimatedMonthlyPrice = parseFloat(packagePricing[0].price.toString());
+                  // Convert from cents to dollars (price is stored as integer in cents)
+                  estimatedMonthlyPrice = packagePricing[0].price / 100;
+                  console.log(`Found pricing in local database: $${estimatedMonthlyPrice}`);
+                }
+              } catch (dbError) {
+                console.warn(`Database package pricing lookup failed:`, dbError);
+              }
+              
+              // Method 2: If no local pricing, try to get package details from VirtFusion API
+              if (estimatedMonthlyPrice === 0) {
+                try {
+                  const packageDetails = await virtFusionApi.getPackage(packageId);
+                  console.log(`VirtFusion package details:`, packageDetails?.data);
+                  
+                  // Check if VirtFusion API returns pricing information
+                  if (packageDetails?.data?.price) {
+                    estimatedMonthlyPrice = parseFloat(packageDetails.data.price);
+                    console.log(`Found pricing in VirtFusion API: $${estimatedMonthlyPrice}`);
+                  } else if (packageDetails?.data?.monthlyPrice) {
+                    estimatedMonthlyPrice = parseFloat(packageDetails.data.monthlyPrice);
+                    console.log(`Found monthly pricing in VirtFusion API: $${estimatedMonthlyPrice}`);
+                  } else if (packageDetails?.data?.cost) {
+                    estimatedMonthlyPrice = parseFloat(packageDetails.data.cost);
+                    console.log(`Found cost in VirtFusion API: $${estimatedMonthlyPrice}`);
+                  }
+                } catch (apiError) {
+                  console.warn(`VirtFusion package API lookup failed:`, apiError);
+                }
+              }
+              
+              // Method 3: If still no pricing and we have a billing record with monthlyPrice, use that
+              if (estimatedMonthlyPrice === 0) {
+                try {
+                  const fallbackBilling = await storage.db
+                    .select()
+                    .from(virtfusionHourlyBilling)
+                    .where(eq(virtfusionHourlyBilling.serverId, serverId))
+                    .limit(1);
+                  
+                  if (fallbackBilling.length > 0 && fallbackBilling[0].monthlyPrice) {
+                    estimatedMonthlyPrice = parseFloat(fallbackBilling[0].monthlyPrice);
+                    console.log(`Using fallback monthly price from billing record: $${estimatedMonthlyPrice}`);
+                  }
+                } catch (fallbackError) {
+                  console.warn(`Fallback billing lookup failed:`, fallbackError);
                 }
               }
             }
           } catch (error) {
             console.warn(`Could not fetch package details for server ${serverId}:`, error);
           }
+          
+          console.log(`Final monthly price for server ${serverId}: $${estimatedMonthlyPrice}`);
           
           return res.json({
             hourlyRate: 0, // Not applicable in monthly mode
