@@ -2061,7 +2061,11 @@ export default function ServerDetailPage() {
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <DollarSign className="h-4 w-4" />
                       <span>
-                        {billingData?.billingType === 'monthly' ? 'Monthly Cost' : 'Hourly Cost'}
+                        {billingData?.billingType === 'monthly' 
+                          ? 'Monthly Cost' 
+                          : billingData?.billingType === 'virtfusion controlled' 
+                            ? 'VirtFusion Managed' 
+                            : 'Hourly Cost'}
                       </span>
                     </div>
                     <div className="text-2xl font-bold text-foreground">
@@ -2071,6 +2075,8 @@ export default function ServerDetailPage() {
                         billingData?.monthlyPrice ? (
                           `$${billingData.monthlyPrice.toFixed(2)}`
                         ) : '$0.00'
+                      ) : billingData?.billingType === 'virtfusion controlled' ? (
+                        <span className="text-muted-foreground">N/A</span>
                       ) : (
                         billingData?.hourlyRate ? (
                           `$${billingData.hourlyRate.toFixed(4)}`
@@ -2080,6 +2086,8 @@ export default function ServerDetailPage() {
                     <div className="text-xs text-muted-foreground">
                       {billingData?.billingType === 'monthly' ? (
                         <span>billed monthly on the 1st</span>
+                      ) : billingData?.billingType === 'virtfusion controlled' ? (
+                        <span>managed by VirtFusion directly</span>
                       ) : (
                         <span>per hour of uptime</span>
                       )}
@@ -2089,6 +2097,8 @@ export default function ServerDetailPage() {
                       <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border/50">
                         {billingData.billingType === 'monthly' ? (
                           <span>💡 Fixed monthly charge regardless of uptime</span>
+                        ) : billingData.billingType === 'virtfusion controlled' ? (
+                          <span>🛡️ Billing controlled by VirtFusion</span>
                         ) : (
                           <span>💡 Currently accruing hourly charges</span>
                         )}
@@ -2586,6 +2596,8 @@ export default function ServerDetailPage() {
                             <span className="text-xs text-slate-500">
                               {billingData.billingType === 'monthly' 
                                 ? 'Charged monthly on the 1st'
+                                : billingData.billingType === 'virtfusion controlled'
+                                  ? 'Managed by VirtFusion directly'
                                 : 'Charged per hour of uptime'
                               }
                             </span>
@@ -2594,27 +2606,43 @@ export default function ServerDetailPage() {
                           {/* Current Cost */}
                           <div className="flex flex-col space-y-2 p-4 rounded-lg" style={{ backgroundColor: brandColors.secondary.extraLight }}>
                             <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">
-                              {billingData.billingType === 'monthly' ? 'Monthly Rate' : 'Hourly Rate'}
+                              {billingData.billingType === 'monthly' 
+                                ? 'Monthly Rate' 
+                                : billingData.billingType === 'virtfusion controlled'
+                                  ? 'Cost Status'
+                                : 'Hourly Rate'}
                             </span>
                             <span className="text-lg font-bold text-slate-800">
                               {billingData.billingType === 'monthly' 
                                 ? `$${billingData.monthlyPrice?.toFixed(2) || '0.00'}`
+                                : billingData.billingType === 'virtfusion controlled'
+                                  ? 'N/A'
                                 : `$${billingData.hourlyRate?.toFixed(4) || '0.0000'}`
                               }
                             </span>
                             <span className="text-xs text-slate-500">
-                              {billingData.billingType === 'monthly' ? 'per month' : 'per hour'}
+                              {billingData.billingType === 'monthly' 
+                                ? 'per month' 
+                                : billingData.billingType === 'virtfusion controlled'
+                                  ? 'not billed via this panel'
+                                : 'per hour'}
                             </span>
                           </div>
 
                           {/* Additional Info */}
                           <div className="flex flex-col space-y-2 p-4 rounded-lg" style={{ backgroundColor: brandColors.accent.extraLight }}>
                             <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">
-                              {billingData.billingType === 'monthly' ? 'Cost Calculation' : 'Monthly Estimate'}
+                              {billingData.billingType === 'monthly' 
+                                ? 'Cost Calculation' 
+                                : billingData.billingType === 'virtfusion controlled'
+                                  ? 'Billing Location'
+                                : 'Monthly Estimate'}
                             </span>
                             <span className="text-sm font-semibold text-slate-800">
                               {billingData.billingType === 'monthly' 
                                 ? 'Fixed monthly charge'
+                                : billingData.billingType === 'virtfusion controlled'
+                                  ? 'VirtFusion Panel'
                                 : billingData.monthlyPrice 
                                   ? `~$${billingData.monthlyPrice.toFixed(2)}`
                                   : 'N/A'
@@ -2623,6 +2651,8 @@ export default function ServerDetailPage() {
                             <span className="text-xs text-slate-500">
                               {billingData.billingType === 'monthly' 
                                 ? 'Regardless of server uptime'
+                                : billingData.billingType === 'virtfusion controlled'
+                                  ? 'Check VirtFusion for billing details'
                                 : `Based on ${billingData.hoursInMonth || 730} hours/month`
                               }
                             </span>
@@ -2637,12 +2667,19 @@ export default function ServerDetailPage() {
                                   <p className="text-sm font-medium text-green-800">
                                     {billingData.billingType === 'monthly' 
                                       ? '💰 Monthly billing active - you pay the same amount regardless of server uptime'
+                                      : billingData.billingType === 'virtfusion controlled'
+                                        ? '🛡️ This server is managed and billed by VirtFusion directly'
                                       : '⏱️ Server is running - hourly charges are being applied'
                                     }
                                   </p>
                                   {billingData.billingType === 'hourly' && (
                                     <p className="text-xs text-green-600 mt-1">
                                       Current hour charge: ${billingData.hourlyRate?.toFixed(4) || '0.0000'}
+                                    </p>
+                                  )}
+                                  {billingData.billingType === 'virtfusion controlled' && (
+                                    <p className="text-xs text-green-600 mt-1">
+                                      Check your VirtFusion account for billing information
                                     </p>
                                   )}
                                 </div>

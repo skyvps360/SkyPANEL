@@ -1730,17 +1730,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           serverCreatedAt: billing.serverCreatedAt
         });
       } else {
-        // Check if this is a monthly server (no hourly billing record)
-        return res.json({
-          hourlyRate: 0,
-          monthlyPrice: 0,
-          billingType: 'monthly',
-          billingEnabled: true,
-          packageName: 'Unknown',
-          hoursInMonth: 730,
-          lastBilledAt: null,
-          serverCreatedAt: null
-        });
+        // Server has no billing record - could be monthly or virtfusion controlled
+        // Check if VirtFusion cron system is disabled
+        const virtfusionCronSettings = await storage.db.select()
+          .from(virtfusionCronSettings)
+          .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+          .limit(1);
+
+        const isCronDisabled = virtfusionCronSettings.length === 0 || !virtfusionCronSettings[0].enabled;
+        
+        if (isCronDisabled) {
+          // When cron is disabled, servers not created via our app should be marked as virtfusion controlled
+          return res.json({
+            hourlyRate: 0,
+            monthlyPrice: 0,
+            billingType: 'virtfusion controlled',
+            billingEnabled: false, // Virtfusion controlled servers are not billed by us
+            packageName: 'VirtFusion Managed',
+            hoursInMonth: 730,
+            lastBilledAt: null,
+            serverCreatedAt: null
+          });
+        } else {
+          // Cron is enabled, treat as monthly server (legacy behavior)
+          return res.json({
+            hourlyRate: 0,
+            monthlyPrice: 0,
+            billingType: 'monthly',
+            billingEnabled: true,
+            packageName: 'Unknown',
+            hoursInMonth: 730,
+            lastBilledAt: null,
+            serverCreatedAt: null
+          });
+        }
       }
     } catch (error: any) {
       console.error('Error getting server billing info:', error);
