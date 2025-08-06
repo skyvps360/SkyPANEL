@@ -44,6 +44,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
 // Boot server
 router.post('/:id/boot', async (req, res) => {
   try {

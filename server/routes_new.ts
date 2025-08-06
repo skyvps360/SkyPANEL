@@ -1691,6 +1691,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get server billing information for user
+  app.get("/api/user/servers/:id/billing", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const serverId = parseInt(req.params.id);
+
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      if (isNaN(serverId)) {
+        return res.status(400).json({ error: "Invalid server ID" });
+      }
+
+      // Get hourly billing information from database
+      const billingInfo = await storage.db
+        .select()
+        .from(virtfusionHourlyBilling)
+        .where(
+          and(
+            eq(virtfusionHourlyBilling.serverId, serverId),
+            eq(virtfusionHourlyBilling.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (billingInfo.length > 0) {
+        const billing = billingInfo[0];
+        return res.json({
+          hourlyRate: parseFloat(billing.hourlyRate),
+          monthlyPrice: parseFloat(billing.monthlyPrice),
+          billingType: 'hourly',
+          billingEnabled: billing.billingEnabled,
+          packageName: billing.packageName,
+          hoursInMonth: billing.hoursInMonth,
+          lastBilledAt: billing.lastBilledAt,
+          serverCreatedAt: billing.serverCreatedAt
+        });
+      } else {
+        // Check if this is a monthly server (no hourly billing record)
+        return res.json({
+          hourlyRate: 0,
+          monthlyPrice: 0,
+          billingType: 'monthly',
+          billingEnabled: true,
+          packageName: 'Unknown',
+          hoursInMonth: 730,
+          lastBilledAt: null,
+          serverCreatedAt: null
+        });
+      }
+    } catch (error: any) {
+      console.error('Error getting server billing info:', error);
+      return res.status(500).json({ message: 'An error occurred while getting billing information' });
+    }
+  });
+
   // ----- Server Management Routes -----
   // All servers are now managed directly through VirtFusion, these routes now just return empty data
 

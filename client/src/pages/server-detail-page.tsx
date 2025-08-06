@@ -59,7 +59,8 @@ import {
   Eye,
   EyeOff,
   Trash,
-  AlertTriangle
+  AlertTriangle,
+  DollarSign
 } from "lucide-react";
 
 // OS Icon Components with actual OS logos
@@ -827,6 +828,26 @@ export default function ServerDetailPage() {
     enabled: !!id && !isNaN(serverId),
     refetchInterval: 10000, // Reduced frequency to 10 seconds to prevent infinite loops
     staleTime: 5000, // Cache for 5 seconds
+  });
+
+  // Fetch server billing information
+  const { data: billingData, isLoading: billingLoading } = useQuery({
+    queryKey: ['/api/user/servers', id, 'billing'],
+    queryFn: async () => {
+      if (!id || isNaN(serverId)) {
+        throw new Error('Invalid server ID');
+      }
+
+      const response = await fetch(`/api/user/servers/${id}/billing`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch billing data');
+      }
+
+      return response.json();
+    },
+    enabled: !!id && !isNaN(serverId),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes since billing data doesn't change often
   });
 
   // Extract the server data from the response
@@ -1957,7 +1978,7 @@ export default function ServerDetailPage() {
 
         {/* Modern Resource Cards */}
         {!isLoading && !error && server && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Memory Card */}
             <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
               <div className="p-6">
@@ -2027,6 +2048,35 @@ export default function ServerDetailPage() {
                   </div>
                   <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
                     <HardDrive className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Hourly Cost Card */}
+            <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <DollarSign className="h-4 w-4" />
+                      <span>Hourly Cost</span>
+                    </div>
+                    <div className="text-2xl font-bold text-foreground">
+                      {billingLoading ? (
+                        <span className="text-muted-foreground">Loading...</span>
+                      ) : billingData?.hourlyRate ? (
+                        `$${billingData.hourlyRate.toFixed(4)}`
+                      ) : (
+                        '$0.0000'
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {billingData?.billingType === 'monthly' ? 'monthly billing' : 'per hour'}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
+                    <DollarSign className="h-6 w-6 text-primary" />
                   </div>
                 </div>
               </div>

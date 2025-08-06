@@ -28,3 +28,4 @@ export * from './oauth-schema';
 export * from './code-snippets-schema';
 export * from './email-template-schema';
 export * from './server-uptime-schema';
+export * from './virtfusion-billing-schema';
