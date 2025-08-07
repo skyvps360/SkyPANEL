@@ -2327,7 +2327,7 @@ export default function SettingsPage() {
                             <Label htmlFor="serverHourlyBillingCronSchedule">Cron Schedule</Label>
                             <Input
                               id="serverHourlyBillingCronSchedule"
-                              placeholder="0 * * * *"
+                              placeholder="* * * * *"
                               {...virtFusionForm.register("serverHourlyBillingCronSchedule")}
                             />
                             {virtFusionForm.formState.errors.serverHourlyBillingCronSchedule && (
@@ -2336,7 +2336,7 @@ export default function SettingsPage() {
                               </p>
                             )}
                             <p className="text-sm text-muted-foreground mt-1">
-                              Cron schedule for hourly billing (default: 0 * * * * = every hour)
+                              Cron schedule for hourly billing (default: * * * * * = every minute - this is the default cron schedule for the hourly billing cron job)
                             </p>
                           </div>
                         </div>

@@ -773,7 +773,8 @@ export class CronService {
    * Run VirtFusion hourly billing process
    */
   private async runVirtFusionHourlyBilling() {
-    console.log('🕐 Starting VirtFusion billing process...');
+    const currentTime = new Date();
+    console.log(`🕐 Starting VirtFusion hourly billing check at ${currentTime.toISOString()}`);
     
     try {
       // First, check if billing is actually enabled
@@ -785,7 +786,7 @@ export class CronService {
       const setting = settings[0];
 
       if (!setting || !setting.enabled || !setting.hourlyBillingEnabled) {
-        console.log('VirtFusion billing is disabled in settings. Aborting.');
+        console.log('VirtFusion hourly billing is disabled in settings. Skipping.');
         return;
       }
 
@@ -867,20 +868,34 @@ export class CronService {
             continue;
           }
 
-          // Determine the next charge boundary. If we've never billed, the first boundary is creation + 1h (upfront already covered).
+          // Determine next unbilled start boundary.
+          // If we've never billed, the first hour was charged upfront at creation,
+          // so the next unbilled start is creation + 1h. Otherwise it's lastBilledAt.
           const oneHourMs = 60 * 60 * 1000;
-          const lastBoundary = record.lastBilledAt ? new Date(record.lastBilledAt) : serverCreatedAt; // end of the last charged period
-          const nextDueAt = new Date(lastBoundary.getTime() + oneHourMs);
+          
+          // Calculate the next billing time
+          const nextStart = record.lastBilledAt
+            ? new Date(record.lastBilledAt)
+            : new Date(serverCreatedAt.getTime() + oneHourMs);
 
-          if (now.getTime() < nextDueAt.getTime()) {
-            const minsLeft = Math.ceil((nextDueAt.getTime() - now.getTime()) / (60 * 1000));
-            console.log(`⏰ Server ${record.serverId} not due yet. Next due at ${nextDueAt.toISOString()} (~${minsLeft}m)`);
+          // Check if server is due for billing
+          if (now.getTime() < nextStart.getTime()) {
+            const minsLeft = Math.ceil((nextStart.getTime() - now.getTime()) / (60 * 1000));
+            const secsLeft = Math.ceil((nextStart.getTime() - now.getTime()) / 1000);
+            
+            // Only log if server will be due within the next 5 minutes
+            if (minsLeft <= 5) {
+              console.log(`⏰ Server ${record.serverId} (User ${record.userId}) will be due in ${minsLeft}m ${secsLeft % 60}s at ${nextStart.toISOString()}`);
+            }
             continue;
           }
 
-          // How many hours are due starting from nextDueAt
-          const hoursToBill = Math.floor((now.getTime() - nextDueAt.getTime()) / oneHourMs) + 1;
-          console.log(`⏰ Server ${record.serverId} is due for ${hoursToBill} hour(s) starting ${nextDueAt.toISOString()}`);
+          // Calculate how many hours to bill (catching up if we missed any)
+          const hoursToBill = Math.floor((now.getTime() - nextStart.getTime()) / oneHourMs) + 1;
+          console.log(`💵 Server ${record.serverId} (User ${record.userId}) is due for ${hoursToBill} hour(s) of billing`);
+          console.log(`   Created: ${serverCreatedAt.toISOString()}`);
+          console.log(`   Last billed: ${record.lastBilledAt ? new Date(record.lastBilledAt).toISOString() : 'Never (first recurring bill)'}`);
+          console.log(`   Billing period starts: ${nextStart.toISOString()}`);
           
           // Calculate hourly rate/tokens once
           const monthlyPrice = parseFloat(record.monthlyPrice.toString());
@@ -889,10 +904,14 @@ export class CronService {
           const hourlyTokens = Math.ceil(hourlyRate * 100); // Convert to tokens (cents), round up
 
           for (let i = 0; i < hoursToBill; i++) {
-            const periodStart = new Date(nextDueAt.getTime() + i * oneHourMs);
-            const periodEnd = new Date(nextDueAt.getTime() + (i + 1) * oneHourMs);
+            const periodStart = new Date(nextStart.getTime() + i * oneHourMs);
+            const periodEnd = new Date(periodStart.getTime() + oneHourMs);
 
-            console.log(`💰 Charging user ${record.userId} ${hourlyTokens} tokens (${hourlyRate.toFixed(6)} dollars) for server ${record.virtfusionServerId} [${periodStart.toISOString()} → ${periodEnd.toISOString()}]`);
+            console.log(`💰 Billing hour ${i + 1}/${hoursToBill}:`);
+            console.log(`   User: ${record.userId}, Server: ${record.serverId} (VirtFusion ID: ${record.virtfusionServerId})`);
+            console.log(`   Period: ${periodStart.toISOString()} → ${periodEnd.toISOString()}`);
+            console.log(`   Amount: ${hourlyTokens} tokens ($${hourlyRate.toFixed(4)})`);
+            console.log(`   Package: ${record.packageName} (Monthly: $${monthlyPrice.toFixed(2)}, Hourly: $${hourlyRate.toFixed(4)})`);
 
             // Create transaction record first to get the transaction ID
             const createdTransaction = await storage.createTransaction({
@@ -937,10 +956,13 @@ export class CronService {
 
               // Update the last billed timestamp to the end of this period
               await storage.db.update(virtfusionHourlyBilling)
-                .set({ lastBilledAt: periodEnd })
+                .set({ 
+                  lastBilledAt: periodEnd,
+                  updatedAt: sql`CURRENT_TIMESTAMP`
+                })
                 .where(eq(virtfusionHourlyBilling.id, record.id));
 
-              console.log(`✅ Successfully charged user ${record.userId} ${hourlyTokens} tokens for server ${record.virtfusionServerId}`);
+              console.log(`✅ Successfully billed hour ${i + 1}/${hoursToBill} for server ${record.serverId}`);
               successful++;
 
             } catch (virtFusionError: any) {
@@ -997,13 +1019,20 @@ export class CronService {
       const endTime = Date.now();
       const duration = endTime - startTime;
       
-      console.log(`✅ VirtFusion hourly billing completed in ${duration}ms`);
-      console.log(`📊 Results: ${processed} records processed, ${successful} successful, ${failed} failed`);
+      console.log(`\n📊 VirtFusion Hourly Billing Summary:`);
+      console.log(`   Completed at: ${new Date().toISOString()}`);
+      console.log(`   Duration: ${duration}ms`);
+      console.log(`   Servers checked: ${billingRecords.length}`);
+      console.log(`   Servers billed: ${processed}`);
+      console.log(`   Successful charges: ${successful}`);
+      console.log(`   Failed charges: ${failed}`);
       
       if (errors.length > 0) {
-        console.error(`❌ Errors encountered: ${errors.length}`);
-        errors.forEach(error => console.error(`  - User ${error.userId} Server ${error.serverId}: ${error.error}`));
+        console.error(`\n❌ Billing Errors (${errors.length}):`);
+        errors.forEach(error => console.error(`   - User ${error.userId}, Server ${error.serverId}: ${error.error}`));
       }
+      
+      console.log(`✅ Hourly billing check complete\n`);
       
     } catch (error) {
       console.error('❌ Error in VirtFusion hourly billing process:', error);
@@ -1085,90 +1114,84 @@ export class CronService {
             continue;
           }
 
-          // Check if server is due for monthly billing
+          // Check if server is due for monthly billing with catch-up
           const now = new Date();
           const serverCreatedAt = record.serverCreatedAt ? new Date(record.serverCreatedAt) : null;
-          const lastBilledAt = record.lastBilledAt ? new Date(record.lastBilledAt) : serverCreatedAt;
-          
           if (!serverCreatedAt) {
             console.warn(`⚠️ Skipping server ${record.serverId} - missing server creation timestamp.`);
             continue;
           }
 
-          // Calculate if a month has passed since last billing (or creation)
-          const daysSinceLastBilling = lastBilledAt ? 
-            (now.getTime() - lastBilledAt.getTime()) / (1000 * 60 * 60 * 24) : 
-            (now.getTime() - serverCreatedAt.getTime()) / (1000 * 60 * 60 * 24);
-          
-          // Bill monthly (30 days)
-          if (daysSinceLastBilling < 30) {
-            console.log(`⏰ Server ${record.serverId} not due for monthly billing yet. Days since last billing: ${daysSinceLastBilling.toFixed(2)}`);
+          // Monthly period = 30 days for billing purposes
+          const monthMs = 30 * 24 * 60 * 60 * 1000;
+          // If we've never billed via cron, the first month after the upfront creation charge
+          // becomes due at creation + 30 days. Otherwise due from lastBilledAt.
+          const nextStart = record.lastBilledAt
+            ? new Date(record.lastBilledAt)
+            : new Date(serverCreatedAt.getTime() + monthMs);
+
+          if (now.getTime() < nextStart.getTime()) {
+            const daysLeft = ((nextStart.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)).toFixed(2);
+            console.log(`⏰ Server ${record.serverId} not due for monthly billing yet. Next due at ${nextStart.toISOString()} (~${daysLeft} days)`);
             continue;
           }
 
-          console.log(`⏰ Server ${record.serverId} is due for monthly billing. Days since last billing: ${daysSinceLastBilling.toFixed(2)}`);
-          
-          // Calculate monthly charge
+          // Number of full 30-day periods to bill since nextStart
+          const monthsToBill = Math.floor((now.getTime() - nextStart.getTime()) / monthMs) + 1;
           const monthlyPrice = parseFloat(record.monthlyPrice.toString());
-          const monthlyTokens = Math.ceil(monthlyPrice * 100); // Convert to tokens (cents), round up
+          const monthlyTokens = Math.ceil(monthlyPrice * 100); // cents
 
-          console.log(`💰 Charging user ${record.userId} ${monthlyTokens} tokens (${monthlyPrice.toFixed(2)} dollars) for server ${record.virtfusionServerId} - MONTHLY BILLING`);
+          console.log(`⏰ Server ${record.serverId} monthly catch-up: billing ${monthsToBill} month(s) starting ${nextStart.toISOString()}`);
 
-          // Create transaction record
-          const createdTransaction = await storage.createTransaction({
-            userId: record.userId,
-            amount: -Math.abs(monthlyPrice), // Negative amount for debit
-            description: `VirtFusion Server ${record.serverId} - Monthly Billing (1 month)`,
-            type: "debit",
-            status: "pending",
-            paymentMethod: "virtfusion_tokens"
-          });
+          for (let m = 0; m < monthsToBill; m++) {
+            const periodStart = new Date(nextStart.getTime() + m * monthMs);
+            const periodEnd = new Date(periodStart.getTime() + monthMs);
 
-          // Prepare VirtFusion API token deduction data
-          const tokenData = {
-            tokens: monthlyTokens,
-            reference_1: createdTransaction.id,
-            reference_2: `Monthly billing for server ${record.serverId} - User ID: ${record.userId}`
-          };
+            console.log(`💰 Charging user ${record.userId} ${monthlyTokens} tokens (${monthlyPrice.toFixed(2)} dollars) for server ${record.virtfusionServerId} [${periodStart.toISOString()} → ${periodEnd.toISOString()}] - MONTHLY`);
 
-          console.log(`🌐 Sending to VirtFusion API with extRelationId=${record.userId}:`, tokenData);
-
-          try {
-            // Deduct VirtFusion tokens
-            const virtFusionResult = await virtFusionApi.removeCreditFromUserByExtRelationId(
-              record.userId,
-              tokenData
-            );
-
-            console.log("✅ VirtFusion token deduction result:", virtFusionResult);
-
-            // Update transaction status to completed
-            await storage.updateTransaction(createdTransaction.id, { status: "completed" });
-
-            // Update last billed timestamp
-            await storage.db.update(virtfusionHourlyBilling)
-              .set({
-                lastBilledAt: sql`now()`
-              })
-              .where(eq(virtfusionHourlyBilling.id, record.id));
-
-            console.log(`✅ Successfully charged user ${record.userId} ${monthlyTokens} tokens for server ${record.virtfusionServerId} - MONTHLY`);
-            successful++;
-
-          } catch (virtFusionError: any) {
-            console.error(`❌ VirtFusion API error for user ${record.userId}:`, virtFusionError);
-            
-            // Update transaction status to failed
-            await storage.updateTransaction(createdTransaction.id, { 
-              status: "failed"
-            });
-            
-            failed++;
-            errors.push({
+            // Create transaction record
+            const createdTransaction = await storage.createTransaction({
               userId: record.userId,
-              serverId: record.serverId,
-              error: virtFusionError.message || 'VirtFusion API error'
+              amount: -Math.abs(monthlyPrice),
+              description: `VirtFusion Server ${record.serverId} - Monthly Billing (1 month)`,
+              type: "debit",
+              status: "pending",
+              paymentMethod: "virtfusion_tokens"
             });
+
+            const tokenData = {
+              tokens: monthlyTokens,
+              reference_1: createdTransaction.id,
+              reference_2: `Monthly billing for server ${record.serverId} - User ID: ${record.userId}`
+            };
+
+            try {
+              const virtFusionResult = await virtFusionApi.removeCreditFromUserByExtRelationId(
+                record.userId,
+                tokenData
+              );
+
+              console.log("✅ VirtFusion token deduction result:", virtFusionResult);
+
+              await storage.updateTransaction(createdTransaction.id, { status: "completed" });
+
+              await storage.db.update(virtfusionHourlyBilling)
+                .set({ lastBilledAt: periodEnd })
+                .where(eq(virtfusionHourlyBilling.id, record.id));
+
+              successful++;
+            } catch (virtFusionError: any) {
+              console.error(`❌ VirtFusion API error for user ${record.userId}:`, virtFusionError);
+              await storage.updateTransaction(createdTransaction.id, { status: "failed" });
+              failed++;
+              errors.push({
+                userId: record.userId,
+                serverId: record.serverId,
+                error: virtFusionError.message || 'VirtFusion API error'
+              });
+              // Stop further catch-up for this server on API failure to avoid compounding errors
+              break;
+            }
           }
 
         } catch (recordError: any) {

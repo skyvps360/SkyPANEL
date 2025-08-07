@@ -9275,6 +9275,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get VirtFusion billing status for all servers (admin only)
+  app.get("/api/admin/cron/virtfusion-billing/status", isAdmin, async (req, res) => {
+    try {
+      const now = new Date();
+      const oneHourMs = 60 * 60 * 1000;
+      
+      // Get all billing records
+      const billingRecords = await storage.db.select({
+        id: virtfusionHourlyBilling.id,
+        userId: virtfusionHourlyBilling.userId,
+        serverId: virtfusionHourlyBilling.serverId,
+        serverUuid: virtfusionHourlyBilling.serverUuid,
+        packageName: virtfusionHourlyBilling.packageName,
+        monthlyPrice: virtfusionHourlyBilling.monthlyPrice,
+        hourlyRate: virtfusionHourlyBilling.hourlyRate,
+        billingEnabled: virtfusionHourlyBilling.billingEnabled,
+        serverCreatedAt: virtfusionHourlyBilling.serverCreatedAt,
+        lastBilledAt: virtfusionHourlyBilling.lastBilledAt
+      })
+      .from(virtfusionHourlyBilling)
+      .orderBy(virtfusionHourlyBilling.serverId);
+      
+      // Calculate billing status for each server
+      const serverStatuses = billingRecords.map(record => {
+        let nextBillingTime: Date | null = null;
+        let minutesUntilBilling: number | null = null;
+        let isOverdue = false;
+        let hoursOverdue = 0;
+        
+        if (record.billingEnabled && record.serverCreatedAt) {
+          const serverCreatedAt = new Date(record.serverCreatedAt);
+          nextBillingTime = record.lastBilledAt
+            ? new Date(record.lastBilledAt)
+            : new Date(serverCreatedAt.getTime() + oneHourMs);
+          
+          minutesUntilBilling = Math.ceil((nextBillingTime.getTime() - now.getTime()) / (1000 * 60));
+          
+          if (minutesUntilBilling <= 0) {
+            isOverdue = true;
+            hoursOverdue = Math.floor(Math.abs(minutesUntilBilling) / 60);
+          }
+        }
+        
+        return {
+          id: record.id,
+          serverId: record.serverId,
+          userId: record.userId,
+          serverUuid: record.serverUuid,
+          packageName: record.packageName,
+          monthlyPrice: parseFloat(record.monthlyPrice.toString()),
+          hourlyRate: parseFloat(record.hourlyRate.toString()),
+          billingEnabled: record.billingEnabled,
+          serverCreatedAt: record.serverCreatedAt,
+          lastBilledAt: record.lastBilledAt,
+          nextBillingTime,
+          minutesUntilBilling,
+          isOverdue,
+          hoursOverdue
+        };
+      });
+      
+      // Get cron settings
+      const cronSettings = await storage.db.select()
+        .from(virtfusionCronSettings)
+        .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+        .limit(1);
+      
+      const setting = cronSettings[0];
+      
+      // Calculate summary statistics
+      const enabledServers = serverStatuses.filter(s => s.billingEnabled);
+      const overdueServers = serverStatuses.filter(s => s.isOverdue);
+      const upcomingServers = serverStatuses.filter(s => 
+        s.minutesUntilBilling !== null && 
+        s.minutesUntilBilling > 0 && 
+        s.minutesUntilBilling <= 60
+      );
+      
+      const totalHourlyRevenue = enabledServers.reduce((sum, s) => sum + s.hourlyRate, 0);
+      const totalMonthlyRevenue = enabledServers.reduce((sum, s) => sum + s.monthlyPrice, 0);
+      
+      res.json({
+        success: true,
+        cronEnabled: setting?.enabled || false,
+        hourlyBillingEnabled: setting?.hourlyBillingEnabled || false,
+        lastHourlyBilling: setting?.lastHourlyBilling || null,
+        summary: {
+          totalServers: serverStatuses.length,
+          enabledServers: enabledServers.length,
+          disabledServers: serverStatuses.length - enabledServers.length,
+          overdueServers: overdueServers.length,
+          upcomingInNextHour: upcomingServers.length,
+          hourlyRevenue: totalHourlyRevenue,
+          dailyRevenue: totalHourlyRevenue * 24,
+          monthlyRevenue: totalMonthlyRevenue
+        },
+        servers: serverStatuses
+      });
+    } catch (error: any) {
+      console.error("Error fetching VirtFusion billing status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Update VirtFusion billing mode based on current settings (admin only)
   app.post("/api/admin/virtfusion/billing-mode/update", isAdmin, async (req, res) => {
     try {
