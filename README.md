@@ -3,6 +3,7 @@
 <div align="center">
   <h3>🌟 Next-Generation VirtFusion Client Portal 🌟</h3>
   <p><strong>Complete VPS hosting management with AI-powered support, Discord integration, and enterprise-grade features</strong></p>
+  <p><em>Current Version: v14.0.0</em></p>
 
   ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
   ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
@@ -16,7 +17,8 @@
     <a href="#-features">Features</a> •
     <a href="#-api-reference">API Reference</a> •
     <a href="#-deployment">Deployment</a> •
-    <a href="#-documentation">Documentation</a>
+    <a href="./ARCHITECTURE.md">Architecture</a> •
+    <a href="./CHANGELOG.md">Changelog</a>
   </p>
 </div>
 
@@ -184,7 +186,7 @@
 3. **Configure environment variables**
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
+   # Edit .env with your configuration (see .env.example for all options)
    ```
 
 4. **Initialize database**
@@ -216,6 +218,8 @@ For production deployment, see our [Deployment Guide](./ARCHITECTURE.md#deployme
 
 ### Required Environment Variables
 
+See the comprehensive [`.env.example`](./.env.example) file for all configuration options. Key required variables:
+
 ```bash
 # Database
 DATABASE_URL=postgresql://user:password@hostname:port/database
@@ -223,36 +227,41 @@ DATABASE_URL=postgresql://user:password@hostname:port/database
 # Session Security
 SESSION_SECRET=your_secure_random_string
 
-# VirtFusion Integration
+# VirtFusion Integration (Required)
 VIRTFUSION_API_URL=https://your-virtfusion.com/api/v1
 VIRTFUSION_API_KEY=your_api_key
 
-# AI Integration
+# AI Integration (Required for AI features)
 GOOGLE_AI_API_KEY=your_google_gemini_api_key
 GEMINI_API_KEY=your_google_gemini_api_key
 
-# Email Service
+# Email Service (Required)
 SMTP2GO_API_KEY=your_smtp2go_api_key
 SMTP_FROM=noreply@your-domain.com
-SMTP_FROM_NAME=Your Company Support
+```
 
-# PayPal (Optional)
+### Optional Integrations
+
+Configure these for additional features:
+
+```bash
+# PayPal Payments
 VITE_PAYPAL_CLIENT_ID=your_paypal_client_id
 VITE_PAYPAL_SECRET=your_paypal_secret
 VITE_PAYPAL_SANDBOX=true_or_false
-VITE_PAYPAL_CURRENCY=USD
 
-# Discord Integration (Optional)
+# Discord Integration
 DISCORD_BOT_TOKEN=your_discord_bot_token
 DISCORD_GUILD_ID=your_discord_server_id
 DISCORD_WEBHOOK_URL=your_webhook_url
 
-# Monitoring (Optional)
-BETTERSTACK_API_KEY=your_betterstack_api_key
+# Monitoring
+BETTERSTACK_API_KEY=your_betterstack_key
 
-# Application
-PORT=3333
-NODE_ENV=development
+# OAuth SSO
+OAUTH_DISCORD_CLIENT_ID=your_discord_oauth_client_id
+OAUTH_GITHUB_CLIENT_ID=your_github_oauth_client_id
+# ... (see .env.example for all OAuth options)
 ```
 
 ### Optional Features Configuration
@@ -438,9 +447,8 @@ For detailed deployment instructions, see [ARCHITECTURE.md](./ARCHITECTURE.md#de
 
 ### Core Documentation
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System architecture and design patterns
-- **[API Reference](./docs/api-reference.md)** - Complete API documentation
-- **[Deployment Guide](./docs/deployment.md)** - Deployment options and configurations
-- **[Development Guide](./docs/development.md)** - Local development setup
+- **[CHANGELOG.md](./CHANGELOG.md)** - Version history and release notes
+- **[.env.example](./.env.example)** - Complete environment configuration guide
 
 ### Feature Documentation
 - **[VirtFusion Integration](./docs/virtfusion-integration.md)** - VPS management setup
@@ -497,7 +505,7 @@ We welcome contributions to SkyPANEL! Please follow these guidelines:
 
 ## 📄 License
 
-SkyPANEL is released under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
+SkyPANEL is released under the **Apache License 2.0**. See the [LICENSE](./LICENSE) file for details.
 
 ### Commercial Use
 - ✅ **Free for Commercial Use** - Use SkyPANEL for commercial hosting businesses
@@ -534,6 +542,59 @@ While not required, attribution is appreciated:
 - **Discord**: [Join our Discord server](https://discord.gg/your-invite)
 - **GitHub**: [Open an issue](https://github.com/skyvps360/SkyPANEL/issues)
 - **Website**: [SkyVPS360.xyz](https://skyvps360.xyz)
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+#### Database Connection Issues
+```bash
+# Test database connection
+npm run db:check
+
+# Reset database schema
+npm run db:push
+
+# Verify DATABASE_URL format
+echo $DATABASE_URL
+```
+
+#### VirtFusion API Issues
+- Verify `VIRTFUSION_API_URL` and `VIRTFUSION_API_KEY` are correct
+- Check VirtFusion API status and connectivity
+- Test API access through admin panel under Settings → VirtFusion
+
+#### Email Delivery Problems
+- Verify `SMTP2GO_API_KEY` is valid
+- Check email templates in admin panel
+- Ensure proper SPF/DKIM DNS records are configured
+
+#### AI Features Not Working
+- Verify both `GOOGLE_AI_API_KEY` and `GEMINI_API_KEY` are set
+- Check Google AI API quotas and billing
+- Monitor rate limits (15 RPM, 1,500 RPD)
+
+#### PayPal Payment Issues
+- Ensure correct sandbox/production configuration
+- Verify webhook endpoints are accessible
+- Check PayPal developer console for errors
+
+#### Discord Bot Issues
+- Verify bot has proper permissions in Discord server
+- Check `DISCORD_BOT_TOKEN` and `DISCORD_GUILD_ID` are correct
+- Ensure bot is added to the Discord server
+
+### Performance Issues
+- Monitor database query performance
+- Check server resource usage (CPU, memory, disk)
+- Review application logs for errors
+- Verify external API response times
+
+### Getting Additional Help
+- **Documentation**: Check [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed technical information
+- **GitHub Issues**: [Report bugs and issues](https://github.com/skyvps360/SkyPANEL/issues)
+- **Community Support**: Join our Discord community for assistance
+- **Enterprise Support**: Contact us for professional support and customization
 
 ### Contributing to Support
 - 💖 **Financial Support** - [PayPal Donations](https://paypal.me/your-paypal)
