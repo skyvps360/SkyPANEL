@@ -189,6 +189,7 @@ export async function maintenanceMiddleware(req: Request, res: Response, next: N
           req.path.startsWith('/api/settings/') ||  // All settings endpoints
           req.path.startsWith('/api/user') ||  // Allow user info endpoint for authentication
           req.path.startsWith('/api/admin/') || // Allow admin endpoints for admins
+          req.path.startsWith('/api/oauth/') ||  // Allow OAuth endpoints during maintenance so /auth can work
           req.path.startsWith('/api/datacenter-locations') ||
           req.path.startsWith('/api/blog/') ||
           req.path.startsWith('/api/docs/') ||

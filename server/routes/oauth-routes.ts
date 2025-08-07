@@ -38,13 +38,18 @@ router.get('/providers/enabled', async (req, res) => {
 });
 
 // Get enabled OAuth providers (public - for login page)
-router.get('/providers/enabled/public', async (req, res) => {
+router.get('/providers/enabled/public', async (_req, res) => {
   try {
     const providers = await oauthService.getEnabledProviders();
-    return res.json({ providers });
+    // Filter out any misconfigured providers server-side to avoid client-side null checks
+    const safeProviders = (providers || []).filter((p: any) => {
+      return p && p.enabled === true && p.clientId && p.clientSecret && p.redirectUrl;
+    });
+    return res.json({ providers: safeProviders });
   } catch (error: any) {
-    console.error('Error getting enabled OAuth providers:', error);
-    return res.status(500).json({ message: 'An error occurred while getting enabled OAuth providers' });
+    console.error('Error getting enabled OAuth providers:', error?.message || error);
+    // Fail open with empty list so the auth page renders without a 503/500
+    return res.json({ providers: [] });
   }
 });
 

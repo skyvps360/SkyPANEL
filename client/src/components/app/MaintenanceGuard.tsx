@@ -104,8 +104,9 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
         return isAllowed;
     };
 
-    // Check user role
+    // Check user role (skip when bypass is granted)
     useEffect(() => {
+        if (bypassGranted) return; // Bypass disables user role check to avoid 401 during maintenance
         async function checkUser() {
             try {
                 const response = await fetch('/api/user');
@@ -119,7 +120,7 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
         }
 
         checkUser();
-    }, []);
+    }, [bypassGranted]);
 
     // Check maintenance status when component mounts or location changes
     useEffect(() => {
@@ -132,12 +133,13 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
 
                 if (response.ok) {
                     const data = await response.json();
-                    setIsMaintenanceMode(data.enabled);
+                    // If bypass is granted, treat as not in maintenance
+                    setIsMaintenanceMode(bypassGranted ? false : data.enabled);
 
                     // If maintenance is enabled and we're not on an allowed path,
                     // redirect to maintenance page (unless user is admin)
                     // Add additional check to prevent infinite redirects
-                    if (data.enabled && !isPathAllowed() && !isAdmin && !bypassGranted &&
+                    if (!bypassGranted && data.enabled && !isPathAllowed() && !isAdmin &&
                         location !== '/maintenance') {
                         setLocation('/maintenance');
                     }
@@ -152,6 +154,10 @@ export function MaintenanceGuard({children}: { children: React.ReactNode }) {
         }
 
         // Only check maintenance status if we haven't already determined it
+        if (bypassGranted) {
+            // Immediate render when bypass is active
+            return () => { isMounted = false; };
+        }
         if (isMaintenanceMode === null) {
             checkMaintenanceStatus();
         }
