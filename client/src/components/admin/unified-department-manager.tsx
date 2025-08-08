@@ -74,6 +74,7 @@ export function UnifiedDepartmentManager() {
   const { toast } = useToast();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<SupportDepartment | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState<{ [key: number]: boolean }>({});
 
   // Fetch unified departments
   const { data: departments = [], isLoading, refetch } = useQuery({
@@ -120,12 +121,12 @@ export function UnifiedDepartmentManager() {
         body: data
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast({
         title: 'Department updated',
         description: 'The department has been updated successfully.',
       });
-      setEditingDepartment(null);
+      setEditDialogOpen({ ...editDialogOpen, [variables.id]: false });
       refetch();
     },
     onError: (error: any) => {
@@ -196,7 +197,7 @@ export function UnifiedDepartmentManager() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Unified Department Management</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Department Management</h2>
           <p className="text-muted-foreground">
             Manage departments for tickets from a single interface.
           </p>
@@ -230,19 +231,14 @@ export function UnifiedDepartmentManager() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                {migrationStatus.needsMigration ? (
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                ) : (
-                  <CheckCircle className="h-5 w-5 text-blue-600" />
-                )}
                 <div>
                   <h3 className="font-medium">
-                    {migrationStatus.needsMigration ? 'Migration Required' : 'System Unified'}
+                    {migrationStatus.needsMigration ? 'Migration Required' : 'Department Status'}
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     {migrationStatus.needsMigration ?
-                      'Legacy departments need to be migrated to the unified system.' :
-                      'All departments are unified and synchronized.'}
+                      'Legacy departments need to be migrated.' :
+                      'All ticket departments are configured.'}
                   </p>
                 </div>
               </div>
@@ -289,7 +285,10 @@ export function UnifiedDepartmentManager() {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Dialog>
+                    <Dialog 
+                      open={editDialogOpen[department.id] || false}
+                      onOpenChange={(open) => setEditDialogOpen({ ...editDialogOpen, [department.id]: open })}
+                    >
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm">
                           <Edit className="h-4 w-4" />
@@ -299,7 +298,7 @@ export function UnifiedDepartmentManager() {
                         <DepartmentForm
                           department={department}
                           onSubmit={(data) => handleUpdateDepartment(department.id, data)}
-                          onCancel={() => setEditingDepartment(null)}
+                          onCancel={() => setEditDialogOpen({ ...editDialogOpen, [department.id]: false })}
                           isLoading={updateDepartmentMutation.isPending}
                         />
                       </DialogContent>

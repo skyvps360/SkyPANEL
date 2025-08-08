@@ -495,7 +495,9 @@ export default function ServersPage() {
                   Create Server in {brandingData?.company_name || 'SkyPANEL'}
                 </Button>
               )}
-              <VirtFusionSsoButton text="Create Server" />
+              {!isVirtFusionEnabled && (
+                <VirtFusionSsoButton text="Create Server" />
+              )}
               <Button
                 onClick={handleRefresh}
                 disabled={isRefreshing || isRateLimited}
@@ -584,7 +586,12 @@ export default function ServersPage() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden xl:table-cell px-3 py-4"><Skeleton className="h-3 w-20" /></TableCell>
-                    <TableCell className="px-3 py-4"><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
+                    <TableCell className="px-3 py-4">
+                      <div className="flex flex-col gap-1">
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                    </TableCell>
                     <TableCell className="hidden lg:table-cell px-3 py-4">
                       <div className="space-y-1">
                         <Skeleton className="h-3 w-12" />
@@ -723,22 +730,29 @@ export default function ServersPage() {
                           </div>
                         </TableCell>
                         <TableCell className="px-3 py-4">
-                          <Badge
-                            variant={
-                              server.billingCycle === 'Hourly' ? 'default' :
-                              server.billingCycle === 'Monthly' ? 'secondary' :
-                              'outline'
-                            }
-                            className={`text-xs font-medium px-2 py-1 rounded-full ${
-                              server.billingCycle === 'Hourly'
-                                ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                : server.billingCycle === 'Monthly'
-                                ? 'bg-green-100 text-green-800 border-green-200'
-                                : 'bg-gray-100 text-gray-800 border-gray-200'
-                            }`}
-                          >
-                            {server.billingCycle || 'Monthly'}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge
+                              variant={
+                                server.billingCycle === 'Hourly' ? 'default' :
+                                server.billingCycle === 'Monthly' ? 'secondary' :
+                                'outline'
+                              }
+                              className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                server.billingCycle === 'Hourly'
+                                  ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                  : server.billingCycle === 'Monthly'
+                                  ? 'bg-green-100 text-green-800 border-green-200'
+                                  : 'bg-gray-100 text-gray-800 border-gray-200'
+                              }`}
+                            >
+                              {server.billingCycle || 'Monthly'}
+                            </Badge>
+                            {server.billingCycle === 'Hourly' && server.totalBilled !== undefined && server.totalBilled > 0 && (
+                              <span className="text-xs text-gray-600">
+                                Total: ${server.totalBilled.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="px-3 py-4">
                             <Link href={`/servers/${server.id}`}>

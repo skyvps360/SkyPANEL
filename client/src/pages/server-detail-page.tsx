@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { getBrandColors } from "@/lib/brand-theme";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
 import {
   Tabs,
   TabsContent,
@@ -60,11 +63,29 @@ import {
   EyeOff,
   Trash,
   AlertTriangle,
-  DollarSign
+  DollarSign,
+  Package,
+  Home,
+  ChevronRight,
+  Hash,
+  Globe,
+  MapPin,
+  CheckCircle,
+  XCircle,
+  Terminal,
+  BarChart3,
+  Wifi,
+  Gauge,
+  TrendingUp,
+  Shield,
+  Clock,
+  Users,
+  Layers,
+  Box
 } from "lucide-react";
 
 // OS Icon Components with actual OS logos
-const UbuntuIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const UbuntuIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="12" fill="#E95420"/>
     <circle cx="4.5" cy="12" r="2.5" fill="white"/>
@@ -76,7 +97,7 @@ const UbuntuIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const DebianIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const DebianIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#A81D33"/>
     <path d="M8.5 8.5c1.5-1.5 3.5-1.5 5 0s1.5 3.5 0 5-3.5 1.5-5 0-1.5-3.5 0-5z" fill="white"/>
@@ -84,7 +105,7 @@ const DebianIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const CentOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const CentOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <rect width="24" height="24" rx="3" fill="#932279"/>
     <path d="M12 4L8 8h8l-4-4z" fill="white"/>
@@ -94,7 +115,7 @@ const CentOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const RockyLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const RockyLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="12" fill="#10B981"/>
     <path d="M12 3L6 9l6 3 6-3-6-6z" fill="white"/>
@@ -103,7 +124,7 @@ const RockyLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const AlmaLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const AlmaLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="12" fill="#0EA5E9"/>
     <path d="M12 4l8 16H4l8-16z" fill="white"/>
@@ -111,7 +132,7 @@ const AlmaLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const FedoraIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const FedoraIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="12" fill="#294172"/>
     <path d="M8 8h8v8H8z" fill="#3C6EB4"/>
@@ -119,14 +140,14 @@ const FedoraIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const WindowsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const WindowsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <rect width="24" height="24" fill="#00BCF2"/>
     <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-13.051-1.851" fill="white"/>
   </svg>
 );
 
-const ArchLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const ArchLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="12" fill="#1793D1"/>
     <path d="M12 2L4 22h16L12 2z" fill="white"/>
@@ -134,7 +155,7 @@ const ArchLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const FreeBSDIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const FreeBSDIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="12" fill="#990000"/>
     <path d="M8 8l8 8M16 8l-8 8" stroke="white" strokeWidth="3"/>
@@ -142,7 +163,7 @@ const FreeBSDIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const AlpineIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const AlpineIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="12" fill="#0D597F"/>
     <path d="M12 3L3 21h18L12 3z" fill="white"/>
@@ -150,7 +171,7 @@ const AlpineIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
-const UnknownOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+export const UnknownOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="12" fill="#6B7280"/>
     <path d="M12 8v4M12 16h.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
@@ -1879,91 +1900,212 @@ export default function ServerDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Breadcrumb Navigation */}
-        <Breadcrumb className="mb-4">
-          <Breadcrumb.Item href="/servers">Servers</Breadcrumb.Item>
-          <Breadcrumb.Item>{
-            isLoading ? "Loading..." : error ? "Error" : server?.name || "Server Details"
-          }</Breadcrumb.Item>
-        </Breadcrumb>
-        {/* Modern Hero Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
-          <div className="p-8 md:p-12 relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg">
-                    <Server className="h-6 w-6" />
-                  </div>
-                  <div>
-                    {/* Removed Back to Servers button, replaced by breadcrumb above */}
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight">
-                      {isLoading ? (
-                        <Skeleton className="h-10 w-64" />
-                      ) : error ? (
-                        "Error Loading Server"
-                      ) : (
-                        server?.name || "Server Details"
-                      )}
-                    </h1>
-                    <p className="text-muted-foreground text-lg mt-1">
-                      {isLoading ? (
-                        <Skeleton className="h-5 w-48" />
-                      ) : error ? (
-                        "Unable to load server details"
-                      ) : (
-                        `Server management and monitoring • ID: ${server?.id || 'N/A'}`
-                      )}
-                    </p>
-                  </div>
-                </div>
+      <div className="min-h-screen">
+        {/* Header Section */}
+        <div className="container mx-auto px-6 pt-8 pb-4">
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-2 text-sm mb-8">
+              <Link href="/dashboard">
+                <a className="text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+                  <Home className="h-3 w-3" />
+                  Dashboard
+                </a>
+              </Link>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+              <Link href="/servers">
+                <a className="text-muted-foreground hover:text-foreground transition-colors">Servers</a>
+              </Link>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
+              <span className="text-foreground font-medium">{server?.name || 'Loading...'}</span>
+            </nav>
 
-                {/* Server Status and OS Info */}
-                {!isLoading && !error && server && (
-                  <div className="flex flex-wrap gap-4 mt-6">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${
-                        getDisplayStatus() === 'RUNNING' ? 'bg-primary animate-pulse' :
-                        getDisplayStatus() === 'STOPPED' ? 'bg-muted-foreground' :
-                        'bg-destructive'
-                      }`} />
-                      <span className="text-sm font-medium text-foreground">
-                        {getDisplayStatus()}
-                      </span>
+            {/* Main Header Card */}
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Server Identity Section */}
+              <div className="lg:col-span-2">
+                <Card className="border-border/50">
+                  <CardContent className="p-8">
+                  <div className="flex items-start gap-6">
+                    {/* Server Icon */}
+                    <div className="relative">
+                      <div className="h-20 w-20 bg-primary/10 rounded-2xl flex items-center justify-center">
+                        <Server className="h-10 w-10 text-primary" />
+                      </div>
+                      {/* Status Indicator */}
+                      <div className="absolute -bottom-2 -right-2 h-8 w-8 bg-background rounded-full border-4 border-background flex items-center justify-center">
+                        <div className={`h-5 w-5 rounded-full ${
+                          getDisplayStatus() === 'RUNNING' ? 'bg-emerald-500' :
+                          getDisplayStatus() === 'STOPPED' ? 'bg-gray-400' :
+                          'bg-red-500'
+                        } ${getDisplayStatus() === 'RUNNING' ? 'animate-pulse' : ''}`} />
+                      </div>
                     </div>
-                    {(() => {
-                      const osInfo = getServerOSInfo(server);
-                      if (osInfo && osInfo.name !== "Unknown OS") {
+
+                    {/* Server Details */}
+                    <div className="flex-1">
+                      <div className="mb-4">
+                        <h1 className="text-4xl font-bold tracking-tight mb-2">
+                          {isLoading ? (
+                            <Skeleton className="h-12 w-72" />
+                          ) : error ? (
+                            "Error Loading Server"
+                          ) : (
+                            server?.name || "Server Details"
+                          )}
+                        </h1>
+                        <p className="text-muted-foreground text-lg">
+                          Enterprise Virtual Private Server
+                        </p>
+                      </div>
+
+                      {/* Server Badges */}
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Badge className="px-4 py-1.5 bg-primary/10 text-primary border-primary/20">
+                          <Hash className="h-3 w-3 mr-1.5" />
+                          Server #{server?.id || 'N/A'}
+                        </Badge>
+                        
+                        {server?.ipAddress && (
+                          <Badge variant="outline" className="px-4 py-1.5">
+                            <Globe className="h-3 w-3 mr-1.5" />
+                            {server.ipAddress}
+                          </Badge>
+                        )}
+
+                        {server?.location && (
+                          <Badge variant="outline" className="px-4 py-1.5">
+                            <MapPin className="h-3 w-3 mr-1.5" />
+                            {server.location}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-border/50">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Status</p>
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg font-medium text-sm ${
+                        getDisplayStatus() === 'RUNNING' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                        getDisplayStatus() === 'STOPPED' ? 'bg-gray-500/10 text-gray-600 dark:text-gray-400' :
+                        'bg-red-500/10 text-red-600 dark:text-red-400'
+                      }`}>
+                        {getDisplayStatus() === 'RUNNING' ? <CheckCircle className="h-3.5 w-3.5" /> :
+                         getDisplayStatus() === 'STOPPED' ? <XCircle className="h-3.5 w-3.5" /> :
+                         <AlertTriangle className="h-3.5 w-3.5" />}
+                        {getDisplayStatus()}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Operating System</p>
+                      {(() => {
+                        const osInfo = getServerOSInfo(server);
                         const OSIcon = osInfo.icon;
                         return (
                           <div className="flex items-center gap-2">
-                            <OSIcon className="w-4 h-4" />
-                            <span className="text-sm font-medium text-muted-foreground">
-                              {osInfo.name}
-                            </span>
+                            <OSIcon className="h-5 w-5" />
+                            <span className="font-medium text-sm">{osInfo.name}</span>
                           </div>
                         );
-                      }
-                      return null;
-                    })()}
-                    {/* Removed UUID display from hero header */}
+                      })()}
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Package</p>
+                      <p className="font-medium text-sm">{pkg?.planName || pkg?.name || server?.packageName || 'N/A'}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Uptime</p>
+                      <p className="font-medium text-sm">{server?.uptime || '99.9%'}</p>
+                    </div>
                   </div>
-                )}
+                  </CardContent>
+                </Card>
               </div>
 
-              {/* Action Buttons */}
-              {!isLoading && !error && server && (
-                <div className="flex flex-col sm:flex-row gap-3 mt-6 lg:mt-0">
-                  {/* <Button
-                    onClick={openVNCConsole}
-                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
-                  >
-                    <Monitor className="h-4 w-4" />
-                    VNC Console
-                  </Button> */}
-                  <Button
-                    onClick={() => {
+              {/* Quick Stats Card */}
+              <div className="lg:col-span-1">
+                <Card className="border-border/50 h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      Live Metrics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                  
+                  <div className="space-y-6">
+                    {/* CPU Usage */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground">CPU Usage</span>
+                        <span className="text-sm font-bold">{server?.cpuUsage || 0}%</span>
+                      </div>
+                      <Progress value={server?.cpuUsage || 0} className="h-2" />
+                    </div>
+
+                    {/* Memory Usage */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground">Memory</span>
+                        <span className="text-sm font-bold">
+                          {server?.memoryUsage ? 
+                            `${Math.round((server.memoryUsage.used / server.memoryUsage.total) * 100)}%` : '0%'}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={server?.memoryUsage ? 
+                          Math.round((server.memoryUsage.used / server.memoryUsage.total) * 100) : 0} 
+                        className="h-2" 
+                      />
+                    </div>
+
+                    {/* Storage Usage */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground">Storage</span>
+                        <span className="text-sm font-bold">
+                          {server?.storageUsage ? 
+                            `${Math.round((server.storageUsage.used / server.storageUsage.total) * 100)}%` : '0%'}
+                        </span>
+                      </div>
+                      <Progress 
+                        value={server?.storageUsage ? 
+                          Math.round((server.storageUsage.used / server.storageUsage.total) * 100) : 0} 
+                        className="h-2" 
+                      />
+                    </div>
+
+                    {/* Network Status */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-muted-foreground">Network</span>
+                        <Badge variant="outline" className="text-xs">
+                          <Wifi className="h-3 w-3 mr-1 text-green-500" />
+                          Online
+                        </Badge>
+                      </div>
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    {/* Quick Actions */}
+                    <div className="space-y-3">
+                      <Button 
+                        onClick={openVNCConsole}
+                        className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+                      >
+                        <Terminal className="h-4 w-4 mr-2" />
+                        Open Console
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
                       const now = Date.now();
                       setRefreshClicks(prevClicks => {
                         const recentClicks = prevClicks.filter(ts => now - ts < 60000);
@@ -1988,236 +2130,244 @@ export default function ServerDetailPage() {
                         return [...recentClicks, now];
                       });
                     }}
-                    disabled={isRefreshing || isRateLimited}
-                    variant="outline"
-                    className="transition-all duration-200"
-                  >
-                    <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    {isRefreshing ? 'Refreshing...' : isRateLimited ? 'Rate limit: wait 1 min' : 'Refresh'}
-                  </Button>
-                </div>
-              )}
+                        disabled={isRefreshing || isRateLimited}
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                      </Button>
+                    </div>
+                  </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
-          {/* Bubble background shapes */}
-          <div className="absolute top-0 left-0 w-full h-full z-0">
-            <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
-                 style={{ backgroundColor: brandColors.primary.full }}></div>
-            <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
-                 style={{ backgroundColor: brandColors.secondary.full }}></div>
-          </div>
-        </div>
 
-        {/* Modern Resource Cards */}
-        {!isLoading && !error && server && (
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
-            (isVirtFusionEnabled || billingData?.billingType !== 'virtfusion controlled') 
-              ? 'lg:grid-cols-4' 
-              : 'lg:grid-cols-3'
-          }`}>
-            {/* Memory Card */}
-            <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MemoryStick className="h-4 w-4" />
-                      <span>Memory</span>
-                    </div>
-                    <div className="text-2xl font-bold text-foreground">
-                      {server?.settings?.resources?.memory ?
-                        `${(server.settings.resources.memory / 1024).toFixed(1)} GB` : 'N/A'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {server?.settings?.resources?.memory ? `${server.settings.resources.memory} MB` : 'Not specified'}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
-                    <MemoryStick className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* CPU Card */}
-            <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Cpu className="h-4 w-4" />
-                      <span>vCPU</span>
-                    </div>
-                    <div className="text-2xl font-bold text-foreground">
-                      {server?.cpu?.cores || server?.settings?.resources?.cpuCores || 'N/A'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {server?.cpu?.type || 'Virtual CPU'}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
-                    <Cpu className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Storage Card */}
-            <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <HardDrive className="h-4 w-4" />
-                      <span>NVMe SSD</span>
-                    </div>
-                    <div className="text-2xl font-bold text-foreground">
-                      {server?.settings?.resources?.storage ?
-                        `${server.settings.resources.storage} GB` :
-                        server?.storage && server.storage.length > 0 ?
-                          `${server.storage.reduce((acc: number, drive: any) => acc + (drive.capacity || 0), 0)} GB` :
-                          'N/A'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {server?.storage?.length ? `${server.storage.length} drive(s)` : 'Virtual disk'}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
-                    <HardDrive className="h-6 w-6 text-primary" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Billing Cost Card - Only show if VirtFusion is enabled OR billing type is not virtfusion controlled */}
-            {(isVirtFusionEnabled || billingData?.billingType !== 'virtfusion controlled') && (
-              <div className="rounded-xl bg-card border border-border shadow-md hover:shadow-lg transition-all duration-300">
-                <div className="p-6">
+        {/* Main Content Container */}
+        <div className="container mx-auto px-6 py-8 space-y-8">
+          {/* Enterprise Resource Dashboard */}
+          {!isLoading && !error && server && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* CPU Card */}
+              <Card className="group relative overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardHeader className="relative pb-2">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <DollarSign className="h-4 w-4" />
-                        <span>
-                          {billingData?.billingType === 'monthly' 
-                            ? 'Monthly Cost' 
-                            : billingData?.billingType === 'virtfusion controlled' 
-                              ? 'VirtFusion Managed' 
-                              : 'Hourly Cost'}
-                        </span>
+                    <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                      <Cpu className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <Badge variant="outline" className="text-xs">vCPU</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="space-y-1">
+                    <p className="text-3xl font-bold">
+                      {server?.cpu?.cores || server?.settings?.resources?.cpuCores || '0'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Processing Cores</p>
+                    {server?.cpu?.usage !== undefined && (
+                      <div className="pt-3 space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Usage</span>
+                          <span className="font-medium">{server.cpu.usage}%</span>
+                        </div>
+                        <Progress value={server.cpu.usage} className="h-1.5" />
                       </div>
-                      <div className="text-2xl font-bold text-foreground">
-                        {billingLoading ? (
-                          <span className="text-muted-foreground">Loading...</span>
-                        ) : billingData?.billingType === 'monthly' ? (
-                          billingData?.monthlyPrice ? (
-                            `$${billingData.monthlyPrice.toFixed(2)}`
-                          ) : '$0.00'
-                        ) : billingData?.billingType === 'virtfusion controlled' ? (
-                          <span className="text-muted-foreground">N/A</span>
-                        ) : (
-                          billingData?.hourlyRate ? (
-                            `$${billingData.hourlyRate.toFixed(4)}`
-                          ) : '$0.0000'
-                        )}
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Memory Card */}
+              <Card className="group relative overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardHeader className="relative pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                      <MemoryStick className="h-5 w-5 text-purple-500" />
+                    </div>
+                    <Badge variant="outline" className="text-xs">RAM</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="space-y-1">
+                    <p className="text-3xl font-bold">
+                      {server?.settings?.resources?.memory ?
+                        `${(server.settings.resources.memory / 1024).toFixed(1)}` : '0'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">GB Memory</p>
+                    {server?.memoryUsage && (
+                      <div className="pt-3 space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Used</span>
+                          <span className="font-medium">
+                            {Math.round((server.memoryUsage.used / server.memoryUsage.total) * 100)}%
+                          </span>
+                        </div>
+                        <Progress 
+                          value={Math.round((server.memoryUsage.used / server.memoryUsage.total) * 100)} 
+                          className="h-1.5" 
+                        />
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {billingData?.billingType === 'monthly' ? (
-                          <span>billed monthly on the 1st</span>
-                        ) : billingData?.billingType === 'virtfusion controlled' ? (
-                          <span>managed by VirtFusion directly</span>
-                        ) : (
-                          <span>per hour of uptime</span>
-                        )}
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Storage Card */}
+              <Card className="group relative overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardHeader className="relative pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center">
+                      <HardDrive className="h-5 w-5 text-green-500" />
+                    </div>
+                    <Badge variant="outline" className="text-xs">Storage</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="relative">
+                  <div className="space-y-1">
+                    <p className="text-3xl font-bold">
+                      {server?.settings?.resources?.storage || '0'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">GB Storage</p>
+                    {server?.storageUsage && (
+                      <div className="pt-3 space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Used</span>
+                          <span className="font-medium">
+                            {Math.round((server.storageUsage.used / server.storageUsage.total) * 100)}%
+                          </span>
+                        </div>
+                        <Progress 
+                          value={Math.round((server.storageUsage.used / server.storageUsage.total) * 100)} 
+                          className="h-1.5" 
+                        />
                       </div>
-                      {/* Additional billing context for running servers */}
-                      {!billingLoading && billingData && isServerRunning && (
-                        <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border/50">
-                          {billingData.billingType === 'monthly' ? (
-                            <span>💡 Fixed monthly charge regardless of uptime</span>
-                          ) : billingData.billingType === 'virtfusion controlled' ? (
-                            <span>🛡️ Billing controlled by VirtFusion</span>
-                          ) : (
-                            <span>💡 Currently accruing hourly charges</span>
-                          )}
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Billing Card */}
+              {(isVirtFusionEnabled || billingData?.billingType !== 'virtfusion controlled') && (
+                <Card className="group relative overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <CardHeader className="relative pb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="h-10 w-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                        <DollarSign className="h-5 w-5 text-yellow-500" />
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {billingData?.billingType === 'monthly' ? 'Monthly' : 'Hourly'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative">
+                    <div className="space-y-1">
+                      <p className="text-3xl font-bold">
+                        {billingLoading ? '...' : 
+                         billingData?.billingType === 'monthly' ? 
+                           `$${billingData?.monthlyPrice?.toFixed(0) || '0'}` :
+                           `$${billingData?.hourlyRate?.toFixed(4) || '0.00'}`}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {billingData?.billingType === 'monthly' ? 'Per Month' : 'Per Hour'}
+                      </p>
+                      {billingData?.totalBilled !== undefined && billingData.totalBilled > 0 && (
+                        <div className="pt-3 space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Total</span>
+                            <span className="font-medium">${billingData.totalBilled.toFixed(2)}</span>
+                          </div>
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
-                      <DollarSign className="h-6 w-6 text-primary" />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {/* Control Center */}
+          {!isLoading && !error && server && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Power Management */}
+              <Card className="lg:col-span-2 border-border/50">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                      <Zap className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle>Power Management</CardTitle>
+                      <CardDescription>Control your server power state</CardDescription>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Power Controls and Quick Actions */}
-        {!isLoading && !error && server && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Power Controls */}
-            <div className="lg:col-span-2 rounded-xl bg-card border border-border shadow-md">
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
-                    <Zap className="h-4 w-4 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Button
+                      size="lg"
+                      variant={isServerStopped ? "default" : "outline"}
+                      onClick={() => handlePowerAction('boot')}
+                      disabled={!isServerStopped || isLoading}
+                      className="h-auto py-4 flex flex-col gap-2"
+                    >
+                      <Power className="h-5 w-5" />
+                      <span className="text-xs">Start</span>
+                    </Button>
+                    
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => handlePowerAction('restart')}
+                      disabled={isServerStopped || isLoading}
+                      className="h-auto py-4 flex flex-col gap-2"
+                    >
+                      <RotateCcw className="h-5 w-5" />
+                      <span className="text-xs">Restart</span>
+                    </Button>
+                    
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => handlePowerAction('shutdown')}
+                      disabled={isServerStopped || isLoading}
+                      className="h-auto py-4 flex flex-col gap-2"
+                    >
+                      <Square className="h-5 w-5" />
+                      <span className="text-xs">Shutdown</span>
+                    </Button>
+                    
+                    <Button
+                      size="lg"
+                      variant="destructive"
+                      onClick={() => handlePowerAction('poweroff')}
+                      disabled={isServerStopped || isLoading}
+                      className="h-auto py-4 flex flex-col gap-2"
+                    >
+                      <PowerOff className="h-5 w-5" />
+                      <span className="text-xs">Force Stop</span>
+                    </Button>
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">Power Controls</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <Button
-                    variant={isServerStopped ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePowerAction('boot')}
-                    disabled={!isServerStopped || isLoading}
-                    className="flex items-center gap-2 h-12 disabled:opacity-50 transition-all duration-200"
-                  >
-                    <Power className="h-4 w-4" />
-                    <span>Boot</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePowerAction('restart')}
-                    disabled={isServerStopped || isLoading}
-                    className="flex items-center gap-2 h-12 disabled:opacity-50 transition-all duration-200"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    <span>Restart</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePowerAction('shutdown')}
-                    disabled={isServerStopped || isLoading}
-                    className="flex items-center gap-2 h-12 disabled:opacity-50 transition-all duration-200"
-                  >
-                    <Square className="h-4 w-4" />
-                    <span>Shutdown</span>
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handlePowerAction('poweroff')}
-                    disabled={isServerStopped || isLoading}
-                    className="flex items-center gap-2 h-12 disabled:opacity-50 transition-all duration-200"
-                  >
-                    <PowerOff className="h-4 w-4" />
-                    <span>Force Off</span>
-                  </Button>
-                </div>
-              </div>
-            </div>
+                </CardContent>
+              </Card>
 
-            {/* Quick Actions */}
-            <div className="rounded-xl bg-card border border-border shadow-md">
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
-                    <Settings className="h-4 w-4 text-primary" />
+              {/* Quick Actions */}
+              <Card className="border-border/50">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-secondary/10 to-secondary/5 flex items-center justify-center">
+                      <Settings className="h-6 w-6 text-secondary-foreground" />
+                    </div>
+                    <div>
+                      <CardTitle>Quick Actions</CardTitle>
+                      <CardDescription>Server operations</CardDescription>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
-                </div>
+                </CardHeader>
+                <CardContent>
                 <div className="space-y-3">
                   <Button
                     variant="outline"
@@ -2283,138 +2433,65 @@ export default function ServerDetailPage() {
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modern Tab Navigation */}
-        {!isLoading && !error && server && (
-          <div className="flex flex-wrap gap-2 bg-card rounded-xl border border-border shadow-md p-6">
-            {[
-              { id: "overview", label: "Overview", icon: Server },
-              { id: "specs", label: "Specifications", icon: Cpu },
-              { id: "network", label: "Network", icon: Network },
-              { id: "traffic", label: "Traffic", icon: Activity },
-              { id: "storage", label: "Storage", icon: HardDrive },
-              { id: "notes", label: "Notes", icon: FileText },
-              // { id: "vnc", label: "VNC", icon: Monitor },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <Button
-                  key={tab.id}
-                  variant={isActive ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 h-10 transition-all duration-200 ${
-                    isActive ? 'bg-primary text-primary-foreground shadow-md' : ''
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </Button>
-              );
-            })}
-          </div>
-        )}
-
-          {/* Enhanced Loading state */}
-          {isLoading && (
-            <div className="space-y-8">
-              {/* Loading Header */}
-              <div className="space-y-4">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-12 w-96" />
-              </div>
-
-              {/* Loading Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[...Array(4)].map((_, i) => (
-                  <Card key={i} className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-2 flex-1">
-                          <Skeleton className="h-4 w-16" />
-                          <Skeleton className="h-6 w-20" />
-                          <Skeleton className="h-3 w-24" />
-                        </div>
-                        <Skeleton className="h-12 w-12 rounded-xl" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Loading Actions */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-                  <CardContent className="p-6">
-                    <Skeleton className="h-6 w-32 mb-4" />
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[...Array(4)].map((_, i) => (
-                        <Skeleton key={i} className="h-12 w-full" />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-                  <CardContent className="p-6">
-                    <Skeleton className="h-6 w-24 mb-4" />
-                    <div className="space-y-3">
-                      {[...Array(4)].map((_, i) => (
-                        <Skeleton key={i} className="h-10 w-full" />
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+                </CardContent>
+              </Card>
             </div>
           )}
 
-          {/* Enhanced Error state */}
-          {error && (
-            <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg border-l-4 border-l-red-500">
+          {/* Enterprise Tabbed Interface */}
+          {!isLoading && !error && server && (
+            <Card className="border-border/50">
               <CardHeader>
-                <CardTitle className="text-red-700 flex items-center gap-2">
-                  <div className="p-2 bg-red-100 rounded-lg">
-                    <Server className="h-5 w-5 text-red-600" />
-                  </div>
-                  Error Loading Server
-                </CardTitle>
-                <CardDescription className="text-slate-600">
-                  There was a problem loading the server details. This could be due to network issues or server unavailability.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-slate-700">Please try refreshing the page or contact support if the problem persists.</p>
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => window.location.reload()}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Refresh Page
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => window.history.back()}
-                      className="border-slate-200 text-slate-700 hover:bg-slate-50"
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Go Back
-                    </Button>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Server Information & Analytics</CardTitle>
+                  <div className="flex items-center gap-2">
+                    {server?.sla && (
+                      <Badge variant="outline" className="text-xs">
+                        <Shield className="h-3 w-3 mr-1" />
+                        {server.sla}% SLA
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      <Clock className="h-3 w-3 mr-1" />
+                      24/7 Support
+                    </Badge>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Enhanced Server Details */}
-          {!isLoading && !error && server && (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              </CardHeader>
+              <CardContent>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid grid-cols-3 lg:grid-cols-7 h-auto bg-muted/30">
+                    <TabsTrigger value="overview" className="data-[state=active]:bg-background">
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      Overview
+                    </TabsTrigger>
+                    <TabsTrigger value="specs" className="data-[state=active]:bg-background">
+                      <Cpu className="h-4 w-4 mr-2" />
+                      Specs
+                    </TabsTrigger>
+                    <TabsTrigger value="network" className="data-[state=active]:bg-background">
+                      <Network className="h-4 w-4 mr-2" />
+                      Network
+                    </TabsTrigger>
+                    <TabsTrigger value="traffic" className="data-[state=active]:bg-background">
+                      <Activity className="h-4 w-4 mr-2" />
+                      Traffic
+                    </TabsTrigger>
+                    <TabsTrigger value="storage" className="data-[state=active]:bg-background">
+                      <Database className="h-4 w-4 mr-2" />
+                      Storage
+                    </TabsTrigger>
+                    <TabsTrigger value="notes" className="data-[state=active]:bg-background">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Notes
+                    </TabsTrigger>
+                    <TabsTrigger value="vnc" className="data-[state=active]:bg-background">
+                      <Monitor className="h-4 w-4 mr-2" />
+                      Console
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <div className="mt-6">
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -2624,7 +2701,7 @@ export default function ServerDetailPage() {
                           <span className="text-muted-foreground">Loading billing information...</span>
                         </div>
                       ) : billingData ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                           {/* Billing Mode */}
                           <div className="flex flex-col space-y-2 p-4 rounded-lg" style={{ backgroundColor: brandColors.primary.extraLight }}>
                             <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Billing Mode</span>
@@ -2696,12 +2773,25 @@ export default function ServerDetailPage() {
                             </span>
                           </div>
 
+                          {/* Total Billed Amount - New Card */}
+                          {billingData.billingType === 'hourly' && (
+                            <div className="flex flex-col space-y-2 p-4 rounded-lg border-2 border-primary/20" style={{ backgroundColor: brandColors.primary.extraLight }}>
+                              <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Total Billed</span>
+                              <span className="text-lg font-bold text-slate-800">
+                                ${billingData.totalBilled?.toFixed(2) || '0.00'}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {billingData.hoursRunning ? `${billingData.hoursRunning.toLocaleString()} hours` : 'Since server creation'}
+                              </span>
+                            </div>
+                          )}
+
                           {/* Server Status Impact */}
                           {isServerRunning && (
-                            <div className="md:col-span-2 lg:col-span-3 p-4 rounded-lg bg-green-50 border border-green-200">
+                            <div className="md:col-span-2 lg:col-span-4 p-4 rounded-lg bg-green-50 border border-green-200">
                               <div className="flex items-start gap-3">
                                 <div className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                                <div>
+                                <div className="flex-1">
                                   <p className="text-sm font-medium text-green-800">
                                     {billingData.billingType === 'monthly' 
                                       ? '💰 Monthly billing active - you pay the same amount regardless of server uptime'
@@ -2711,9 +2801,16 @@ export default function ServerDetailPage() {
                                     }
                                   </p>
                                   {billingData.billingType === 'hourly' && (
-                                    <p className="text-xs text-green-600 mt-1">
-                                      Current hour charge: ${billingData.hourlyRate?.toFixed(4) || '0.0000'}
-                                    </p>
+                                    <>
+                                      <p className="text-xs text-green-600 mt-1">
+                                        Current hour charge: ${billingData.hourlyRate?.toFixed(4) || '0.0000'}
+                                      </p>
+                                      {billingData.totalBilled !== undefined && billingData.totalBilled > 0 && (
+                                        <p className="text-xs text-green-600 mt-1">
+                                          Total billed so far: ${billingData.totalBilled.toFixed(2)}
+                                        </p>
+                                      )}
+                                    </>
                                   )}
                                   {billingData.billingType === 'virtfusion controlled' && (
                                     <p className="text-xs text-green-600 mt-1">
@@ -2726,16 +2823,21 @@ export default function ServerDetailPage() {
                           )}
 
                           {!isServerRunning && billingData.billingType === 'hourly' && (
-                            <div className="md:col-span-2 lg:col-span-3 p-4 rounded-lg bg-blue-50 border border-blue-200">
+                            <div className="md:col-span-2 lg:col-span-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
                               <div className="flex items-start gap-3">
                                 <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                                <div>
+                                <div className="flex-1">
                                   <p className="text-sm font-medium text-blue-800">
                                     💡 Server is stopped - no hourly charges are being applied
                                   </p>
                                   <p className="text-xs text-blue-600 mt-1">
                                     Start the server to begin hourly billing at ${billingData.hourlyRate?.toFixed(4) || '0.0000'}/hour
                                   </p>
+                                  {billingData.totalBilled !== undefined && billingData.totalBilled > 0 && (
+                                    <p className="text-xs text-blue-600 mt-1">
+                                      Total billed before stopping: ${billingData.totalBilled.toFixed(2)}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -3784,11 +3886,12 @@ export default function ServerDetailPage() {
             {/* <TabsContent value="vnc" className="space-y-4">
               <VNCTab serverId={serverId} />
             </TabsContent> */}
-
-
-
-          </Tabs>
-        )}
+                  </div>
+                </Tabs>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Server Logs Modal */}
         <ServerLogsModal

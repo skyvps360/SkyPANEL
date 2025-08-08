@@ -23,7 +23,7 @@ import { cacheService } from "./services/infrastructure/cache-service";
 import { serverLoggingService } from "./server-logging-service";
 import { cronService } from "./services/cron-service";
 import { dnsBillingService } from "./services/dns-billing-service";
-import { virtfusionCronSettings, virtfusionHourlyBilling } from "../shared/schemas/virtfusion-billing-schema";
+import { virtfusionCronSettings, virtfusionHourlyBilling, virtfusionHourlyTransactions } from "../shared/schemas/virtfusion-billing-schema";
 import {
   getMaintenanceStatus,
   getMaintenanceToken,
@@ -1050,8 +1050,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               }
 
-              // Get billing cycle information
+              // Get billing cycle and total billed information
               let billingCycle = "VirtFusion Controlled";
+              let totalBilled = 0;
+              let hourlyRate = 0;
               try {
                 const { db } = await import('./db.ts');
                 const { eq, sql } = await import('drizzle-orm');
@@ -1071,6 +1073,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
                 if (billingRecord.length > 0) {
                   billingCycle = "Hourly";
+                  const billing = billingRecord[0];
+                  hourlyRate = parseFloat(billing.hourlyRate);
+                  
+                  // Get actual total billed from transaction history only
+                  try {
+                    const transactions = await db
+                      .select()
+                      .from(virtfusionHourlyTransactions)
+                      .where(
+                        and(
+                          eq(virtfusionHourlyTransactions.serverId, server.id),
+                          eq(virtfusionHourlyTransactions.userId, userId),
+                          eq(virtfusionHourlyTransactions.status, 'completed')
+                        )
+                      );
+                    
+                    if (transactions.length > 0) {
+                      // Sum up actual transaction amounts
+                      totalBilled = transactions.reduce((sum, t) => sum + parseFloat(t.amountCharged), 0);
+                      // Add the upfront charge for the first hour (if server was created)
+                      if (billing.serverCreatedAt) {
+                        totalBilled += hourlyRate;
+                      }
+                    }
+                  } catch (txError) {
+                    console.warn(`Failed to fetch transaction history for server ${server.id}:`, txError);
+                    // Don't set any fallback - totalBilled remains 0
+                  }
                 } else {
                   // Check if VirtFusion cron system is enabled before showing "Monthly"
                   const cronSettings = await db.select()
@@ -1093,7 +1123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 billingCycle = "VirtFusion Controlled";
               }
 
-              // Create processed server object with IP information, package category, and billing cycle
+              // Create processed server object with IP information, package category, billing cycle, and total billed
               const processedServer = {
                 ...server,
                 id: server.id,
@@ -1111,7 +1141,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 package: server.package?.name || "Unknown",
                 packageCategory: packageCategory,
                 packageCategoryName: packageCategoryName,
-                billingCycle: billingCycle
+                billingCycle: billingCycle,
+                totalBilled: totalBilled,
+                hourlyRate: hourlyRate
               };
 
               detailedServers.push(processedServer);
@@ -1731,15 +1763,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (billingInfo.length > 0) {
         const billing = billingInfo[0];
+        const hourlyRate = parseFloat(billing.hourlyRate);
+        const monthlyPrice = parseFloat(billing.monthlyPrice);
+        
+        // Calculate total amount billed from actual transactions only
+        let totalBilled = 0;
+        let hoursRunning = 0;
+        
+        if (billing.serverCreatedAt) {
+          const now = new Date();
+          const createdAt = new Date(billing.serverCreatedAt);
+          const oneHourMs = 60 * 60 * 1000;
+          
+          // Calculate total hours since creation for display purposes
+          const totalMs = now.getTime() - createdAt.getTime();
+          hoursRunning = Math.floor(totalMs / oneHourMs);
+        }
+        
+        // Get actual transaction history - this is the only source of truth
+        const transactions = await storage.db
+          .select()
+          .from(virtfusionHourlyTransactions)
+          .where(
+            and(
+              eq(virtfusionHourlyTransactions.serverId, serverId),
+              eq(virtfusionHourlyTransactions.userId, userId),
+              eq(virtfusionHourlyTransactions.status, 'completed')
+            )
+          );
+        
+        // Calculate total from actual transactions
+        if (transactions.length > 0) {
+          totalBilled = transactions.reduce((sum, t) => sum + parseFloat(t.amountCharged), 0);
+          // Add the upfront charge for the first hour
+          if (billing.serverCreatedAt && hourlyRate > 0) {
+            totalBilled += hourlyRate;
+          }
+        }
+        
         return res.json({
-          hourlyRate: parseFloat(billing.hourlyRate),
-          monthlyPrice: parseFloat(billing.monthlyPrice),
+          hourlyRate,
+          monthlyPrice,
           billingType: 'hourly',
           billingEnabled: billing.billingEnabled,
           packageName: billing.packageName,
           hoursInMonth: billing.hoursInMonth,
           lastBilledAt: billing.lastBilledAt,
-          serverCreatedAt: billing.serverCreatedAt
+          serverCreatedAt: billing.serverCreatedAt,
+          totalBilled,
+          hoursRunning
         });
       } else {
         // Server has no billing record - could be monthly or virtfusion controlled
@@ -1761,10 +1833,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             packageName: 'VirtFusion Managed',
             hoursInMonth: 730,
             lastBilledAt: null,
-            serverCreatedAt: null
+            serverCreatedAt: null,
+            totalBilled: 0,
+            hoursRunning: 0
           });
         } else {
           // Cron is enabled, treat as monthly server (legacy behavior)
+          // For monthly servers, calculate based on server age
+          // Note: We don't have creation date for legacy servers, so we can't calculate accurately
           return res.json({
             hourlyRate: 0,
             monthlyPrice: 0,
@@ -1773,7 +1849,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             packageName: 'Unknown',
             hoursInMonth: 730,
             lastBilledAt: null,
-            serverCreatedAt: null
+            serverCreatedAt: null,
+            totalBilled: 0,
+            hoursRunning: 0
           });
         }
       }
