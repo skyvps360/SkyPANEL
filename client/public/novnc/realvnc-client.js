@@ -416,26 +416,40 @@
     }
 
     connectToRealVNC() {
-      // Construct WebSocket URL for VNC proxy
-      // In development, Vite will proxy to the backend server
-      // In production, frontend and backend are on the same server
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      // Try connecting directly to the VNC server via WebSocket
+      // VirtFusion might be providing a WebSocket VNC endpoint
+      // Choose WebSocket scheme based on current page protocol
+      const protocol = (window.location.protocol === 'https:') ? 'wss:' : 'ws:';
+      
+      // First try: Connect directly to VirtFusion's VNC WebSocket
+      // const wsUrl = `${protocol}//${this.host}:${this.port}/`;
+      
+      // Second try: Use our proxy
       const wsUrl = `${protocol}//${window.location.host}/vnc-proxy?host=${encodeURIComponent(this.host)}&port=${this.port}`;
+
+      console.log('RealVNC: Connecting to WebSocket:', wsUrl);
+      console.log('RealVNC: VNC Host:', this.host, 'Port:', this.port);
+      console.log('RealVNC: Password:', this.password ? '***' : 'NO PASSWORD!');
 
       try {
         // Create WebSocket connection to VNC proxy
         this.ws = new WebSocket(wsUrl);
         this.ws.binaryType = 'arraybuffer';
+        
+        console.log('RealVNC: WebSocket created, waiting for connection...');
 
         this.ws.onopen = () => {
+          console.log('RealVNC: WebSocket connected successfully');
           this.updateStatus('Connected to VNC proxy, starting VNC handshake...');
         };
 
         this.ws.onmessage = (event) => {
+          console.log('RealVNC: Received data, size:', event.data.byteLength);
           this.handleVNCData(new Uint8Array(event.data));
         };
 
         this.ws.onclose = (event) => {
+          console.log('RealVNC: WebSocket closed, code:', event.code, 'reason:', event.reason);
           this.updateStatus('VNC connection closed');
         };
 
@@ -476,10 +490,11 @@
 
       if (this.vncState.stage === 'version' && buffer.length >= 12) {
         // VNC version handshake
-        const version = new TextDecoder().decode(buffer.slice(0, 12));
-        // Send client version
-        const clientVersion = 'RFB 003.008\n';
-        this.ws.send(new TextEncoder().encode(clientVersion));
+        const serverVersionRaw = buffer.slice(0, 12);
+        const versionStr = new TextDecoder().decode(serverVersionRaw);
+        console.log('RealVNC: Server version:', versionStr.trim());
+        // Echo server version back for compatibility (e.g., 003.003 servers)
+        this.ws.send(serverVersionRaw);
 
         this.vncState.stage = 'security';
         this.vncState.buffer = buffer.slice(12);
@@ -488,25 +503,49 @@
       }
 
       if (this.vncState.stage === 'security' && buffer.length >= 1) {
-        const securityTypes = buffer[0];
+        // Support both RFB 3.8 (types list) and 3.3 (single 32-bit type)
+        const first = buffer[0];
+        if (buffer.length >= 4 && (first === 0 || first > 3)) {
+          // RFB 3.3 path: 32-bit security type
+          const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+          const secType = view.getUint32(0, false);
+          console.log('RealVNC: Security (3.3) type:', secType);
+          if (secType === 2) {
+            this.vncState.stage = 'auth_challenge';
+            this.vncState.buffer = buffer.slice(4);
+            this.processVNCProtocol();
+            return;
+          } else if (secType === 1) {
+            this.vncState.stage = 'auth_result';
+            this.vncState.buffer = buffer.slice(4);
+            this.processVNCProtocol();
+            return;
+          } else {
+            console.error('RealVNC: Unsupported security type (3.3):', secType);
+            return;
+          }
+        }
 
+        const securityTypes = first; // RFB 3.8 path
         if (securityTypes === 0) {
           console.error('RealVNC: Server rejected connection');
           return;
         }
-
         if (buffer.length >= 1 + securityTypes) {
           const types = Array.from(buffer.slice(1, 1 + securityTypes));
-
-          // Choose VNC authentication (type 2) if available
+          console.log('RealVNC: Security (3.8) types:', types);
           if (types.includes(2)) {
             this.ws.send(new Uint8Array([2]));
+            console.log('RealVNC: Selected security type 2 (VNCAuth)');
             this.vncState.stage = 'auth_challenge';
           } else if (types.includes(1)) {
             this.ws.send(new Uint8Array([1]));
+            console.log('RealVNC: Selected security type 1 (None)');
             this.vncState.stage = 'auth_result';
+          } else {
+            console.error('RealVNC: Unsupported security types from server:', types);
+            return;
           }
-
           this.vncState.buffer = buffer.slice(1 + securityTypes);
           this.processVNCProtocol();
           return;
@@ -517,6 +556,7 @@
 
         // Get the 16-byte challenge
         const challenge = buffer.slice(0, 16);
+        console.log('RealVNC: Received auth challenge (16 bytes)');
         // Store challenge for later encryption
         this.vncState.challenge = challenge;
         this.vncState.buffer = buffer.slice(16);
@@ -531,12 +571,13 @@
 
         if (result === 0) {
           this.vncState.authenticated = true;
+          console.log('RealVNC: Authentication succeeded');
 
           // Send ClientInit
           this.ws.send(new Uint8Array([1])); // shared flag
           this.vncState.stage = 'server_init';
         } else {
-          console.error('RealVNC: Authentication failed');
+          console.error('RealVNC: Authentication failed, result code:', result);
           return;
         }
 

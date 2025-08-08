@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Monitor, Wifi, WifiOff, RotateCcw, AlertCircle } from 'lucide-react';
+import { Monitor, Wifi, WifiOff, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import { getBrandColors } from '@/lib/brand-theme';
@@ -23,33 +23,11 @@ const VNCConsole: React.FC = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  // Get serverId from URL parameters
+  // Get connection parameters from URL
+  const host = searchParams.get('host');
+  const port = searchParams.get('port');
+  const password = searchParams.get('password');
   const serverId = searchParams.get('serverId');
-
-  // Fetch VNC status for the server
-  const { data: vncData, isLoading: vncLoading, error: vncError, refetch: refetchVNC } = useQuery({
-    queryKey: ['/api/user/servers', serverId, 'vnc'],
-    queryFn: async () => {
-      if (!serverId) {
-        throw new Error('Server ID is required');
-      }
-      const response = await fetch(`/api/user/servers/${serverId}/vnc`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch VNC status');
-      }
-      return response.json();
-    },
-    enabled: !!serverId,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    refetchInterval: false, // Disable automatic refetching
-  });
-
-  // Extract VNC credentials from the response
-  const vncStatus = vncData?.data?.data?.vnc;
-  const isVNCEnabled = vncStatus?.enabled === true;
-  const host = vncStatus?.ip;
-  const port = vncStatus?.port;
-  const password = vncStatus?.password;
 
   // Fetch brand colors from database with caching
   const { data: brandingData } = useQuery<{
@@ -68,16 +46,26 @@ const VNCConsole: React.FC = () => {
     accentColor: brandingData?.accent_color || '',
   });
 
-  // Load NoVNC and initialize when VNC credentials are available
+
+  // Load NoVNC and initialize when parameters are available
   useEffect(() => {
-    if (host && port && password && isVNCEnabled) {
+    console.log('VNC Console mounted with params:', { 
+      host, 
+      port, 
+      password: password ? '***' : 'missing',
+      serverId 
+    });
+    
+    if (host && port && password) {
+      console.log('All VNC parameters present, loading NoVNC...');
       loadNoVNCAndInitialize();
-    } else if (!vncLoading && !vncError) {
-      if (!isVNCEnabled) {
-        setConnectionError('VNC is not enabled for this server');
-      } else if (!host || !port || !password) {
-        setConnectionError('VNC credentials are incomplete');
-      }
+    } else {
+      console.error('Missing VNC connection parameters:', { 
+        host: host || 'missing', 
+        port: port || 'missing', 
+        password: password ? 'present' : 'missing' 
+      });
+      setConnectionError('Missing VNC connection parameters');
     }
 
     return () => {
@@ -90,18 +78,24 @@ const VNCConsole: React.FC = () => {
         }
       }
     };
-  }, [host, port, password, isVNCEnabled, vncLoading, vncError]);
+  }, [host, port, password]);
 
   const loadNoVNCAndInitialize = async () => {
     try {
+      console.log('loadNoVNCAndInitialize called');
+      
       // Check if NoVNC is already loaded
       if ((window as any).RFB) {
+        console.log('RFB already loaded, initializing...');
         waitForCanvasAndInitialize();
         return;
       }
 
+      console.log('RFB not loaded, loading script...');
+
       // Set up event listeners first
       const handleNoVNCReady = () => {
+        console.log('NoVNC ready event received');
         window.removeEventListener('novnc-ready', handleNoVNCReady);
         window.removeEventListener('novnc-error', handleNoVNCError);
         waitForCanvasAndInitialize();
@@ -121,14 +115,19 @@ const VNCConsole: React.FC = () => {
       const script = document.createElement('script');
       script.src = '/novnc/realvnc-client.js';
       script.type = 'text/javascript';
+      
+      script.onload = () => {
+        console.log('RealVNC client script loaded successfully');
+      };
 
       script.onerror = () => {
-        console.error('Failed to load RealVNC client script');
+        console.error('Failed to load RealVNC client script from:', script.src);
         window.removeEventListener('novnc-ready', handleNoVNCReady);
         window.removeEventListener('novnc-error', handleNoVNCError);
         setConnectionError('Failed to load RealVNC client script');
       };
 
+      console.log('Appending script to document head...');
       document.head.appendChild(script);
 
     } catch (error) {
@@ -163,6 +162,7 @@ const VNCConsole: React.FC = () => {
   };
 
   const initializeVNC = () => {
+    console.log('initializeVNC called');
 
     if (!canvasRef.current) {
       console.error('Canvas ref not available');
@@ -170,46 +170,38 @@ const VNCConsole: React.FC = () => {
       return;
     }
 
+    console.log('Canvas ref available:', canvasRef.current);
+
     if (!(window as any).RFB) {
       console.error('RFB class not available on window');
       setConnectionError('NoVNC library not loaded');
       return;
     }
 
+    console.log('RFB class available, creating connection...');
+
     try {
       setIsConnecting(true);
       setConnectionError(null);
 
-      // Construct WebSocket URL for VNC proxy
-      // In development, use the current host (Vite will proxy to backend)
-      // In production, use the current host (same server serves both frontend and backend)
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/vnc-proxy?host=${encodeURIComponent(host!)}&port=${port}`;
+      // RealVNCClient expects the URL with host and port as query params
+      // It will construct its own WebSocket URL internally
+      const vncUrl = `/vnc-proxy?host=${encodeURIComponent(host!)}&port=${port}`;
 
+      console.log('VNC URL:', vncUrl);
+      console.log('VNC Password:', password ? '***' : 'missing');
+      console.log('VNC Host:', host);
+      console.log('VNC Port:', port);
 
-
-      // Create the RFB connection with performance optimizations
+      // Create the RFB (RealVNCClient) connection
+      // RealVNCClient constructor: (target, url, options)
+      // - target: DOM element to render to
+      // - url: URL with host and port params (NOT a WebSocket URL)
+      // - options: includes credentials
       try {
-        rfbRef.current = new (window as any).RFB(canvasRef.current, wsUrl, {
-          credentials: { password: password },
-          repeaterID: '',
-          shared: true,
-          wsProtocols: ['binary'],
-          // Performance optimizations
-          qualityLevel: 6, // High quality (0-6, 6 is best)
-          compressionLevel: 2, // Moderate compression (0-9, 2 is balanced)
-          showDotCursor: true,
-          background: '#000000',
-          // Disable clipboard for better performance
-          enableClipboard: false,
-          // Optimize canvas rendering
-          canvas: canvasRef.current,
-          // Set reasonable timeouts
-          connectTimeout: 10000,
-          // Optimize for network conditions
-          adaptiveQuality: true,
-          // Reduce unnecessary logging
-          debug: false,
+        console.log('Creating RealVNCClient...');
+        rfbRef.current = new (window as any).RFB(canvasRef.current, vncUrl, {
+          credentials: { password: password }
         });
 
         // Set up event handlers
@@ -218,21 +210,10 @@ const VNCConsole: React.FC = () => {
         rfbRef.current.addEventListener('credentialsrequired', handleCredentialsRequired);
         rfbRef.current.addEventListener('securityfailure', handleSecurityFailure);
 
-        // Additional performance optimizations after connection
-        rfbRef.current.addEventListener('connect', () => {
-          // Set optimal encoding after connection
-          if (rfbRef.current && rfbRef.current._rfbConnection) {
-            try {
-              // Prefer tight encoding for better performance
-              rfbRef.current._rfbConnection.setEncodings([16, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
-            } catch (e) {
-              console.log('Could not set optimal encodings:', e);
-            }
-          }
-        });
+        console.log('RealVNCClient created successfully');
 
       } catch (rfbError) {
-        console.error('Error creating RFB connection:', rfbError);
+        console.error('Error creating RealVNCClient:', rfbError);
         setConnectionError('Failed to create VNC connection: ' + (rfbError as Error).message);
         setIsConnecting(false);
       }
@@ -245,6 +226,7 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleConnect = () => {
+    console.log('VNC Connected successfully!');
     // Batch state updates for better performance
     setIsConnected(true);
     setIsConnecting(false);
@@ -260,6 +242,7 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleDisconnect = (e: any) => {
+    console.log('VNC Disconnected:', e);
     setIsConnected(false);
     setIsConnecting(false);
 
@@ -280,11 +263,13 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleCredentialsRequired = () => {
+    console.error('VNC credentials required - authentication failed');
     setConnectionError('Authentication failed - invalid password');
     setIsConnecting(false);
   };
 
   const handleSecurityFailure = (e: any) => {
+    console.error('VNC security failure:', e);
     // Add null check to prevent errors when e or e.detail is null
     const reason = e && e.detail && e.detail.reason ? e.detail.reason : 'Unknown security failure';
     setConnectionError('Security failure: ' + reason);
@@ -331,129 +316,28 @@ const VNCConsole: React.FC = () => {
       console.log('Error clearing window objects:', error);
     }
 
-    // Refetch VNC status and restart the connection process
-    refetchVNC().then(() => {
-      setTimeout(() => {
-        loadNoVNCAndInitialize();
-      }, 500);
-    });
+    // Restart the connection process after a short delay
+    setTimeout(() => {
+      loadNoVNCAndInitialize();
+    }, 500);
   };
 
-  // Show loading state while fetching VNC status
-  if (vncLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 mr-3" style={{ borderBottomColor: brandColors.primary.full }}></div>
-              Loading VNC Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Fetching VNC connection details for server {serverId}...
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
-  // Show error if serverId is missing
-  if (!serverId) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center text-red-600">
-              <AlertCircle className="h-5 w-5 mr-2" />
-              Missing Server ID
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Server ID is required to connect to VNC console. Please close this window and try again.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
-  // Show error if VNC status fetch failed
-  if (vncError) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center text-red-600">
-              <AlertCircle className="h-5 w-5 mr-2" />
-              Failed to Load VNC Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground mb-4">
-              {vncError instanceof Error ? vncError.message : 'An unknown error occurred while fetching VNC status'}
-            </p>
-            <Button
-              onClick={() => refetchVNC()}
-              className="w-full"
-              style={{
-                backgroundColor: brandColors.primary.full,
-                color: 'white'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = brandColors.primary.dark;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = brandColors.primary.full;
-              }}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Show error if VNC is not enabled or credentials are missing
-  if (!isVNCEnabled || !host || !port || !password) {
+  if (!host || !port || !password) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center text-red-600">
               <WifiOff className="h-5 w-5 mr-2" />
-              VNC Not Available
+              Connection Error
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4">
-              {!isVNCEnabled 
-                ? 'VNC is not enabled for this server. Please enable VNC in the server details page.'
-                : 'VNC credentials are incomplete. Please try refreshing the page or contact support.'
-              }
+            <p className="text-muted-foreground">
+              Missing VNC connection parameters. Please close this window and try again.
             </p>
-            <Button
-              onClick={() => refetchVNC()}
-              className="w-full"
-              style={{
-                backgroundColor: brandColors.primary.full,
-                color: 'white'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = brandColors.primary.dark;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = brandColors.primary.full;
-              }}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Refresh VNC Status
-            </Button>
           </CardContent>
         </Card>
       </div>
@@ -470,7 +354,7 @@ const VNCConsole: React.FC = () => {
             <div>
               <h1 className="text-lg font-semibold">VNC Console</h1>
               <p className="text-sm text-muted-foreground">
-                Server {serverId} - {host}:{port}
+                {host}:{port}
               </p>
             </div>
           </div>

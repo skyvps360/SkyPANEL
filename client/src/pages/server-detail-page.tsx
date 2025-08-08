@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Tabs,
   TabsContent,
@@ -63,6 +64,7 @@ import {
   EyeOff,
   Trash,
   AlertTriangle,
+  AlertCircle,
   DollarSign,
   Package,
   Home,
@@ -400,18 +402,19 @@ const VNCTab = ({ serverId }: { serverId: number }) => {
     accentColor: brandingData?.accent_color,
   });
 
-  // Fetch VNC status
-  // NOTE: Increased cache time to reduce VNC API calls since each call toggles VNC state
-  const { data: vncData, isLoading: vncLoading, error: vncError } = useQuery({
+  // Fetch VNC status from cache if available
+  // We use action=status to avoid toggling VNC unnecessarily
+  const { data: vncData, isLoading: vncLoading, error: vncError, refetch: refetchVNC } = useQuery({
     queryKey: ['/api/user/servers', serverId, 'vnc'],
     queryFn: async () => {
-      const response = await fetch(`/api/user/servers/${serverId}/vnc`);
+      const response = await fetch(`/api/user/servers/${serverId}/vnc?action=status`);
       if (!response.ok) {
-        throw new Error('Failed to fetch VNC status');
+        // If status fails, return empty state
+        return { success: false, data: { data: { vnc: { enabled: false } } } };
       }
       return response.json();
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to reduce API calls
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     refetchInterval: false, // Disable automatic refetching
   });
 
@@ -431,8 +434,18 @@ const VNCTab = ({ serverId }: { serverId: number }) => {
       return;
     }
 
-    // Create VNC console popup - only pass serverId for security
-    const vncUrl = `/vnc-console?serverId=${serverId}`;
+    // Check if we have all required VNC credentials
+    if (!vncStatus.ip || !vncStatus.port || !vncStatus.password) {
+      toast({
+        title: "VNC Credentials Missing",
+        description: "Please refresh VNC status to get connection details",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create VNC console popup with credentials
+    const vncUrl = `/vnc-console?host=${encodeURIComponent(vncStatus.ip)}&port=${vncStatus.port}&password=${encodeURIComponent(vncStatus.password)}`;
 
     // Open VNC console in a new popup window
     const popup = window.open(
@@ -851,6 +864,8 @@ export default function ServerDetailPage() {
     staleTime: 5000, // Cache for 5 seconds
   });
 
+
+
   // Fetch server billing information
   const { data: billingData, isLoading: billingLoading } = useQuery({
     queryKey: ['/api/user/servers', id, 'billing'],
@@ -1120,8 +1135,18 @@ export default function ServerDetailPage() {
       return;
     }
 
-    // Create VNC console popup - only pass serverId for security
-    const vncUrl = `/vnc-console?serverId=${serverId}`;
+    // Check if we have all required VNC credentials
+    if (!vncStatus.ip || !vncStatus.port || !vncStatus.password) {
+      toast({
+        title: "VNC Credentials Missing",
+        description: "Please refresh VNC status to get connection details",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create VNC console popup with credentials
+    const vncUrl = `/vnc-console?host=${encodeURIComponent(vncStatus.ip)}&port=${vncStatus.port}&password=${encodeURIComponent(vncStatus.password)}`;
 
     // Open VNC console in a new popup window
     const popup = window.open(
@@ -1920,9 +1945,9 @@ export default function ServerDetailPage() {
             </nav>
 
             {/* Main Header Card */}
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div>
               {/* Server Identity Section */}
-              <div className="lg:col-span-2">
+              <div>
                 <Card className="border-border/50">
                   <CardContent className="p-8">
                   <div className="flex items-start gap-6">
@@ -1954,7 +1979,7 @@ export default function ServerDetailPage() {
                           )}
                         </h1>
                         <p className="text-muted-foreground text-lg">
-                          Enterprise Virtual Private Server
+                          {server?.uuid ? `UUID: ${server.uuid}` : 'Loading...'}
                         </p>
                       </div>
 
@@ -2020,121 +2045,6 @@ export default function ServerDetailPage() {
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Uptime</p>
                       <p className="font-medium text-sm">{server?.uptime || '99.9%'}</p>
-                    </div>
-                  </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Quick Stats Card */}
-              <div className="lg:col-span-1">
-                <Card className="border-border/50 h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-primary" />
-                      Live Metrics
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                  
-                  <div className="space-y-6">
-                    {/* CPU Usage */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-muted-foreground">CPU Usage</span>
-                        <span className="text-sm font-bold">{server?.cpuUsage || 0}%</span>
-                      </div>
-                      <Progress value={server?.cpuUsage || 0} className="h-2" />
-                    </div>
-
-                    {/* Memory Usage */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-muted-foreground">Memory</span>
-                        <span className="text-sm font-bold">
-                          {server?.memoryUsage ? 
-                            `${Math.round((server.memoryUsage.used / server.memoryUsage.total) * 100)}%` : '0%'}
-                        </span>
-                      </div>
-                      <Progress 
-                        value={server?.memoryUsage ? 
-                          Math.round((server.memoryUsage.used / server.memoryUsage.total) * 100) : 0} 
-                        className="h-2" 
-                      />
-                    </div>
-
-                    {/* Storage Usage */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-muted-foreground">Storage</span>
-                        <span className="text-sm font-bold">
-                          {server?.storageUsage ? 
-                            `${Math.round((server.storageUsage.used / server.storageUsage.total) * 100)}%` : '0%'}
-                        </span>
-                      </div>
-                      <Progress 
-                        value={server?.storageUsage ? 
-                          Math.round((server.storageUsage.used / server.storageUsage.total) * 100) : 0} 
-                        className="h-2" 
-                      />
-                    </div>
-
-                    {/* Network Status */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-muted-foreground">Network</span>
-                        <Badge variant="outline" className="text-xs">
-                          <Wifi className="h-3 w-3 mr-1 text-green-500" />
-                          Online
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <Separator className="my-4" />
-
-                    {/* Quick Actions */}
-                    <div className="space-y-3">
-                      <Button 
-                        onClick={openVNCConsole}
-                        className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-                      >
-                        <Terminal className="h-4 w-4 mr-2" />
-                        Open Console
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => {
-                      const now = Date.now();
-                      setRefreshClicks(prevClicks => {
-                        const recentClicks = prevClicks.filter(ts => now - ts < 60000);
-                        if (recentClicks.length >= 2) {
-                          setIsRateLimited(true);
-                          toast({
-                            title: "Rate Limited",
-                            description: "Please wait before refreshing again. You can only refresh 2 times per minute.",
-                            variant: "destructive",
-                          });
-                          return recentClicks;
-                        }
-                        // Allow refresh, update state, and trigger refresh
-                        setIsRefreshing(true);
-                        Promise.all([refetch(), refetchVNC()]).finally(() => {
-                          setIsRefreshing(false);
-                          toast({
-                            title: "Data Refreshed",
-                            description: "Server data has been updated.",
-                          });
-                        });
-                        return [...recentClicks, now];
-                      });
-                    }}
-                        disabled={isRefreshing || isRateLimited}
-                      >
-                        <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        {isRefreshing ? 'Refreshing...' : 'Refresh'}
-                      </Button>
                     </div>
                   </div>
                   </CardContent>
@@ -3882,10 +3792,107 @@ export default function ServerDetailPage() {
               <NotesTab serverId={serverId} />
             </TabsContent>
 
-            {/* VNC Tab */}
-            {/* <TabsContent value="vnc" className="space-y-4">
-              <VNCTab serverId={serverId} />
-            </TabsContent> */}
+            {/* Console Tab */}
+            <TabsContent value="vnc" className="space-y-4">
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Monitor className="h-5 w-5" />
+                      Server Console
+                    </CardTitle>
+                    <CardDescription>
+                      Access your server's console through VNC
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Console Access</AlertTitle>
+                      <AlertDescription>
+                        The console provides direct access to your server's display. You can use it to:
+                        <ul className="list-disc list-inside mt-2 space-y-1">
+                          <li>Access the server when network is unavailable</li>
+                          <li>Troubleshoot boot issues</li>
+                          <li>Install operating systems</li>
+                          <li>Perform system recovery</li>
+                        </ul>
+                      </AlertDescription>
+                    </Alert>
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <Button 
+                        onClick={openVNCConsole}
+                        className="flex items-center gap-2"
+                        size="lg"
+                        disabled={!isVNCEnabled || !vncStatus?.password}
+                      >
+                        <Monitor className="h-5 w-5" />
+                        Open Console
+                      </Button>
+                      
+                      {/* Toggle VNC removed – VirtFusion POST toggle is unreliable; we only show current status and open console */}
+                    </div>
+
+                    <div className="rounded-lg bg-muted p-4">
+                      <h4 className="text-sm font-medium mb-2">Console Information</h4>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        <p>• Console opens in a new window</p>
+                        <p>• Keyboard and mouse input is captured when focused</p>
+                        <p>• Use Ctrl+Alt+Del button in console for system commands</p>
+                        <p>• Close the console window when done to free resources</p>
+                      </div>
+                    </div>
+
+                    {/* VNC Connection Details */}
+                    {isVNCEnabled && vncStatus && (
+                      <div className="rounded-lg border p-4">
+                        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                          <Wifi className="h-4 w-4" />
+                          VNC Connection Details
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Server IP:</span>
+                              <span className="font-mono font-medium">{vncStatus.ip || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">VNC Port:</span>
+                              <span className="font-mono font-medium">{vncStatus.port || 'N/A'}</span>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {vncStatus.hostname && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Hostname:</span>
+                                <span className="font-mono font-medium">{vncStatus.hostname}</span>
+                              </div>
+                            )}
+                            {vncStatus.password && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Password:</span>
+                                <code className="bg-muted px-2 py-0.5 rounded text-xs font-mono">
+                                  {vncStatus.password}
+                                </code>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {(!vncStatus.password || !vncStatus.ip || !vncStatus.port) && (
+                          <Alert className="mt-3">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                              Some VNC credentials are missing. Click "Refresh Status" to fetch the latest VNC information.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
                   </div>
                 </Tabs>
               </CardContent>

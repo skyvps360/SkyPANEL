@@ -4,6 +4,11 @@ import https from "https";
 import axios from "axios";
 import * as net from "net";
 import { WebSocketServer } from "ws";
+
+// Declare global VNC credentials cache
+declare global {
+  var vncCredentialsCache: Map<string, any> | undefined;
+}
 import { storage } from "./storage";
 import { db, pool } from "./db.ts";
 import { hashPassword, setupAuth } from "./auth";
@@ -1495,11 +1500,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get VNC status for a user's server
+  // Toggle or fetch VNC credentials for a user's server
+  // action=query param supports two modes:
+  // - status: fetch current VNC status/credentials without toggling (uses VirtFusion GET)
+  // - toggle: toggle VNC state and return updated status (uses VirtFusion POST)
   app.get("/api/user/servers/:id/vnc", isAuthenticated, async (req, res) => {
     try {
       const serverId = parseInt(req.params.id);
       const userId = req.user?.id;
+      const action = (req.query.action as string) || 'toggle'; // 'toggle' or 'status'
 
       if (!userId) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -1509,7 +1518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid server ID" });
       }
 
-      console.log(`User ${userId} getting VNC status for server ID: ${serverId}`);
+      console.log(`User ${userId} requesting VNC for server ID: ${serverId}, action: ${action}`);
 
       // Get user from database
       const user = await storage.getUser(userId);
@@ -1530,29 +1539,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Access denied - server does not belong to user" });
       }
 
-      // VirtFusion API only supports POST /servers/{id}/vnc (no GET)
-      // This endpoint toggles VNC state and returns current status
-      // WARNING: This will toggle the VNC state!
-      console.log(`Making VNC API call - this will toggle VNC state for server ${serverId}`);
-
-      // Use the global VirtFusion API instance
       await virtFusionApi.updateSettings();
-      const result = await (virtFusionApi as any).request("POST", `/servers/${serverId}/vnc`);
 
-      if (result) {
-        // NOTE: This endpoint unfortunately toggles VNC state due to VirtFusion API limitations
-        // We don't log this as a VNC action since it's meant to be a status check, not an intentional toggle
-        // Only log VNC actions when they are intentionally triggered by user actions
-
-        res.json({ success: true, data: result });
+      let result: any;
+      if (action === 'status') {
+        // Prefer non-destructive GET call to avoid unintended toggles
+        console.log(`Fetching VNC status (GET) for server ${serverId}`);
+        try {
+          result = await virtFusionApi.getVncStatus(serverId);
+        } catch (statusErr: any) {
+          console.error(`GET VNC status failed for server ${serverId}:`, statusErr?.message || statusErr);
+          // Fallback to cache if available
+          const cacheKey = `vnc_${serverId}`;
+          const cached = (global as any).vncCache?.get(cacheKey);
+          if (cached && cached.timestamp > Date.now() - 300000) {
+            console.log(`Returning cached VNC data for server ${serverId}`);
+            return res.json({ success: true, data: { data: { vnc: cached.data } } });
+          }
+          // As a last resort, return an empty disabled state rather than toggling
+          return res.status(502).json({ success: false, data: { data: { vnc: { enabled: false } } }, error: 'Failed to fetch VNC status' });
+        }
       } else {
-        res.status(500).json({ error: "Failed to get VNC status" });
+        // Toggle VNC state using VirtFusion API (POST /servers/{id}/vnc)
+        console.log(`Toggling VNC state (POST) for server ${serverId}`);
+        result = await virtFusionApi.toggleVnc(serverId);
+      }
+
+      if (result && result.data) {
+        // Cache the VNC credentials
+        if (!(global as any).vncCache) {
+          (global as any).vncCache = new Map();
+        }
+
+        const cacheKey = `vnc_${serverId}`;
+        (global as any).vncCache.set(cacheKey, {
+          data: result.data.vnc || result.data,
+          timestamp: Date.now()
+        });
+
+        // Log the action if it was a deliberate toggle
+        if (action !== 'status') {
+          const vncEnabled = result.data.vnc?.enabled || result.data.enabled;
+          try {
+            await serverLoggingService.logVncAction(
+              serverId,
+              userId,
+              vncEnabled ? 'vnc_enable' : 'vnc_disable',
+              'success',
+              `VNC ${vncEnabled ? 'enabled' : 'disabled'} for server`
+            );
+          } catch (logErr) {
+            console.warn('Failed to log VNC action:', logErr);
+          }
+        }
+
+        return res.json({ success: true, data: result });
+      } else {
+        res.status(500).json({ error: "Failed to toggle VNC" });
       }
     } catch (error: any) {
-      console.error("Error getting VNC status:", error);
+      console.error("Error toggling VNC:", error);
       res.status(500).json({ error: error.message });
     }
   });
+
+
 
 
 
@@ -8279,6 +8330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         if (!host || !port) {
           console.error('Missing host or port parameters for VNC proxy');
+          socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
           socket.destroy();
           return;
         }
@@ -8287,6 +8339,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const portNum = parseInt(port);
         if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
           console.error('Invalid port number for VNC proxy:', port);
+          socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
+          socket.destroy();
+          return;
+        }
+        
+        // Validate host (basic validation)
+        if (!/^[\w\.\-]+$/.test(host)) {
+          console.error('Invalid host format for VNC proxy:', host);
+          socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
           socket.destroy();
           return;
         }
@@ -8313,126 +8374,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`VNC WebSocket proxy: Successfully upgraded WebSocket connection`);
           console.log(`VNC WebSocket proxy: Attempting to connect to ${host}:${portNum}`);
 
-          // Create TCP connection to VNC server with timeout
+          // Create connection to VNC server
+          // The VNC credentials from VirtFusion might be for connecting through THEIR infrastructure
+          // not directly to the VM's VNC server
+          console.log(`Attempting connection to VNC server at ${host}:${portNum}`);
+          console.log(`Raw connection attempt - this may fail if VNC is behind VirtFusion's network`);
+          
+          // Try to connect directly to the VNC server
+          // If this fails, VirtFusion might require us to connect through their proxy
           const vncSocket = net.createConnection({
             host: host,
-            port: portNum,
-            timeout: 10000 // 10 second timeout
+            port: portNum
           });
 
-          console.log(`VNC TCP connection created for ${host}:${portNum}`);
+          // Enable TCP keepalive to avoid idle disconnects during handshake
+          try {
+            vncSocket.setKeepAlive(true, 15000);
+          } catch {}
+
+          console.log(`VNC TCP connection initiated for ${host}:${portNum}`);
 
           // Track connection state
           let isConnected = false;
 
           vncSocket.on('connect', () => {
-            console.log(`VNC TCP connection established to ${host}:${portNum}`);
+            console.log(`SUCCESS: VNC TCP connection established to ${host}:${portNum}`);
             isConnected = true;
+            
+            // VNC connection established - the data forwarding will handle the protocol
+            console.log('VNC TCP socket connected, beginning data relay...');
           });
 
-          vncSocket.on('timeout', () => {
-            console.error(`VNC TCP connection timeout to ${host}:${portNum}`);
-            vncSocket.destroy();
-            if (ws.readyState === ws.OPEN) {
-              ws.close(1011, 'VNC server connection timeout');
+          // Do not set an aggressive timeout; allow VNC handshake to complete
+
+          vncSocket.on('error', (error: any) => {
+            console.error(`ERROR: VNC TCP connection error to ${host}:${portNum}:`, error.message);
+            console.error(`Full error:`, error);
+            console.error(`Error code: ${error.code}, Error errno: ${error.errno}, Error syscall: ${error.syscall}`);
+            
+            if (error.code === 'ECONNREFUSED') {
+              console.error('Connection refused - VNC server may not be running or port is wrong');
+            } else if (error.code === 'EHOSTUNREACH') {
+              console.error('Host unreachable - check network connectivity');
+            } else if (error.code === 'ETIMEDOUT' || error.code === 'TIMEOUT') {
+              console.error('Connection timed out');
+            } else if (error.code === 'ECONNRESET') {
+              console.error('Connection reset by peer');
+            }
+            
+            // Don't destroy socket here, let timeout handler do it
+            if (!isConnected && ws.readyState === ws.OPEN) {
+              ws.close(1002, `VNC connection failed: ${error.message}`);
             }
           });
 
-          // Optimized data forwarding with buffering and flow control
-          let wsBackpressure = false;
-          let vncBackpressure = false;
-          
-          // Buffer for incoming WebSocket data
-          const wsBuffer: Buffer[] = [];
-          let wsBufferSize = 0;
-          const maxBufferSize = 1024 * 1024; // 1MB buffer
-          
-          // Buffer for incoming VNC data
-          const vncBuffer: Buffer[] = [];
-          let vncBufferSize = 0;
-
+          // Simple, robust forwarding without incorrect backpressure handling
           ws.on('message', (data) => {
-            if (isConnected && vncSocket.writable && !vncBackpressure) {
-              try {
-                // Convert WebSocket data to Buffer for TCP socket
-                const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
-                
-                // Check if we need to buffer due to backpressure
-                if (vncSocket.write(buffer)) {
-                  // Data was written immediately
-                } else {
-                  // Socket is full, buffer the data
-                  if (wsBufferSize + buffer.length > maxBufferSize) {
-                    console.warn('WebSocket buffer full, dropping data');
-                    return;
-                  }
-                  wsBuffer.push(buffer);
-                  wsBufferSize += buffer.length;
-                  wsBackpressure = true;
-                }
-              } catch (error) {
-                console.error('Error writing to VNC socket:', error);
-              }
-            } else if (!isConnected) {
-              console.warn('Attempted to write to disconnected VNC socket');
-            }
-          });
-
-          // Handle VNC socket drain event
-          vncSocket.on('drain', () => {
-            vncBackpressure = false;
-            // Flush buffered data
-            while (wsBuffer.length > 0 && vncSocket.writable) {
-              const buffer = wsBuffer.shift()!;
-              if (vncSocket.write(buffer)) {
-                wsBufferSize -= buffer.length;
-              } else {
-                wsBuffer.unshift(buffer);
-                break;
-              }
-            }
-            if (wsBuffer.length === 0) {
-              wsBackpressure = false;
+            if (!isConnected) return;
+            try {
+              const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
+              vncSocket.write(buffer);
+            } catch (error) {
+              console.error('Error writing to VNC socket:', error);
             }
           });
 
           vncSocket.on('data', (data) => {
-            if (ws.readyState === ws.OPEN && !wsBackpressure) {
-              try {
-                // Check if we can send immediately
-                if (ws.send(data)) {
-                  // Data was sent immediately
-                } else {
-                  // WebSocket is full, buffer the data
-                  if (vncBufferSize + data.length > maxBufferSize) {
-                    console.warn('VNC buffer full, dropping data');
-                    return;
-                  }
-                  vncBuffer.push(data);
-                  vncBufferSize += data.length;
-                  vncBackpressure = true;
-                }
-              } catch (error) {
-                console.error('Error sending data to WebSocket:', error);
-              }
-            }
-          });
-
-          // Handle WebSocket drain event
-          ws.on('drain', () => {
-            wsBackpressure = false;
-            // Flush buffered data
-            while (vncBuffer.length > 0 && ws.readyState === ws.OPEN) {
-              const buffer = vncBuffer.shift()!;
-              if (ws.send(buffer)) {
-                vncBufferSize -= buffer.length;
-              } else {
-                vncBuffer.unshift(buffer);
-                break;
-              }
-            }
-            if (vncBuffer.length === 0) {
-              vncBackpressure = false;
+            if (ws.readyState !== ws.OPEN) return;
+            try {
+              ws.send(data);
+            } catch (error) {
+              console.error('Error sending data to WebSocket:', error);
             }
           });
 
