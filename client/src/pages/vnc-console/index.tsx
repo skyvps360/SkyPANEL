@@ -49,33 +49,20 @@ const VNCConsole: React.FC = () => {
 
   // Load NoVNC and initialize when parameters are available
   useEffect(() => {
-    console.log('VNC Console mounted with params:', { 
-      host, 
-      port, 
-      password: password ? '***' : 'missing',
-      serverId 
-    });
+    // Mounted with VNC params
     
     if (host && port && password) {
-      console.log('All VNC parameters present, loading NoVNC...');
+      // All params present, load NoVNC
       loadNoVNCAndInitialize();
     } else {
-      console.error('Missing VNC connection parameters:', { 
-        host: host || 'missing', 
-        port: port || 'missing', 
-        password: password ? 'present' : 'missing' 
-      });
+      // Missing required params
       setConnectionError('Missing VNC connection parameters');
     }
 
     return () => {
       // Cleanup on unmount
       if (rfbRef.current) {
-        try {
-          rfbRef.current.disconnect();
-        } catch (error) {
-          console.error('Error during VNC cleanup:', error);
-        }
+        try { rfbRef.current.disconnect(); } catch {}
       }
     };
   }, [host, port, password]);
@@ -188,18 +175,12 @@ const VNCConsole: React.FC = () => {
       // It will construct its own WebSocket URL internally
       const vncUrl = `/vnc-proxy?host=${encodeURIComponent(host!)}&port=${port}`;
 
-      console.log('VNC URL:', vncUrl);
-      console.log('VNC Password:', password ? '***' : 'missing');
-      console.log('VNC Host:', host);
-      console.log('VNC Port:', port);
-
       // Create the RFB (RealVNCClient) connection
       // RealVNCClient constructor: (target, url, options)
       // - target: DOM element to render to
       // - url: URL with host and port params (NOT a WebSocket URL)
       // - options: includes credentials
       try {
-        console.log('Creating RealVNCClient...');
         rfbRef.current = new (window as any).RFB(canvasRef.current, vncUrl, {
           credentials: { password: password }
         });
@@ -210,23 +191,20 @@ const VNCConsole: React.FC = () => {
         rfbRef.current.addEventListener('credentialsrequired', handleCredentialsRequired);
         rfbRef.current.addEventListener('securityfailure', handleSecurityFailure);
 
-        console.log('RealVNCClient created successfully');
+        // Connected
 
       } catch (rfbError) {
-        console.error('Error creating RealVNCClient:', rfbError);
         setConnectionError('Failed to create VNC connection: ' + (rfbError as Error).message);
         setIsConnecting(false);
       }
 
     } catch (error) {
-      console.error('Error initializing VNC:', error);
       setConnectionError('Failed to initialize VNC connection: ' + (error as Error).message);
       setIsConnecting(false);
     }
   };
 
   const handleConnect = () => {
-    console.log('VNC Connected successfully!');
     // Batch state updates for better performance
     setIsConnected(true);
     setIsConnecting(false);
@@ -242,7 +220,6 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleDisconnect = (e: any) => {
-    console.log('VNC Disconnected:', e);
     setIsConnected(false);
     setIsConnecting(false);
 
@@ -263,13 +240,11 @@ const VNCConsole: React.FC = () => {
   };
 
   const handleCredentialsRequired = () => {
-    console.error('VNC credentials required - authentication failed');
     setConnectionError('Authentication failed - invalid password');
     setIsConnecting(false);
   };
 
   const handleSecurityFailure = (e: any) => {
-    console.error('VNC security failure:', e);
     // Add null check to prevent errors when e or e.detail is null
     const reason = e && e.detail && e.detail.reason ? e.detail.reason : 'Unknown security failure';
     setConnectionError('Security failure: ' + reason);
@@ -284,16 +259,12 @@ const VNCConsole: React.FC = () => {
     // Clean up existing connection with proper event listener removal
     if (rfbRef.current) {
       try {
-        // Remove event listeners before disconnecting to prevent unwanted events
         rfbRef.current.removeEventListener('connect', handleConnect);
         rfbRef.current.removeEventListener('disconnect', handleDisconnect);
         rfbRef.current.removeEventListener('credentialsrequired', handleCredentialsRequired);
         rfbRef.current.removeEventListener('securityfailure', handleSecurityFailure);
-        
         rfbRef.current.disconnect();
-      } catch (error) {
-        console.log('Error during cleanup:', error);
-      }
+      } catch {}
       rfbRef.current = null;
     }
 
@@ -308,13 +279,7 @@ const VNCConsole: React.FC = () => {
     });
 
     // Clear the RFB from window object to force reload
-    try {
-      (window as any).RFB = undefined;
-      (window as any).rfb = undefined;
-      (window as any).NoVNC = undefined;
-    } catch (error) {
-      console.log('Error clearing window objects:', error);
-    }
+    try { (window as any).RFB = undefined; (window as any).rfb = undefined; (window as any).NoVNC = undefined; } catch {}
 
     // Restart the connection process after a short delay
     setTimeout(() => {
