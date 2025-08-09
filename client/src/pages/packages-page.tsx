@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { Cpu, MemoryStick, HardDrive, Zap, DollarSign, CheckCircle, XCircle, Package } from "lucide-react";
+import { Cpu, MemoryStick, HardDrive, Zap, DollarSign, CheckCircle, XCircle, Package, Server } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBrandColors } from "@/lib/brand-theme";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
+import ClientServerCreateModal from "@/components/ClientServerCreateModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from "wouter";
@@ -62,6 +63,7 @@ interface Package {
 export default function PackagesPage() {
   const { toast } = useToast();
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null); // ENHANCED: Added category filtering
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Fetch packages from our new API endpoint
   const {
@@ -99,12 +101,36 @@ export default function PackagesPage() {
     queryKey: ['/api/settings/branding'],
   });
 
+  // Fetch VirtFusion cron status to determine if automated billing is enabled
+  const { data: virtfusionCronData } = useQuery<{
+    success: boolean;
+    cronStatus: {
+      virtfusionHourly: { enabled: boolean; schedule: string; isRunning: boolean };
+      virtfusionMonthly: { enabled: boolean; schedule: string; isRunning: boolean };
+    };
+  }>({
+    queryKey: ['/api/admin/cron/status', 'virtfusion'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/cron/status');
+      if (!response.ok) {
+        throw new Error('Failed to fetch VirtFusion cron status');
+      }
+      return response.json();
+    },
+    staleTime: 30000,
+    refetchInterval: 60000,
+  });
+
   // Get brand colors using the newer structure
   const brandColors = getBrandColors(brandingData?.primary_color);
 
   // Type assertion for the packages data
   const packages = data as Package[] || [];
   const pricing = pricingData as Record<string, number> || {};
+
+  // Whether VirtFusion automation is enabled (hourly or monthly cron active)
+  const isVirtFusionEnabled = virtfusionCronData?.cronStatus?.virtfusionHourly?.enabled ||
+                              virtfusionCronData?.cronStatus?.virtfusionMonthly?.enabled;
 
   // Filter packages by category (ENHANCED: Added category filtering)
   const filteredPackages = packages.filter(pkg =>
@@ -265,6 +291,17 @@ export default function PackagesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              )}
+
+              {/* Create Server button (shown when VirtFusion automation is enabled) */}
+              {isVirtFusionEnabled && (
+                <Button
+                  onClick={() => setShowCreateModal(true)}
+                  className="inline-flex items-center gap-2"
+                >
+                  <Server className="h-4 w-4" />
+                  {`Create Server in ${brandingData?.company_name || 'SkyPANEL'}`}
+                </Button>
               )}
             </div>
           </div>
@@ -485,7 +522,12 @@ export default function PackagesPage() {
                         </TableCell>
                         <TableCell>
                           {pkg.enabled ? (
-                            <VirtFusionSsoButton text="Create Server" packageId={pkg.id} />
+                            isVirtFusionEnabled ? (
+                              // Hide per-package SSO button when automation is enabled; use header button instead
+                              <span className="text-xs text-muted-foreground">Use the Create Server button above</span>
+                            ) : (
+                              <VirtFusionSsoButton text="Create Server" packageId={pkg.id} />
+                            )
                           ) : (
                             <Button variant="ghost" size="sm" disabled>
                               Unavailable
@@ -501,6 +543,14 @@ export default function PackagesPage() {
           </Card>
         )}
       </div>
+      {/* Client Server Create Modal - only when VirtFusion automation is enabled */}
+      {isVirtFusionEnabled && (
+        <ClientServerCreateModal
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
+          companyName={brandingData?.company_name}
+        />
+      )}
     </DashboardLayout>
   );
 }
