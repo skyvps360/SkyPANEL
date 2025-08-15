@@ -15,6 +15,7 @@ export const virtfusionHourlyBilling = pgTable('virtfusion_hourly_billing', {
   hourlyRate: decimal('hourly_rate', { precision: 10, scale: 6 }).notNull(),
   hoursInMonth: integer('hours_in_month').notNull().default(730),
   billingEnabled: boolean('billing_enabled').notNull().default(true),
+  accumulatedAmount: decimal('accumulated_amount', { precision: 10, scale: 6 }).notNull().default('0.000000'), // Tracks fractional amounts not yet billed
   serverCreatedAt: timestamp('server_created_at'), // VirtFusion server creation timestamp for accurate hourly billing
   lastBilledAt: timestamp('last_billed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),

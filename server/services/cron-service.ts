@@ -29,6 +29,27 @@ export class CronService {
   }
 
   /**
+   * Get the admin-configured hours per month setting
+   * @returns Promise<number> Hours per month from admin settings, defaults to 730
+   */
+  private async getHoursPerMonthSetting(): Promise<number> {
+    try {
+      const setting = await storage.getSetting('server_hours_per_month');
+      if (setting?.value) {
+        const hours = parseInt(setting.value, 10);
+        if (!isNaN(hours) && hours > 0) {
+          return hours;
+        }
+      }
+      // Default to 730 hours (30.4 days) if setting not found or invalid
+      return 730;
+    } catch (error) {
+      console.error('Error getting server_hours_per_month setting:', error);
+      return 730;
+    }
+  }
+
+  /**
    * Initialize all cron jobs
    */
   private async initializeCronJobs() {
@@ -453,14 +474,17 @@ export class CronService {
         const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
         const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
         
+        // Get admin-configured hours per month
+        const adminHoursPerMonth = await this.getHoursPerMonthSetting();
+        
         await storage.db.insert(virtfusionCronSettings).values({
           enabled: false, // Default to disabled - admin must explicitly enable
-          hoursPerMonth: 730,
+          hoursPerMonth: adminHoursPerMonth,
           billingOnFirstEnabled: !isHourlyBilling, // Enable monthly when hourly is disabled
           hourlyBillingEnabled: isHourlyBilling    // Enable hourly when hourly billing is enabled
         });
         
-        console.log(`Created VirtFusion cron settings for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode (DISABLED by default)`);
+        console.log(`Created VirtFusion cron settings for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode (DISABLED by default) with ${adminHoursPerMonth} hours per month from admin settings`);
         return;
       }
 
@@ -535,11 +559,14 @@ export class CronService {
       
       // Create default settings if none exist
       if (!setting) {
+        // Get admin-configured hours per month
+        const adminHoursPerMonth = await this.getHoursPerMonthSetting();
+        
         await storage.db.insert(virtfusionCronSettings).values({
           enabled: false, // Default to disabled
           hourlyBillingEnabled: isHourlyBilling,
           billingOnFirstEnabled: !isHourlyBilling, // Enable monthly when hourly is disabled
-          hoursPerMonth: 730 // Default hours per month
+          hoursPerMonth: adminHoursPerMonth // Use admin-configured hours per month
         });
         
         // Fetch the newly created settings
@@ -702,11 +729,13 @@ export class CronService {
           .where(eq(virtfusionCronSettings.id, currentSettings[0].id));
       } else {
         // Create new settings
+        const defaultHoursPerMonth = hoursPerMonth ?? await this.getHoursPerMonthSetting();
+        
         await storage.db.insert(virtfusionCronSettings).values({
           enabled,
           hourlyBillingEnabled: hourlyEnabled ?? true,
           billingOnFirstEnabled: monthlyEnabled ?? true,
-          hoursPerMonth: hoursPerMonth ?? 730
+          hoursPerMonth: defaultHoursPerMonth
         });
       }
 
@@ -804,6 +833,7 @@ export class CronService {
         monthlyPrice: virtfusionHourlyBilling.monthlyPrice,
         hourlyRate: virtfusionHourlyBilling.hourlyRate,
         hoursInMonth: virtfusionHourlyBilling.hoursInMonth,
+        accumulatedAmount: virtfusionHourlyBilling.accumulatedAmount,
         serverCreatedAt: virtfusionHourlyBilling.serverCreatedAt,
         lastBilledAt: virtfusionHourlyBilling.lastBilledAt,
         userActive: users.isActive,
@@ -897,99 +927,112 @@ export class CronService {
           console.log(`   Last billed: ${record.lastBilledAt ? new Date(record.lastBilledAt).toISOString() : 'Never (first recurring bill)'}`);
           console.log(`   Billing period starts: ${nextStart.toISOString()}`);
           
-          // Calculate hourly rate/tokens once
+          // Calculate hourly rate precisely
           const monthlyPrice = parseFloat(record.monthlyPrice.toString());
-          const hoursInMonth = record.hoursInMonth || 730;
+          const hoursInMonth = record.hoursInMonth || await this.getHoursPerMonthSetting();
           const hourlyRate = monthlyPrice / hoursInMonth;
-          const hourlyTokens = Math.ceil(hourlyRate * 100); // Convert to tokens (cents), round up
+          
+          // Get current accumulated amount
+          let currentAccumulated = parseFloat(record.accumulatedAmount?.toString() || '0');
 
           for (let i = 0; i < hoursToBill; i++) {
             const periodStart = new Date(nextStart.getTime() + i * oneHourMs);
             const periodEnd = new Date(periodStart.getTime() + oneHourMs);
 
+            // Add this hour's charge to accumulated amount
+            currentAccumulated += hourlyRate;
+            
             console.log(`💰 Billing hour ${i + 1}/${hoursToBill}:`);
             console.log(`   User: ${record.userId}, Server: ${record.serverId} (VirtFusion ID: ${record.virtfusionServerId})`);
             console.log(`   Period: ${periodStart.toISOString()} → ${periodEnd.toISOString()}`);
-            console.log(`   Amount: ${hourlyTokens} tokens ($${hourlyRate.toFixed(4)})`);
-            console.log(`   Package: ${record.packageName} (Monthly: $${monthlyPrice.toFixed(2)}, Hourly: $${hourlyRate.toFixed(4)})`);
+            console.log(`   Hourly Rate: $${hourlyRate.toFixed(6)}`);
+            console.log(`   Accumulated: $${currentAccumulated.toFixed(6)}`);
+            console.log(`   Package: ${record.packageName} (Monthly: $${monthlyPrice.toFixed(2)})`);
 
-            // Create transaction record first to get the transaction ID
-            const createdTransaction = await storage.createTransaction({
+            // Check if accumulated amount is enough to bill (>= 1 cent)
+            const tokensToCharge = Math.floor(currentAccumulated * 100);
+            const shouldBill = tokensToCharge >= 1;
+            
+            console.log(`   Tokens to charge: ${tokensToCharge} (should bill: ${shouldBill})`);
+
+            let createdTransaction = null;
+            let chargedAmount = 0;
+
+            if (shouldBill) {
+              // Calculate how much we're actually charging vs accumulated
+              chargedAmount = tokensToCharge / 100; // Convert tokens back to dollars
+              currentAccumulated -= chargedAmount; // Subtract charged amount from accumulated
+              
+              console.log(`   💳 Charging ${tokensToCharge} tokens ($${chargedAmount.toFixed(4)})`);
+              console.log(`   💰 Remaining accumulated: $${currentAccumulated.toFixed(6)}`);
+
+              // Create transaction record
+              createdTransaction = await storage.createTransaction({
+                userId: record.userId,
+                amount: -Math.abs(chargedAmount), // Negative amount for debit (actual charged amount)
+                description: `VirtFusion Server ${record.serverId} - Accumulated Hourly Billing (${tokensToCharge} tokens)`,
+                type: "debit",
+                status: "pending",
+                paymentMethod: "virtfusion_tokens"
+              });
+
+              // Prepare VirtFusion API token deduction data
+              const tokenData = {
+                tokens: tokensToCharge, // Use accumulated tokens
+                reference_1: createdTransaction.id, // Use transaction ID as reference
+                reference_2: `Accumulated billing for server ${record.serverId} - User ID: ${record.userId}`
+              };
+
+              console.log(`🌐 Sending to VirtFusion API with extRelationId=${record.userId}:`, tokenData);
+
+              try {
+                const virtFusionResult = await virtFusionApi.removeCreditFromUserByExtRelationId(
+                  record.userId,
+                  tokenData
+                );
+
+                console.log("✅ VirtFusion token deduction result:", virtFusionResult);
+                await storage.updateTransaction(createdTransaction.id, { status: "completed" });
+
+              } catch (virtFusionError: any) {
+                console.error(`❌ VirtFusion token deduction failed for user ${record.userId}:`, virtFusionError);
+                await storage.updateTransaction(createdTransaction.id, { status: "failed" });
+                
+                // Add the charged amount back to accumulated since the charge failed
+                currentAccumulated += chargedAmount;
+                chargedAmount = 0; // Reset charged amount since it failed
+              }
+            } else {
+              console.log(`   ⏳ Not billing yet (accumulated < $0.01)`);
+            }
+
+            // Always record the transaction entry for audit purposes
+            await storage.db.insert(virtfusionHourlyTransactions).values({
+              billingId: record.id,
               userId: record.userId,
-              amount: -Math.abs(hourlyRate), // Negative amount for debit
-              description: `VirtFusion Server ${record.serverId} - Hourly Billing (1 hour)`,
-              type: "debit",
-              status: "pending",
-              paymentMethod: "virtfusion_tokens"
+              serverId: record.serverId,
+              transactionId: createdTransaction?.id || null,
+              hoursBilled: '1.0',
+              amountCharged: chargedAmount.toString(), // Record actual charged amount (0 if not billed)
+              billingPeriodStart: periodStart,
+              billingPeriodEnd: periodEnd,
+              status: shouldBill ? (chargedAmount > 0 ? 'completed' : 'failed') : 'accumulated'
             });
 
-            // Prepare VirtFusion API token deduction data
-            const tokenData = {
-              tokens: hourlyTokens, // Use hourly tokens
-              reference_1: createdTransaction.id, // Use transaction ID as reference
-              reference_2: `Hourly billing for server ${record.serverId} - User ID: ${record.userId}`
-            };
-
-            console.log(`🌐 Sending to VirtFusion API with extRelationId=${record.userId}:`, tokenData);
-
-            try {
-              const virtFusionResult = await virtFusionApi.removeCreditFromUserByExtRelationId(
-                record.userId,
-                tokenData
-              );
-
-              console.log("✅ VirtFusion token deduction result:", virtFusionResult);
-
-              await storage.updateTransaction(createdTransaction.id, { status: "completed" });
-
-              await storage.db.insert(virtfusionHourlyTransactions).values({
-                billingId: record.id,
-                userId: record.userId,
-                serverId: record.serverId,
-                transactionId: createdTransaction.id,
-                hoursBilled: '1.0',
-                amountCharged: hourlyRate.toString(),
-                billingPeriodStart: periodStart,
-                billingPeriodEnd: periodEnd,
-                status: 'completed'
-              });
-
-              // Update the last billed timestamp to the end of this period
-              await storage.db.update(virtfusionHourlyBilling)
-                .set({ 
-                  lastBilledAt: periodEnd,
-                  updatedAt: sql`CURRENT_TIMESTAMP`
-                })
-                .where(eq(virtfusionHourlyBilling.id, record.id));
-
-              console.log(`✅ Successfully billed hour ${i + 1}/${hoursToBill} for server ${record.serverId}`);
-              successful++;
-
-            } catch (virtFusionError: any) {
-              console.error(`❌ VirtFusion token deduction failed for user ${record.userId}:`, virtFusionError);
-
-              await storage.updateTransaction(createdTransaction.id, { status: "failed" });
-
-              await storage.db.insert(virtfusionHourlyTransactions).values({
-                billingId: record.id,
-                userId: record.userId,
-                serverId: record.serverId,
-                transactionId: createdTransaction.id,
-                hoursBilled: '1.0',
-                amountCharged: hourlyRate.toString(),
-                billingPeriodStart: periodStart,
-                billingPeriodEnd: periodEnd,
-                status: 'failed'
-              });
-
-              errors.push({
-                userId: record.userId,
-                serverId: record.serverId,
-                error: `VirtFusion API error: ${virtFusionError.message}`
-              });
-              failed++;
-            }
+            console.log(`✅ Processed hour ${i + 1}/${hoursToBill} for server ${record.serverId}`);
+            successful++;
           }
+
+          // Update the billing record with new accumulated amount and last billed timestamp
+          await storage.db.update(virtfusionHourlyBilling)
+            .set({ 
+              lastBilledAt: new Date(nextStart.getTime() + (hoursToBill - 1) * oneHourMs + oneHourMs),
+              accumulatedAmount: currentAccumulated.toFixed(6),
+              updatedAt: sql`CURRENT_TIMESTAMP`
+            })
+            .where(eq(virtfusionHourlyBilling.id, record.id));
+            
+          console.log(`🔄 Updated accumulated amount for server ${record.serverId}: $${currentAccumulated.toFixed(6)}`);
           
         } catch (error: any) {
           console.error(`❌ Error processing hourly billing for user ${record.userId}:`, error);
@@ -1058,6 +1101,7 @@ export class CronService {
         packageId: virtfusionHourlyBilling.packageId,
         packageName: virtfusionHourlyBilling.packageName,
         monthlyPrice: virtfusionHourlyBilling.monthlyPrice,
+        accumulatedAmount: virtfusionHourlyBilling.accumulatedAmount,
         serverCreatedAt: virtfusionHourlyBilling.serverCreatedAt,
         lastBilledAt: virtfusionHourlyBilling.lastBilledAt,
         userActive: users.isActive,

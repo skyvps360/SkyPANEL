@@ -14,6 +14,7 @@ export const serverUptimeLogs = pgTable('server_uptime_logs', {
   totalHours: decimal('total_hours', { precision: 10, scale: 2 }).default('0'),
   hourlyRate: decimal('hourly_rate', { precision: 10, scale: 4 }).notNull().default('0'),
   totalCost: decimal('total_cost', { precision: 10, scale: 4 }).default('0'),
+  accumulatedCost: decimal('accumulated_cost', { precision: 10, scale: 6 }).default('0.000000'), // Track unbilled fractional costs
   billingCycle: text('billing_cycle').notNull().default('hourly'),
   isBilled: boolean('is_billed').notNull().default(false),
   billingTransactionId: uuid('billing_transaction_id'),
