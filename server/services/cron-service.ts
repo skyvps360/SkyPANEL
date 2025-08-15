@@ -29,6 +29,27 @@ export class CronService {
   }
 
   /**
+   * Get the admin-configured hours per month setting
+   * @returns Promise<number> Hours per month from admin settings, defaults to 730
+   */
+  private async getHoursPerMonthSetting(): Promise<number> {
+    try {
+      const setting = await storage.getSetting('server_hours_per_month');
+      if (setting?.value) {
+        const hours = parseInt(setting.value, 10);
+        if (!isNaN(hours) && hours > 0) {
+          return hours;
+        }
+      }
+      // Default to 730 hours (30.4 days) if setting not found or invalid
+      return 730;
+    } catch (error) {
+      console.error('Error getting server_hours_per_month setting:', error);
+      return 730;
+    }
+  }
+
+  /**
    * Initialize all cron jobs
    */
   private async initializeCronJobs() {
@@ -453,14 +474,17 @@ export class CronService {
         const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
         const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
         
+        // Get admin-configured hours per month
+        const adminHoursPerMonth = await this.getHoursPerMonthSetting();
+        
         await storage.db.insert(virtfusionCronSettings).values({
           enabled: false, // Default to disabled - admin must explicitly enable
-          hoursPerMonth: 730,
+          hoursPerMonth: adminHoursPerMonth,
           billingOnFirstEnabled: !isHourlyBilling, // Enable monthly when hourly is disabled
           hourlyBillingEnabled: isHourlyBilling    // Enable hourly when hourly billing is enabled
         });
         
-        console.log(`Created VirtFusion cron settings for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode (DISABLED by default)`);
+        console.log(`Created VirtFusion cron settings for ${isHourlyBilling ? 'hourly' : 'monthly'} billing mode (DISABLED by default) with ${adminHoursPerMonth} hours per month from admin settings`);
         return;
       }
 
@@ -535,11 +559,14 @@ export class CronService {
       
       // Create default settings if none exist
       if (!setting) {
+        // Get admin-configured hours per month
+        const adminHoursPerMonth = await this.getHoursPerMonthSetting();
+        
         await storage.db.insert(virtfusionCronSettings).values({
           enabled: false, // Default to disabled
           hourlyBillingEnabled: isHourlyBilling,
           billingOnFirstEnabled: !isHourlyBilling, // Enable monthly when hourly is disabled
-          hoursPerMonth: 730 // Default hours per month
+          hoursPerMonth: adminHoursPerMonth // Use admin-configured hours per month
         });
         
         // Fetch the newly created settings
@@ -702,11 +729,13 @@ export class CronService {
           .where(eq(virtfusionCronSettings.id, currentSettings[0].id));
       } else {
         // Create new settings
+        const defaultHoursPerMonth = hoursPerMonth ?? await this.getHoursPerMonthSetting();
+        
         await storage.db.insert(virtfusionCronSettings).values({
           enabled,
           hourlyBillingEnabled: hourlyEnabled ?? true,
           billingOnFirstEnabled: monthlyEnabled ?? true,
-          hoursPerMonth: hoursPerMonth ?? 730
+          hoursPerMonth: defaultHoursPerMonth
         });
       }
 
@@ -900,7 +929,7 @@ export class CronService {
           
           // Calculate hourly rate precisely
           const monthlyPrice = parseFloat(record.monthlyPrice.toString());
-          const hoursInMonth = record.hoursInMonth || 730;
+          const hoursInMonth = record.hoursInMonth || await this.getHoursPerMonthSetting();
           const hourlyRate = monthlyPrice / hoursInMonth;
           
           // Get current accumulated amount

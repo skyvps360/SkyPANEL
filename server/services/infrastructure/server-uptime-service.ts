@@ -248,10 +248,37 @@ export class ServerUptimeService {
         return settings[0].hoursPerMonth;
       }
 
-      // Default to 730 hours (30.4 days)
+      // Get admin-configured hours per month setting as fallback
+      try {
+        const adminSetting = await storage.getSetting('server_hours_per_month');
+        if (adminSetting?.value) {
+          const hours = parseInt(adminSetting.value, 10);
+          if (!isNaN(hours) && hours > 0) {
+            return hours;
+          }
+        }
+      } catch (adminError) {
+        console.error('Error getting server_hours_per_month admin setting:', adminError);
+      }
+
+      // Final fallback to 730 hours (30.4 days)
       return 730;
     } catch (error) {
       console.error('Error getting hours per month setting:', error);
+      
+      // Try to get admin setting as fallback
+      try {
+        const adminSetting = await storage.getSetting('server_hours_per_month');
+        if (adminSetting?.value) {
+          const hours = parseInt(adminSetting.value, 10);
+          if (!isNaN(hours) && hours > 0) {
+            return hours;
+          }
+        }
+      } catch (adminError) {
+        console.error('Error getting server_hours_per_month admin setting in fallback:', adminError);
+      }
+      
       return 730;
     }
   }
