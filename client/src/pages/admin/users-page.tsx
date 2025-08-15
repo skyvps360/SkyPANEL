@@ -571,9 +571,28 @@ export default function UsersPage() {
   const renderActions = (user: User) => (
   <>
     {currentUser?.id === user.id ? (
-      <DropdownMenuItem disabled className="opacity-75 cursor-not-allowed select-none text-muted-foreground">
-        You cannot edit your own account
-      </DropdownMenuItem>
+      <>
+        {/* Allow self-editing */}
+        <DropdownMenuItem onClick={() => {
+          navigate(`/admin/users/${user.id}`);
+        }}>
+          <Edit className="mr-2 h-4 w-4" />
+          Edit User
+        </DropdownMenuItem>
+        {/* Block dangerous actions for self */}
+        <DropdownMenuItem disabled className="opacity-75 cursor-not-allowed select-none text-muted-foreground">
+          <UserCog className="mr-2 h-4 w-4" />
+          You cannot change your own role
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled className="opacity-75 cursor-not-allowed select-none text-muted-foreground">
+          <PowerOff className="mr-2 h-4 w-4" />
+          You cannot suspend yourself
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled className="opacity-75 cursor-not-allowed select-none text-muted-foreground">
+          <Trash2 className="mr-2 h-4 w-4" />
+          You cannot delete yourself
+        </DropdownMenuItem>
+      </>
     ) : (
       <>
         <DropdownMenuItem onClick={() => {
