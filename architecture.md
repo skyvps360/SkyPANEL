@@ -13,6 +13,7 @@ This document provides a comprehensive overview of the SkyPANEL system architect
 7. [Security Architecture](#security-architecture)
 8. [Scalability Considerations](#scalability-considerations)
 9. [Known Limitations](#known-limitations)
+10. [VirtFusion Billing System](#virtfusion-billing-system)
 
 ## Architecture Overview
 
@@ -758,6 +759,74 @@ The system now relies entirely on transaction records for billing history and ex
 - Discord bot requires proper permissions and token configuration
 - OAuth SSO requires proper provider configuration and credentials
 - BYOS (Bring Your Own Server) functionality is planned but not yet implemented
+
+## VirtFusion Billing System
+
+The VirtFusion Billing System provides automated hourly and monthly usage-based billing integrated with VirtFusion’s VPS API. It runs via cron jobs, records transactions in PostgreSQL through the storage layer, and enforces strict server ownership verification to prevent cross-user billing.
+
+### Modes and Scheduling
+
+- Hourly Billing: bills per actual uptime hour. Schedule: every minute (aligned to server creation time)
+- Monthly Billing: bills on the 1st of each month at 03:00 UTC
+- Dynamic Mode: controlled via settings (e.g., `virtfusion_self_service_hourly_credit`) and `virtfusion_cron_settings`
+
+### Core Components
+
+- Backend cron service: orchestrates hourly/monthly jobs and catch-up billing
+- Storage layer (`server/storage.ts`): all DB reads/writes; no direct ORM calls in routes
+- VirtFusion API client: singleton with `extRelationId` filtering and retry/queue logic
+- Transactions system: records debits and status for auditability
+
+### Data Model (summary)
+
+- virtfusion_hourly_billing: per-server billing config/state (userId, serverId, virtfusionServerId, serverUuid, packageId/name, monthlyPrice, hourlyRate, hoursInMonth, billingEnabled, serverCreatedAt, lastBilledAt, timestamps)
+- virtfusion_hourly_transactions: per-cycle transaction linkage (billingId, userId, serverId, hoursBilled, amountCharged, period start/end, status)
+- virtfusion_cron_settings: toggles/schedules (enabled, hoursPerMonth, billingOnFirstEnabled, hourlyBillingEnabled, last run timestamps)
+- transactions: canonical ledger entries (userId, amount, type, status, description, paymentMethod)
+- package_pricing: VirtFusion package -> price mapping
+
+### Ownership Verification (security-critical)
+
+Before billing any server:
+1) Map SkyPANEL userId -> VirtFusion user
+2) Fetch servers for that VF user (filter by `extRelationId`)
+3) Verify the server UUID is in the user’s server list
+4) If not owned, disable billing for that server to prevent charges
+
+### API Surface (selected)
+
+- Admin
+      - GET /api/admin/cron/status – overall cron status
+      - POST /api/admin/cron/virtfusion-billing/trigger-hourly – run hourly job now
+      - POST /api/admin/cron/virtfusion-billing/trigger-monthly – run monthly job now
+      - GET /api/admin/cron/virtfusion-billing/status – per-server billing status
+      - POST /api/admin/virtfusion/billing-mode/update – switch hourly/monthly mode
+      - PUT /api/admin/cron/virtfusion – update cron settings
+- Client
+      - GET /api/billing/balance – credits/tokens
+      - GET /api/billing/usage/last30days – usage aggregation
+      - GET /api/billing/transactions – transaction history
+      - GET /api/servers – user’s servers (filtered by ownership)
+      - GET /api/servers/:id/billing – per-server billing details
+      - POST /api/servers/:id/billing/disable – opt-out for a server
+
+### Job Behavior and Error Handling
+
+- Hourly: creates debit transactions per unbilled hour; updates lastBilledAt atomically
+- Monthly: charges monthly rate; supports catch-up for missed periods
+- Resilience: graceful handling on VirtFusion API errors; continues other servers
+- Rate limiting and queuing respected via VirtFusion client
+
+### Ops, Monitoring, and Admin
+
+- Cron status endpoint for live visibility
+- Manual triggers for testing and remediation
+- Detailed logging around verification, charges, and failures
+- Admin settings UI for toggles, schedules, and mode selection
+
+### Reference
+
+For full diagrams, schema details, and flows, see `VIRTFUSION_BILLING_SYSTEM.md`.
 
 ---
 
