@@ -151,6 +151,8 @@ interface MigrationStatus {
   needsMigration: boolean;
   ticketDepartmentCount: number;
   supportDepartmentCount: number;
+  // Optional sync status details when only synchronization (not full migration) is needed
+  syncStatus?: SyncStatus;
 }
 
 interface MigrationResult {
@@ -593,9 +595,11 @@ export default function SettingsPage() {
   // Update setting mutation
   const updateSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string, value: string }) => {
-      return apiRequest(`/api/admin/settings`, {
-        method: "POST",
-        body: { key, value }
+      // Use the server's expected route shape: PUT /api/admin/settings/:key with body { value }
+      const safeKey = encodeURIComponent(key);
+      return apiRequest(`/api/admin/settings/${safeKey}`, {
+        method: "PUT",
+        body: { value }
       });
     }
   });
@@ -1141,6 +1145,33 @@ export default function SettingsPage() {
     }
   });
 
+  // Department sync mutation (align types with UI usage)
+  const syncDepartmentsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/department-migration/sync', {
+        method: 'POST'
+      });
+    },
+    onSuccess: (result: MigrationResult) => {
+      setSyncResult(result);
+      toast({
+        title: 'Sync completed',
+        description: result.message,
+        duration: 6000,
+      });
+      // Refresh sync status and departments
+      refetchMigrationStatus();
+      queryClient.invalidateQueries({ queryKey: ['/api/ticket-departments'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Sync failed',
+        description: error.message || 'An error occurred during synchronization',
+        variant: 'destructive',
+      });
+    }
+  });
+
 
 
   // Handle department form submission
@@ -1227,9 +1258,9 @@ export default function SettingsPage() {
     }
 
     const syncStatus = migrationStatus.syncStatus;
-    const newDeptNames = [
-              ...syncStatus.newTicketDepartments.map(d => d.name)
-    ];
+  const newDeptNames = [
+        ...syncStatus.newTicketDepartments.map((d: TicketDepartment) => d.name)
+  ];
 
     const confirmed = confirm(
       `This will sync ${syncStatus.totalNewDepartments} new departments (${newDeptNames.join(', ')}) into the unified system. Continue?`
@@ -1733,6 +1764,16 @@ export default function SettingsPage() {
         // Don't fail the entire save if cron update fails
       }
 
+      // Ensure cron jobs align with the selected billing mode immediately
+      try {
+        await apiRequest("/api/admin/virtfusion/billing-mode/update", {
+          method: "POST"
+        });
+      } catch (error: any) {
+        console.error("Error triggering VirtFusion billing mode update:", error);
+        // Non-fatal; settings were saved, but cron mode may require manual sync
+      }
+
       toast({
         title: "Settings saved",
         description: "VirtFusion API settings and cron configuration have been updated",
@@ -1740,6 +1781,7 @@ export default function SettingsPage() {
 
       queryClient.invalidateQueries({ queryKey: ["api/admin/settings"] });
       queryClient.invalidateQueries({ queryKey: ["virtfusion-cron-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cron/status"] });
 
       // Reset the form with the new values to clear dirty state
       virtFusionForm.reset({
@@ -4562,7 +4604,7 @@ export default function SettingsPage() {
                                     {migrationStatus.syncStatus.newTicketDepartments.length}
                                   </p>
                                   <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-                                    {migrationStatus.syncStatus.newTicketDepartments.map(dept => dept.name).join(', ')}
+                                    {migrationStatus.syncStatus.newTicketDepartments.map((dept: TicketDepartment) => dept.name).join(', ')}
                                   </div>
                                 </div>
                               )}
