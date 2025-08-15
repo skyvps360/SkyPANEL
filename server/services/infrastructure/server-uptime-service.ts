@@ -120,38 +120,61 @@ export class ServerUptimeService {
           // Calculate cost for this hour
           const hourlyRate = parseFloat(server.hourlyRate);
           const costForThisHour = hourlyRate * 1; // 1 hour
+          
+          // Get current accumulated cost
+          const currentAccumulated = parseFloat(server.accumulatedCost || '0');
+          const newAccumulated = currentAccumulated + costForThisHour;
+          
+          // Check if we should bill (>= 1 cent)
+          const tokensToCharge = Math.floor(newAccumulated * 100);
+          const shouldBill = tokensToCharge >= 1;
+          
+          console.log(`Server ${server.serverId}: hourly rate $${hourlyRate.toFixed(6)}, accumulated $${newAccumulated.toFixed(6)}, tokens: ${tokensToCharge}, should bill: ${shouldBill}`);
+          
+          let transaction = null;
+          let actualChargedAmount = 0;
+          let finalAccumulated = newAccumulated;
+          
+          if (shouldBill) {
+            // Calculate actual charged amount
+            actualChargedAmount = tokensToCharge / 100;
+            finalAccumulated = newAccumulated - actualChargedAmount;
+            
+            // Create billing transaction for the actual charged amount
+            transaction = await storage.createTransaction({
+              userId: server.userId,
+              amount: -Math.abs(actualChargedAmount), // Negative for debit
+              description: `Accumulated server billing - Server ID: ${server.serverId} (${tokensToCharge} tokens)`,
+              type: 'server_hourly_billing',
+              status: 'completed',
+              paymentMethod: 'virtfusion_tokens'
+            });
 
-          // Create billing transaction
-          const transaction = await storage.createTransaction({
-            userId: server.userId,
-            amount: -Math.abs(costForThisHour), // Negative for debit
-            description: `Hourly server billing - Server ID: ${server.serverId}`,
-            type: 'server_hourly_billing',
-            status: 'completed',
-            paymentMethod: 'virtfusion_tokens'
-          });
+            // Deduct tokens from VirtFusion account
+            await this.deductVirtFusionTokens(server.userId, actualChargedAmount, transaction.id);
+            
+            console.log(`Billed server ${server.serverId}: ${tokensToCharge} tokens ($${actualChargedAmount.toFixed(4)}), remaining accumulated: $${finalAccumulated.toFixed(6)}`);
+          } else {
+            console.log(`Server ${server.serverId}: Not billing yet, accumulated $${finalAccumulated.toFixed(6)} < $0.01`);
+          }
 
-          // Update uptime log
+          // Update uptime log with accumulated costs
           const newTotalHours = parseFloat(server.totalHours || '0') + 1;
-          const newTotalCost = parseFloat(server.totalCost || '0') + costForThisHour;
+          const newTotalCost = parseFloat(server.totalCost || '0') + actualChargedAmount; // Only add actually charged amount
 
           await this.db.update(serverUptimeLogs)
             .set({
               totalHours: newTotalHours.toString(),
               totalCost: newTotalCost.toString(),
-              billingTransactionId: transaction.id,
-              isBilled: true,
+              accumulatedCost: finalAccumulated.toFixed(6),
+              billingTransactionId: transaction?.id || server.billingTransactionId,
+              isBilled: shouldBill,
               updatedAt: now
             })
             .where(eq(serverUptimeLogs.id, server.id));
 
-          // Deduct tokens from VirtFusion account
-          await this.deductVirtFusionTokens(server.userId, costForThisHour, transaction.id);
-
           processedServers++;
-          totalBilled += costForThisHour;
-
-          console.log(`Billed server ${server.serverId} for $${costForThisHour.toFixed(4)}`);
+          totalBilled += actualChargedAmount;
 
         } catch (error: any) {
           const errorMsg = `Error processing billing for server ${server.serverId}: ${error.message}`;
@@ -263,17 +286,22 @@ export class ServerUptimeService {
         throw new Error(`User ${userId} not found or no VirtFusion ID`);
       }
 
-      // Convert dollars to tokens (assuming 1 token = $1)
-      const tokens = Math.ceil(amount * 100); // Convert to cents
+      // Convert dollars to tokens - amount should already be >= 0.01 due to accumulative logic
+      const tokens = Math.round(amount * 100); // Round to nearest cent for any floating point precision issues
+      
+      if (tokens < 1) {
+        console.warn(`Unexpected: Trying to bill ${tokens} tokens ($${amount.toFixed(6)}) - should not happen with accumulative billing`);
+        return;
+      }
 
       const tokenData = {
         tokens,
         reference_1: transactionId,
-        reference_2: `Hourly server billing - ${new Date().toISOString()}`
+        reference_2: `Accumulated server billing - ${new Date().toISOString()}`
       };
 
       await virtFusionApi.removeCreditFromUserByExtRelationId(userId, tokenData);
-      console.log(`Deducted ${tokens} tokens from user ${userId} for hourly billing`);
+      console.log(`Deducted ${tokens} tokens ($${(tokens/100).toFixed(4)}) from user ${userId} for accumulated server billing`);
     } catch (error) {
       console.error('Error deducting VirtFusion tokens:', error);
       throw error;
