@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Cpu, HardDrive, MemoryStick, Zap, Settings } from "lucide-react";
+import { Search, RefreshCw, Server, ArrowRight, AlertCircle, Calendar, MapPin, Cpu, HardDrive, MemoryStick, Zap, Settings, RefreshCw as Sync } from "lucide-react";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import { getBrandColors, getPatternBackgrounds } from "@/lib/brand-theme";
 import ClientServerCreateModal from "@/components/ClientServerCreateModal";
+import { ServerSyncModal } from "@/components/servers/ServerSyncModal";
 import {
   Table,
   TableBody,
@@ -25,77 +26,77 @@ import {
 // OS Icon Components
 const UbuntuIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
 const DebianIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
 const CentOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
 const RockyLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
 const AlmaLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
 const FedoraIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
 const WindowsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M0 3.5L9.5 2.1V12H0V3.5zM10.5 2.1L24 0V12H10.5V2.1zM0 13h9.5V21.9L0 20.5V13zM10.5 21.9V13H24v8.5L10.5 21.9z"/>
+    <path d="M0 3.5L9.5 2.1V12H0V3.5zM10.5 2.1L24 0V12H10.5V2.1zM0 13h9.5V21.9L0 20.5V13zM10.5 21.9V13H24v8.5L10.5 21.9z" />
   </svg>
 );
 
 const ArchLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
 const FreeBSDIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
 const AlpineIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
 const UnknownOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z" />
+    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z" />
   </svg>
 );
 
@@ -225,6 +226,7 @@ export default function ServersPage() {
   const [refreshClicks, setRefreshClicks] = useState<number[]>([]);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
 
   const { data: brandingData } = useQuery<{
     company_name: string;
@@ -275,8 +277,8 @@ export default function ServersPage() {
   });
 
   // Check if VirtFusion cron sync is enabled (either hourly or monthly billing)
-  const isVirtFusionEnabled = virtfusionCronData?.cronStatus?.virtfusionHourly?.enabled || 
-                             virtfusionCronData?.cronStatus?.virtfusionMonthly?.enabled;
+  const isVirtFusionEnabled = virtfusionCronData?.cronStatus?.virtfusionHourly?.enabled ||
+    virtfusionCronData?.cronStatus?.virtfusionMonthly?.enabled;
 
   const { data: serversResponse, isLoading, isError, refetch } = useQuery<any>({
     queryKey: ['/api/user/servers'],
@@ -314,22 +316,22 @@ export default function ServersPage() {
     if (server.deleteLevel && server.deleteLevel > 0) {
       return false;
     }
-    
+
     // Also check if server has a deletion scheduled (alternative field names)
     if (server.scheduledDeletion || server.deletionScheduled || server.deleteScheduled) {
       return false;
     }
-    
+
     // Check if server state indicates deletion
     if (server.state === 'deleting' || server.state === 'deleted' || server.state === 'scheduled_deletion') {
       return false;
     }
-    
+
     // Check commissionStatus - if it's 0, the server might be decommissioned/deleted
     if (server.commissionStatus === 0) {
       return false;
     }
-    
+
     // Check if server has a deletion timestamp or scheduled deletion
     if (server.deletedAt || server.scheduledForDeletion || server.deletionDate) {
       return false;
@@ -425,16 +427,16 @@ export default function ServersPage() {
         <div className="relative overflow-hidden w-full rounded-2xl bg-gradient-to-br from-white to-gray-50 border border-gray-300/60 shadow-xl">
           {/* Decorative bubble elements */}
           <div className="absolute -top-10 -left-10 w-48 h-48 rounded-full opacity-10"
-               style={{ backgroundColor: brandColors.primary.full }}></div>
+            style={{ backgroundColor: brandColors.primary.full }}></div>
           <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full opacity-5"
-               style={{ backgroundColor: brandColors.secondary.full }}></div>
+            style={{ backgroundColor: brandColors.secondary.full }}></div>
           <div className="absolute top-1/4 right-10 w-32 h-32 rounded-full opacity-10"
-               style={{ backgroundColor: brandColors.accent?.full || brandColors.primary.full }}></div>
-          
+            style={{ backgroundColor: brandColors.accent?.full || brandColors.primary.full }}></div>
+
           <div className="p-8 relative z-10">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="flex items-center space-x-4 mb-6 lg:mb-0">
-                <div 
+                <div
                   className="flex items-center justify-center h-12 w-12 rounded-xl bg-primary text-primary-foreground shadow-lg"
                   style={{ backgroundColor: brandColors.primary.full }}
                 >
@@ -445,14 +447,14 @@ export default function ServersPage() {
                   <p className="text-muted-foreground text-lg mt-1">Manage and monitor your virtual servers</p>
                   <div className="flex flex-wrap gap-6 mt-4 text-sm text-gray-600">
                     <div className="flex items-center space-x-2">
-                      <div 
+                      <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: brandColors.primary.full }}
                       ></div>
                       <span className="font-medium text-foreground">{filteredServers.length} Total Servers</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <div 
+                      <div
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: brandColors.secondary.full }}
                       ></div>
@@ -498,6 +500,14 @@ export default function ServersPage() {
               {!isVirtFusionEnabled && (
                 <VirtFusionSsoButton text="Create Server" />
               )}
+              <Button
+                onClick={() => setShowSyncModal(true)}
+                variant="outline"
+                className="inline-flex items-center gap-2"
+              >
+                <Sync className="h-4 w-4" />
+                Sync Servers
+              </Button>
               <Button
                 onClick={handleRefresh}
                 disabled={isRefreshing || isRateLimited}
@@ -622,78 +632,75 @@ export default function ServersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                {servers.map((server: any, index: number) => {
-                  const status = getServerStatus(server);
-                  const isRunning = status === 'RUNNING';
-                  const isStopped = status === 'STOPPED';
-                  const isSuspended = status === 'SUSPENDED';
+                  {servers.map((server: any, index: number) => {
+                    const status = getServerStatus(server);
+                    const isRunning = status === 'RUNNING';
+                    const isStopped = status === 'STOPPED';
+                    const isSuspended = status === 'SUSPENDED';
 
-                  return (
+                    return (
                       <TableRow
-                      key={server.id}
-                        className={`group hover:bg-gray-50 transition-all duration-200 ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-25/20'
-                      }`}
-                    >
+                        key={server.id}
+                        className={`group hover:bg-gray-50 transition-all duration-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-25/20'
+                          }`}
+                      >
                         <TableCell className="px-4 py-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {(() => {
-                            const osInfo = getServerOSInfo(server);
-                            const OSIcon = osInfo.icon;
-                            return (
-                              <div
-                                className="flex items-center justify-center h-10 w-10 rounded-full text-white shadow-sm transition-all duration-200 flex-shrink-0"
-                                style={{
-                                  backgroundColor: isRunning 
-                                    ? brandColors.primary.full 
-                                    : isSuspended 
-                                    ? '#ef4444' 
-                                    : '#6b7280'
-                                }}
-                              >
-                                <OSIcon className="h-5 w-5" />
+                          <div className="flex items-center gap-3 min-w-0">
+                            {(() => {
+                              const osInfo = getServerOSInfo(server);
+                              const OSIcon = osInfo.icon;
+                              return (
+                                <div
+                                  className="flex items-center justify-center h-10 w-10 rounded-full text-white shadow-sm transition-all duration-200 flex-shrink-0"
+                                  style={{
+                                    backgroundColor: isRunning
+                                      ? brandColors.primary.full
+                                      : isSuspended
+                                        ? '#ef4444'
+                                        : '#6b7280'
+                                  }}
+                                >
+                                  <OSIcon className="h-5 w-5" />
+                                </div>
+                              );
+                            })()}
+
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-gray-900 leading-tight group-hover:text-primary transition-colors truncate text-sm">
+                                {server.name}
+                              </h4>
+                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-xs">
+                                  Server ID: {server.id}
+                                </span>
                               </div>
-                            );
-                          })()}
-                          
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-900 leading-tight group-hover:text-primary transition-colors truncate text-sm">
-                              {server.name}
-                            </h4>
-                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                              <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-                                Server ID: {server.id}
-                              </span>
                             </div>
                           </div>
-                        </div>
                         </TableCell>
                         <TableCell className="hidden xl:table-cell px-3 py-4 text-sm text-gray-600">
-                            {server.hypervisor?.name ? (
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                <span className="truncate text-xs">{server.hypervisor.name}</span>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
+                          {server.hypervisor?.name ? (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              <span className="truncate text-xs">{server.hypervisor.name}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="px-3 py-4">
-                            <Badge
-                              variant={getStatusBadgeVariant(status)}
-                              className={`text-xs font-medium px-2 py-1 rounded-full ${
-                                isRunning
-                                  ? 'bg-green-100 text-green-800 border-green-200'
-                                  : isSuspended
+                          <Badge
+                            variant={getStatusBadgeVariant(status)}
+                            className={`text-xs font-medium px-2 py-1 rounded-full ${isRunning
+                                ? 'bg-green-100 text-green-800 border-green-200'
+                                : isSuspended
                                   ? 'bg-red-100 text-red-800 border-red-200'
                                   : 'bg-gray-100 text-gray-800 border-gray-200'
                               }`}
-                            >
-                              <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                                isRunning ? 'bg-green-500' : isSuspended ? 'bg-red-500' : 'bg-gray-500'
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isRunning ? 'bg-green-500' : isSuspended ? 'bg-red-500' : 'bg-gray-500'
                               }`}></div>
-                              {status}
-                            </Badge>
+                            {status}
+                          </Badge>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell px-3 py-4">
                           <div className="space-y-1">
@@ -734,16 +741,15 @@ export default function ServersPage() {
                             <Badge
                               variant={
                                 server.billingCycle === 'Hourly' ? 'default' :
-                                server.billingCycle === 'Monthly' ? 'secondary' :
-                                'outline'
+                                  server.billingCycle === 'Monthly' ? 'secondary' :
+                                    'outline'
                               }
-                              className={`text-xs font-medium px-2 py-1 rounded-full ${
-                                server.billingCycle === 'Hourly'
+                              className={`text-xs font-medium px-2 py-1 rounded-full ${server.billingCycle === 'Hourly'
                                   ? 'bg-blue-100 text-blue-800 border-blue-200'
                                   : server.billingCycle === 'Monthly'
-                                  ? 'bg-green-100 text-green-800 border-green-200'
-                                  : 'bg-gray-100 text-gray-800 border-gray-200'
-                              }`}
+                                    ? 'bg-green-100 text-green-800 border-green-200'
+                                    : 'bg-gray-100 text-gray-800 border-gray-200'
+                                }`}
                             >
                               {server.billingCycle || 'Monthly'}
                             </Badge>
@@ -755,28 +761,28 @@ export default function ServersPage() {
                           </div>
                         </TableCell>
                         <TableCell className="px-3 py-4">
-                            <Link href={`/servers/${server.id}`}>
-                              <Button
-                                size="sm"
-                                className="text-white shadow-sm transition-all duration-300 group-hover:scale-105 hover:shadow-md text-xs px-2 py-1"
-                                style={{
-                                  backgroundColor: brandColors.primary.full,
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = `${brandColors.primary.full}dd`;
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = brandColors.primary.full;
-                                }}
-                              >
-                                <Settings className="mr-1 h-3 w-3" />
-                                Manage
-                              </Button>
-                            </Link>
+                          <Link href={`/servers/${server.id}`}>
+                            <Button
+                              size="sm"
+                              className="text-white shadow-sm transition-all duration-300 group-hover:scale-105 hover:shadow-md text-xs px-2 py-1"
+                              style={{
+                                backgroundColor: brandColors.primary.full,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = `${brandColors.primary.full}dd`;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = brandColors.primary.full;
+                              }}
+                            >
+                              <Settings className="mr-1 h-3 w-3" />
+                              Manage
+                            </Button>
+                          </Link>
                         </TableCell>
                       </TableRow>
-                  );
-                })}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </Card>
@@ -805,11 +811,10 @@ export default function ServersPage() {
                             variant={pageNum === currentPage ? "default" : "ghost"}
                             size="sm"
                             onClick={() => setPage(pageNum)}
-                            className={`rounded-full ${
-                              pageNum === currentPage
+                            className={`rounded-full ${pageNum === currentPage
                                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                                 : ""
-                            }`}
+                              }`}
                           >
                             {pageNum}
                           </Button>
@@ -884,6 +889,12 @@ export default function ServersPage() {
             companyName={brandingData?.company_name}
           />
         )}
+
+        {/* Server Sync Modal */}
+        <ServerSyncModal
+          isOpen={showSyncModal}
+          onClose={() => setShowSyncModal(false)}
+        />
       </div>
     </DashboardLayout>
   );

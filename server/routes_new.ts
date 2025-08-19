@@ -357,7 +357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedData.email && validatedData.email !== user.email) {
         const existingUser = await storage.getUserByEmail(validatedData.email);
         if (existingUser && existingUser.id !== userId) {
-  
+
           return res.status(400).json({ error: "Email is already in use" });
         }
       }
@@ -1080,7 +1080,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   billingCycle = "Hourly";
                   const billing = billingRecord[0];
                   hourlyRate = parseFloat(billing.hourlyRate);
-                  
+
                   // Get actual total billed from transaction history only
                   try {
                     const transactions = await db
@@ -1093,7 +1093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                           eq(virtfusionHourlyTransactions.status, 'completed')
                         )
                       );
-                    
+
                     if (transactions.length > 0) {
                       // Sum up actual transaction amounts
                       totalBilled = transactions.reduce((sum, t) => sum + parseFloat(t.amountCharged), 0);
@@ -1114,7 +1114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     .limit(1);
 
                   const isCronEnabled = cronSettings.length > 0 && cronSettings[0].enabled;
-                  
+
                   if (isCronEnabled) {
                     // VirtFusion cron is enabled, so servers without hourly billing records are monthly
                     billingCycle = "Monthly";
@@ -1219,7 +1219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid server ID" });
       }
 
-      
+
 
       // Get user to find their VirtFusion ID
       const user = await storage.getUser(userId);
@@ -1246,10 +1246,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         serverOwnerId = server.ownerId || server.owner?.id || server.owner;
       }
 
-      
+
 
       if (serverOwnerId !== user.virtFusionId) {
-        
+
         return res.status(403).json({ error: "Access denied - server does not belong to you" });
       }
 
@@ -1266,7 +1266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } : null
       };
 
-      
+
       return res.json(transformedServer);
     } catch (error) {
       console.error('Error fetching server details:', error);
@@ -1816,21 +1816,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const billing = billingInfo[0];
         const hourlyRate = parseFloat(billing.hourlyRate);
         const monthlyPrice = parseFloat(billing.monthlyPrice);
-        
+
         // Calculate total amount billed from actual transactions only
         let totalBilled = 0;
         let hoursRunning = 0;
-        
+
         if (billing.serverCreatedAt) {
           const now = new Date();
           const createdAt = new Date(billing.serverCreatedAt);
           const oneHourMs = 60 * 60 * 1000;
-          
+
           // Calculate total hours since creation for display purposes
           const totalMs = now.getTime() - createdAt.getTime();
           hoursRunning = Math.floor(totalMs / oneHourMs);
         }
-        
+
         // Get actual transaction history - this is the only source of truth
         const transactions = await storage.db
           .select()
@@ -1842,7 +1842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               eq(virtfusionHourlyTransactions.status, 'completed')
             )
           );
-        
+
         // Calculate total from actual transactions
         if (transactions.length > 0) {
           totalBilled = transactions.reduce((sum, t) => sum + parseFloat(t.amountCharged), 0);
@@ -1851,7 +1851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             totalBilled += hourlyRate;
           }
         }
-        
+
         return res.json({
           hourlyRate,
           monthlyPrice,
@@ -1873,7 +1873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .limit(1);
 
         const isCronDisabled = cronSettings.length === 0 || !cronSettings[0].enabled;
-        
+
         if (isCronDisabled) {
           // When cron is disabled, servers not created via our app should be marked as virtfusion controlled
           return res.json({
@@ -2346,7 +2346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to format a single transaction PDF
   function formatSingleTransactionPdf(doc: PDFKit.PDFDocument, transaction: any, user: any, companyName: string, companyLogo: string) {
     // Debug transaction data
-    
+
 
     // Add logo if available
     if (companyLogo) {
@@ -5169,7 +5169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const users = await storage.getAllUsers();
       const localOAuthService = new OAuthService();
-      
+
       // Fetch OAuth accounts for all users to include profile pictures
       const usersWithOAuth = await Promise.all(
         users.map(async (user) => {
@@ -5188,7 +5188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         })
       );
-      
+
       res.json(usersWithOAuth);
     } catch (error: any) {
       console.error("Error fetching users:", error);
@@ -6901,7 +6901,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if user has VirtFusion account linked
       if (!user.virtFusionId) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "VirtFusion account required",
           message: "You need to link your account to VirtFusion before creating servers."
         });
@@ -6915,13 +6915,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (balanceData?.data?.credit?.tokens) {
             const tokenAmount = parseFloat(balanceData.data.credit.tokens);
             if (tokenAmount <= 0) {
-              return res.status(400).json({ 
+              return res.status(400).json({
                 error: "Insufficient credits",
                 message: "You need VirtFusion tokens to create servers. Please add credits to your account."
               });
             }
           } else {
-            return res.status(400).json({ 
+            return res.status(400).json({
               error: "Insufficient credits",
               message: "You need VirtFusion tokens to create servers. Please add credits to your account."
             });
@@ -6929,7 +6929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (virtFusionError) {
         console.error("Error checking VirtFusion balance:", virtFusionError);
-        return res.status(500).json({ 
+        return res.status(500).json({
           error: "Failed to verify credits",
           message: "Unable to verify your VirtFusion credits. Please try again."
         });
@@ -6986,7 +6986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let monthlyPriceDollars = 0;
       let hourlyRate = 0;
       let hoursPerMonth = 730;
-      
+
       try {
         // Get package pricing from database (not from VirtFusion API)
         const packagePricing = await storage.getPackagePricingByVirtFusionId(validatedData.packageId);
@@ -7007,22 +7007,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .from(virtfusionCronSettings)
             .orderBy(sql`${virtfusionCronSettings.id} DESC`)
             .limit(1);
-          
+
           hoursPerMonth = cronSettings.length > 0 ? cronSettings[0].hoursPerMonth : 730;
           monthlyPriceDollars = packageCost / 100; // Convert tokens to dollars
           hourlyRate = monthlyPriceDollars / hoursPerMonth;
         }
-        
+
         // Check billing mode and charge accordingly
         if (packageCost > 0) {
           // Check if hourly or monthly billing is enabled
           const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
           const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
-          
+
           let chargeAmount: number;
           let chargePeriod: string;
           let dollarAmount: number;
-          
+
           if (isHourlyBilling) {
             // Charge only 1 hour upfront for hourly billing
             chargeAmount = Math.ceil(hourlyRate * 100); // Convert back to tokens (cents), round up
@@ -7036,7 +7036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dollarAmount = monthlyPriceDollars; // Use full monthly cost in dollars
             console.log(`MONTHLY BILLING: Monthly cost: $${monthlyPriceDollars}, Charging ${chargeAmount} tokens (1 month) upfront for user ${user.id} for package ${packageName}`);
           }
-          
+
           // Create a transaction record first to get the transaction ID
           const createdTransaction = await storage.createTransaction({
             userId: user.id,
@@ -7049,7 +7049,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Call VirtFusion API using the same method as admin user page
           await virtFusionApi.updateSettings();
-          
+
           if (!virtFusionApi.isConfigured()) {
             // Rollback transaction if VirtFusion API is not configured
             await storage.updateTransaction(createdTransaction.id, { status: "failed" });
@@ -7075,7 +7075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Update transaction status to completed
           await storage.updateTransaction(createdTransaction.id, { status: "completed" });
-          
+
           console.log(`Successfully deducted ${chargeAmount} tokens (${chargePeriod} upfront) from user ${user.id}`);
         }
       } catch (deductError: any) {
@@ -7090,11 +7090,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const selfServiceSetting = await storage.getSetting('virtfusion_self_service');
       const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
       const selfServicePackSetting = await storage.getSetting('virtfusion_self_service_hourly_resource_pack_id');
-      
+
       const selfService = selfServiceSetting ? parseInt(selfServiceSetting.value, 10) : 1;
       const selfServiceHourlyCredit = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
       const selfServiceHourlyResourcePack = selfServicePackSetting ? parseInt(selfServicePackSetting.value, 10) : 1;
-      
+
       console.log('DEBUG - Self-service values from validatedData:', {
         selfService,
         selfServiceHourlyCredit,
@@ -7176,10 +7176,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if hourly or monthly billing is enabled
         const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
         const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
-        
+
         // Determine the original transaction description based on billing mode
         const originalDescription = `Server creation ${isHourlyBilling ? 'hourly' : 'monthly'} charge (${isHourlyBilling ? '1 hour' : '1 month'}) for package ${packageName}`;
-        
+
         // Find the transaction we created earlier
         const initialTransaction = await storage.db.select()
           .from(transactions)
@@ -7194,11 +7194,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (initialTransaction.length > 0) {
           const transactionToUpdate = initialTransaction[0];
           const newDescription = `Server #${serverId} - ${isHourlyBilling ? 'Hourly' : 'Monthly'} Charge (${isHourlyBilling ? '1 hour' : '1 month'}) for package ${packageName}`;
-          
+
           await storage.updateTransaction(transactionToUpdate.id, {
             description: newDescription
           });
-          
+
           console.log(`Updated transaction ${transactionToUpdate.id} with server ID ${serverId} for ${isHourlyBilling ? 'hourly' : 'monthly'} billing`);
         } else {
           console.warn(`Could not find the initial transaction to update for user ${user.id} and package ${packageName} with description: ${originalDescription}`);
@@ -7229,7 +7229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Check if hourly billing is enabled before adding to hourly billing table
           const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
           const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
-          
+
           if (isHourlyBilling) {
             // Only add to hourly billing table if hourly billing is enabled
             // Fetch server details from VirtFusion API to get creation timestamp
@@ -7237,7 +7237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             try {
               console.log(`Fetching server details from VirtFusion API for server ${serverId} to get creation timestamp...`);
               const serverDetails = await virtFusionApi.getServer(serverId, true);
-              
+
               if (serverDetails?.data?.created) {
                 serverCreatedAt = new Date(serverDetails.data.created);
                 console.log(`Server ${serverId} was created at: ${serverCreatedAt.toISOString()}`);
@@ -7287,9 +7287,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error: any) {
       console.error("Error creating server:", error.message);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to create server",
-        message: error.message 
+        message: error.message
       });
     }
   });
@@ -7311,9 +7311,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error getting user uptime stats:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to get uptime stats",
-        message: error.message 
+        message: error.message
       });
     }
   });
@@ -7336,9 +7336,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error getting server uptime logs:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to get uptime logs",
-        message: error.message 
+        message: error.message
       });
     }
   });
@@ -7347,7 +7347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/server-uptime/stats", isAdmin, async (req, res) => {
     try {
       const { serverUptimeService } = await import('./services/infrastructure/server-uptime-service');
-      
+
       // Get all running servers
       const runningServers = await storage.db.select()
         .from(serverUptimeLogs)
@@ -7372,9 +7372,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error getting admin uptime stats:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to get admin uptime stats",
-        message: error.message 
+        message: error.message
       });
     }
   });
@@ -7392,9 +7392,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Error triggering hourly billing:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to trigger hourly billing",
-        message: error.message 
+        message: error.message
       });
     }
   });
@@ -7471,9 +7471,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error: any) {
       console.error("Error building server:", error.message);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to build server",
-        message: error.message 
+        message: error.message
       });
     }
   });
@@ -8343,7 +8343,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           socket.destroy();
           return;
         }
-        
+
         // Validate host (basic validation)
         if (!/^[\w\.\-]+$/.test(host)) {
           console.error('Invalid host format for VNC proxy:', host);
@@ -8352,147 +8352,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
 
-      // Use static imports (already imported at top of file)
+        // Use static imports (already imported at top of file)
 
-      try {
-        console.log('Creating WebSocket server for VNC proxy...');
+        try {
+          console.log('Creating WebSocket server for VNC proxy...');
 
-        // Create WebSocket server for this connection
-        const wss = new WebSocketServer({ noServer: true });
+          // Create WebSocket server for this connection
+          const wss = new WebSocketServer({ noServer: true });
 
-        console.log('WebSocket server created, attempting upgrade...');
+          console.log('WebSocket server created, attempting upgrade...');
 
-        // Add error handling for the WebSocket server
-        wss.on('error', (error) => {
-          console.error('WebSocket server error during upgrade:', error);
+          // Add error handling for the WebSocket server
+          wss.on('error', (error) => {
+            console.error('WebSocket server error during upgrade:', error);
+            socket.destroy();
+          });
+
+          // Handle the upgrade with proper error handling
+          wss.handleUpgrade(request, socket, head, (ws) => {
+            console.log('WebSocket upgrade successful');
+            console.log(`VNC WebSocket proxy: Successfully upgraded WebSocket connection`);
+            console.log(`VNC WebSocket proxy: Attempting to connect to ${host}:${portNum}`);
+
+            // Create connection to VNC server
+            // The VNC credentials from VirtFusion might be for connecting through THEIR infrastructure
+            // not directly to the VM's VNC server
+            console.log(`Attempting connection to VNC server at ${host}:${portNum}`);
+            console.log(`Raw connection attempt - this may fail if VNC is behind VirtFusion's network`);
+
+            // Try to connect directly to the VNC server
+            // If this fails, VirtFusion might require us to connect through their proxy
+            const vncSocket = net.createConnection({
+              host: host,
+              port: portNum
+            });
+
+            // Enable TCP keepalive to avoid idle disconnects during handshake
+            try {
+              vncSocket.setKeepAlive(true, 15000);
+            } catch { }
+
+            console.log(`VNC TCP connection initiated for ${host}:${portNum}`);
+
+            // Track connection state
+            let isConnected = false;
+
+            vncSocket.on('connect', () => {
+              console.log(`SUCCESS: VNC TCP connection established to ${host}:${portNum}`);
+              isConnected = true;
+
+              // VNC connection established - the data forwarding will handle the protocol
+              console.log('VNC TCP socket connected, beginning data relay...');
+            });
+
+            // Do not set an aggressive timeout; allow VNC handshake to complete
+
+            vncSocket.on('error', (error: any) => {
+              console.error(`ERROR: VNC TCP connection error to ${host}:${portNum}:`, error.message);
+              console.error(`Full error:`, error);
+              console.error(`Error code: ${error.code}, Error errno: ${error.errno}, Error syscall: ${error.syscall}`);
+
+              if (error.code === 'ECONNREFUSED') {
+                console.error('Connection refused - VNC server may not be running or port is wrong');
+              } else if (error.code === 'EHOSTUNREACH') {
+                console.error('Host unreachable - check network connectivity');
+              } else if (error.code === 'ETIMEDOUT' || error.code === 'TIMEOUT') {
+                console.error('Connection timed out');
+              } else if (error.code === 'ECONNRESET') {
+                console.error('Connection reset by peer');
+              }
+
+              // Don't destroy socket here, let timeout handler do it
+              if (!isConnected && ws.readyState === ws.OPEN) {
+                ws.close(1002, `VNC connection failed: ${error.message}`);
+              }
+            });
+
+            // Simple, robust forwarding without incorrect backpressure handling
+            ws.on('message', (data) => {
+              if (!isConnected) return;
+              try {
+                const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
+                vncSocket.write(buffer);
+              } catch (error) {
+                console.error('Error writing to VNC socket:', error);
+              }
+            });
+
+            vncSocket.on('data', (data) => {
+              if (ws.readyState !== ws.OPEN) return;
+              try {
+                ws.send(data);
+              } catch (error) {
+                console.error('Error sending data to WebSocket:', error);
+              }
+            });
+
+            // Handle connection close
+            ws.on('close', (code, reason) => {
+              console.log(`VNC WebSocket closed: ${code} - ${reason}`);
+              if (vncSocket && !vncSocket.destroyed) {
+                vncSocket.destroy();
+              }
+            });
+
+            vncSocket.on('close', (hadError) => {
+              console.log(`VNC TCP socket closed, hadError: ${hadError}`);
+              if (ws.readyState === 1) {
+                ws.close(1000, 'VNC connection closed');
+              }
+            });
+
+            // Handle errors
+            ws.on('error', (err) => {
+              console.error('VNC WebSocket error:', err);
+              if (vncSocket && !vncSocket.destroyed) {
+                vncSocket.destroy();
+              }
+            });
+
+            vncSocket.on('error', (err) => {
+              console.error(`VNC TCP socket error connecting to ${host}:${portNum}:`, err);
+              if (ws.readyState === ws.OPEN) {
+                ws.close(1011, `VNC server error: ${err.message}`);
+              }
+            });
+          });
+
+        } catch (error) {
+          console.error('Error setting up VNC WebSocket proxy:', error);
           socket.destroy();
-        });
-
-        // Handle the upgrade with proper error handling
-        wss.handleUpgrade(request, socket, head, (ws) => {
-          console.log('WebSocket upgrade successful');
-          console.log(`VNC WebSocket proxy: Successfully upgraded WebSocket connection`);
-          console.log(`VNC WebSocket proxy: Attempting to connect to ${host}:${portNum}`);
-
-          // Create connection to VNC server
-          // The VNC credentials from VirtFusion might be for connecting through THEIR infrastructure
-          // not directly to the VM's VNC server
-          console.log(`Attempting connection to VNC server at ${host}:${portNum}`);
-          console.log(`Raw connection attempt - this may fail if VNC is behind VirtFusion's network`);
-          
-          // Try to connect directly to the VNC server
-          // If this fails, VirtFusion might require us to connect through their proxy
-          const vncSocket = net.createConnection({
-            host: host,
-            port: portNum
-          });
-
-          // Enable TCP keepalive to avoid idle disconnects during handshake
-          try {
-            vncSocket.setKeepAlive(true, 15000);
-          } catch {}
-
-          console.log(`VNC TCP connection initiated for ${host}:${portNum}`);
-
-          // Track connection state
-          let isConnected = false;
-
-          vncSocket.on('connect', () => {
-            console.log(`SUCCESS: VNC TCP connection established to ${host}:${portNum}`);
-            isConnected = true;
-            
-            // VNC connection established - the data forwarding will handle the protocol
-            console.log('VNC TCP socket connected, beginning data relay...');
-          });
-
-          // Do not set an aggressive timeout; allow VNC handshake to complete
-
-          vncSocket.on('error', (error: any) => {
-            console.error(`ERROR: VNC TCP connection error to ${host}:${portNum}:`, error.message);
-            console.error(`Full error:`, error);
-            console.error(`Error code: ${error.code}, Error errno: ${error.errno}, Error syscall: ${error.syscall}`);
-            
-            if (error.code === 'ECONNREFUSED') {
-              console.error('Connection refused - VNC server may not be running or port is wrong');
-            } else if (error.code === 'EHOSTUNREACH') {
-              console.error('Host unreachable - check network connectivity');
-            } else if (error.code === 'ETIMEDOUT' || error.code === 'TIMEOUT') {
-              console.error('Connection timed out');
-            } else if (error.code === 'ECONNRESET') {
-              console.error('Connection reset by peer');
-            }
-            
-            // Don't destroy socket here, let timeout handler do it
-            if (!isConnected && ws.readyState === ws.OPEN) {
-              ws.close(1002, `VNC connection failed: ${error.message}`);
-            }
-          });
-
-          // Simple, robust forwarding without incorrect backpressure handling
-          ws.on('message', (data) => {
-            if (!isConnected) return;
-            try {
-              const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data as ArrayBuffer);
-              vncSocket.write(buffer);
-            } catch (error) {
-              console.error('Error writing to VNC socket:', error);
-            }
-          });
-
-          vncSocket.on('data', (data) => {
-            if (ws.readyState !== ws.OPEN) return;
-            try {
-              ws.send(data);
-            } catch (error) {
-              console.error('Error sending data to WebSocket:', error);
-            }
-          });
-
-          // Handle connection close
-          ws.on('close', (code, reason) => {
-            console.log(`VNC WebSocket closed: ${code} - ${reason}`);
-            if (vncSocket && !vncSocket.destroyed) {
-              vncSocket.destroy();
-            }
-          });
-
-          vncSocket.on('close', (hadError) => {
-            console.log(`VNC TCP socket closed, hadError: ${hadError}`);
-            if (ws.readyState === 1) {
-              ws.close(1000, 'VNC connection closed');
-            }
-          });
-
-          // Handle errors
-          ws.on('error', (err) => {
-            console.error('VNC WebSocket error:', err);
-            if (vncSocket && !vncSocket.destroyed) {
-              vncSocket.destroy();
-            }
-          });
-
-          vncSocket.on('error', (err) => {
-            console.error(`VNC TCP socket error connecting to ${host}:${portNum}:`, err);
-            if (ws.readyState === ws.OPEN) {
-              ws.close(1011, `VNC server error: ${err.message}`);
-            }
-          });
-        });
-
-      } catch (error) {
-        console.error('Error setting up VNC WebSocket proxy:', error);
+        }
+      } else {
+        console.log('Non-VNC WebSocket request in VNC handler, closing connection:', url.pathname);
+        // This should not happen since we're routing at the server level now
         socket.destroy();
       }
-    } else {
-      console.log('Non-VNC WebSocket request in VNC handler, closing connection:', url.pathname);
-      // This should not happen since we're routing at the server level now
+    } catch (error) {
+      console.error('Error in handleWebSocketUpgrade:', error);
       socket.destroy();
     }
-  } catch (error) {
-    console.error('Error in handleWebSocketUpgrade:', error);
-    socket.destroy();
-  }
-};
+  };
 
   // Sync hypervisors from VirtFusion (admin only)
   app.post("/api/admin/hypervisors/sync", isAdmin, async (req, res) => {
@@ -9370,7 +9370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const now = new Date();
       const oneHourMs = 60 * 60 * 1000;
-      
+
       // Get all billing records
       const billingRecords = await storage.db.select({
         id: virtfusionHourlyBilling.id,
@@ -9384,30 +9384,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         serverCreatedAt: virtfusionHourlyBilling.serverCreatedAt,
         lastBilledAt: virtfusionHourlyBilling.lastBilledAt
       })
-      .from(virtfusionHourlyBilling)
-      .orderBy(virtfusionHourlyBilling.serverId);
-      
+        .from(virtfusionHourlyBilling)
+        .orderBy(virtfusionHourlyBilling.serverId);
+
       // Calculate billing status for each server
       const serverStatuses = billingRecords.map(record => {
         let nextBillingTime: Date | null = null;
         let minutesUntilBilling: number | null = null;
         let isOverdue = false;
         let hoursOverdue = 0;
-        
+
         if (record.billingEnabled && record.serverCreatedAt) {
           const serverCreatedAt = new Date(record.serverCreatedAt);
           nextBillingTime = record.lastBilledAt
             ? new Date(record.lastBilledAt)
             : new Date(serverCreatedAt.getTime() + oneHourMs);
-          
+
           minutesUntilBilling = Math.ceil((nextBillingTime.getTime() - now.getTime()) / (1000 * 60));
-          
+
           if (minutesUntilBilling <= 0) {
             isOverdue = true;
             hoursOverdue = Math.floor(Math.abs(minutesUntilBilling) / 60);
           }
         }
-        
+
         return {
           id: record.id,
           serverId: record.serverId,
@@ -9425,27 +9425,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hoursOverdue
         };
       });
-      
+
       // Get cron settings
       const cronSettings = await storage.db.select()
         .from(virtfusionCronSettings)
         .orderBy(sql`${virtfusionCronSettings.id} DESC`)
         .limit(1);
-      
+
       const setting = cronSettings[0];
-      
+
       // Calculate summary statistics
       const enabledServers = serverStatuses.filter(s => s.billingEnabled);
       const overdueServers = serverStatuses.filter(s => s.isOverdue);
-      const upcomingServers = serverStatuses.filter(s => 
-        s.minutesUntilBilling !== null && 
-        s.minutesUntilBilling > 0 && 
+      const upcomingServers = serverStatuses.filter(s =>
+        s.minutesUntilBilling !== null &&
+        s.minutesUntilBilling > 0 &&
         s.minutesUntilBilling <= 60
       );
-      
+
       const totalHourlyRevenue = enabledServers.reduce((sum, s) => sum + s.hourlyRate, 0);
       const totalMonthlyRevenue = enabledServers.reduce((sum, s) => sum + s.monthlyPrice, 0);
-      
+
       res.json({
         success: true,
         cronEnabled: setting?.enabled || false,
@@ -9473,21 +9473,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/virtfusion/billing-mode/update", isAdmin, async (req, res) => {
     try {
       console.log('🔄 Manually triggering VirtFusion billing mode update...');
-      
+
       // Check current billing mode from the Self Service Hourly Credit setting
       const selfServiceCreditSetting = await storage.getSetting('virtfusion_self_service_hourly_credit');
       const isHourlyBilling = selfServiceCreditSetting ? selfServiceCreditSetting.value === 'true' : true;
-      
+
       console.log(`💰 Current billing mode: ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'}`);
-      
+
       // Validate that cronService is available
       if (!cronService || typeof cronService.updateVirtFusionCronJobsForBillingMode !== 'function') {
         throw new Error('Cron service is not available or method is missing');
       }
-      
+
       // Update cron jobs to match current billing mode
       await cronService.updateVirtFusionCronJobsForBillingMode(isHourlyBilling);
-      
+
       const response = {
         success: true,
         message: `VirtFusion billing mode updated successfully to ${isHourlyBilling ? 'HOURLY' : 'MONTHLY'} billing`,
@@ -9496,13 +9496,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         monthlyBillingEnabled: !isHourlyBilling,
         timestamp: new Date().toISOString()
       };
-      
+
       res.json(response);
     } catch (error: any) {
       console.error("Error updating VirtFusion billing mode:", error);
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
         error: errorMessage,
         timestamp: new Date().toISOString()
@@ -11727,7 +11727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Email Template Management Endpoints (Admin Only)
-  
+
   // Get all email templates
   app.get("/api/admin/email-templates", isAdmin, async (req, res) => {
     try {
@@ -11779,11 +11779,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/email-templates", isAdmin, async (req, res) => {
     try {
       const { insertEmailTemplateSchema } = await import('@shared/schema');
-      
+
       // Validate request body
       const validationResult = insertEmailTemplateSchema.safeParse(req.body);
       if (!validationResult.success) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Validation failed",
           details: validationResult.error.errors
         });
@@ -11821,11 +11821,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { updateEmailTemplateSchema } = await import('@shared/schema');
-      
+
       // Validate request body
       const validationResult = updateEmailTemplateSchema.safeParse({ id, ...req.body });
       if (!validationResult.success) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Validation failed",
           details: validationResult.error.errors
         });
@@ -11909,7 +11909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Preview request received for template ID:', req.params.id);
       console.log('Preview variables:', req.body.variables);
-      
+
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         console.error('Invalid template ID provided:', req.params.id);
@@ -11923,13 +11923,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log('Found template:', template.name, 'type:', template.type);
-      
+
       const variables = req.body.variables || {};
       console.log('Rendering template with variables:', variables);
-      
+
       // Render template with provided variables
       const renderedTemplate = await emailService.renderTemplate(template, variables);
-      
+
       console.log('Template rendered successfully');
 
       const response = {
@@ -11937,13 +11937,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         htmlContent: renderedTemplate.htmlContent,
         textContent: renderedTemplate.textContent
       };
-      
+
       console.log('Sending preview response');
       res.json(response);
     } catch (error: any) {
       console.error("Error previewing email template:", error);
       console.error("Error stack:", error.stack);
-      res.status(500).json({ 
+      res.status(500).json({
         error: error.message || 'Internal server error during template preview',
         details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
@@ -12903,6 +12903,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Category deleted successfully" });
     } catch (error: any) {
       console.error("Error deleting package category:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Server Synchronization Endpoints
+
+  // User: Sync their own servers
+  app.post("/api/user/servers/sync", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { ServerSyncService } = await import('../services/server-sync-service');
+      const result = await ServerSyncService.syncUserServers(userId);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message,
+          data: {
+            syncedServers: result.syncedServers,
+            newServers: result.newServers,
+            updatedServers: result.updatedServers,
+            errors: result.errors
+          }
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: result.message,
+          errors: result.errors
+        });
+      }
+    } catch (error: any) {
+      console.error("Error syncing user servers:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // User: Get sync status
+  app.get("/api/user/servers/sync/status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const { ServerSyncService } = await import('../services/server-sync-service');
+      const status = await ServerSyncService.getSyncStatus(userId);
+
+      res.json({
+        success: true,
+        data: status
+      });
+    } catch (error: any) {
+      console.error("Error getting sync status:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Sync all users' servers
+  app.post("/api/admin/servers/sync", isAdmin, async (req, res) => {
+    try {
+      const { ServerSyncService } = await import('../services/server-sync-service');
+      const result = await ServerSyncService.syncAllUsersServers();
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message,
+          data: {
+            syncedServers: result.syncedServers,
+            newServers: result.newServers,
+            updatedServers: result.updatedServers,
+            errors: result.errors
+          }
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: result.message,
+          errors: result.errors
+        });
+      }
+    } catch (error: any) {
+      console.error("Error syncing all users servers:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin: Sync specific user's servers
+  app.post("/api/admin/users/:id/servers/sync", isAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      const { ServerSyncService } = await import('../services/server-sync-service');
+      const result = await ServerSyncService.syncUserServers(userId);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message,
+          data: {
+            syncedServers: result.syncedServers,
+            newServers: result.newServers,
+            updatedServers: result.updatedServers,
+            errors: result.errors
+          }
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          message: result.message,
+          errors: result.errors
+        });
+      }
+    } catch (error: any) {
+      console.error("Error syncing user servers:", error);
       res.status(500).json({ error: error.message });
     }
   });
