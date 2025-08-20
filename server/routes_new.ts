@@ -58,6 +58,7 @@ import codeSnippetsRoutes from "./routes/code-snippets";
 
 import { cronService } from "./services/cron-service";
 import { dnsBillingService } from "./services/dns-billing-service";
+import { ServerUptimeService } from "./services/infrastructure/server-uptime-service";
 import { and, desc, eq, inArray, sql, isNull } from "drizzle-orm";
 import { serverUptimeLogs } from "../shared/schemas/server-uptime-schema";
 import PDFDocument from "pdfkit";
@@ -1799,6 +1800,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid server ID" });
       }
 
+      // Get dynamic hours per month setting
+      const serverUptimeService = new ServerUptimeService();
+      const hoursPerMonth = await serverUptimeService.getHoursPerMonth();
+
       // Get hourly billing information from database
       const billingInfo = await storage.db
         .select()
@@ -1885,7 +1890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               billingType: 'virtfusion controlled',
               billingEnabled: false, // VirtFusion controlled servers are not billed by us
               packageName: 'VirtFusion Managed',
-              hoursInMonth: 730,
+              hoursInMonth: hoursPerMonth,
               lastBilledAt: null,
               serverCreatedAt: null,
               totalBilled: 0,
@@ -1899,7 +1904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               billingType: 'monthly',
               billingEnabled: true,
               packageName: 'Unknown',
-              hoursInMonth: 730,
+              hoursInMonth: hoursPerMonth,
               lastBilledAt: null,
               serverCreatedAt: null,
               totalBilled: 0,
@@ -1915,7 +1920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             billingType: 'virtfusion controlled',
             billingEnabled: false,
             packageName: 'VirtFusion Managed',
-            hoursInMonth: 730,
+            hoursInMonth: hoursPerMonth,
             lastBilledAt: null,
             serverCreatedAt: null,
             totalBilled: 0,
