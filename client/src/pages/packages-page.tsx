@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBrandColors } from "@/lib/brand-theme";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
+import { ClientServerCreateModal } from "@/components/ClientServerCreateModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from "wouter";
@@ -62,6 +63,8 @@ interface Package {
 export default function PackagesPage() {
   const { toast } = useToast();
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null); // ENHANCED: Added category filtering
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedPackageForCreation, setSelectedPackageForCreation] = useState<Package | null>(null);
 
   // Fetch packages from our new API endpoint
   const {
@@ -99,8 +102,53 @@ export default function PackagesPage() {
     queryKey: ['/api/settings/branding'],
   });
 
+  // Fetch VirtFusion cron status to determine if server creation should be available
+  const { data: virtfusionCronData } = useQuery<{
+    success: boolean;
+    cronStatus: {
+      virtfusionHourly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+      virtfusionMonthly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+    };
+  }>({
+    queryKey: ['/api/admin/cron/status', 'virtfusion'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/cron/status');
+      if (!response.ok) {
+        throw new Error('Failed to fetch VirtFusion cron status');
+      }
+      return response.json();
+    },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: 60000, // Refetch every minute
+  });
+
   // Get brand colors using the newer structure
   const brandColors = getBrandColors(brandingData?.primary_color);
+
+  // Check if VirtFusion cron is enabled (hourly or monthly)
+  const isVirtFusionCronEnabled = virtfusionCronData?.success && (
+    virtfusionCronData.cronStatus.virtfusionHourly.enabled ||
+    virtfusionCronData.cronStatus.virtfusionMonthly.enabled
+  );
+
+  // Handle server creation modal
+  const handleCreateServer = (pkg: Package) => {
+    setSelectedPackageForCreation(pkg);
+    setShowCreateModal(true);
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    setSelectedPackageForCreation(null);
+  };
 
   // Type assertion for the packages data
   const packages = data as Package[] || [];
@@ -485,7 +533,18 @@ export default function PackagesPage() {
                         </TableCell>
                         <TableCell>
                           {pkg.enabled ? (
-                            <VirtFusionSsoButton text="Create Server" packageId={pkg.id} />
+                            isVirtFusionCronEnabled ? (
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                onClick={() => handleCreateServer(pkg)}
+                                className="bg-primary hover:bg-primary/90"
+                              >
+                                Create Server
+                              </Button>
+                            ) : (
+                              <VirtFusionSsoButton text="Create Server" packageId={pkg.id} />
+                            )
                           ) : (
                             <Button variant="ghost" size="sm" disabled>
                               Unavailable
@@ -501,6 +560,16 @@ export default function PackagesPage() {
           </Card>
         )}
       </div>
+      
+      {/* Server Creation Modal */}
+      {showCreateModal && selectedPackageForCreation && (
+        <ClientServerCreateModal
+          isOpen={showCreateModal}
+          onClose={handleCloseCreateModal}
+          packageId={selectedPackageForCreation.id}
+          packageName={selectedPackageForCreation.name}
+        />
+      )}
     </DashboardLayout>
   );
 }
