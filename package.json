@@ -9,7 +9,7 @@
     "check-db": "tsx check-coupons-table.js",
     "dev:clean": "npm run clean && npm run dev",
     "clean": "rimraf node_modules/.vite",
-    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "cross-env NODE_ENV=production vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "build:restart": "npm run build && pm2 delete all && pm2 start pm2.config.cjs",
     "build:start": "npm run build && pm2 start pm2.config.cjs",
     "build-restart:pm2:windows": "rm -rf dist && npm run build && pm2 delete all && npm run start:pm2:windows",

@@ -41,7 +41,15 @@ export default defineConfig(async ({ mode }) => {
  
   return {
     plugins: [
-      react(),
+      react({
+        // Use automatic JSX runtime with proper configuration
+        jsxRuntime: 'automatic',
+        jsxImportSource: 'react',
+        // Ensure React is available in production
+        include: /\.(jsx|tsx)$/,
+        // Force production mode for JSX transform
+        jsxDev: mode !== 'production'
+      }),
       ...replitPlugins,
     ],
     define: {
@@ -74,17 +82,24 @@ export default defineConfig(async ({ mode }) => {
 
       },
     },
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+    resolve: {
+      alias: {
+        "@": path.resolve(import.meta.dirname, "client", "src"),
+        "@shared": path.resolve(import.meta.dirname, "shared"),
+        "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+      },
     },
-  },
-  root: path.resolve(import.meta.dirname, "client"),
-  build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
-  },
+    root: path.resolve(import.meta.dirname, "client"),
+    build: {
+      outDir: path.resolve(import.meta.dirname, "dist/public"),
+      emptyOutDir: true,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+          },
+        },
+      },
+    },
   };
 });

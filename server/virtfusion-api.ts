@@ -1298,6 +1298,93 @@ export class VirtFusionApi {
       return false;
     }
   }
+
+  /**
+   * Classify VirtFusion-controlled servers by identifying servers not created through the application
+   * This method gets all servers from VirtFusion and cross-checks their UUIDs against the application's database
+   * @returns Object containing classification results and logging data
+   */
+  async classifyVirtFusionControlledServers(): Promise<{
+    totalServers: number;
+    applicationServers: number;
+    virtfusionControlledServers: number;
+    virtfusionControlledUuids: string[];
+    applicationUuids: string[];
+  }> {
+    try {
+      console.log('🔍 Starting VirtFusion server classification process...');
+      
+      // Get all servers from VirtFusion
+      const allServersResponse = await this.getServers({ type: 'simple', results: 500 });
+      
+      if (!allServersResponse || !allServersResponse.data || !Array.isArray(allServersResponse.data)) {
+        console.log('📭 No servers found in VirtFusion');
+        return {
+          totalServers: 0,
+          applicationServers: 0,
+          virtfusionControlledServers: 0,
+          virtfusionControlledUuids: [],
+          applicationUuids: []
+        };
+      }
+
+      const allServers = allServersResponse.data;
+      console.log(`📊 Found ${allServers.length} total servers in VirtFusion`);
+
+      // Get all server UUIDs from the application's billing database
+      const { virtfusionHourlyBilling } = await import('../shared/schemas/virtfusion-billing-schema');
+      const { storage } = await import('./storage');
+      const { sql } = await import('drizzle-orm');
+      
+      const applicationServers = await storage.db
+        .select({ serverUuid: virtfusionHourlyBilling.serverUuid })
+        .from(virtfusionHourlyBilling)
+        .where(sql`${virtfusionHourlyBilling.serverUuid} IS NOT NULL`);
+
+      const applicationUuids = applicationServers.map(server => server.serverUuid).filter(Boolean);
+      console.log(`💾 Found ${applicationUuids.length} servers in application database`);
+
+      // Classify servers
+      const virtfusionControlledUuids: string[] = [];
+      const foundApplicationUuids: string[] = [];
+
+      for (const server of allServers) {
+        if (server.uuid) {
+          if (applicationUuids.includes(server.uuid)) {
+            foundApplicationUuids.push(server.uuid);
+            console.log(`✅ Server ${server.uuid} (${server.name || 'unnamed'}) - Application controlled`);
+          } else {
+            virtfusionControlledUuids.push(server.uuid);
+            console.log(`🔧 Server ${server.uuid} (${server.name || 'unnamed'}) - VirtFusion controlled (not in application database)`);
+          }
+        } else {
+          console.warn(`⚠️ Server without UUID found: ${server.id} (${server.name || 'unnamed'})`);
+        }
+      }
+
+      const results = {
+        totalServers: allServers.length,
+        applicationServers: foundApplicationUuids.length,
+        virtfusionControlledServers: virtfusionControlledUuids.length,
+        virtfusionControlledUuids,
+        applicationUuids: foundApplicationUuids
+      };
+
+      console.log('📋 VirtFusion Server Classification Results:');
+      console.log(`   📊 Total servers in VirtFusion: ${results.totalServers}`);
+      console.log(`   💻 Application-controlled servers: ${results.applicationServers}`);
+      console.log(`   🔧 VirtFusion-controlled servers: ${results.virtfusionControlledServers}`);
+      
+      if (results.virtfusionControlledServers > 0) {
+        console.log(`   🔧 VirtFusion-controlled UUIDs: ${virtfusionControlledUuids.join(', ')}`);
+      }
+
+      return results;
+    } catch (error) {
+      console.error('❌ Error in classifyVirtFusionControlledServers:', error);
+      throw error;
+    }
+  }
 }
 
 // Create a singleton instance of the VirtFusion API client

@@ -622,6 +622,10 @@ export class CronService {
         '* * * * *', // Every minute to detect exact aligned hours since creation
         async () => {
           try {
+            // Run server discovery to classify VirtFusion-controlled servers
+            await this.runVirtFusionServerDiscovery();
+            
+            // Run hourly billing process
             await this.runVirtFusionHourlyBilling();
           } catch (error) {
             console.error('Error in VirtFusion hourly billing job:', error);
@@ -1229,6 +1233,46 @@ export class CronService {
       
     } catch (error) {
       console.error('❌ Error in VirtFusion monthly billing process:', error);
+    }
+  }
+
+  /**
+   * Run VirtFusion server discovery to classify servers
+   * This identifies servers created outside the application
+   */
+  async runVirtFusionServerDiscovery() {
+    try {
+      console.log('🔍 Starting VirtFusion server discovery and classification...');
+      const startTime = Date.now();
+      
+      // Get VirtFusion API instance
+      const { VirtFusionApi } = await import('../virtfusion-api');
+      const virtFusionApi = new VirtFusionApi();
+      
+      // Run the classification process
+      const classificationResult = await virtFusionApi.classifyVirtFusionControlledServers();
+      
+      const endTime = Date.now();
+      const duration = (endTime - startTime) / 1000;
+      
+      console.log(`✅ VirtFusion server discovery completed in ${duration}s`);
+      console.log(`📊 Classification Summary:`);
+      console.log(`   - Total servers found: ${classificationResult.totalServers}`);
+      console.log(`   - Application-controlled: ${classificationResult.applicationServers}`);
+      console.log(`   - VirtFusion-controlled: ${classificationResult.virtfusionControlledServers}`);
+      
+      if (classificationResult.virtfusionControlledUuids.length > 0) {
+        console.log(`🔍 VirtFusion-controlled servers (created outside application):`);
+        classificationResult.virtfusionControlledUuids.forEach(uuid => {
+          console.log(`   - Server UUID: ${uuid}`);
+        });
+      }
+      
+      return classificationResult;
+      
+    } catch (error) {
+      console.error('❌ Error in VirtFusion server discovery process:', error);
+      throw error;
     }
   }
 
