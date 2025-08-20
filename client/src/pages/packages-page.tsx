@@ -562,14 +562,21 @@ export default function PackagesPage() {
       </div>
       
       {/* Server Creation Modal */}
-      {showCreateModal && selectedPackageForCreation && (
-        <ClientServerCreateModal
-          isOpen={showCreateModal}
-          onClose={handleCloseCreateModal}
-          packageId={selectedPackageForCreation.id}
-          packageName={selectedPackageForCreation.name}
-        />
-      )}
+      <ClientServerCreateModal
+        open={showCreateModal}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCloseCreateModal();
+          }
+        }}
+        onSuccess={() => {
+          handleCloseCreateModal();
+          toast({
+            title: "Server Creation Initiated",
+            description: "Your server is being created. You will receive an email notification when it's ready.",
+          });
+        }}
+      />
     </DashboardLayout>
   );
 }
