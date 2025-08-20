@@ -2160,7 +2160,7 @@ export default function ServerDetailPage() {
               </Card>
 
               {/* Billing Card */}
-              {(isVirtFusionEnabled || billingData?.billingType !== 'virtfusion controlled') && (
+              {billingData?.billingType !== 'virtfusion controlled' && (
                 <Card className="group relative overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
                   <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   <CardHeader className="relative pb-2">
