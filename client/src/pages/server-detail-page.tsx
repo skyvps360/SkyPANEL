@@ -2595,6 +2595,7 @@ export default function ServerDetailPage() {
                 </div>
 
                 {/* Billing Information Card - Full Row */}
+                {billingData?.billingType !== 'virtfusion controlled' && (
                 <div className="lg:col-span-3">
                   <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
                     <CardHeader className="pb-4">
@@ -2761,6 +2762,7 @@ export default function ServerDetailPage() {
                     </CardContent>
                   </Card>
                 </div>
+                )}
               </TabsContent>
 
             {/* Specifications Tab */}
