@@ -1106,18 +1106,19 @@ export default function ServerDetailPage() {
   }
 
   // Fetch VNC status for Quick Actions
-  // NOTE: Increased cache time to reduce VNC API calls since each call toggles VNC state
+  // Use action=status to avoid toggling VNC unnecessarily
   const { data: vncData, refetch: refetchVNC } = useQuery({
     queryKey: ['/api/user/servers', id, 'vnc'],
     queryFn: async () => {
-      const response = await fetch(`/api/user/servers/${id}/vnc`);
+      const response = await fetch(`/api/user/servers/${id}/vnc?action=status`);
       if (!response.ok) {
-        throw new Error('Failed to fetch VNC status');
+        // If status fails, return empty state
+        return { success: false, data: { data: { vnc: { enabled: false } } } };
       }
       return response.json();
     },
     enabled: !!id && !isNaN(serverId),
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to reduce API calls
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     refetchInterval: false, // Disable automatic refetching
   });
 
