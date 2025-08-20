@@ -905,7 +905,7 @@ export class CronService {
           const monthlyPrice = parseFloat(record.monthlyPrice.toString());
           const hoursInMonth = record.hoursInMonth || 730;
           const hourlyRate = monthlyPrice / hoursInMonth;
-          const hourlyTokens = Math.ceil(hourlyRate * 100); // Convert to tokens (cents), round up
+          const hourlyTokens = Math.round(hourlyRate * 100); // Convert to tokens (cents), exact rounding
 
           for (let i = 0; i < hoursToBill; i++) {
             const periodStart = new Date(nextStart.getTime() + i * oneHourMs);
@@ -1143,7 +1143,7 @@ export class CronService {
           // Number of full 30-day periods to bill since nextStart
           const monthsToBill = Math.floor((now.getTime() - nextStart.getTime()) / monthMs) + 1;
           const monthlyPrice = parseFloat(record.monthlyPrice.toString());
-          const monthlyTokens = Math.ceil(monthlyPrice * 100); // cents
+          const monthlyTokens = Math.round(monthlyPrice * 100); // cents, exact rounding
 
           console.log(`⏰ Server ${record.serverId} monthly catch-up: billing ${monthsToBill} month(s) starting ${nextStart.toISOString()}`);
 

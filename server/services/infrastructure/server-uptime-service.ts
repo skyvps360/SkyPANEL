@@ -264,7 +264,7 @@ export class ServerUptimeService {
       }
 
       // Convert dollars to tokens (assuming 1 token = $1)
-      const tokens = Math.ceil(amount * 100); // Convert to cents
+      const tokens = Math.round(amount * 100); // Convert to cents, exact rounding
 
       const tokenData = {
         tokens,
@@ -332,4 +332,4 @@ export class ServerUptimeService {
   }
 }
 
-export const serverUptimeService = new ServerUptimeService(); 
+export const serverUptimeService = new ServerUptimeService();
