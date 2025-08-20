@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getBrandColors } from "@/lib/brand-theme";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
-import { ClientServerCreateModal } from "@/components/ClientServerCreateModal";
+import ClientServerCreateModal from "@/components/ClientServerCreateModal";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from "wouter";
