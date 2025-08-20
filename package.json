@@ -26,7 +26,8 @@
     "verify-env": "tsx scripts/verify-env.js",
     "health-check": "curl -f http://localhost:3333/api/health || exit 1",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "pull:pm2:restart:linux": "git pull && rm -rf dist/ && pm2 stop all && pm2 delete all && npm run build && npm run start:pm2:linux"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
