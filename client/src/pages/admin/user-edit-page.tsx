@@ -205,7 +205,7 @@ export default function UserEditPage() {
       header: "Amount",
       cell: (transaction: CreditTransaction) => (
         <span className={`font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-          {transaction.amount >= 0 ? '+' : ''}${transaction.amount?.toFixed(2) || '0.00'}
+          {transaction.amount >= 0 ? '+' : ''}${transaction.amount?.toFixed(5) || '0.00000'}
         </span>
       ),
       enableSorting: true,
@@ -236,7 +236,7 @@ export default function UserEditPage() {
       header: "Balance After",
       cell: (transaction: CreditTransaction) => (
         <span className="font-medium">
-          ${transaction.balanceAfter?.toFixed(2) || '0.00'}
+          ${transaction.balanceAfter?.toFixed(5) || '0.00000'}
         </span>
       ),
       enableSorting: true,

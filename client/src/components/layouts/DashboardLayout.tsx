@@ -529,7 +529,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
               id: tx.id,
               type: "billing",
               name: `${txType}: ${tx.description || `Transaction #${tx.id}`}`,
-              description: `User: ${userName} | Amount: $${tx.amount?.toFixed(2) || '0.00'} | Status: ${tx.status || 'Unknown'}${additionalInfo}`,
+              description: `User: ${userName} | Amount: $${tx.amount?.toFixed(5) || '0.00000'} | Status: ${tx.status || 'Unknown'}${additionalInfo}`,
               url: txLink,
               icon: <CreditCard className="h-4 w-4" />,
               actionButtons: [
@@ -652,7 +652,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
               id: tx.id,
               type: "billing",
               name: `${txType}: ${tx.description || `Transaction #${tx.id}`}`,
-              description: `Amount: $${tx.amount?.toFixed(2) || '0.00'} | Status: ${tx.status || 'Unknown'}${additionalInfo}`,
+              description: `Amount: $${tx.amount?.toFixed(5) || '0.00000'} | Status: ${tx.status || 'Unknown'}${additionalInfo}`,
               url: txLink,
               icon: <CreditCard className="h-4 w-4" />,
               actionButtons: [
@@ -1141,7 +1141,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
                   style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
                 />
                 <span className="text-sm font-semibold text-gray-900">
-                  ${balanceData?.virtFusionCredits?.toFixed(2) || "0.00"}
+                  ${balanceData?.virtFusionCredits?.toFixed(5) || "0.00000"}
                 </span>
               </Link>
 

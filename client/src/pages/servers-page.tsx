@@ -749,7 +749,7 @@ export default function ServersPage() {
                             </Badge>
                             {server.billingCycle === 'Hourly' && server.totalBilled !== undefined && server.totalBilled > 0 && (
                               <span className="text-xs text-gray-600">
-                                Total: ${server.totalBilled.toFixed(2)}
+                                Total: ${server.totalBilled.toFixed(5)}
                               </span>
                             )}
                           </div>

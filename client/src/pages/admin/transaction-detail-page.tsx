@@ -148,7 +148,7 @@ export default function AdminTransactionDetailPage() {
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-1">Amount</h3>
               <p className={`text-lg font-medium ${isCredit(transaction) ? 'text-accent' : 'text-destructive'}`}>
-                {isCredit(transaction) ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
+                {isCredit(transaction) ? '+' : '-'}${Math.abs(transaction.amount).toFixed(5)}
               </p>
             </div>
             <div>

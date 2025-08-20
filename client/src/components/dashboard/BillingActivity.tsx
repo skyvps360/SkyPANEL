@@ -102,7 +102,7 @@ export function BillingActivity() {
             isCredit(transaction) ? "text-emerald-600" : "text-red-600"
           }`}>
             {isCredit(transaction) ? "+" : "-"}$
-            {Math.abs(transaction.amount).toFixed(2)}
+            {Math.abs(transaction.amount).toFixed(5)}
           </div>
         </div>
       ),

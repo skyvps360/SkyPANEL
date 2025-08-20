@@ -92,7 +92,7 @@ export default function AdminBillingPage() {
             className={`font-medium ${isCredit ? 'text-secondary' : 'text-destructive'}`}
             style={isCredit ? { color: `var(--brand-secondary, ${brandColors.secondary.full})` } : undefined}
           >
-            {isCredit ? '+' : '-'}${Math.abs(item.amount).toFixed(2)}
+            {isCredit ? '+' : '-'}${Math.abs(item.amount).toFixed(5)}
           </span>
         );
       }
@@ -276,7 +276,7 @@ export default function AdminBillingPage() {
                       style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
                     />
                     <span className="text-sm font-medium text-foreground">
-                      ${totalRevenue.toFixed(2)} Total Revenue
+                      ${totalRevenue.toFixed(5)} Total Revenue
                     </span>
                   </div>
                   
@@ -313,7 +313,7 @@ export default function AdminBillingPage() {
             </div>
             <CardContent className="px-6 py-5">
               <div className="flex items-center gap-1">
-                <span className="text-3xl font-bold text-foreground">${totalRevenue.toFixed(2)}</span>
+                <span className="text-3xl font-bold text-foreground">${totalRevenue.toFixed(5)}</span>
                 <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">

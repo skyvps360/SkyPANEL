@@ -89,14 +89,14 @@ function formatSingleTransactionPdf(
   // Add transaction item
   doc.font('Helvetica').fontSize(12);
   doc.text(formatTransactionDescriptionForPdf(transaction.description), 50, y);
-  doc.text(`$${transaction.amount.toFixed(2)}`, 400, y, { align: 'right' });
+  doc.text(`$${transaction.amount.toFixed(5)}`, 400, y, { align: 'right' });
   
   // Add total
   y += 40;
   doc.moveTo(50, y).lineTo(550, y).stroke();
   y += 20;
   doc.font('Helvetica-Bold').text('Total', 50, y);
-  doc.text(`$${transaction.amount.toFixed(2)}`, 400, y, { align: 'right' });
+  doc.text(`$${transaction.amount.toFixed(5)}`, 400, y, { align: 'right' });
   
   // Add footer
   doc.fontSize(10).text(`Thank you for your business with ${companyName || 'SkyPANEL'}`, 50, 700);
@@ -177,7 +177,7 @@ function formatTransactionsPdf(
     const date = new Date(transaction.createdAt).toLocaleDateString();
     const description = formatTransactionDescriptionForPdf(transaction.description);
     const paymentMethod = formatPaymentMethodForPdf(transaction.paymentMethod);
-    const amount = `$${transaction.amount.toFixed(2)}`;
+    const amount = `$${transaction.amount.toFixed(5)}`;
     
     doc.text(date, 50, y);
     doc.text(description, 150, y, { width: 190 });
@@ -201,7 +201,7 @@ function formatTransactionsPdf(
   
   doc.font('Helvetica-Bold').fontSize(12);
   doc.text('Total', 350, y);
-  doc.text(`$${total.toFixed(2)}`, 500, y, { align: 'right' });
+  doc.text(`$${total.toFixed(5)}`, 500, y, { align: 'right' });
   
   // Add footer
   doc.fontSize(10).text(`Thank you for your business with ${companyName || 'SkyPANEL'}`, 50, 750);

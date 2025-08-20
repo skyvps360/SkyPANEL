@@ -775,7 +775,7 @@ export default function TicketDetailPage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm">VirtFusion Balance:</span>
-                    <span className="font-medium">${balance.virtFusionCredits.toFixed(2)} USD</span>
+                    <span className="font-medium">${balance.virtFusionCredits.toFixed(5)} USD</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm">VirtFusion Tokens:</span>

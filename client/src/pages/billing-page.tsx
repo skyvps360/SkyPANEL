@@ -383,7 +383,7 @@ export default function BillingPage() {
       header: "Amount",
       cell: (transaction: Transaction) => (
         <div className={`text-sm ${isCredit(transaction) ? 'text-accent' : 'text-destructive'}`}>
-          {isCredit(transaction) ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
+          {isCredit(transaction) ? '+' : '-'}${Math.abs(transaction.amount).toFixed(5)}
         </div>
       ),
     },
@@ -559,20 +559,20 @@ export default function BillingPage() {
                 <div className="flex items-center space-x-2">
                   <div className={`w-3 h-3 rounded-full ${summaryData.balance < 0 ? 'bg-red-600' : 'bg-primary'}`} />
                   <span className={`text-sm font-medium ${summaryData.balance < 0 ? 'text-red-600' : 'text-foreground'}`}>
-                    VirtFusion Tokens: ${summaryData.balance.toFixed(2)} {summaryData.balance < 0 ? 'Overdrawn' : 'Available'}
+                    VirtFusion Tokens: ${summaryData.balance.toFixed(5)} {summaryData.balance < 0 ? 'Overdrawn' : 'Available'}
                   </span>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-destructive" />
                   <span className="text-sm font-medium text-foreground">
-                    ${summaryData.spent30Days.toFixed(2)} Spent (30d)
+                    ${summaryData.spent30Days.toFixed(5)} Spent (30d)
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-secondary" />
                   <span className="text-sm font-medium text-foreground">
-                    ${summaryData.added30Days.toFixed(2)} Added (30d)
+                    ${summaryData.added30Days.toFixed(5)} Added (30d)
                   </span>
                 </div>
               </div>
@@ -655,7 +655,7 @@ export default function BillingPage() {
             </div>
             <CardContent className="p-6">
               <div className="flex items-center gap-1">
-                <span className="text-3xl font-bold text-foreground">${summaryData.spent30Days.toFixed(2)}</span>
+                <span className="text-3xl font-bold text-foreground">${summaryData.spent30Days.toFixed(5)}</span>
                 <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
@@ -674,7 +674,7 @@ export default function BillingPage() {
             </div>
             <CardContent className="p-6">
               <div className="flex items-center gap-1">
-                <span className="text-3xl font-bold text-foreground">${summaryData.added30Days.toFixed(2)}</span>
+                <span className="text-3xl font-bold text-foreground">${summaryData.added30Days.toFixed(5)}</span>
                 <span className="text-sm text-muted-foreground self-end mb-1">USD</span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">
@@ -907,7 +907,7 @@ export default function BillingPage() {
                           cell: (transaction) => (
                             <div className={`font-medium ${isCredit(transaction) ? 'text-secondary' : 'text-destructive'}`}>
                               <span className="mr-1">{isCredit(transaction) ? '+' : '-'}</span>
-                              ${Math.abs(transaction.amount).toFixed(2)}
+                              ${Math.abs(transaction.amount).toFixed(5)}
                             </div>
                           ),
                         },

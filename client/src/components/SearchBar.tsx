@@ -113,7 +113,7 @@ const SearchBar: React.FC = () => {
               id: tx.id,
               type: "billing",
               name: `${tx.type}: ${tx.description}`,
-              description: `Amount: $${tx.amount.toFixed(2)} | Status: ${tx.status}`,
+              description: `Amount: $${tx.amount.toFixed(5)} | Status: ${tx.status}`,
               url: `/billing`,
               icon: <CreditCard className="h-4 w-4" />,
             });

@@ -2188,7 +2188,7 @@ export default function ServerDetailPage() {
                         <div className="pt-3 space-y-1">
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">Total</span>
-                            <span className="font-medium">${billingData.totalBilled.toFixed(2)}</span>
+                            <span className="font-medium">${billingData.totalBilled.toFixed(5)}</span>
                           </div>
                         </div>
                       )}
@@ -2640,10 +2640,10 @@ export default function ServerDetailPage() {
                             </span>
                             <span className="text-lg font-bold text-slate-800">
                               {billingData.billingType === 'monthly' 
-                                ? `$${billingData.monthlyPrice?.toFixed(2) || '0.00'}`
+                                ? `$${billingData.monthlyPrice?.toFixed(5) || '0.00000'}`
                                 : billingData.billingType === 'virtfusion controlled'
                                   ? 'N/A'
-                                : `$${billingData.hourlyRate?.toFixed(4) || '0.0000'}`
+                                : `$${billingData.hourlyRate?.toFixed(5) || '0.00000'}`
                               }
                             </span>
                             <span className="text-xs text-slate-500">
@@ -2670,7 +2670,7 @@ export default function ServerDetailPage() {
                                 : billingData.billingType === 'virtfusion controlled'
                                   ? 'VirtFusion Panel'
                                 : billingData.monthlyPrice 
-                                  ? `~$${billingData.monthlyPrice.toFixed(2)}`
+                                  ? `~$${billingData.monthlyPrice.toFixed(5)}`
                                   : 'N/A'
                               }
                             </span>
@@ -2689,7 +2689,7 @@ export default function ServerDetailPage() {
                             <div className="flex flex-col space-y-2 p-4 rounded-lg border-2 border-primary/20" style={{ backgroundColor: brandColors.primary.extraLight }}>
                               <span className="text-xs font-medium text-slate-600 uppercase tracking-wide">Total Billed</span>
                               <span className="text-lg font-bold text-slate-800">
-                                ${billingData.totalBilled?.toFixed(2) || '0.00'}
+                                ${billingData.totalBilled?.toFixed(5) || '0.00000'}
                               </span>
                               <span className="text-xs text-slate-500">
                                 {billingData.hoursRunning ? `${billingData.hoursRunning.toLocaleString()} hours` : 'Since server creation'}
@@ -2714,11 +2714,11 @@ export default function ServerDetailPage() {
                                   {billingData.billingType === 'hourly' && (
                                     <>
                                       <p className="text-xs text-green-600 mt-1">
-                                        Current hour charge: ${billingData.hourlyRate?.toFixed(4) || '0.0000'}
+                                        Current hour charge: ${billingData.hourlyRate?.toFixed(5) || '0.00000'}
                                       </p>
                                       {billingData.totalBilled !== undefined && billingData.totalBilled > 0 && (
                                         <p className="text-xs text-green-600 mt-1">
-                                          Total billed so far: ${billingData.totalBilled.toFixed(2)}
+                                          Total billed so far: ${billingData.totalBilled.toFixed(5)}
                                         </p>
                                       )}
                                     </>
@@ -2746,7 +2746,7 @@ export default function ServerDetailPage() {
                                   </p>
                                   {billingData.totalBilled !== undefined && billingData.totalBilled > 0 && (
                                     <p className="text-xs text-blue-600 mt-1">
-                                      Total billed before stopping: ${billingData.totalBilled.toFixed(2)}
+                                      Total billed before stopping: ${billingData.totalBilled.toFixed(5)}
                                     </p>
                                   )}
                                 </div>
