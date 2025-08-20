@@ -1385,6 +1385,74 @@ export class VirtFusionApi {
       throw error;
     }
   }
+
+  // Helper function to determine server billing type based on UUID cross-checking
+  async determineServerBillingType(serverUuid: string, serverId: number, userId: number): Promise<{
+    billingType: 'hourly' | 'monthly' | 'virtfusion controlled';
+    isVirtFusionControlled: boolean;
+  }> {
+    try {
+      // Import required modules
+      const { virtfusionHourlyBilling } = await import('../shared/schemas/virtfusion-billing-schema');
+      const { storage } = await import('./storage');
+      const { eq, and } = await import('drizzle-orm');
+
+      // First check if server has an hourly billing record
+      const billingRecord = await storage.db
+        .select()
+        .from(virtfusionHourlyBilling)
+        .where(
+          and(
+            eq(virtfusionHourlyBilling.serverId, serverId),
+            eq(virtfusionHourlyBilling.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (billingRecord.length > 0) {
+        // Server has billing record, it's application-controlled and hourly
+        return {
+          billingType: 'hourly',
+          isVirtFusionControlled: false
+        };
+      }
+
+      // No billing record found - check if server UUID exists in our database
+      // If serverUuid is provided, check if it exists in any billing record
+      if (serverUuid) {
+        const uuidCheck = await storage.db
+          .select()
+          .from(virtfusionHourlyBilling)
+          .where(eq(virtfusionHourlyBilling.serverUuid, serverUuid))
+          .limit(1);
+
+        if (uuidCheck.length > 0) {
+          // UUID exists in our database, this server was created via our application
+          // but doesn't have a billing record for this user/server combo
+          // This could be a monthly server or a data inconsistency
+          return {
+            billingType: 'monthly',
+            isVirtFusionControlled: false
+          };
+        }
+      }
+
+      // Server UUID not found in our database - this means it was created directly in VirtFusion
+      // and should be marked as VirtFusion-controlled
+      return {
+        billingType: 'virtfusion controlled',
+        isVirtFusionControlled: true
+      };
+
+    } catch (error) {
+      console.error('❌ Error determining server billing type:', error);
+      // Default to VirtFusion controlled on error to prevent double billing
+      return {
+        billingType: 'virtfusion controlled',
+        isVirtFusionControlled: true
+      };
+    }
+  }
 }
 
 // Create a singleton instance of the VirtFusion API client

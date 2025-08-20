@@ -1055,76 +1055,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               }
 
-              // Get billing cycle and total billed information
+              // Get billing cycle and total billed information using UUID cross-checking
               let billingCycle = "VirtFusion Controlled";
               let totalBilled = 0;
               let hourlyRate = 0;
               try {
                 const { db } = await import('./db.ts');
-                const { eq, sql } = await import('drizzle-orm');
+                const { eq } = await import('drizzle-orm');
 
-                // Check if server has hourly billing record
-                const billingRecord = await db
-                  .select()
-                  .from(virtfusionHourlyBilling)
-                  .where(
-                    and(
-                      eq(virtfusionHourlyBilling.serverId, server.id),
-                      eq(virtfusionHourlyBilling.userId, userId),
-                      eq(virtfusionHourlyBilling.billingEnabled, true)
-                    )
-                  )
-                  .limit(1);
+                // Use helper function to determine billing type based on UUID cross-checking
+                const billingTypeResult = await virtFusionApi.determineServerBillingType(
+                  server.uuid || null,
+                  server.id,
+                  userId
+                );
 
-                if (billingRecord.length > 0) {
+                if (billingTypeResult.billingType === 'hourly') {
                   billingCycle = "Hourly";
-                  const billing = billingRecord[0];
-                  hourlyRate = parseFloat(billing.hourlyRate);
                   
-                  // Get actual total billed from transaction history only
-                  try {
-                    const transactions = await db
-                      .select()
-                      .from(virtfusionHourlyTransactions)
-                      .where(
-                        and(
-                          eq(virtfusionHourlyTransactions.serverId, server.id),
-                          eq(virtfusionHourlyTransactions.userId, userId),
-                          eq(virtfusionHourlyTransactions.status, 'completed')
-                        )
-                      );
-                    
-                    if (transactions.length > 0) {
-                      // Sum up actual transaction amounts
-                      totalBilled = transactions.reduce((sum, t) => sum + parseFloat(t.amountCharged), 0);
-                      // Add the upfront charge for the first hour (if server was created)
-                      if (billing.serverCreatedAt) {
-                        totalBilled += hourlyRate;
-                      }
-                    }
-                  } catch (txError) {
-                    console.warn(`Failed to fetch transaction history for server ${server.id}:`, txError);
-                    // Don't set any fallback - totalBilled remains 0
-                  }
-                } else {
-                  // Check if VirtFusion cron system is enabled before showing "Monthly"
-                  const cronSettings = await db.select()
-                    .from(virtfusionCronSettings)
-                    .orderBy(sql`${virtfusionCronSettings.id} DESC`)
+                  // Get billing record for hourly rate and transaction history
+                  const billingRecord = await db
+                    .select()
+                    .from(virtfusionHourlyBilling)
+                    .where(
+                      and(
+                        eq(virtfusionHourlyBilling.serverId, server.id),
+                        eq(virtfusionHourlyBilling.userId, userId)
+                      )
+                    )
                     .limit(1);
 
-                  const isCronEnabled = cronSettings.length > 0 && cronSettings[0].enabled;
-                  
-                  if (isCronEnabled) {
-                    // VirtFusion cron is enabled, so servers without hourly billing records are monthly
-                    billingCycle = "Monthly";
-                  } else {
-                    // VirtFusion cron is disabled, so all servers without hourly billing are VirtFusion controlled
-                    billingCycle = "VirtFusion Controlled";
+                  if (billingRecord.length > 0) {
+                    const billing = billingRecord[0];
+                    hourlyRate = parseFloat(billing.hourlyRate);
+                    
+                    // Get actual total billed from transaction history only
+                    try {
+                      const transactions = await db
+                        .select()
+                        .from(virtfusionHourlyTransactions)
+                        .where(
+                          and(
+                            eq(virtfusionHourlyTransactions.serverId, server.id),
+                            eq(virtfusionHourlyTransactions.userId, userId),
+                            eq(virtfusionHourlyTransactions.status, 'completed')
+                          )
+                        );
+                      
+                      if (transactions.length > 0) {
+                        // Sum up actual transaction amounts
+                        totalBilled = transactions.reduce((sum, t) => sum + parseFloat(t.amountCharged), 0);
+                        // Add the upfront charge for the first hour (if server was created)
+                        if (billing.serverCreatedAt) {
+                          totalBilled += hourlyRate;
+                        }
+                      }
+                    } catch (txError) {
+                      console.warn(`Failed to fetch transaction history for server ${server.id}:`, txError);
+                      // Don't set any fallback - totalBilled remains 0
+                    }
                   }
+                } else if (billingTypeResult.billingType === 'monthly') {
+                  billingCycle = "Monthly";
+                } else {
+                  // VirtFusion controlled - not billed by our application
+                  billingCycle = "VirtFusion Controlled";
                 }
               } catch (billingError) {
                 console.warn(`Failed to fetch billing info for server ${server.id}:`, billingError);
+                // Default to VirtFusion controlled to prevent double billing
                 billingCycle = "VirtFusion Controlled";
               }
 
@@ -1865,39 +1864,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
           hoursRunning
         });
       } else {
-        // Server has no billing record - could be monthly or virtfusion controlled
-        // Check if VirtFusion cron system is disabled
-        const cronSettings = await storage.db.select()
-          .from(virtfusionCronSettings)
-          .orderBy(sql`${virtfusionCronSettings.id} DESC`)
-          .limit(1);
-
-        const isCronDisabled = cronSettings.length === 0 || !cronSettings[0].enabled;
-        
-        if (isCronDisabled) {
-          // When cron is disabled, servers not created via our app should be marked as virtfusion controlled
+        // Server has no billing record - determine type using UUID cross-checking
+        try {
+          // Get server details from VirtFusion to obtain UUID
+          const serverDetails = await virtFusionApi.request("GET", `/servers/${serverId}`);
+          const serverUuid = serverDetails?.data?.uuid || null;
+          
+          // Use helper function to determine billing type
+          const billingTypeResult = await virtFusionApi.determineServerBillingType(
+            serverUuid,
+            serverId,
+            userId
+          );
+          
+          if (billingTypeResult.billingType === 'virtfusion controlled') {
+            // VirtFusion-controlled server - not billed by our application
+            return res.json({
+              hourlyRate: 0,
+              monthlyPrice: 0,
+              billingType: 'virtfusion controlled',
+              billingEnabled: false, // VirtFusion controlled servers are not billed by us
+              packageName: 'VirtFusion Managed',
+              hoursInMonth: 730,
+              lastBilledAt: null,
+              serverCreatedAt: null,
+              totalBilled: 0,
+              hoursRunning: 0
+            });
+          } else {
+            // Monthly server created via our application
+            return res.json({
+              hourlyRate: 0,
+              monthlyPrice: 0,
+              billingType: 'monthly',
+              billingEnabled: true,
+              packageName: 'Unknown',
+              hoursInMonth: 730,
+              lastBilledAt: null,
+              serverCreatedAt: null,
+              totalBilled: 0,
+              hoursRunning: 0
+            });
+          }
+        } catch (error) {
+          console.error('Error determining server billing type:', error);
+          // Default to VirtFusion controlled to prevent double billing
           return res.json({
             hourlyRate: 0,
             monthlyPrice: 0,
             billingType: 'virtfusion controlled',
-            billingEnabled: false, // Virtfusion controlled servers are not billed by us
+            billingEnabled: false,
             packageName: 'VirtFusion Managed',
-            hoursInMonth: 730,
-            lastBilledAt: null,
-            serverCreatedAt: null,
-            totalBilled: 0,
-            hoursRunning: 0
-          });
-        } else {
-          // Cron is enabled, treat as monthly server (legacy behavior)
-          // For monthly servers, calculate based on server age
-          // Note: We don't have creation date for legacy servers, so we can't calculate accurately
-          return res.json({
-            hourlyRate: 0,
-            monthlyPrice: 0,
-            billingType: 'monthly',
-            billingEnabled: true,
-            packageName: 'Unknown',
             hoursInMonth: 730,
             lastBilledAt: null,
             serverCreatedAt: null,
