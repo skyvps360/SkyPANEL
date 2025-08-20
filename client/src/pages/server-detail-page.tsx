@@ -2057,7 +2057,7 @@ export default function ServerDetailPage() {
         <div className="container mx-auto px-6 py-8 space-y-8">
           {/* Enterprise Resource Dashboard */}
           {!isLoading && !error && server && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className={`grid grid-cols-1 md:grid-cols-2 ${billingData?.billingType !== 'virtfusion controlled' ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
               {/* CPU Card */}
               <Card className="group relative overflow-hidden border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
