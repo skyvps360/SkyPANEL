@@ -119,10 +119,21 @@ export function DocsTable({ docs, categoriesData, brandColors, onDocClick }: Doc
                     variant="outline"
                     size="sm"
                     onClick={() => onDocClick(doc.slug)}
-                    className="flex items-center gap-2 hover:!text-current hover:!border-current"
+                    className="flex items-center gap-2 transition-all duration-200 hover:shadow-sm"
                     style={{ 
                       borderColor: brandColors.primary.light,
-                      color: brandColors.primary.full
+                      color: brandColors.primary.full,
+                      backgroundColor: 'transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = brandColors.primary.full;
+                      e.currentTarget.style.color = 'white';
+                      e.currentTarget.style.borderColor = brandColors.primary.full;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = brandColors.primary.full;
+                      e.currentTarget.style.borderColor = brandColors.primary.light;
                     }}
                   >
                     <span>View</span>
@@ -135,35 +146,72 @@ export function DocsTable({ docs, categoriesData, brandColors, onDocClick }: Doc
         </table>
       </div>
 
-      {/* Mobile View - preserving original card functionality */}
+      {/* Mobile View - enhanced with better brand theme integration */}
       <div className="md:hidden grid gap-6 grid-cols-1">
         {docs.map(doc => (
           <div 
             key={doc.id}
-            className="h-full flex flex-col transition-all duration-300 hover:shadow-md cursor-pointer bg-white rounded-lg border border-gray-200 overflow-hidden"
+            className="h-full flex flex-col transition-all duration-300 hover:shadow-lg cursor-pointer bg-white rounded-lg border overflow-hidden group"
             onClick={() => onDocClick(doc.slug)}
-            onMouseOver={(e) => e.currentTarget.style.borderColor = brandColors.primary.light}
-            onMouseOut={(e) => e.currentTarget.style.borderColor = 'rgb(229, 231, 235)'}
+            style={{
+              borderColor: 'rgb(229, 231, 235)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = brandColors.primary.light;
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = `0 10px 25px -5px ${brandColors.primary.hex}20, 0 10px 10px -5px ${brandColors.primary.hex}10`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgb(229, 231, 235)';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '';
+            }}
           >
             <div className="p-4 pb-3">
-              <div className="line-clamp-2 text-lg font-semibold group flex items-start">
-                <BookOpen 
-                  className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" 
-                  style={{ color: brandColors.primary.full }}
-                />
-                <span className="flex-1">{doc.title}</span>
-                <ExternalLink className="h-4 w-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+              <div className="line-clamp-2 text-lg font-semibold flex items-start">
+                <div 
+                  className="p-1.5 rounded-md mr-3 mt-0.5 flex-shrink-0 transition-colors duration-200"
+                  style={{ backgroundColor: brandColors.primary.extraLight }}
+                >
+                  <BookOpen 
+                    className="h-4 w-4" 
+                    style={{ color: brandColors.primary.full }}
+                  />
+                </div>
+                <span className="flex-1 group-hover:text-gray-900 transition-colors">{doc.title}</span>
+                <div className="flex items-center ml-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 h-auto"
+                    style={{ color: brandColors.primary.full }}
+                    onMouseEnter={(e) => {
+                      e.stopPropagation();
+                      e.currentTarget.style.backgroundColor = brandColors.primary.light;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.stopPropagation();
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDocClick(doc.slug);
+                    }}
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="px-4 py-0 flex-grow">
-              <div className="line-clamp-3 text-sm text-gray-600">
+              <div className="line-clamp-3 text-sm text-gray-600 group-hover:text-gray-700 transition-colors">
                 {doc.content.replace(/[#*`]/g, '').substring(0, 150)}...
               </div>
             </div>
             <div className="p-4 pt-3 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
               <div className="flex items-center">
-                <Clock className="h-3 w-3 mr-1" />
-                <span>
+                <Clock className="h-3 w-3 mr-1" style={{ color: brandColors.primary.light }} />
+                <span className="group-hover:text-gray-600 transition-colors">
                   {new Date(doc.updatedAt).toLocaleDateString()}
                 </span>
               </div>
@@ -171,10 +219,11 @@ export function DocsTable({ docs, categoriesData, brandColors, onDocClick }: Doc
               {doc.categoryId && (
                 <Badge 
                   variant="outline" 
-                  className="text-xs"
+                  className="text-xs transition-all duration-200"
                   style={{
                     borderColor: brandColors.secondary.lighter,
-                    color: brandColors.secondary.full
+                    color: brandColors.secondary.full,
+                    backgroundColor: 'transparent'
                   }}
                 >
                   {categoriesData.find(c => c.id === doc.categoryId)?.name || 'Unknown'}
