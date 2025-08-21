@@ -275,7 +275,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       }
       return response.json();
     },
-    staleTime: 30000, // Cache for 30 seconds
+    staleTime: 59000, // Cache for 59 seconds
     refetchInterval: 60000, // Refetch every minute
     enabled: !!user,
   });
