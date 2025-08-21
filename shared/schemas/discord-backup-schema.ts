@@ -208,8 +208,14 @@ export const discordBackupJobs = pgTable("discord_backup_jobs", {
     errorMessage: text("error_message"), // Error if job failed
     progress: integer("progress").default(0), // Job progress percentage
     currentStep: text("current_step"), // Current backup step
+    cronExpression: text("cron_expression"), // Cron expression for scheduled jobs
+    isActive: boolean("is_active").default(true).notNull(), // Whether the scheduled job is active
+    backupName: text("backup_name").notNull(), // Name for the backup
+    includeMessages: boolean("include_messages").default(false).notNull(), // Whether to include messages
+    nextRun: timestamp("next_run"), // Next scheduled run time
     metadata: json("metadata").default({}), // Job-specific metadata
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const insertDiscordBackupJobSchema = createInsertSchema(discordBackupJobs).omit({
