@@ -2485,7 +2485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     doc.fillColor(isCredit ? '#4CAF50' : '#FF5252')
       .fontSize(16)
       .text(
-        `${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(2)}`,
+        `${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(5)}`,
         150, doc.y - 14
       );
 
@@ -2625,7 +2625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Amount with color based on type
       doc.fillColor(isCredit ? '#4CAF50' : '#FF5252')
         .text(
-          `${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(2)}`,
+          `${isCredit ? '+' : '-'}$${Math.abs(amount).toFixed(5)}`,
           490, y,
           { width: 60, align: 'right' }
         );
@@ -2645,9 +2645,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     doc.font('Helvetica');
     doc.moveDown(0.5);
 
-    doc.text(`Total Credits: $${totalCredit.toFixed(2)}`, 50, doc.y);
-    doc.text(`Total Debits: $${totalDebit.toFixed(2)}`, 50, doc.y + 15);
-    doc.font('Helvetica-Bold').text(`Net Balance: $${(totalCredit - totalDebit).toFixed(2)}`, 50, doc.y + 30);
+    doc.text(`Total Credits: $${totalCredit.toFixed(5)}`, 50, doc.y);
+    doc.text(`Total Debits: $${totalDebit.toFixed(5)}`, 50, doc.y + 15);
+    doc.font('Helvetica-Bold').text(`Net Balance: $${(totalCredit - totalDebit).toFixed(5)}`, 50, doc.y + 30);
 
     // Footer
     const range = doc.bufferedPageRange();
@@ -3673,7 +3673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let message = `Successfully ${actionType} to ${newPlan.name}`;
       if (Math.abs(proratedAmount) > 0.01) {
-        message += ` (${isUpgrade ? 'charged' : 'refunded'} $${Math.abs(proratedAmount).toFixed(2)} prorated)`;
+        message += ` (${isUpgrade ? 'charged' : 'refunded'} $${Math.abs(proratedAmount).toFixed(5)} prorated)`;
       }
       if (domainsRemovedCount > 0) {
         message += ` and removed ${domainsRemovedCount} domain${domainsRemovedCount !== 1 ? 's' : ''}`;
