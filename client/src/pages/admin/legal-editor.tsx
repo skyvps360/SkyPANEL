@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/layout/AdminLayout";
 import Editor from "@monaco-editor/react";
 import ReactMarkdown from "react-markdown";
+import { html as beautifyHtml } from "js-beautify";
 import {
   Card,
   CardContent,
@@ -55,7 +56,8 @@ import {
   Heading2,
   Heading3,
   FileText,
-  Sparkles
+  Sparkles,
+  Wand2
 } from "lucide-react";
 
 // Define the form schema with zod
@@ -175,6 +177,53 @@ export function LegalEditorPage() {
       // Fallback if editor ref isn't available
       setEditorContent((prev) => prev + textToInsert);
       form.setValue("content", editorContent + textToInsert, { shouldValidate: true });
+    }
+  };
+
+  // Function to format/prettify the HTML code
+  const formatCode = () => {
+    if (editorRef.current) {
+      const editor = editorRef.current;
+      const currentContent = editor.getValue();
+      
+      try {
+        // Use js-beautify to format the HTML
+        const formattedContent = beautifyHtml(currentContent, {
+          indent_size: 2,
+          indent_char: ' ',
+          max_preserve_newlines: 2,
+          preserve_newlines: true,
+          keep_array_indentation: false,
+          break_chained_methods: false,
+          indent_scripts: 'normal',
+          brace_style: 'collapse',
+          space_before_conditional: true,
+          unescape_strings: false,
+          jslint_happy: false,
+          end_with_newline: true,
+          wrap_line_length: 0,
+          indent_inner_html: true,
+          comma_first: false,
+          e4x: false,
+          indent_empty_lines: false
+        });
+        
+        // Update the editor with formatted content
+        editor.setValue(formattedContent);
+        setEditorContent(formattedContent);
+        form.setValue("content", formattedContent, { shouldValidate: true });
+        
+        toast({
+          title: "Code Formatted",
+          description: "HTML code has been prettified successfully.",
+        });
+      } catch (error) {
+        toast({
+          title: "Formatting Error",
+          description: "Could not format the code. Please check for syntax errors.",
+          variant: "destructive",
+        });
+      }
     }
   };
   
@@ -347,6 +396,18 @@ export function LegalEditorPage() {
                       <div className="flex justify-between items-center mb-2">
                         <Label>Content (HTML)</Label>
                         <div className="flex items-center">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={formatCode}
+                            className="mr-2 flex items-center gap-1"
+                            disabled={editorViewMode === "preview"}
+                            title="Format and prettify HTML code"
+                          >
+                            <Wand2 className="h-4 w-4" />
+                            <span>Format Code</span>
+                          </Button>
                           <Button
                             type="button"
                             variant="outline"
@@ -571,6 +632,54 @@ export function LegalEditorPage() {
                                         minimap: { enabled: false },
                                         wordWrap: "on",
                                         fontSize: 14,
+                                        lineNumbers: "on",
+                                        renderLineHighlight: "all",
+                                        selectOnLineNumbers: true,
+                                        roundedSelection: true,
+                                        readOnly: false,
+                                        cursorStyle: "line",
+                                        automaticLayout: true,
+                                        glyphMargin: true,
+                                        useTabStops: false,
+                                        tabSize: 2,
+                                        insertSpaces: true,
+                                        wrappingIndent: "indent",
+                                        mouseWheelZoom: true,
+                                        multiCursorModifier: "ctrlCmd",
+                                        accessibilitySupport: "on",
+                                        suggest: {
+                                          showKeywords: true,
+                                          showSnippets: true,
+                                        },
+                                        acceptSuggestionOnCommitCharacter: true,
+                                        acceptSuggestionOnEnter: "on",
+                                        scrollbar: {
+                                          vertical: "visible",
+                                          horizontal: "visible",
+                                          arrowSize: 10,
+                                          useShadows: false,
+                                          verticalHasArrows: true,
+                                          horizontalHasArrows: true,
+                                          verticalScrollbarSize: 10,
+                                          horizontalScrollbarSize: 10,
+                                        },
+                                        scrollBeyondLastLine: false,
+                                        autoIndent: "full",
+                                        formatOnType: true,
+                                        formatOnPaste: true,
+                                        dragAndDrop: false,
+                                        links: true,
+                                        mouseStyle: "text",
+                                        renderControlCharacters: false,
+                                        renderIndentGuides: true,
+                                        renderValidationDecorations: "editable",
+                                        renderWhitespace: "selection",
+                                        showFoldingControls: "always",
+                                        showUnused: true,
+                                        snippetSuggestions: "top",
+                                        trimAutoWhitespace: true,
+                                        folding: true,
+                                        foldingStrategy: "indentation",
                                       }}
                                     />
                                   </FormControl>
