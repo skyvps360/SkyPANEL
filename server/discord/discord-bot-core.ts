@@ -274,11 +274,8 @@ export class DiscordBotCore {
                 // Moderation commands
                 ...this.moderationService.getModerationCommands(),
 
-                // Ticket commands
+                // Ticket, verification, and backup commands (all included in getTicketCommands)
                 ...this.commandHandler.getTicketCommands(),
-
-                // Backup commands
-                ...this.backupService.getBackupCommands(),
             ];
 
             const rest = new REST().setToken(botToken);
