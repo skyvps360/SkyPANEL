@@ -862,7 +862,7 @@ export default function AdminTicketDetailPage() {
               </CardHeader>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm"><span className="font-semibold">${((userBalance?.data?.data?.credit?.tokens ? parseFloat(userBalance.data.data.credit.tokens) : 0) / 100).toFixed(2)}</span> USD</p>
+                  <p className="text-sm"><span className="font-semibold">${((userBalance?.data?.data?.credit?.tokens ? parseFloat(userBalance.data.data.credit.tokens) : 0) / 100).toFixed(5)}</span> USD</p>
                   <p className="text-xs px-2 py-1 rounded-md" style={getBadgeStyle(accentColor, 0.1)}>
                     {userBalance?.data?.data?.credit?.tokens ? parseFloat(userBalance.data.data.credit.tokens).toLocaleString() : 0} tokens
                   </p>

@@ -40,7 +40,7 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
     onSuccess: (data) => {
       toast({
         title: "VirtFusion Tokens Added Successfully!",
-        description: `${data.tokensAdded} tokens ($${amount.toFixed(2)}) have been added to your VirtFusion account.`,
+        description: `${data.tokensAdded} tokens ($${amount.toFixed(5)}) have been added to your VirtFusion account.`,
       });
 
       // Refresh balance and transactions
@@ -116,7 +116,7 @@ export function PayPalCheckout({ amount }: PayPalCheckoutProps) {
             </div>
             <div>
               <h5 className="font-medium">PayPal Payment</h5>
-              <p className="text-sm text-muted-foreground">Purchase ${amount.toFixed(2)} in VirtFusion tokens (digital service)</p>
+              <p className="text-sm text-muted-foreground">Purchase ${amount.toFixed(5)} in VirtFusion tokens (digital service)</p>
             </div>
           </div>
         </div>

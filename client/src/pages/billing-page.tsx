@@ -636,7 +636,7 @@ export default function BillingPage() {
                 </div>
               </div>
               <div className="text-sm text-muted-foreground">
-                <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</span>
+                <span>${(summaryData.virtFusionTokens / 100).toLocaleString(undefined, { minimumFractionDigits: 5, maximumFractionDigits: 5 })} USD</span>
                 <br />
                 <span className="text-xs">For KVM VPS & DKVM Servers</span>
               </div>
@@ -994,7 +994,7 @@ export default function BillingPage() {
                         )}
                         {isCustomAmount && !customAmountError && customAmount && (
                           <p className="text-sm text-secondary mt-1">
-                            Custom amount: ${parseFloat(customAmount).toFixed(2)} = {(parseFloat(customAmount) * 100).toLocaleString()} tokens
+                            Custom amount: ${parseFloat(customAmount).toFixed(5)} = {(parseFloat(customAmount) * 100).toLocaleString()} tokens
                           </p>
                         )}
                       </div>
@@ -1005,7 +1005,7 @@ export default function BillingPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Selected Amount:</span>
                       <span className="text-xl font-bold text-primary">
-                        ${getFinalAmount().toFixed(2)}
+                        ${getFinalAmount().toFixed(5)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-2 text-sm text-muted-foreground">
