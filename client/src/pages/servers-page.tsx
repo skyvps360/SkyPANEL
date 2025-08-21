@@ -22,80 +22,94 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-// OS Icon Components
+// OS Icon Components with improved designs
 const UbuntuIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#E95420"/>
+    <circle cx="4.5" cy="12" r="2.5" fill="white"/>
+    <circle cx="19.5" cy="12" r="2.5" fill="white"/>
+    <circle cx="12" cy="4.5" r="2.5" fill="white"/>
+    <circle cx="4.5" cy="12" r="1" fill="#E95420"/>
+    <circle cx="19.5" cy="12" r="1" fill="#E95420"/>
+    <circle cx="12" cy="4.5" r="1" fill="#E95420"/>
   </svg>
 );
 
 const DebianIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#A81D33"/>
+    <path d="M12 4C8 4 5 7 5 11c0 4 3 7 7 7s7-3 7-7c0-4-3-7-7-7zm0 2c2.8 0 5 2.2 5 5s-2.2 5-5 5-5-2.2-5-5 2.2-5 5-5z" fill="white"/>
+    <circle cx="12" cy="11" r="2" fill="#A81D33"/>
   </svg>
 );
 
 const CentOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#932279"/>
+    <path d="M8 8h8v8H8z" fill="white"/>
+    <path d="M10 10h4v4h-4z" fill="#932279"/>
   </svg>
 );
 
 const RockyLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#10B981"/>
+    <path d="M8 6l4 12 4-12H8z" fill="white"/>
+    <path d="M10 8l2 8 2-8h-4z" fill="#10B981"/>
   </svg>
 );
 
 const AlmaLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#0F4C75"/>
+    <path d="M6 12l6-6 6 6-6 6-6-6z" fill="white"/>
+    <path d="M9 12l3-3 3 3-3 3-3-3z" fill="#0F4C75"/>
   </svg>
 );
 
 const FedoraIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#294172"/>
+    <path d="M8 8h8v8H8z" fill="#3C6EB4"/>
+    <circle cx="12" cy="12" r="2" fill="white"/>
   </svg>
 );
 
 const WindowsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M0 3.5L9.5 2.1V12H0V3.5zM10.5 2.1L24 0V12H10.5V2.1zM0 13h9.5V21.9L0 20.5V13zM10.5 21.9V13H24v8.5L10.5 21.9z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" fill="#00BCF2"/>
+    <path d="M0 3.5L9.5 2.1V12H0V3.5zM10.5 2.1L24 0V12H10.5V2.1zM0 13h9.5V21.9L0 20.5V13zM10.5 21.9V13H24v8.5L10.5 21.9z" fill="white"/>
   </svg>
 );
 
 const ArchLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#1793D1"/>
+    <path d="M12 2L4 22h16L12 2z" fill="white"/>
+    <path d="M12 6L8 18h8L12 6z" fill="#1793D1"/>
   </svg>
 );
 
 const FreeBSDIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#990000"/>
+    <path d="M8 8l8 8M16 8l-8 8" stroke="white" strokeWidth="3"/>
+    <circle cx="12" cy="12" r="3" stroke="white" strokeWidth="2" fill="none"/>
   </svg>
 );
 
 const AlpineIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#0D597F"/>
+    <path d="M12 3L3 21h18L12 3z" fill="white"/>
+    <path d="M12 7L7 17h10L12 7z" fill="#0D597F"/>
   </svg>
 );
 
 const UnknownOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z"/>
-    <path d="M12 4.5c-4.142 0-7.5 3.358-7.5 7.5s3.358 7.5 7.5 7.5 7.5-3.358 7.5-7.5-3.358-7.5-7.5-7.5zm0 2.25c2.899 0 5.25 2.351 5.25 5.25s-2.351 5.25-5.25 5.25S6.75 14.649 6.75 11.75 9.101 6.5 12 6.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#6B7280"/>
+    <path d="M12 8v4M12 16h.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
   </svg>
 );
 
@@ -150,9 +164,48 @@ function extractOSTemplateId(serverData: any): number | null {
   return null;
 }
 
-// Helper function to get OS info for a server
-function getServerOSInfo(serverData: any) {
-  // Fallback to OS name from server data if available
+// Helper function to get OS info for a server with enhanced detection
+function getServerOSInfo(serverData: any, templates?: any[]) {
+  // PRIORITY 1: Use OS information from qemu agent (most accurate)
+  const qemuAgentOS = serverData?.qemuAgent?.os || serverData?.remoteState?.agent?.osinfo;
+  if (qemuAgentOS) {
+    // Use pretty-name if available, otherwise name, otherwise construct from name + version
+    let osName = qemuAgentOS['pretty-name'] || qemuAgentOS.name;
+    if (!osName && qemuAgentOS.name && qemuAgentOS.version) {
+      osName = `${qemuAgentOS.name} ${qemuAgentOS.version}`;
+    } else if (!osName && qemuAgentOS.name) {
+      osName = qemuAgentOS.name;
+    }
+
+    if (osName) {
+      const { icon } = getOSIconAndColor(osName);
+      return {
+        name: osName,
+        icon
+      };
+    }
+  }
+
+  // PRIORITY 2: Try to get OS template ID and match with templates
+  const osTemplateId = extractOSTemplateId(serverData);
+  if (osTemplateId && templates && templates.length > 0) {
+    const template = templates.find((t: any) => 
+      t.id === osTemplateId || 
+      t.id === String(osTemplateId) || 
+      Number(t.id) === osTemplateId
+    );
+    
+    if (template) {
+      const displayName = `${template.name}${template.version ? ` ${template.version}` : ''}${template.architecture ? ` (${template.architecture})` : template.variant ? ` (${template.variant})` : ''}`;
+      const { icon } = getOSIconAndColor(template.name);
+      return {
+        name: displayName,
+        icon
+      };
+    }
+  }
+
+  // PRIORITY 3: Fallback to OS name from server data if available
   const osName = serverData?.os?.name || serverData?.operatingSystem;
   if (osName && typeof osName === 'string') {
     const { icon } = getOSIconAndColor(osName);
@@ -162,7 +215,7 @@ function getServerOSInfo(serverData: any) {
     };
   }
 
-  // If no OS name found, return unknown
+  // Final fallback
   return { name: "Unknown OS", icon: UnknownOSIcon };
 }
 
@@ -288,6 +341,19 @@ export default function ServersPage() {
       return response.json();
     },
     staleTime: 30000,
+  });
+
+  // Fetch OS templates data for icon detection
+  const { data: osTemplates } = useQuery({
+    queryKey: ['/api/user/templates'],
+    queryFn: async () => {
+      const response = await fetch('/api/user/templates');
+      if (!response.ok) {
+        throw new Error('Failed to fetch templates');
+      }
+      return response.json();
+    },
+    staleTime: 300000, // Cache for 5 minutes
   });
 
   const allServers = serversResponse?.data || [];
@@ -638,7 +704,7 @@ export default function ServersPage() {
                         <TableCell className="px-4 py-4">
                         <div className="flex items-center gap-3 min-w-0">
                           {(() => {
-                            const osInfo = getServerOSInfo(server);
+                            const osInfo = getServerOSInfo(server, osTemplates?.data);
                             const OSIcon = osInfo.icon;
                             return (
                               <div
