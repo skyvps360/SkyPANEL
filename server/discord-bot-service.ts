@@ -8,6 +8,7 @@ import {discordStatusService} from './discord/discord-status-service';
 import {discordHelpService} from './discord/discord-help-service';
 import {discordAIService} from './discord/discord-ai-service';
 import {discordVerificationService} from './discord/discord-verification-service';
+import {discordBackupService} from './discord/discord-backup-service';
 import {DiscordUtils} from './discord/discord-utils';
 
 /**
@@ -50,7 +51,8 @@ export class DiscordBotService {
             discordStatusService,
             discordHelpService,
             discordAIService,
-            discordVerificationService
+            discordVerificationService,
+            discordBackupService
         );
 
         // Initialize the core

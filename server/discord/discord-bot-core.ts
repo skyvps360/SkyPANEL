@@ -32,6 +32,7 @@ import {
 import {storage} from '../storage';
 import {discordTodoService} from './discord-todo-service';
 import {discordVerificationService} from './discord-verification-service';
+import {discordBackupScheduler} from './discord-backup-scheduler';
 
 /**
  * Core service for managing Discord bot operations
@@ -50,6 +51,7 @@ export class DiscordBotCore {
     private aiService: any;
     private todoService: any;
     private verificationService: any;
+    private backupService: any;
 
     private constructor() {
     }
@@ -73,7 +75,8 @@ export class DiscordBotCore {
         statusService: any,
         helpService: any,
         aiService: any,
-        verificationService: any
+        verificationService: any,
+        backupService: any
     ): void {
         this.ticketService = ticketService;
         this.commandHandler = commandHandler;
@@ -83,6 +86,7 @@ export class DiscordBotCore {
         this.aiService = aiService;
         this.todoService = discordTodoService;
         this.verificationService = verificationService;
+        this.backupService = backupService;
     }
 
     /**
@@ -153,6 +157,9 @@ export class DiscordBotCore {
                 this.ready = true;
                 await this.ticketService.loadExistingTicketThreads();
                 await this.registerCommands();
+                
+                // Initialize backup scheduler
+                await discordBackupScheduler.initialize();
             });
 
             // Handle slash commands and button interactions
@@ -264,6 +271,9 @@ export class DiscordBotCore {
 
                 // Ticket commands
                 ...this.commandHandler.getTicketCommands(),
+
+                // Backup commands
+                ...this.backupService.getBackupCommands(),
             ];
 
             const rest = new REST().setToken(botToken);

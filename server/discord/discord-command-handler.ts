@@ -8,6 +8,7 @@ import {storage} from '../storage';
 import {discordBotCore} from './discord-bot-core';
 import {discordTicketService} from './discord-ticket-service';
 import {discordVerificationService} from './discord-verification-service';
+import {discordBackupCommands} from './discord-backup-commands';
 
 /**
  * Service for handling Discord commands
@@ -95,6 +96,10 @@ export class DiscordCommandHandler {
                 await discordVerificationService.handleVerifySetupCommand(interaction);
             } else if (commandName === 'verify-reset') {
                 await discordVerificationService.handleVerifyResetCommand(interaction);
+            }
+            // Handle backup commands
+            else if (commandName === 'backup') {
+                await discordBackupCommands.handleBackupCommand(interaction);
             }
         } catch (error: any) {
             console.error('Error handling command:', error.message);
@@ -313,8 +318,11 @@ export class DiscordCommandHandler {
         // Get verification commands from the verification service
         const verificationCommands = discordVerificationService.getVerificationCommands();
 
+        // Get backup commands from the backup service
+        const backupCommands = discordBackupCommands.getBackupCommands();
+
         // Return all commands
-        return [...ticketCommands, ...verificationCommands];
+        return [...ticketCommands, ...verificationCommands, ...backupCommands];
     }
 }
 
