@@ -251,6 +251,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     enabled: !!user,
   });
 
+  // Fetch DNS system status
+  const { data: dnsSystemStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/settings/dns-system-status"],
+    staleTime: 5 * 1000, // 5 seconds - reduced for more responsive updates
+    enabled: !!user,
+  });
+
   // Fetch VirtFusion cron status to determine if SSO button should be hidden
   const { data: virtfusionCronData } = useQuery<{
     success: boolean;
@@ -292,8 +299,92 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     : (serversResponse?.data || []);
 
 
-  // Define global navigation shortcuts
-  const globalShortcuts = [
+  // Define global navigation shortcuts (filtered by system status)
+  const globalShortcuts = useMemo(() => {
+    const baseShortcuts = [
+      {
+        id: "dashboard",
+        name: "Dashboard",
+        description: "View your dashboard",
+        url: "/dashboard",
+        icon: <Gauge className="h-4 w-4" />
+      },
+      {
+        id: "billing",
+        name: "Billing",
+        description: "Manage billing and payments",
+        url: "/billing",
+        icon: <CreditCard className="h-4 w-4" />
+      },
+      {
+        id: "tickets",
+        name: "Support Tickets",
+        description: "View your support tickets",
+        url: "/tickets",
+        icon: <Ticket className="h-4 w-4" />
+      },
+      {
+        id: "packages",
+        name: "Server Plans",
+        description: "Browse available packages",
+        url: "/packages",
+        icon: <Server className="h-4 w-4" />
+      },
+      {
+        id: "profile",
+        name: "Profile",
+        description: "Manage your profile",
+        url: "/profile",
+        icon: <Users className="h-4 w-4" />
+      },
+      {
+        id: "blog",
+        name: "Blog",
+        description: "Read our latest updates",
+        url: "/blog",
+        icon: <FileText className="h-4 w-4" />
+      },
+      {
+        id: "docs",
+        name: "Documentation",
+        description: "Browse product documentation",
+        url: "/docs",
+        icon: <BookOpen className="h-4 w-4" />
+      },
+      {
+        id: "status",
+        name: "Status",
+        description: "Check system status",
+        url: "/status",
+        icon: <Activity className="h-4 w-4" />
+      },
+    ];
+
+    // Add DNS shortcuts only if DNS system is enabled
+    if (dnsSystemStatus?.enabled !== false) {
+      baseShortcuts.push(
+        {
+          id: "dns",
+          name: "DNS Management",
+          description: "Manage your DNS domains and records",
+          url: "/dns",
+          icon: <Globe className="h-4 w-4" />
+        },
+        {
+          id: "dns-plans",
+          name: "DNS Plans",
+          description: "Purchase and manage DNS service plans",
+          url: "/dns-plans",
+          icon: <CreditCard className="h-4 w-4" />
+        }
+      );
+    }
+
+    return baseShortcuts;
+  }, [dnsSystemStatus?.enabled]);
+
+  // Define global navigation shortcuts (keeping original for backward compatibility)
+  const originalGlobalShortcuts = [
     {
       id: "dashboard",
       name: "Dashboard",
@@ -418,7 +509,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         href: "/dashboard/api-docs",
         icon: <Code className="h-5 w-5 mr-3" />,
       },
-      {
+    ];
+
+    // Only add DNS navigation if DNS system is enabled
+    if (dnsSystemStatus?.enabled !== false) {
+      nav.push({
         name: "DNS Management",
         href: "/dns",
         icon: <Globe className="h-5 w-5 mr-3" />,
@@ -429,8 +524,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             icon: <CreditCard className="h-4 w-4 mr-3" />,
           },
         ],
-      },
-    ];
+      });
+    }
+
     // Only add the awards child if enabled
     if (awardSystemStatus?.enabled === true) {
       const billingNav = nav.find(item => item.name === "Billing & Payments");
@@ -443,7 +539,7 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       }
     }
     return nav;
-  }, [companyName, awardSystemStatus?.enabled, navigationUpdateTrigger]);
+  }, [companyName, awardSystemStatus?.enabled, dnsSystemStatus?.enabled, navigationUpdateTrigger]);
 
   // Admin navigation items - empty as admin link is in dropdown
   const adminNavigation: NavigationItem[] = [];

@@ -117,8 +117,30 @@ const requireInterServerConfig = (req: Request, res: Response, next: Function) =
   next();
 };
 
+// Middleware to check if DNS system is enabled
+const requireDnsSystemEnabled = async (req: Request, res: Response, next: Function) => {
+  try {
+    const { SettingsService } = await import('../settings-service');
+    const isDnsEnabled = await SettingsService.isDnsSystemEnabled();
+    
+    if (!isDnsEnabled) {
+      return res.status(404).json({ 
+        error: 'DNS system is disabled',
+        message: 'DNS management system is currently disabled by the administrator'
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Error checking DNS system status:', error);
+    // On error, allow access (fail open to prevent service disruption)
+    next();
+  }
+};
+
 // Apply middleware to all routes
 router.use(requireAuth);
+router.use(requireDnsSystemEnabled);
 router.use(requireInterServerConfig);
 
 /**

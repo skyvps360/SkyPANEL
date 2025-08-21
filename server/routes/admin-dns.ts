@@ -19,6 +19,30 @@ const dnsPlanSchema = z.object({
   displayOrder: z.number().default(0),
 });
 
+// Middleware to check if DNS system is enabled (for admin routes)
+const requireDnsSystemEnabled = async (req: Request, res: Response, next: Function) => {
+  try {
+    const { SettingsService } = await import('../settings-service');
+    const isDnsEnabled = await SettingsService.isDnsSystemEnabled();
+    
+    if (!isDnsEnabled) {
+      return res.status(404).json({ 
+        error: 'DNS system is disabled',
+        message: 'DNS management system is currently disabled by the administrator'
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Error checking DNS system status:', error);
+    // On error, allow access (fail open to prevent service disruption)
+    next();
+  }
+};
+
+// Apply DNS enabled middleware to all routes
+router.use(requireDnsSystemEnabled);
+
 // GET /api/admin/dns-plans - Get all DNS plans with subscription counts
 router.get("/dns-plans", requireAdmin, async (req, res) => {
   try {

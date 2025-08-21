@@ -423,6 +423,12 @@ export default function SettingsPage() {
     refetchInterval: 60000, // Refetch every minute
   });
 
+  // Fetch DNS system status
+  const { data: dnsSystemStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/admin/settings/dns-system/status"],
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
   // Fetch VirtFusion cron status (uses same endpoint as DNS cron status)
   const { data: virtfusionCronData } = useQuery<VirtFusionCronData>({
     queryKey: ['/api/admin/cron/status', 'virtfusion'],
@@ -2603,6 +2609,57 @@ export default function SettingsPage() {
                           <li>Plan-based limits and restrictions</li>
                           <li>Professional nameservers (cdns.ns1.skyvps360.xyz, etc.)</li>
                         </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* DNS System Enable/Disable Toggle */}
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-medium">DNS System Control</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Enable or disable the entire DNS management system for your platform
+                      </p>
+                    </div>
+
+                    <div className="bg-muted/50 p-4 rounded-lg space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-sm font-medium">DNS System Enabled</Label>
+                          <p className="text-xs text-muted-foreground">
+                            When enabled, users can access DNS management features
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                            ⚠️ Disabling will hide DNS routes and links from users and disable API access
+                          </p>
+                        </div>
+                        <Switch
+                          checked={dnsSystemStatus?.enabled ?? true}
+                          onCheckedChange={async (checked) => {
+                            try {
+                              await apiRequest("/api/admin/settings/dns-system/toggle", {
+                                method: "PUT",
+                                body: { enabled: checked }
+                              });
+                              queryClient.invalidateQueries({
+                                queryKey: ["/api/admin/settings/dns-system/status"]
+                              });
+                              queryClient.invalidateQueries({
+                                queryKey: ["/api/settings/dns-system-status"]
+                              });
+                              toast({
+                                title: "DNS System Updated",
+                                description: `DNS system ${checked ? 'enabled' : 'disabled'}`,
+                              });
+                            } catch (error: any) {
+                              toast({
+                                title: "Error",
+                                description: error.message,
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        />
                       </div>
                     </div>
                   </div>

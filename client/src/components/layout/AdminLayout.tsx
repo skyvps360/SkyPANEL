@@ -38,8 +38,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { getBrandColors } from "@/lib/brand-theme";
 
-
-const adminMenuItems = [
+// Base admin menu items (those that are always available)
+const baseAdminMenuItems = [
   { href: "/admin", icon: Home, label: "Admin Dashboard" },
   { href: "/admin/tickets", icon: Ticket, label: "Tickets" },
   { href: "/admin/users", icon: Users, label: "Users" },
@@ -47,8 +47,6 @@ const adminMenuItems = [
   { href: "/admin/servers", icon: Server, label: "Servers" },
   { href: "/admin/user-awards", icon: Gift, label: "User Awards" },
   { href: "/admin/coupon", icon: Ticket, label: "Coupon Management" },
-
-  // { href: "/admin/dns", icon: Globe, label: "DNS Management" }, // DNS disabled
   { href: "/admin/mail", icon: Mail, label: "Email Logs" },
   { href: "/admin/email-templates", icon: Mail, label: "Email Templates" },
   { href: "/admin/blog", icon: PenTool, label: "Company Blog" },
@@ -198,6 +196,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     retry: false,
   });
 
+  // Fetch DNS system status
+  const { data: dnsSystemStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/settings/dns-system-status"],
+    staleTime: 5 * 1000, // 5 seconds - reduced for more responsive updates
+    enabled: !!user,
+  });
+
   // Fetch users for search
   const { data: usersData = [] } = useQuery<UserType[]>({
     queryKey: ["/api/admin/users"],
@@ -248,6 +253,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }), [brandSettings?.primary_color, brandSettings?.company_color, brandSettings?.secondary_color, brandSettings?.accent_color]);
 
   const brandColors = useMemo(() => getBrandColors(brandColorOptions), [brandColorOptions]);
+
+  // Dynamic admin menu items that include DNS when enabled
+  const adminMenuItems = useMemo(() => {
+    const items = [...baseAdminMenuItems];
+    
+    // Add DNS management if DNS system is enabled
+    if (dnsSystemStatus?.enabled !== false) {
+      // Insert DNS management after coupon management (at index 7)
+      const insertIndex = items.findIndex(item => item.href === "/admin/coupon") + 1;
+      items.splice(insertIndex, 0, { href: "/admin/dns", icon: Globe, label: "DNS Management" });
+    }
+    
+    return items;
+  }, [dnsSystemStatus?.enabled]);
 
   // Apply brand colors to CSS variables and Shadcn theme when settings are loaded
   useEffect(() => {
