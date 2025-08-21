@@ -471,7 +471,8 @@ const EndpointOverview = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p>
-            Most API endpoints require authentication using API keys. To authenticate, include your API key
+            All API endpoints documented here are for client access only and are scoped to your account. 
+            You need to create an API key with appropriate scopes to access these endpoints. Include your API key
             in the Authorization header of your request:
           </p>
           <div className="bg-muted p-3 rounded-md font-mono text-sm">
@@ -536,6 +537,33 @@ const EndpointOverview = () => {
               </p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Access Scope</CardTitle>
+          <CardDescription>
+            Understanding what these endpoints can access
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800">
+            <div className="flex gap-2">
+              <AlertCircle className="h-5 w-5 mt-0.5 text-blue-600 dark:text-blue-400" />
+              <div>
+                <h4 className="font-medium text-blue-800 dark:text-blue-200">Client-Level Access Only</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                  All endpoints documented here provide access only to resources you own or are authorized to manage. 
+                  These are not administrative endpoints - they cannot access other users' data or perform system-wide operations.
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm">
+            For administrative functions like user management, system settings, or accessing other users' resources, 
+            administrators should use the dedicated admin panel and its associated administrative API endpoints.
+          </p>
         </CardContent>
       </Card>
 
@@ -1077,7 +1105,7 @@ export default function DashboardApiDocsPage() {
     {
       method: "GET",
       path: "/api/users/me",
-      description: "Get information about the currently authenticated user",
+      description: "Get information about your account",
       responseExample: JSON.stringify({
         id: 1,
         email: "user@example.com",
@@ -1097,18 +1125,18 @@ export default function DashboardApiDocsPage() {
     {
       method: "PUT",
       path: "/api/users/me",
-      description: "Update user profile information",
+      description: "Update your profile information",
       parameters: [
-        { name: "name", type: "string", required: false, description: "The user's full name", example: "John Doe" },
-        { name: "email", type: "string", required: false, description: "The user's email address", example: "johndoe@example.com" },
-        { name: "phone", type: "string", required: false, description: "The user's phone number", example: "+1234567890" },
-        { name: "address", type: "string", required: false, description: "The user's address", example: "123 Main St" },
-        { name: "city", type: "string", required: false, description: "The user's city", example: "New York" },
-        { name: "state", type: "string", required: false, description: "The user's state", example: "NY" },
-        { name: "zip", type: "string", required: false, description: "The user's zip code", example: "10001" },
-        { name: "country", type: "string", required: false, description: "The user's country", example: "USA" },
-        { name: "company", type: "string", required: false, description: "The user's company", example: "Acme Corp" },
-        { name: "preferences", type: "object", required: false, description: "User preferences object", example: '{"theme": "dark", "notifications": true}' }
+        { name: "name", type: "string", required: false, description: "Your full name", example: "John Doe" },
+        { name: "email", type: "string", required: false, description: "Your email address", example: "johndoe@example.com" },
+        { name: "phone", type: "string", required: false, description: "Your phone number", example: "+1234567890" },
+        { name: "address", type: "string", required: false, description: "Your address", example: "123 Main St" },
+        { name: "city", type: "string", required: false, description: "Your city", example: "New York" },
+        { name: "state", type: "string", required: false, description: "Your state", example: "NY" },
+        { name: "zip", type: "string", required: false, description: "Your zip code", example: "10001" },
+        { name: "country", type: "string", required: false, description: "Your country", example: "USA" },
+        { name: "company", type: "string", required: false, description: "Your company", example: "Acme Corp" },
+        { name: "preferences", type: "object", required: false, description: "Your preferences object", example: '{"theme": "dark", "notifications": true}' }
       ],
       responseExample: JSON.stringify({
         id: 1,
@@ -1129,10 +1157,10 @@ export default function DashboardApiDocsPage() {
     {
       method: "POST",
       path: "/api/users/change-password",
-      description: "Change user password",
+      description: "Change your own account password",
       parameters: [
-        { name: "currentPassword", type: "string", required: true, description: "Current password", example: "oldpassword123" },
-        { name: "newPassword", type: "string", required: true, description: "New password (min 8 characters)", example: "newpassword123" }
+        { name: "currentPassword", type: "string", required: true, description: "Your current password", example: "oldpassword123" },
+        { name: "newPassword", type: "string", required: true, description: "Your new password (min 8 characters)", example: "newpassword123" }
       ],
       responseExample: JSON.stringify({
         success: true,
@@ -1147,7 +1175,7 @@ export default function DashboardApiDocsPage() {
     {
       method: "GET",
       path: "/api/servers",
-      description: "Get a list of all servers for the authenticated user",
+      description: "Get all servers you own",
       responseExample: JSON.stringify([
         {
           id: 123,
@@ -1165,13 +1193,13 @@ export default function DashboardApiDocsPage() {
     {
       method: "GET",
       path: "/api/servers/:id",
-      description: "Get details for a specific server",
+      description: "Get details for one of your servers",
       parameters: [
         {
           name: "id",
           type: "string",
           required: true,
-          description: "The server ID",
+          description: "Your server ID",
           example: "123"
         },
         {
@@ -1201,9 +1229,9 @@ export default function DashboardApiDocsPage() {
     {
       method: "POST",
       path: "/api/servers/:id/boot",
-      description: "Boot a server",
+      description: "Boot one of your servers",
       parameters: [
-        { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+        { name: "id", type: "string", required: true, description: "Your server ID", example: "123" }
       ],
       responseExample: JSON.stringify({
         success: true
@@ -1214,9 +1242,9 @@ export default function DashboardApiDocsPage() {
     {
       method: "POST",
       path: "/api/servers/:id/restart",
-      description: "Restart a server",
+      description: "Restart one of your servers",
       parameters: [
-        { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+        { name: "id", type: "string", required: true, description: "Your server ID", example: "123" }
       ],
       responseExample: JSON.stringify({
         success: true
@@ -1227,9 +1255,9 @@ export default function DashboardApiDocsPage() {
     {
       method: "POST",
       path: "/api/servers/:id/shutdown",
-      description: "Shutdown a server",
+      description: "Shut down one of your servers",
       parameters: [
-        { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+        { name: "id", type: "string", required: true, description: "Your server ID", example: "123" }
       ],
       responseExample: JSON.stringify({
         success: true
@@ -1240,9 +1268,9 @@ export default function DashboardApiDocsPage() {
     {
       method: "POST",
       path: "/api/servers/:id/poweroff",
-      description: "Power off a server",
+      description: "Power off one of your servers",
       parameters: [
-        { name: "id", type: "string", required: true, description: "Server ID", example: "123" }
+        { name: "id", type: "string", required: true, description: "Your server ID", example: "123" }
       ],
       responseExample: JSON.stringify({
         success: true
@@ -1253,9 +1281,9 @@ export default function DashboardApiDocsPage() {
     {
       method: "POST",
       path: "/api/servers/:id/reset-password",
-      description: "Reset server password",
+      description: "Reset the root password for one of your servers",
       parameters: [
-        { name: "id", type: "string", required: true, description: "Server ID", example: "123" },
+        { name: "id", type: "string", required: true, description: "Your server ID", example: "123" },
         { name: "password", type: "string", required: true, description: "New password (min 8 characters)", example: "newpassword123" }
       ],
       responseExample: JSON.stringify({
@@ -1271,7 +1299,7 @@ export default function DashboardApiDocsPage() {
     {
       method: "GET",
       path: "/api/dns/domains",
-      description: "Get all DNS domains for the authenticated user",
+      description: "Get all DNS domains you own",
       responseExample: JSON.stringify([
         {
           id: 1,
@@ -1287,7 +1315,7 @@ export default function DashboardApiDocsPage() {
     {
       method: "POST",
       path: "/api/dns/domains",
-      description: "Create a new DNS domain",
+      description: "Add a new DNS domain to your account",
       parameters: [
         { name: "domain", type: "string", required: true, description: "Domain name to register", example: "example.com" }
       ],
@@ -1304,9 +1332,9 @@ export default function DashboardApiDocsPage() {
     {
       method: "GET",
       path: "/api/dns/domains/:id/records",
-      description: "Get DNS records for a specific domain",
+      description: "Get DNS records for one of your domains",
       parameters: [
-        { name: "id", type: "string", required: true, description: "Domain ID", example: "1" }
+        { name: "id", type: "string", required: true, description: "Your domain ID", example: "1" }
       ],
       responseExample: JSON.stringify([
         {
@@ -1332,9 +1360,9 @@ export default function DashboardApiDocsPage() {
     {
       method: "POST",
       path: "/api/dns/domains/:id/records",
-      description: "Create a new DNS record",
+      description: "Add a new DNS record to one of your domains",
       parameters: [
-        { name: "id", type: "string", required: true, description: "Domain ID", example: "1" },
+        { name: "id", type: "string", required: true, description: "Your domain ID", example: "1" },
         { name: "type", type: "string", required: true, description: "Record type (A, AAAA, CNAME, MX, TXT, etc.)", example: "A" },
         { name: "name", type: "string", required: true, description: "Record name", example: "@" },
         { name: "content", type: "string", required: true, description: "Record content", example: "192.168.1.1" },
@@ -1355,10 +1383,10 @@ export default function DashboardApiDocsPage() {
     {
       method: "PUT",
       path: "/api/dns/domains/:domainId/records/:recordId",
-      description: "Update a DNS record",
+      description: "Update a DNS record for one of your domains",
       parameters: [
-        { name: "domainId", type: "string", required: true, description: "Domain ID", example: "1" },
-        { name: "recordId", type: "string", required: true, description: "Record ID", example: "1" },
+        { name: "domainId", type: "string", required: true, description: "Your domain ID", example: "1" },
+        { name: "recordId", type: "string", required: true, description: "Your DNS record ID", example: "1" },
         { name: "type", type: "string", required: false, description: "Record type", example: "A" },
         { name: "name", type: "string", required: false, description: "Record name", example: "@" },
         { name: "content", type: "string", required: false, description: "Record content", example: "192.168.1.2" },
@@ -1379,10 +1407,10 @@ export default function DashboardApiDocsPage() {
     {
       method: "DELETE",
       path: "/api/dns/domains/:domainId/records/:recordId",
-      description: "Delete a DNS record",
+      description: "Delete a DNS record from one of your domains",
       parameters: [
-        { name: "domainId", type: "string", required: true, description: "Domain ID", example: "1" },
-        { name: "recordId", type: "string", required: true, description: "Record ID", example: "1" }
+        { name: "domainId", type: "string", required: true, description: "Your domain ID", example: "1" },
+        { name: "recordId", type: "string", required: true, description: "Your DNS record ID", example: "1" }
       ],
       responseExample: JSON.stringify({
         success: true
@@ -1393,9 +1421,9 @@ export default function DashboardApiDocsPage() {
     {
       method: "DELETE",
       path: "/api/dns/domains/:id",
-      description: "Delete a DNS domain",
+      description: "Delete one of your DNS domains",
       parameters: [
-        { name: "id", type: "string", required: true, description: "Domain ID", example: "1" }
+        { name: "id", type: "string", required: true, description: "Your domain ID", example: "1" }
       ],
       responseExample: JSON.stringify({
         success: true
@@ -1409,7 +1437,7 @@ export default function DashboardApiDocsPage() {
     {
       method: "GET",
       path: "/api/transactions",
-      description: "Get user's transaction history",
+      description: "Get your transaction history",
       parameters: [
         { name: "page", type: "number", required: false, description: "Page number for pagination", example: "1" },
         { name: "limit", type: "number", required: false, description: "Number of transactions per page", example: "20" },
@@ -1442,7 +1470,7 @@ export default function DashboardApiDocsPage() {
     {
       method: "GET",
       path: "/api/user/api-keys",
-      description: "Retrieve API keys for the authenticated user",
+      description: "Get your API keys",
       responseExample: JSON.stringify([
         {
           id: 1,
@@ -1460,7 +1488,7 @@ export default function DashboardApiDocsPage() {
     {
       method: "POST",
       path: "/api/user/api-keys",
-      description: "Generate a new API key",
+      description: "Create a new API key for your account",
       parameters: [
         { name: "name", type: "string", required: true, description: "A user-friendly name for the API key", example: "My Application" },
         { name: "scopes", type: "array", required: false, description: "Array of permission scopes for the API key", example: '["read:user", "read:servers"]' },
@@ -1480,9 +1508,9 @@ export default function DashboardApiDocsPage() {
     {
       method: "DELETE",
       path: "/api/user/api-keys/:id",
-      description: "Delete an API key",
+      description: "Delete one of your API keys",
       parameters: [
-        { name: "id", type: "string", required: true, description: "API key ID", example: "1" }
+        { name: "id", type: "string", required: true, description: "Your API key ID", example: "1" }
       ],
       responseExample: JSON.stringify({
         success: true,
@@ -1516,7 +1544,7 @@ export default function DashboardApiDocsPage() {
     {
       method: "GET",
       path: "/api/coupons/history",
-      description: "Get user's coupon usage history",
+      description: "Get your coupon usage history",
       responseExample: JSON.stringify([
         {
           id: 1,
@@ -1582,13 +1610,12 @@ export default function DashboardApiDocsPage() {
                       API Documentation
                     </h1>
                     <p className="text-lg text-slate-600 dark:text-slate-400 mt-1">
-                      Complete reference for integrating with our API
+                      Client API reference for managing your account and resources
                     </p>
                   </div>
                 </div>
                 <p className="text-slate-600 dark:text-slate-400 max-w-2xl">
-                  Build powerful applications and automate your workflows with our comprehensive REST API. 
-                  Get started with authentication, explore endpoints, and see real examples.
+                  Manage your account, servers, DNS, and billing programmatically. All endpoints are scoped to your account and require authentication.
                 </p>
               </div>
               
