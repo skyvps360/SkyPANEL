@@ -1453,6 +1453,21 @@ export class VirtFusionApi {
       };
     }
   }
+
+  // Get server backups
+  async getServerBackups(serverId: number) {
+    return this.request("GET", `/servers/${serverId}/backups`);
+  }
+
+  // Update server backup plan (add, remove, or modify)
+  async updateServerBackupPlan(serverId: number, planId: number) {
+    return this.request("PUT", `/servers/${serverId}/backups/plan/${planId}`);
+  }
+
+  // Get available backup plans (if endpoint exists)
+  async getBackupPlans() {
+    return this.request("GET", "/backup-plans");
+  }
 }
 
 // Create a singleton instance of the VirtFusion API client

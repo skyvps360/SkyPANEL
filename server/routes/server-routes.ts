@@ -276,6 +276,58 @@ router.get('/:id/backups', async (req, res) => {
   }
 });
 
+// Update server backup plan (add, remove, or modify)
+router.put('/:id/backups/plan/:planId', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const serverId = parseInt(req.params.id);
+    const planId = parseInt(req.params.planId);
+    
+    if (isNaN(serverId)) {
+      return res.status(400).json({ message: 'Invalid server ID' });
+    }
+    
+    if (isNaN(planId) || planId < 0) {
+      return res.status(400).json({ message: 'Invalid plan ID' });
+    }
+    
+    const result = await virtFusionService.updateServerBackupPlan(serverId, planId);
+    
+    if (result.success) {
+      await serverLoggingService.logServerAction(
+        serverId, 
+        req.user.id, 
+        planId === 0 ? 'backup-plan-removed' : 'backup-plan-updated',
+        { planId }
+      );
+      return res.json(result);
+    } else {
+      return res.status(500).json(result);
+    }
+  } catch (error: any) {
+    console.error('Error updating server backup plan:', error);
+    return res.status(500).json({ message: 'An error occurred while updating server backup plan' });
+  }
+});
+
+// Get available backup plans
+router.get('/backup-plans', async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    const plans = await virtFusionService.getBackupPlans();
+    return res.json({ success: true, data: plans });
+  } catch (error: any) {
+    console.error('Error getting backup plans:', error);
+    return res.status(500).json({ message: 'An error occurred while getting backup plans' });
+  }
+});
+
 // Get server notes
 router.get('/:id/notes', async (req, res) => {
   try {

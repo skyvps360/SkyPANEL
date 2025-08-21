@@ -217,6 +217,148 @@ export class VirtFusionService {
       return [];
     }
   }
+
+  /**
+   * Get backups for a specific server
+   * @param serverId The server ID to get backups for
+   * @returns Array of backups or empty array if error
+   */
+  public async getServerBackups(serverId: number): Promise<any[]> {
+    try {
+      if (!this.isEnabled()) {
+        await this.initialize();
+        if (!this.isEnabled()) {
+          console.warn('VirtFusion integration is not enabled');
+          return [];
+        }
+      }
+
+      // Validate input
+      if (!serverId || isNaN(serverId)) {
+        console.error('Invalid server ID provided:', serverId);
+        return [];
+      }
+
+      // Use the VirtFusion API to get backups for the specific server
+      const response = await virtFusionApi.getServerBackups(serverId);
+      
+      // Handle different response formats
+      let backups;
+      if (Array.isArray(response)) {
+        backups = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        backups = response.data;
+      } else if (response && response.backups && Array.isArray(response.backups)) {
+        backups = response.backups;
+      } else {
+        console.error('Unexpected response format from VirtFusion getServerBackups:', response);
+        return [];
+      }
+      
+      return backups;
+    } catch (error) {
+      console.error(`Error getting server backups for server ${serverId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Update server backup plan (add, remove, or modify)
+   * @param serverId The server ID
+   * @param planId The backup plan ID (0 to remove plan)
+   * @returns Response from VirtFusion API
+   */
+  public async updateServerBackupPlan(serverId: number, planId: number): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      if (!this.isEnabled()) {
+        await this.initialize();
+        if (!this.isEnabled()) {
+          return {
+            success: false,
+            message: 'VirtFusion integration is not enabled'
+          };
+        }
+      }
+
+      // Validate inputs
+      if (!serverId || isNaN(serverId)) {
+        return {
+          success: false,
+          message: 'Invalid server ID provided'
+        };
+      }
+
+      if (planId < 0 || isNaN(planId)) {
+        return {
+          success: false,
+          message: 'Invalid plan ID provided'
+        };
+      }
+
+      // Use the VirtFusion API to update backup plan
+      const response = await virtFusionApi.updateServerBackupPlan(serverId, planId);
+      
+      return {
+        success: true,
+        message: planId === 0 ? 'Backup plan removed successfully' : 'Backup plan updated successfully',
+        data: response
+      };
+    } catch (error: any) {
+      console.error(`Error updating server backup plan for server ${serverId}:`, error);
+      
+      // Parse the error message from VirtFusion if available
+      let errorMessage = 'An error occurred while updating the backup plan';
+      if (error.response && error.response.data) {
+        errorMessage = `VirtFusion error: ${JSON.stringify(error.response.data)}`;
+      }
+      
+      return {
+        success: false,
+        message: errorMessage
+      };
+    }
+  }
+
+  /**
+   * Get available backup plans
+   * @returns Array of backup plans or empty array if error
+   */
+  public async getBackupPlans(): Promise<any[]> {
+    try {
+      if (!this.isEnabled()) {
+        await this.initialize();
+        if (!this.isEnabled()) {
+          console.warn('VirtFusion integration is not enabled');
+          return [];
+        }
+      }
+
+      // Use the VirtFusion API to get available backup plans
+      const response = await virtFusionApi.getBackupPlans();
+      
+      // Handle different response formats
+      let plans;
+      if (Array.isArray(response)) {
+        plans = response;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        plans = response.data;
+      } else if (response && response.plans && Array.isArray(response.plans)) {
+        plans = response.plans;
+      } else {
+        console.error('Unexpected response format from VirtFusion getBackupPlans:', response);
+        return [];
+      }
+      
+      return plans;
+    } catch (error) {
+      console.error('Error getting backup plans from VirtFusion:', error);
+      return [];
+    }
+  }
 }
 
 export const virtFusionService = VirtFusionService.getInstance();

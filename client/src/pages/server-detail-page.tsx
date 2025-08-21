@@ -382,6 +382,7 @@ import {
 } from "@/components/ui/dialog";
 import { VirtFusionSsoButton } from "@/components/VirtFusionSsoButton";
 import { NotesTab } from "@/components/server/NotesTab";
+import { BackupsTab } from "@/components/server/BackupsTab";
 
 // VNC Tab Component
 const VNCTab = ({ serverId }: { serverId: number }) => {
@@ -2371,7 +2372,7 @@ export default function ServerDetailPage() {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid grid-cols-3 lg:grid-cols-7 h-auto bg-muted/30">
+                  <TabsList className="grid grid-cols-3 lg:grid-cols-8 h-auto bg-muted/30">
                     <TabsTrigger value="overview" className="data-[state=active]:bg-background">
                       <BarChart3 className="h-4 w-4 mr-2" />
                       Overview
@@ -2391,6 +2392,10 @@ export default function ServerDetailPage() {
                     <TabsTrigger value="storage" className="data-[state=active]:bg-background">
                       <Database className="h-4 w-4 mr-2" />
                       Storage
+                    </TabsTrigger>
+                    <TabsTrigger value="backups" className="data-[state=active]:bg-background">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Backups
                     </TabsTrigger>
                     <TabsTrigger value="notes" className="data-[state=active]:bg-background">
                       <FileText className="h-4 w-4 mr-2" />
@@ -3788,6 +3793,11 @@ export default function ServerDetailPage() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Backups Tab */}
+            <TabsContent value="backups" className="space-y-4">
+              <BackupsTab serverId={serverId} />
             </TabsContent>
 
             {/* Notes Tab */}
