@@ -143,6 +143,34 @@ export default function HomePage() {
 
   const dnsDomains: any[] = []; // Empty array since DNS is disabled
 
+  // Fetch VirtFusion cron status to determine if SSO button should be hidden
+  const { data: virtfusionCronData } = useQuery<{
+    success: boolean;
+    cronStatus: {
+      virtfusionHourly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+      virtfusionMonthly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+    };
+  }>({
+    queryKey: ['/api/admin/cron/status', 'virtfusion'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/cron/status');
+      if (!response.ok) {
+        throw new Error('Failed to fetch VirtFusion cron status');
+      }
+      return response.json();
+    },
+    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: 60000, // Refetch every minute
+  });
+
   // Calculate stats
   useEffect(() => {
     if (tickets) {
@@ -191,6 +219,12 @@ export default function HomePage() {
   const hasVirtFusion = stats.virtFusionTokens !== 0 || stats.virtFusionCredits !== 0; // Show VirtFusion data for any non-zero amount
   const displayCredits = stats.virtFusionCredits ?? 0; // Show actual balance including negatives, fallback to 0 only if undefined/null
 
+  // Check if VirtFusion cron is enabled (hourly or monthly)
+  const isVirtFusionCronEnabled = virtfusionCronData?.success && (
+    virtfusionCronData.cronStatus.virtfusionHourly.enabled ||
+    virtfusionCronData.cronStatus.virtfusionMonthly.enabled
+  );
+
   return (
     <>
 
@@ -219,7 +253,9 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="mt-6 lg:mt-0 flex flex-wrap gap-3 justify-center lg:justify-end">
-                <VirtFusionSsoButton />
+                {!isVirtFusionCronEnabled && (
+                  <VirtFusionSsoButton />
+                )}
                 <Link href="/packages">
                   <Button
                     size="default"
