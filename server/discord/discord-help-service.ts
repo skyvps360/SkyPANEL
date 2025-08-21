@@ -75,6 +75,7 @@ export class DiscordHelpService {
                 {name: '✅ Verification', value: 'Commands for Discord verification system', inline: true},
                 {name: '📊 Status', value: 'Commands for checking system status', inline: true},
                 {name: '🤖 AI', value: 'Commands for interacting with AI', inline: true},
+                {name: '💾 Backup', value: 'Commands for Discord server backup management', inline: true},
                 {name: '❓ Help', value: 'Commands for getting help', inline: true}
             )
             .setFooter({text: 'Use the dropdown menu below to view commands for each category'});
@@ -109,6 +110,11 @@ export class DiscordHelpService {
                     .setDescription('Commands for interacting with AI')
                     .setValue('ai')
                     .setEmoji('🤖'),
+                new StringSelectMenuOptionBuilder()
+                    .setLabel('Backup')
+                    .setDescription('Commands for Discord server backup management')
+                    .setValue('backup')
+                    .setEmoji('💾'),
                 new StringSelectMenuOptionBuilder()
                     .setLabel('Help')
                     .setDescription('Commands for getting help')
@@ -275,6 +281,23 @@ export class DiscordHelpService {
                     );
                 break;
 
+            case 'backup':
+                embed = new EmbedBuilder()
+                    .setColor(0x0099FF)
+                    .setTitle('💾 Backup Commands')
+                    .setDescription('Commands for Discord server backup management')
+                    .addFields(
+                        {name: '/backup create', value: 'Create a manual backup of the Discord server', inline: true},
+                        {name: '/backup list', value: 'List all available backups for this server', inline: true},
+                        {name: '/backup delete', value: 'Delete a specific backup', inline: true},
+                        {name: '/backup info', value: 'Get detailed information about a backup', inline: true},
+                        {name: '/backup settings', value: 'Configure backup settings for this server', inline: true},
+                        {name: '/backup schedule', value: 'Schedule automatic backups with cron expressions', inline: true},
+                        {name: '/backup unschedule', value: 'Cancel a scheduled backup job', inline: true},
+                        {name: '/backup schedules', value: 'List all scheduled backup jobs', inline: true}
+                    );
+                break;
+
             case 'help':
                 embed = new EmbedBuilder()
                     .setColor(0x0099FF)
@@ -327,6 +350,11 @@ export class DiscordHelpService {
                     .setValue('ai')
                     .setEmoji('🤖'),
                 new StringSelectMenuOptionBuilder()
+                    .setLabel('Backup')
+                    .setDescription('Commands for Discord server backup management')
+                    .setValue('backup')
+                    .setEmoji('💾'),
+                new StringSelectMenuOptionBuilder()
                     .setLabel('Help')
                     .setDescription('Commands for getting help')
                     .setValue('help')
@@ -374,6 +402,7 @@ export class DiscordHelpService {
                         {name: 'Verification', value: 'verification'},
                         {name: 'Status', value: 'status'},
                         {name: 'AI', value: 'ai'},
+                        {name: 'Backup', value: 'backup'},
                         {name: 'Help', value: 'help'}
                     )
             );
