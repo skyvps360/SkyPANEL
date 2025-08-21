@@ -141,7 +141,7 @@ export default function ClientServerCreateModal({ open, onOpenChange, onSuccess,
   const [osSelectOpen, setOsSelectOpen] = useState(false);
   const [osSearch, setOsSearch] = useState("");
   const [osPage, setOsPage] = useState(1);
-  const pageSize = 5;
+  const pageSize = 4;
 
   // Package dropdown helpers
   const [packageSelectOpen, setPackageSelectOpen] = useState(false);
