@@ -113,6 +113,14 @@ const UnknownOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
   </svg>
 );
 
+const openSUSEIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="12" fill="#73BA25"/>
+    <path d="M8 8l8 8M16 8l-8 8" stroke="white" strokeWidth="2"/>
+    <circle cx="12" cy="12" r="3" stroke="white" strokeWidth="2" fill="none"/>
+  </svg>
+);
+
 // Helper function to get OS icon based on OS name
 function getOSIconAndColor(osName: string) {
   const name = osName?.toLowerCase() || '';
@@ -137,6 +145,8 @@ function getOSIconAndColor(osName: string) {
     return { icon: AlpineIcon };
   } else if (name.includes('windows')) {
     return { icon: WindowsIcon };
+  } else if (name.includes('suse') || name.includes('opensuse')) {
+    return { icon: openSUSEIcon };
   } else {
     return { icon: UnknownOSIcon };
   }
