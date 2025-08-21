@@ -251,6 +251,35 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     enabled: !!user,
   });
 
+  // Fetch VirtFusion cron status to determine if SSO button should be hidden
+  const { data: virtfusionCronData } = useQuery<{
+    success: boolean;
+    cronStatus: {
+      virtfusionHourly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+      virtfusionMonthly: {
+        enabled: boolean;
+        schedule: string;
+        isRunning: boolean;
+      };
+    };
+  }>({
+    queryKey: ['/api/admin/cron/status', 'virtfusion'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/cron/status');
+      if (!response.ok) {
+        throw new Error('Failed to fetch VirtFusion cron status');
+      }
+      return response.json();
+    },
+    staleTime: 59000, // Cache for 59 seconds
+    refetchInterval: 60000, // Refetch every minute
+    enabled: !!user,
+  });
+
 
 
   // Use API data without sample data fallbacks
@@ -863,6 +892,12 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     }
   }, [awardSystemStatus?.enabled]);
 
+  // Check if VirtFusion cron is enabled (hourly or monthly)
+  const isVirtFusionCronEnabled = virtfusionCronData?.success && (
+    virtfusionCronData.cronStatus.virtfusionHourly.enabled ||
+    virtfusionCronData.cronStatus.virtfusionMonthly.enabled
+  );
+
   return (
     <div className="flex h-screen overflow-hidden text-textColor">
 
@@ -1019,12 +1054,14 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
                 Control Panel
               </h3>
-              <VirtFusionSsoButton
-                variant="outline"
-                size="default"
-                className="w-full justify-center bg-primary text-primary-foreground hover:bg-primary/90 border-primary shadow-lg mb-3"
-                text="VirtFusion Panel"
-              />
+              {!isVirtFusionCronEnabled && (
+                <VirtFusionSsoButton
+                  variant="outline"
+                  size="default"
+                  className="w-full justify-center bg-primary text-primary-foreground hover:bg-primary/90 border-primary shadow-lg mb-3"
+                  text="VirtFusion Panel"
+                />
+              )}
 
               {/* Support Options Dropdown */}
               <DropdownMenu>
