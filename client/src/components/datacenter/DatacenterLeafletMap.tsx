@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Card,
   CardContent,
@@ -117,6 +118,7 @@ export function DatacenterLeafletMap() {
     null,
   );
   const { isDark } = useTheme();
+  const [, navigate] = useLocation();
 
   // Fetch all datacenter locations
   const { data: locations = [], isLoading } = useQuery<DatacenterLocation[]>({
@@ -832,6 +834,7 @@ export function DatacenterLeafletMap() {
                   <Button
                     size="sm"
                     style={brandColors?.primary?.hex ? { backgroundColor: `#${brandColors.primary.hex}` } : {}}
+                    onClick={() => navigate("/dashboard")}
                   >
                     Deploy to {selectedLocation.code}
                   </Button>
