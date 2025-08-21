@@ -16,7 +16,8 @@ import {
     PermissionFlagsBits,
     ComponentType,
     StringSelectMenuBuilder,
-    StringSelectMenuOptionBuilder
+    StringSelectMenuOptionBuilder,
+    ButtonInteraction
 } from 'discord.js';
 import { discordBackupService } from './discord-backup-service';
 import { discordBackupScheduler } from './discord-backup-scheduler';
@@ -429,7 +430,7 @@ export class DiscordBackupCommands {
                     { name: 'Created By', value: `<@${backup.createdBy}>`, inline: true },
                     { name: 'Created At', value: new Date(backup.createdAt).toLocaleString(), inline: true },
                     { name: 'Completed At', value: backup.completedAt ? new Date(backup.completedAt).toLocaleString() : 'N/A', inline: true },
-                    { name: 'File Size', value: backup.backupSize ? `${(backup.backupSize / 1024 / 1024).toFixed(2)} MB` : 'N/A', inline: true }
+                    { name: 'File Size', value: backup.totalSize ? `${(backup.totalSize / 1024 / 1024).toFixed(2)} MB` : 'N/A', inline: true }
                 )
                 .setColor(backup.status === 'completed' ? 0x00ff00 : backup.status === 'failed' ? 0xff0000 : 0xffaa00)
                 .setTimestamp();
@@ -573,7 +574,7 @@ export class DiscordBackupCommands {
 
             for (const job of jobs.slice(0, 10)) { // Limit to 10 jobs to avoid embed limits
                 const nextRun = job.nextRun ? `<t:${Math.floor(job.nextRun.getTime() / 1000)}:R>` : 'Unknown';
-                const lastRun = job.lastRun ? `<t:${Math.floor(job.lastRun.getTime() / 1000)}:R>` : 'Never';
+                const lastRun = job.completedAt ? `<t:${Math.floor(job.completedAt.getTime() / 1000)}:R>` : 'Never';
                 
                 embed.addFields({
                     name: `Job ${job.id}: ${job.backupName}`,
@@ -592,6 +593,142 @@ export class DiscordBackupCommands {
             await interaction.editReply({
                 content: '❌ An error occurred while retrieving scheduled backups.'
             });
+        }
+    }
+
+    /**
+     * Handle backup list pagination button interactions
+     * @param interaction The button interaction
+     * @param page The page number to display
+     */
+    public async handleBackupListPagination(interaction: ButtonInteraction, page: number): Promise<void> {
+        const guildId = interaction.guildId!;
+        const limit = 10;
+        const offset = (page - 1) * limit;
+
+        try {
+            const backups = await discordBackupService.getGuildBackups(guildId, limit + offset);
+            const pageBackups = backups.slice(offset, offset + limit);
+
+            if (pageBackups.length === 0) {
+                await interaction.update({
+                    content: '📋 No more backups found.',
+                    embeds: [],
+                    components: []
+                });
+                return;
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle('📋 Server Backups')
+                .setDescription(`Showing page ${page} of server backups`)
+                .setColor(0x0099ff)
+                .setTimestamp();
+
+            for (const backup of pageBackups) {
+                const statusEmoji = {
+                    'completed': '✅',
+                    'in_progress': '⏳',
+                    'failed': '❌'
+                }[backup.status] || '❓';
+
+                const createdAt = new Date(backup.createdAt).toLocaleString();
+                const completedAt = backup.completedAt ? new Date(backup.completedAt).toLocaleString() : 'N/A';
+
+                embed.addFields({
+                    name: `${statusEmoji} ${backup.backupName}`,
+                    value: [
+                        `**ID:** ${backup.id}`,
+                        `**Status:** ${backup.status}`,
+                        `**Type:** ${backup.backupType}`,
+                        `**Created:** ${createdAt}`,
+                        `**Completed:** ${completedAt}`,
+                        `**Roles:** ${backup.roleCount || 0} | **Channels:** ${backup.channelCount || 0} | **Messages:** ${backup.messageCount || 0}`
+                    ].join('\n'),
+                    inline: false
+                });
+            }
+
+            // Add navigation buttons if there are more pages
+            const components = [];
+            if (backups.length > limit) {
+                const row = new ActionRowBuilder<ButtonBuilder>()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`backup_list_${Math.max(1, page - 1)}`)
+                            .setLabel('Previous')
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(page === 1),
+                        new ButtonBuilder()
+                            .setCustomId(`backup_list_${page + 1}`)
+                            .setLabel('Next')
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(backups.length <= offset + limit)
+                    );
+                components.push(row);
+            }
+
+            await interaction.update({
+                embeds: [embed],
+                components
+            });
+        } catch (error: any) {
+            console.error('Error handling backup list pagination:', error);
+            await interaction.update({
+                content: '❌ An error occurred while updating the backup list.',
+                embeds: [],
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Handle backup delete confirmation button interactions
+     * @param interaction The button interaction
+     * @param backupId The backup ID to delete
+     */
+    public async handleBackupDeleteConfirmation(interaction: ButtonInteraction, backupId: number): Promise<void> {
+        const guildId = interaction.guildId!;
+
+        try {
+            await interaction.deferUpdate();
+
+            const success = await discordBackupService.deleteBackup(backupId, guildId);
+
+            if (success) {
+                const embed = new EmbedBuilder()
+                    .setTitle('✅ Backup Deleted Successfully')
+                    .setDescription(`Backup #${backupId} has been permanently deleted.`)
+                    .setColor(0x00ff00)
+                    .setTimestamp();
+
+                await interaction.editReply({
+                    embeds: [embed],
+                    components: []
+                });
+            } else {
+                const embed = new EmbedBuilder()
+                    .setTitle('❌ Backup Deletion Failed')
+                    .setDescription(`Failed to delete backup #${backupId}. The backup may not exist or you may not have permission to delete it.`)
+                    .setColor(0xff0000)
+                    .setTimestamp();
+
+                await interaction.editReply({
+                    embeds: [embed],
+                    components: []
+                });
+            }
+        } catch (error: any) {
+            console.error('Error handling backup delete confirmation:', error);
+            try {
+                await interaction.editReply({
+                    content: '❌ An error occurred while deleting the backup.',
+                    embeds: [],
+                    components: []
+                });
+            } catch (editError) {
+                console.error('Failed to edit reply:', editError);
+            }
         }
     }
 

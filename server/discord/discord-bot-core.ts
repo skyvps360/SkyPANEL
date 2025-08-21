@@ -366,6 +366,37 @@ export class DiscordBotCore {
                 }
             }
 
+            // Backup buttons
+            if (customId.startsWith('backup_list_')) {
+                // Handle backup list pagination
+                const page = parseInt(customId.replace('backup_list_', ''));
+                if (!isNaN(page) && this.backupService) {
+                    const { discordBackupCommands } = await import('./discord-backup-commands');
+                    await discordBackupCommands.handleBackupListPagination(interaction, page);
+                }
+                return;
+            }
+
+            if (customId.startsWith('backup_delete_confirm_')) {
+                // Handle backup delete confirmation
+                const backupId = parseInt(customId.replace('backup_delete_confirm_', ''));
+                if (!isNaN(backupId) && this.backupService) {
+                    const { discordBackupCommands } = await import('./discord-backup-commands');
+                    await discordBackupCommands.handleBackupDeleteConfirmation(interaction, backupId);
+                }
+                return;
+            }
+
+            if (customId === 'backup_delete_cancel') {
+                // Handle backup delete cancellation
+                await interaction.update({
+                    content: '❌ Backup deletion cancelled.',
+                    embeds: [],
+                    components: []
+                });
+                return;
+            }
+
             // Verification button
             if (customId === 'verify_user') {
                 await discordVerificationService.handleVerificationButton(interaction);

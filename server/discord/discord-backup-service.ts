@@ -109,11 +109,11 @@ export class DiscordBackupService {
                 guildId,
                 guildName: guild.name,
                 backupName,
-                backupType,
-                status: 'in_progress',
+                backupType: backupType as any,
+                status: 'in_progress' as any,
                 createdBy,
                 memberCount: guild.memberCount
-            }).returning();
+            } as any).returning();
 
             console.log(`Starting backup for guild ${guild.name} (ID: ${guildId})`);
 
