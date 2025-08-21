@@ -140,12 +140,12 @@ export class DiscordBackupService {
                 // Update backup as completed
                 await db.update(discordServerBackups)
                     .set({
-                        status: 'completed',
+                        status: 'completed' as any,
                         roleCount,
                         channelCount,
                         messageCount,
                         completedAt: new Date()
-                    })
+                    } as any)
                     .where(eq(discordServerBackups.id, backup.id));
 
                 console.log(`✅ Backup completed for guild ${guild.name}`);
@@ -155,10 +155,10 @@ export class DiscordBackupService {
                 // Mark backup as failed
                 await db.update(discordServerBackups)
                     .set({
-                        status: 'failed',
+                        status: 'failed' as any,
                         errorLog: error.message,
                         completedAt: new Date()
-                    })
+                    } as any)
                     .where(eq(discordServerBackups.id, backup.id));
 
                 throw error;
