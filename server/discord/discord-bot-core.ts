@@ -185,6 +185,11 @@ export class DiscordBotCore {
                     else if (this.moderationService.isModerationCommand(interaction.commandName)) {
                         await this.moderationService.handleModerationCommand(interaction);
                     }
+                    // Handle backup commands
+                    else if (interaction.commandName === 'backup') {
+                        const { discordBackupCommands } = await import('./discord-backup-commands');
+                        await discordBackupCommands.handleBackupCommand(interaction);
+                    }
                     // Handle ticket commands (require thread context)
                     else {
                         await this.commandHandler.handleCommand(interaction);
