@@ -2270,7 +2270,7 @@ export default function ServerDetailPage() {
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-secondary/10 to-secondary/5 flex items-center justify-center">
-                      <Settings className="h-6 w-6 text-secondary-foreground" />
+                      <Settings className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <CardTitle>Quick Actions</CardTitle>
