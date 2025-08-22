@@ -277,7 +277,7 @@ function formatAdminTransactionsPdf(
   };
   
   doc.text('Date', cols.date, y, { width: colWidths.date });
-  doc.text('Client', cols.client, y, { width: colWidths.client });
+  doc.text('Client ID', cols.client, y, { width: colWidths.client });
   doc.text('Description', cols.description, y, { width: colWidths.description });
   doc.text('Payment Method', cols.payment, y, { width: colWidths.payment });
   doc.text('Amount', cols.amount, y, { width: colWidths.amount, align: 'right' });
@@ -299,9 +299,9 @@ function formatAdminTransactionsPdf(
       // Add table headers to new page with consistent positioning
       doc.font('Helvetica-Bold').fontSize(12);
       doc.text('Date', cols.date, y, { width: colWidths.date });
-      doc.text('Client', cols.client, y, { width: colWidths.client });
+      doc.text('Client ID', cols.client, y, { width: colWidths.client });
       doc.text('Description', cols.description, y, { width: colWidths.description });
-      doc.text('Payment Method', cols.payment, y, { width: colWidths.payment });
+      doc.text('Method', cols.payment, y, { width: colWidths.payment });
       doc.text('Amount', cols.amount, y, { width: colWidths.amount, align: 'right' });
       
       // Add header underline
@@ -313,14 +313,14 @@ function formatAdminTransactionsPdf(
     }
     
     const date = new Date(transaction.createdAt).toLocaleDateString();
-    const clientName = transaction.user ? (transaction.user.username || transaction.user.email) : 'Unknown';
+    const clientId = transaction.user ? `ID: ${transaction.user.id}` : 'Unknown';
     const description = formatTransactionDescriptionForPdf(transaction.description);
     const paymentMethod = formatPaymentMethodForPdf(transaction.paymentMethod);
     const amount = `$${transaction.amount.toFixed(5)}`;
     
     // Use consistent column positioning with proper text wrapping
     doc.text(date, cols.date, y, { width: colWidths.date, ellipsis: true });
-    doc.text(clientName, cols.client, y, { width: colWidths.client, ellipsis: true });
+    doc.text(clientId, cols.client, y, { width: colWidths.client, ellipsis: true });
     doc.text(description, cols.description, y, { width: colWidths.description, ellipsis: true });
     doc.text(paymentMethod, cols.payment, y, { width: colWidths.payment, ellipsis: true });
     doc.text(amount, cols.amount, y, { width: colWidths.amount, align: 'right' });
