@@ -2371,7 +2371,7 @@ export default function ServerDetailPage() {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid grid-cols-3 lg:grid-cols-7 h-auto bg-muted/30">
+                  <TabsList className="grid grid-cols-3 lg:grid-cols-7 h-auto bg-muted/30 mb-6">
                     <TabsTrigger value="overview" className="data-[state=active]:bg-background">
                       <BarChart3 className="h-4 w-4 mr-2" />
                       Overview
@@ -2402,9 +2402,9 @@ export default function ServerDetailPage() {
                     </TabsTrigger>
                   </TabsList>
                   
-                  <div className="mt-6">
+                  <div className="relative">
               {/* Overview Tab */}
-              <TabsContent value="overview" className="space-y-6">
+              <TabsContent value="overview" className="space-y-6 pt-0">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* General Information */}
                   <Card className="lg:col-span-2 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
@@ -2767,7 +2767,7 @@ export default function ServerDetailPage() {
               </TabsContent>
 
             {/* Specifications Tab */}
-            <TabsContent value="specs" className="space-y-4">
+            <TabsContent value="specs" className="space-y-4 pt-0">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col items-center justify-center p-6 border rounded-lg bg-card text-card-foreground hover:bg-accent/10 transition-colors">
                   <Cpu className="h-12 w-12 text-primary mb-2" />
@@ -3001,7 +3001,7 @@ export default function ServerDetailPage() {
             </TabsContent>
 
             {/* Network Tab */}
-            <TabsContent value="network" className="space-y-4">
+            <TabsContent value="network" className="space-y-4 pt-0">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -3512,13 +3512,13 @@ export default function ServerDetailPage() {
             </TabsContent>
 
             {/* Traffic Tab */}
-            <TabsContent value="traffic" className="space-y-4">
+            <TabsContent value="traffic" className="space-y-4 pt-0">
               {/* Add Traffic tab query */}
               <TrafficTab serverId={serverId} />
             </TabsContent>
 
             {/* Storage Tab */}
-            <TabsContent value="storage" className="space-y-4">
+            <TabsContent value="storage" className="space-y-4 pt-0">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -3791,12 +3791,12 @@ export default function ServerDetailPage() {
             </TabsContent>
 
             {/* Notes Tab */}
-            <TabsContent value="notes" className="space-y-4">
+            <TabsContent value="notes" className="space-y-4 pt-0">
               <NotesTab serverId={serverId} />
             </TabsContent>
 
             {/* Console Tab */}
-            <TabsContent value="vnc" className="space-y-4">
+            <TabsContent value="vnc" className="space-y-4 pt-0">
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
