@@ -5336,6 +5336,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download all transactions as PDF (Admin)
+  app.get("/api/admin/transactions/download/all", isAdmin, async (req, res) => {
+    try {
+      const transactions = await storage.getAllTransactions();
+      
+      if (!transactions || transactions.length === 0) {
+        return res.status(404).json({ message: 'No transactions found' });
+      }
+
+      // Get branding settings
+      const brandingSettings = await storage.getBrandingSettings();
+      const companyName = brandingSettings.company_name || 'SkyPANEL';
+      const companyLogo = brandingSettings.logo_url || null;
+
+      // Create PDF
+      const doc = new PDFDocument({ margin: 50 });
+
+      // Set response headers
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=all-transactions.pdf');
+
+      // Pipe PDF to response
+      doc.pipe(res);
+
+      // Format PDF - use admin user for header
+      const adminUser = req.user;
+      formatTransactionsPdf(doc, transactions, adminUser, companyName, companyLogo);
+
+      // Finalize PDF
+      doc.end();
+    } catch (error: any) {
+      console.error('Error generating admin transactions PDF:', error);
+      return res.status(500).json({ message: 'An error occurred while generating the transactions PDF' });
+    }
+  });
+
+  // Download filtered transactions as PDF (Admin)
+  app.get("/api/admin/transactions/download/filtered", isAdmin, async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+
+      // Validate dates
+      if (!startDate || !endDate) {
+        return res.status(400).json({ message: 'Start date and end date are required' });
+      }
+
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({ message: 'Invalid date format' });
+      }
+
+      // Add time to end date to include transactions from the entire end day
+      end.setHours(23, 59, 59, 999);
+
+      // Get all transactions
+      const allTransactions = await storage.getAllTransactions();
+      
+      // Filter transactions by date range
+      const filteredTransactions = allTransactions.filter(transaction => {
+        const transactionDate = new Date(transaction.createdAt);
+        return transactionDate >= start && transactionDate <= end;
+      });
+
+      if (!filteredTransactions || filteredTransactions.length === 0) {
+        return res.status(404).json({ message: 'No transactions found for the specified date range' });
+      }
+
+      // Get branding settings
+      const brandingSettings = await storage.getBrandingSettings();
+      const companyName = brandingSettings.company_name || 'SkyPANEL';
+      const companyLogo = brandingSettings.logo_url || null;
+
+      // Create PDF
+      const doc = new PDFDocument({ margin: 50 });
+
+      // Set response headers
+      const formattedStartDate = start.toISOString().split('T')[0];
+      const formattedEndDate = new Date(endDate as string).toISOString().split('T')[0];
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=transactions-${formattedStartDate}-to-${formattedEndDate}.pdf`);
+
+      // Pipe PDF to response
+      doc.pipe(res);
+
+      // Format PDF - use admin user for header
+      const adminUser = req.user;
+      formatTransactionsPdf(doc, filteredTransactions, adminUser, companyName, companyLogo);
+
+      // Finalize PDF
+      doc.end();
+    } catch (error: any) {
+      console.error('Error generating filtered admin transactions PDF:', error);
+      return res.status(500).json({ message: 'An error occurred while generating the filtered transactions PDF' });
+    }
+  });
+
   // Admin billing page data
   app.get("/api/admin/billing", isAdmin, async (req, res) => {
     try {

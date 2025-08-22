@@ -7,10 +7,14 @@ import { DataTable } from "@/components/ui/data-table";
 import type { DataTableColumn } from "@/components/ui/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { Eye, DollarSign, CreditCard, AlertCircle, Receipt, TrendingUp, Activity } from "lucide-react";
+import { Eye, DollarSign, CreditCard, AlertCircle, Receipt, TrendingUp, Activity, Download, CalendarIcon } from "lucide-react";
 import { getBrandColors } from "@/lib/brand-theme";
 import { useToast } from "@/hooks/use-toast";
+import React, { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface Transaction {
   id: number;
@@ -32,6 +36,11 @@ interface Transaction {
 export default function AdminBillingPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  
+  // State for date range selection
+  const [startDate, setStartDate] = useState<Date>();
+  const [endDate, setEndDate] = useState<Date>();
+  const [isDownloading, setIsDownloading] = useState(false);
   
   // Fetch branding data
   const { data: brandingData } = useQuery<{
@@ -62,6 +71,107 @@ export default function AdminBillingPage() {
       return data; // User data is already included from the server
     }
   });
+
+  // Download all transactions
+  const handleDownloadAll = async () => {
+    try {
+      setIsDownloading(true);
+      const response = await fetch('/api/admin/transactions/download/all');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to download transactions');
+      }
+      
+      // Create blob and download file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'all-transactions.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: "All transactions downloaded successfully",
+      });
+    } catch (error: any) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download transactions",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Download filtered transactions by date range
+  const handleDownloadFiltered = async () => {
+    if (!startDate || !endDate) {
+      toast({
+        title: "Error",
+        description: "Please select both start and end dates",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (startDate > endDate) {
+      toast({
+        title: "Error", 
+        description: "Start date must be before end date",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+      const params = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+      
+      const response = await fetch(`/api/admin/transactions/download/filtered?${params}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to download transactions');
+      }
+      
+      // Create blob and download file
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const startStr = format(startDate, 'yyyy-MM-dd');
+      const endStr = format(endDate, 'yyyy-MM-dd');
+      a.download = `transactions-${startStr}-to-${endStr}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: `Transactions from ${startStr} to ${endStr} downloaded successfully`,
+      });
+    } catch (error: any) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to download filtered transactions",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const transactionColumns: DataTableColumn<Transaction>[] = [
     {
@@ -353,21 +463,103 @@ export default function AdminBillingPage() {
         {/* Enhanced Transaction History Card */}
         <Card className="bg-card border border-border shadow-sm overflow-hidden">
           <CardHeader className="border-b border-border px-6 py-4">
-            <div className="flex items-center space-x-3">
-              <div
-                className="h-10 w-10 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
-              >
-                <Receipt
-                  className="h-5 w-5"
-                  style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
-                />
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+              <div className="flex items-center space-x-3">
+                <div
+                  className="h-10 w-10 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: `var(--brand-primary-lighter, ${brandColors.primary.lighter})` }}
+                >
+                  <Receipt
+                    className="h-5 w-5"
+                    style={{ color: `var(--brand-primary, ${brandColors.primary.full})` }}
+                  />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold text-foreground">Transaction History</CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    View all VirtFusion token transactions across all users. Search by username, email, ID, or description.
+                  </CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-lg font-semibold text-foreground">Transaction History</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  View all VirtFusion token transactions across all users. Search by username, email, ID, or description.
-                </CardDescription>
+              
+              {/* Download Controls */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+                {/* Download All Button */}
+                <Button
+                  onClick={handleDownloadAll}
+                  disabled={isDownloading}
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {isDownloading ? "Downloading..." : "Download All"}
+                </Button>
+                
+                {/* Date Range Selector */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                  {/* Start Date */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "w-full sm:w-[140px] justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "MMM dd, yyyy") : "Start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  {/* End Date */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "w-full sm:w-[140px] justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "MMM dd, yyyy") : "End date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  
+                  {/* Download Filtered Button */}
+                  <Button
+                    onClick={handleDownloadFiltered}
+                    disabled={isDownloading || !startDate || !endDate}
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    style={{ backgroundColor: `var(--brand-primary, ${brandColors.primary.full})` }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {isDownloading ? "Downloading..." : "Download Range"}
+                  </Button>
+                </div>
               </div>
             </div>
           </CardHeader>
