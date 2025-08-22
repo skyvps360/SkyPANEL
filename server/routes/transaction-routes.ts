@@ -228,35 +228,57 @@ function formatAdminTransactionsPdf(
     doc.fontSize(24).text(companyName || 'SkyPANEL', 50, 50);
   }
   
-  // Add report header
-  doc.fontSize(20).text('ALL CLIENTS TRANSACTION REPORT', 50, companyLogo ? 130 : 100);
-  doc.moveDown(2);
+  // Add report header with proper centering
+  doc.fontSize(22).font('Helvetica-Bold');
+  const headerText = 'ALL CLIENTS TRANSACTION REPORT';
+  const headerWidth = doc.widthOfString(headerText);
+  const centerX = (doc.page.width - headerWidth) / 2;
+  doc.text(headerText, centerX, companyLogo ? 130 : 100);
   
-  // Add report details with better spacing
-  doc.fontSize(12);
-  let detailsY = companyLogo ? 170 : 140;
+  // Add spacing after header
+  doc.moveDown(3);
+  
+  // Add report details with consistent alignment
+  doc.fontSize(12).font('Helvetica');
+  let detailsY = companyLogo ? 180 : 150;
+  
+  // Create a details box with proper alignment
   doc.font('Helvetica-Bold').text('Report Generated:', 50, detailsY);
-  doc.font('Helvetica').text(new Date().toLocaleDateString(), 160, detailsY);
+  doc.font('Helvetica').text(new Date().toLocaleDateString(), 180, detailsY);
   
-  detailsY += 20;
+  detailsY += 25;
   doc.font('Helvetica-Bold').text('Total Transactions:', 50, detailsY);
-  doc.font('Helvetica').text(transactions.length.toString(), 160, detailsY);
+  doc.font('Helvetica').text(transactions.length.toString(), 180, detailsY);
   
-  // Add table headers with improved spacing and layout
-  let y = companyLogo ? 230 : 200;
-  doc.font('Helvetica-Bold').fontSize(11);
-  doc.text('Date', 50, y);
-  doc.text('Client', 130, y);
-  doc.text('Description', 240, y);
-  doc.text('Payment Method', 420, y);
-  doc.text('Amount', 500, y, { align: 'right' });
+  // Add separator line after details
+  detailsY += 35;
+  doc.moveTo(50, detailsY).lineTo(550, detailsY).lineWidth(0.5).stroke();
   
-  // Add line
+  // Add table headers with proper alignment and spacing
+  let y = detailsY + 25;
+  doc.font('Helvetica-Bold').fontSize(12);
+  
+  // Define column positions for consistent alignment
+  const cols = {
+    date: 50,
+    client: 140,
+    description: 260,
+    payment: 440,
+    amount: 520
+  };
+  
+  doc.text('Date', cols.date, y);
+  doc.text('Client', cols.client, y);
+  doc.text('Description', cols.description, y);
+  doc.text('Payment Method', cols.payment, y);
+  doc.text('Amount', cols.amount, y, { align: 'right' });
+  
+  // Add header underline
   y += 20;
-  doc.moveTo(50, y).lineTo(550, y).stroke();
-  y += 10;
+  doc.moveTo(50, y).lineTo(550, y).lineWidth(1).stroke();
+  y += 15;
   
-  // Add transactions with improved spacing
+  // Add transactions with consistent alignment
   doc.font('Helvetica').fontSize(10);
   
   transactions.forEach((transaction, i) => {
@@ -265,17 +287,17 @@ function formatAdminTransactionsPdf(
       doc.addPage();
       y = 50;
       
-      // Add table headers to new page
-      doc.font('Helvetica-Bold').fontSize(11);
-      doc.text('Date', 50, y);
-      doc.text('Client', 130, y);
-      doc.text('Description', 240, y);
-      doc.text('Payment Method', 420, y);
-      doc.text('Amount', 500, y, { align: 'right' });
+      // Add table headers to new page with consistent positioning
+      doc.font('Helvetica-Bold').fontSize(12);
+      doc.text('Date', cols.date, y);
+      doc.text('Client', cols.client, y);
+      doc.text('Description', cols.description, y);
+      doc.text('Payment Method', cols.payment, y);
+      doc.text('Amount', cols.amount, y, { align: 'right' });
       
-      // Add line
+      // Add header underline
       y += 20;
-      doc.moveTo(50, y).lineTo(550, y).stroke();
+      doc.moveTo(50, y).lineTo(550, y).lineWidth(1).stroke();
       y += 15;
       
       doc.font('Helvetica').fontSize(10);
@@ -287,34 +309,45 @@ function formatAdminTransactionsPdf(
     const paymentMethod = formatPaymentMethodForPdf(transaction.paymentMethod);
     const amount = `$${transaction.amount.toFixed(5)}`;
     
-    doc.text(date, 50, y);
-    doc.text(clientName, 130, y, { width: 100 });
-    doc.text(description, 240, y, { width: 170 });
-    doc.text(paymentMethod, 420, y, { width: 70 });
-    doc.text(amount, 500, y, { align: 'right' });
+    // Use consistent column positioning with proper text wrapping
+    doc.text(date, cols.date, y, { width: 80 });
+    doc.text(clientName, cols.client, y, { width: 110, ellipsis: true });
+    doc.text(description, cols.description, y, { width: 170, ellipsis: true });
+    doc.text(paymentMethod, cols.payment, y, { width: 70, ellipsis: true });
+    doc.text(amount, cols.amount, y, { align: 'right', width: 80 });
     
-    y += 25;
+    y += 20;
     
-    // Add a light line between transactions with better spacing
+    // Add subtle separator line between transactions
     if (i < transactions.length - 1) {
-      doc.moveTo(50, y - 10).lineTo(550, y - 10).lineWidth(0.3).stroke();
+      doc.moveTo(50, y + 2).lineTo(550, y + 2).lineWidth(0.2).strokeColor('#E0E0E0').stroke().strokeColor('#000000');
+      y += 8;
     }
   });
   
-  // Add total with better spacing
-  y += 15;
-  doc.moveTo(50, y).lineTo(550, y).lineWidth(1).stroke();
-  y += 25;
+  // Add total section with proper spacing and alignment
+  y += 20;
+  doc.moveTo(50, y).lineTo(550, y).lineWidth(1.5).stroke();
+  y += 20;
   
   const total = transactions.reduce((sum, t) => sum + t.amount, 0);
   
-  doc.font('Helvetica-Bold').fontSize(12);
-  doc.text('Total', 420, y);
-  doc.text(`$${total.toFixed(5)}`, 500, y, { align: 'right' });
+  // Create a highlighted total section
+  doc.font('Helvetica-Bold').fontSize(14);
+  doc.text('TOTAL AMOUNT:', cols.payment, y);
+  doc.text(`$${total.toFixed(5)}`, cols.amount, y, { align: 'right', width: 80 });
   
-  // Add footer with proper positioning
-  const footerY = Math.max(y + 50, 720);
-  doc.fontSize(10).text(`Generated by ${companyName || 'SkyPANEL'} Admin Panel`, 50, footerY);
+  // Add final separator line
+  y += 25;
+  doc.moveTo(50, y).lineTo(550, y).lineWidth(1.5).stroke();
+  
+  // Add footer with proper positioning and styling
+  const footerY = Math.max(y + 40, 720);
+  doc.fontSize(9).font('Helvetica');
+  const footerText = `Generated by ${companyName || 'SkyPANEL'} Admin Panel on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
+  const footerWidth = doc.widthOfString(footerText);
+  const footerCenterX = (doc.page.width - footerWidth) / 2;
+  doc.text(footerText, footerCenterX, footerY);
 }
 
 // Get user credits
