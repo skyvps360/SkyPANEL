@@ -5378,18 +5378,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create PDF
       const doc = new PDFDocument({ margin: 50 });
 
-      // Set response headers
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=all-transactions.pdf');
-
-      // Pipe PDF to response
-      doc.pipe(res);
+      // Buffer to store PDF data
+      let buffers: Buffer[] = [];
+      doc.on('data', buffers.push.bind(buffers));
 
       // Format PDF for admin report with all clients
       formatAdminTransactionsPdf(doc, transactionsWithUserData, companyName, companyLogo);
 
       // Finalize PDF
       doc.end();
+
+      // Generate a promise from the events
+      const pdfPromise = new Promise<Buffer>((resolve) => {
+        doc.on('end', () => {
+          const pdfData = Buffer.concat(buffers);
+          resolve(pdfData);
+        });
+      });
+
+      // Get the completed PDF data
+      const pdfBuffer = await pdfPromise;
+
+      // Set response headers
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=all-transactions.pdf');
+
+      // Send the PDF content
+      res.send(pdfBuffer);
     } catch (error: any) {
       console.error('Error generating admin transactions PDF:', error);
       return res.status(500).json({ message: 'An error occurred while generating the transactions PDF' });
@@ -5462,20 +5477,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create PDF
       const doc = new PDFDocument({ margin: 50 });
 
-      // Set response headers
-      const formattedStartDate = start.toISOString().split('T')[0];
-      const formattedEndDate = new Date(endDate as string).toISOString().split('T')[0];
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename=transactions-${formattedStartDate}-to-${formattedEndDate}.pdf`);
-
-      // Pipe PDF to response
-      doc.pipe(res);
+      // Buffer to store PDF data
+      let buffers: Buffer[] = [];
+      doc.on('data', buffers.push.bind(buffers));
 
       // Format PDF for admin report with all clients
       formatAdminTransactionsPdf(doc, filteredTransactionsWithUserData, companyName, companyLogo);
 
       // Finalize PDF
       doc.end();
+
+      // Generate a promise from the events
+      const pdfPromise = new Promise<Buffer>((resolve) => {
+        doc.on('end', () => {
+          const pdfData = Buffer.concat(buffers);
+          resolve(pdfData);
+        });
+      });
+
+      // Get the completed PDF data
+      const pdfBuffer = await pdfPromise;
+
+      // Set response headers
+      const formattedStartDate = start.toISOString().split('T')[0];
+      const formattedEndDate = new Date(endDate as string).toISOString().split('T')[0];
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=transactions-${formattedStartDate}-to-${formattedEndDate}.pdf`);
+
+      // Send the PDF content
+      res.send(pdfBuffer);
     } catch (error: any) {
       console.error('Error generating filtered admin transactions PDF:', error);
       return res.status(500).json({ message: 'An error occurred while generating the filtered transactions PDF' });
