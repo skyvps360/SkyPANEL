@@ -899,7 +899,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const page = parseInt(req.query.page as string) || 1;
       const perPage = parseInt(req.query.perPage as string) || 10;
 
-
+      // Helper function to map server status consistently
+      const mapServerStatus = (state: string) => {
+        if (!state) return 'unknown';
+        const normalizedState = state.toLowerCase();
+        if (normalizedState === 'running') return 'running';
+        if (normalizedState === 'stopped') return 'stopped';
+        if (normalizedState === 'complete') return 'running'; // VirtFusion uses 'complete' for running servers
+        return normalizedState;
+      };
 
       // Get user to find their VirtFusion ID
       const user = await storage.getUser(userId);
@@ -1141,7 +1149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 network: networkInfo,
                 hypervisorId: server.hypervisorId || null,
                 isNat: isNat,
-                status: server.state?.name || server.state || server.status || "Unknown",
+                status: mapServerStatus(server.state?.name || server.state || server.status || "Unknown"),
                 os: server.os?.name || "Unknown",
                 package: server.package?.name || "Unknown",
                 packageCategory: packageCategory,
@@ -1219,6 +1227,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid server ID" });
       }
 
+      // Helper function to map server status consistently
+      const mapServerStatus = (state: string) => {
+        if (!state) return 'unknown';
+        const normalizedState = state.toLowerCase();
+        if (normalizedState === 'running') return 'running';
+        if (normalizedState === 'stopped') return 'stopped';
+        if (normalizedState === 'complete') return 'running'; // VirtFusion uses 'complete' for running servers
+        return normalizedState;
+      };
+
       
 
       // Get user to find their VirtFusion ID
@@ -1257,12 +1275,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transformedServer = {
         ...server,
         // Add our own status mapping for consistency
-        status: server.data?.state || server.data?.status || server.status || 'unknown',
+        status: mapServerStatus(server.data?.state || server.data?.status || server.status || 'unknown'),
         // Ensure we have the VirtFusion data structure
         data: server.data ? {
           ...server.data,
           // Normalize the state field for client consistency
-          state: server.data.state || server.data.status || 'unknown'
+          state: mapServerStatus(server.data.state || server.data.status || 'unknown')
         } : null
       };
 
@@ -4568,13 +4586,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
               const allIps = [...ipv4s.map(ip => ({ ...ip, type: 'ipv4' })), ...formattedIpv6s];
 
-              // Format server data
+              // Format server data with proper status mapping
+              const mapServerStatus = (state: string) => {
+                if (!state) return 'unknown';
+                const normalizedState = state.toLowerCase();
+                if (normalizedState === 'running') return 'running';
+                if (normalizedState === 'stopped') return 'stopped';
+                if (normalizedState === 'complete') return 'running'; // VirtFusion uses 'complete' for running servers
+                return normalizedState;
+              };
+
               server = {
                 id: serverData.data.id,
                 name: serverData.data.name,
                 hostname: serverData.data.hostname,
                 ip: ipv4s[0]?.address,
-                status: serverData.data.state,
+                status: mapServerStatus(serverData.data.state),
                 isNat: networkInterface.isNat || false,
                 hypervisorId: serverData.data.hypervisorId,
                 allIps,
