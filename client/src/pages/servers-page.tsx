@@ -24,73 +24,104 @@ import {
 
 // OS Icon Components
 const UbuntuIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#E95420">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm7.5 12c0 .9-.15 1.77-.43 2.58l-2.24-1.3c.12-.41.17-.84.17-1.28 0-.44-.05-.87-.17-1.28l2.24-1.3c.28.81.43 1.68.43 2.58zm-7.5-7.5c.9 0 1.77.15 2.58.43l-1.3 2.24c-.41-.12-.84-.17-1.28-.17s-.87.05-1.28.17l-1.3-2.24C10.23 4.65 11.1 4.5 12 4.5zm0 15c-.9 0-1.77-.15-2.58-.43l1.3-2.24c.41.12.84.17 1.28.17s.87-.05 1.28-.17l1.3 2.24c-.81.28-1.68.43-2.58.43zm-7.5-7.5c0-.9.15-1.77.43-2.58l2.24 1.3c-.12.41-.17.84-.17 1.28 0 .44.05.87.17 1.28l-2.24 1.3C4.65 13.77 4.5 12.9 4.5 12z"/>
-    <circle cx="6" cy="12" r="2"/>
-    <circle cx="18" cy="12" r="2"/>
-    <circle cx="12" cy="6" r="2"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="11" fill="#E95420" />
+    <circle cx="12" cy="6" r="2" fill="white" />
+    <circle cx="6" cy="15" r="2" fill="white" />
+    <circle cx="18" cy="15" r="2" fill="white" />
+    <path d="M12 8v4M8.5 13.5l3.5-2M15.5 13.5l-3.5-2" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
   </svg>
 );
 
 const DebianIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#A81D33">
-    <path d="M12.515 0.004c-0.322 0.002-0.64 0.014-0.954 0.035 0.314-0.021 0.632-0.033 0.954-0.035zm0.954 0.035c2.89 0.19 5.49 1.51 7.38 3.64-1.89-2.13-4.49-3.45-7.38-3.64zm7.38 3.64c1.85 2.07 2.98 4.78 3.15 7.76-0.17-2.98-1.3-5.69-3.15-7.76zm3.15 7.76c0.02 0.2 0.02 0.4 0.02 0.6 0-0.2 0-0.4-0.02-0.6zm0.02 0.6c0 6.63-5.37 12-12 12s-12-5.37-12-12 5.37-12 12-12c0.2 0 0.4 0 0.6 0.02-0.2-0.02-0.4-0.02-0.6-0.02zm-12 12c-2.98-0.17-5.69-1.3-7.76-3.15 2.07 1.85 4.78 2.98 7.76 3.15zm-7.76-3.15c-2.13-1.89-3.45-4.49-3.64-7.38 0.19 2.89 1.51 5.49 3.64 7.38zm-3.64-7.38c-0.021-0.314-0.033-0.632-0.035-0.954 0.002 0.322 0.014 0.64 0.035 0.954z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10c1.19 0 2.34-.21 3.41-.6-.32-.15-.62-.33-.9-.54-1.4.45-2.9.14-3.51-1.86 0 0-.5-1.5-2-1.5s-2.5 1-3.5 0c-.5-.5-.5-1.5 0-2s1.5-1 2.5-1 2 .5 2.5 1.5c.3.6.7 1 1.2 1.2.8-.4 1.3-1.2 1.3-2.2 0-1.3-1.1-2.4-2.4-2.4-.7 0-1.3.3-1.8.7-.2-.3-.3-.7-.3-1.1 0-.8.4-1.5 1-2 .3-.2.6-.3 1-.3.8 0 1.5.7 1.5 1.5 0 .4-.2.8-.5 1 .4.2.7.6.7 1.1 0 .7-.6 1.3-1.3 1.3-.4 0-.7-.2-1-.4-.1.2-.1.4-.1.6 0 .9.7 1.6 1.6 1.6.5 0 .9-.2 1.2-.6.2.1.4.1.6.1.8 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.5-1.1.6-.4 1-.9 1.3-1.6C21.79 14.34 22 13.19 22 12c0-5.52-4.48-10-10-10z" fill="#A81D33" />
   </svg>
 );
 
 const CentOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#932279">
-    <path d="M12 0L8.5 3.5L12 7L15.5 3.5L12 0zM3.5 8.5L0 12L3.5 15.5L7 12L3.5 8.5zM20.5 8.5L17 12L20.5 15.5L24 12L20.5 8.5zM8.5 20.5L12 24L15.5 20.5L12 17L8.5 20.5zM12 8.5L8.5 12L12 15.5L15.5 12L12 8.5z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="10" fill="#932279" />
+    <path d="M7 12l3-3h4l3 3-3 3h-4z" fill="white" />
+    <circle cx="12" cy="12" r="2" fill="#932279" />
+    <path d="M12 7v2M17 12h-2M12 17v-2M7 12h2" stroke="white" strokeWidth="1" />
   </svg>
 );
 
 const RockyLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#10B981">
-    <path d="M12 2L4 6v12l8 4 8-4V6l-8-4zm0 2.5l6 3v9l-6 3-6-3v-9l6-3zm-3 4.5v6l3-1.5 3 1.5V9l-3 1.5L9 9z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <path d="M3 20h18L12 4z" fill="#10B981" />
+    <path d="M7 17h10l-5-8z" fill="white" />
+    <path d="M9 15h6l-3-5z" fill="#10B981" />
+    <circle cx="12" cy="18" r="1" fill="#10B981" />
   </svg>
 );
 
 const AlmaLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#FF6B35">
-    <path d="M12 2L3 7v10l9 5 9-5V7l-9-5zm0 2.5L18.5 8v8L12 19.5 5.5 16V8L12 4.5zM8 10l4 2 4-2v4l-4 2-4-2v-4z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="10" fill="#FF6B35" />
+    <path d="M8 10c0-1 1-2 2-2s2 1 2 2v2c0 1-1 2-2 2s-2-1-2-2v-2z" fill="white" />
+    <path d="M12 10c0-1 1-2 2-2s2 1 2 2v2c0 1-1 2-2 2s-2-1-2-2v-2z" fill="white" />
+    <path d="M9 16c1 1 2 1 3 1s2 0 3-1" stroke="white" strokeWidth="1" fill="none" />
+    <path d="M6 8c2-2 4-2 6 0M12 8c2-2 4-2 6 0" stroke="white" strokeWidth="1" fill="none" />
   </svg>
 );
 
 const FedoraIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#294172">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm8.485 15.515c-2.343 2.343-5.515 3.485-8.485 3.485s-6.142-1.142-8.485-3.485S0 9.485 0 12s1.142 6.142 3.515 8.485S9.515 24 12 24s6.142-1.142 8.485-3.515S24 14.485 24 12s-1.142-6.142-3.515-8.485zm-8.485 3.485c-3.314 0-6-2.686-6-6s2.686-6 6-6 6 2.686 6 6-2.686 6-6 6z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="10" fill="#294172" />
+    <path d="M8 12c0-2.2 1.8-4 4-4v8c-2.2 0-4-1.8-4-4z" fill="white" />
+    <path d="M12 8c2.2 0 4 1.8 4 4s-1.8 4-4 4" stroke="white" strokeWidth="2" fill="none" />
+    <text x="12" y="16" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">f</text>
   </svg>
 );
 
 const WindowsIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#00A1F1">
-    <path d="M0 3.4L9.5 2.2v8.3H0V3.4zm10.5-1.2L24 0v11.5H10.5V2.2zM0 12.5h9.5v8.3L0 19.6v-7.1zm10.5 8.1L24 22V12.5H10.5v8.1z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <path d="M3 5.5l7.5-1v7H3v-6z" fill="#00BCF2" />
+    <path d="M11.5 4.5L21 3v8.5h-9.5V4.5z" fill="#00BCF2" />
+    <path d="M3 12.5h7.5v7L3 18.5v-6z" fill="#00BCF2" />
+    <path d="M11.5 12.5H21V21l-9.5-1.5v-7z" fill="#00BCF2" />
   </svg>
 );
 
 const ArchLinuxIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#1793D1">
-    <path d="M12 0L2.5 22h3.2l1.8-3.6h9l1.8 3.6h3.2L12 0zm0 5.4l3.6 7.2H8.4L12 5.4z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <path d="M12 2l-1.5 3-1 2-1 2-1.5 3-1.5 3-1.5 3h4l1-2 1-2 1-2 1 2 1 2 1 2h4l-1.5-3-1.5-3-1.5-3-1-2-1-2L12 2z" fill="#1793D1" />
+    <path d="M12 6l-2 4h4l-2-4z" fill="white" />
   </svg>
 );
 
 const FreeBSDIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#AB2B28">
-    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.5 6.5c1.5 1.5 2.5 3.5 2.5 5.5 0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8c2 0 3.8.7 5.2 1.8l-1.4 1.4c-1-.8-2.3-1.2-3.8-1.2-3.3 0-6 2.7-6 6s2.7 6 6 6 6-2.7 6-6c0-1.5-.6-2.9-1.5-3.9L18.5 6.5z"/>
-    <circle cx="17" cy="7" r="2" fill="#AB2B28"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="10" fill="#CC0000" />
+    <path d="M8 10c0-1 1-2 2-2 .5 0 1 .2 1.4.6.4-.4.9-.6 1.4-.6 1 0 2 1 2 2v1c0 .5-.2 1-.6 1.4.4.4.6.9.6 1.4 0 1-1 2-2 2-.5 0-1-.2-1.4-.6-.4.4-.9.6-1.4.6-1 0-2-1-2-2 0-.5.2-1 .6-1.4-.4-.4-.6-.9-.6-1.4v-1z" fill="white" />
+    <circle cx="10" cy="9" r="1" fill="#CC0000" />
+    <circle cx="14" cy="9" r="1" fill="#CC0000" />
+    <path d="M10 13c1 1 2 1 4 0" stroke="#CC0000" strokeWidth="1" fill="none" />
   </svg>
 );
 
 const AlpineIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#0D597F">
-    <path d="M12 2L4 12l8 10 8-10-8-10zm0 3.5L17.5 12 12 18.5 6.5 12 12 5.5z"/>
-    <path d="M12 8L8 12l4 4 4-4-4-4z" fill="#0D597F"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <path d="M2 20l4-8 4 8z" fill="#0D597F" />
+    <path d="M8 20l4-12 4 12z" fill="#0D597F" />
+    <path d="M14 20l4-8 4 8z" fill="#0D597F" />
+    <path d="M6 18l2-4 2 4z" fill="white" />
+    <path d="M10 18l2-6 2 6z" fill="white" />
+    <path d="M16 18l2-4 2 4z" fill="white" />
   </svg>
 );
 
 const UnknownOSIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="#6B7280">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="4" width="18" height="14" rx="2" fill="#6B7280" />
+    <rect x="5" y="6" width="14" height="10" rx="1" fill="white" />
+    <rect x="7" y="8" width="10" height="1" fill="#6B7280" />
+    <rect x="7" y="10" width="6" height="1" fill="#6B7280" />
+    <rect x="7" y="12" width="8" height="1" fill="#6B7280" />
+    <circle cx="12" cy="20" r="1" fill="#6B7280" />
+    <rect x="11" y="18" width="2" height="2" fill="#6B7280" />
   </svg>
 );
 
