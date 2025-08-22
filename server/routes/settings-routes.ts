@@ -148,7 +148,18 @@ router.delete('/:key', async (req, res) => {
   }
 });
 
-// Get branding settings
+// Get branding settings (public endpoint)
+router.get('/branding', async (req, res) => {
+  try {
+    const brandingSettings = await storage.getBrandingSettings();
+    return res.json(brandingSettings);
+  } catch (error: any) {
+    console.error('Error getting branding settings:', error);
+    return res.status(500).json({ message: 'An error occurred while getting branding settings' });
+  }
+});
+
+// Get branding settings (admin endpoint)
 router.get('/branding/all', async (req, res) => {
   try {
     const brandingSettings = await storage.getBrandingSettings();

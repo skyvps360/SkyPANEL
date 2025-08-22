@@ -223,6 +223,8 @@ export interface IStorage {
   upsertSetting(key: string, value: string): Promise<void>;
   saveOrUpdateSetting(key: string, value: string): Promise<void>;
   deleteSetting(key: string): Promise<void>;
+  getBrandingSettings(): Promise<Record<string, string>>;
+  updateBrandingSettings(settings: Record<string, string>): Promise<void>;
   getCustomCreditsName(): Promise<string>;
 
   // Admin operations
@@ -351,16 +353,6 @@ export interface IStorage {
   createTeamMember(member: InsertTeamMember): Promise<TeamMember>;
   updateTeamMember(id: number, updates: Partial<TeamMember>): Promise<void>;
   deleteTeamMember(id: number): Promise<void>;
-
-
-
-
-
-
-
-
-
-
 
   // Unified support department operations
   createSupportDepartment(department: InsertSupportDepartment): Promise<SupportDepartment>;
@@ -1091,7 +1083,61 @@ export class DatabaseStorage implements IStorage {
     await db.delete(settings).where(eq(settings.key, key));
   }
 
+  async getBrandingSettings(): Promise<Record<string, string>> {
+    const settings = await this.getAllSettings();
+    // Filter branding-related settings
+    const brandingSettings = settings.filter(setting =>
+      [
+        // Basic branding
+        'company_name', 'company_logo',
+        // Brand colors - new system
+        'primary_color', 'secondary_color', 'accent_color',
+        // Legacy color (for backward compatibility)
+        'company_color',
+        // Loading screen settings
+        'loading_screen_enabled', 'loading_screen_animation_duration',
+        'loading_screen_min_duration', 'loading_screen_show_on_all_pages'
+      ].includes(setting.key)
+    );
 
+    // Convert to object format for easier consumption
+    const brandingObject = brandingSettings.reduce((obj, setting) => {
+      obj[setting.key] = setting.value;
+      return obj;
+    }, {} as Record<string, string>);
+
+    // Add default company name if not set
+    if (!brandingObject.company_name) {
+      brandingObject.company_name = 'VirtFusion';
+    }
+
+    // Set default brand colors if not set
+    if (!brandingObject.primary_color) {
+      brandingObject.primary_color = '2563eb'; // Default blue
+    }
+
+    if (!brandingObject.secondary_color) {
+      brandingObject.secondary_color = '10b981'; // Default green
+    }
+
+    if (!brandingObject.accent_color) {
+      brandingObject.accent_color = 'f59e0b'; // Default amber
+    }
+
+    // For backward compatibility, ensure company_color is set
+    if (!brandingObject.company_color) {
+      brandingObject.company_color = brandingObject.primary_color;
+    }
+
+    return brandingObject;
+  }
+
+  async updateBrandingSettings(settings: Record<string, string>): Promise<void> {
+    // Update each branding setting
+    for (const [key, value] of Object.entries(settings)) {
+      await this.upsertSetting(key, value);
+    }
+  }
 
   /**
    * Get all admin users

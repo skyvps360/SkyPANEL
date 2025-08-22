@@ -44,7 +44,7 @@ import dnsRoutes from "./routes/dns";
 import adminDnsRoutes from "./routes/admin-dns";
 import serverRoutes from "./routes/server-routes";
 import publicSlaRoutes from "./routes/public-sla-routes";
-import transactionRoutes from "./routes/transaction-routes";
+import transactionRoutes, { formatAdminTransactionsPdf } from "./routes/transaction-routes";
 import userRoutes from "./routes/user-routes";
 import settingsRoutes from "./routes/settings-routes";
 import adminSettingsRoutes from "./routes/admin-settings";
@@ -5345,6 +5345,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'No transactions found' });
       }
 
+      // Fetch all unique user IDs from transactions
+      const userIds = [...new Set(transactions.map(t => t.userId))];
+
+      // Get user data for these IDs in one go
+      const users = await storage.getUsersByIds(userIds);
+
+      // Map users by their ID for easier lookup
+      const userMap = users.reduce((acc, user) => {
+        acc[user.id] = user;
+        return acc;
+      }, {} as Record<number, any>);
+
+      // Attach user data to each transaction
+      const transactionsWithUserData = transactions.map(transaction => {
+        const user = userMap[transaction.userId];
+        return {
+          ...transaction,
+          user: user ? {
+            id: user.id,
+            name: user.username || user.fullName || `User #${user.id}`,
+            email: user.email || 'No email available'
+          } : undefined
+        };
+      });
+
       // Get branding settings
       const brandingSettings = await storage.getBrandingSettings();
       const companyName = brandingSettings.company_name || 'SkyPANEL';
@@ -5360,9 +5385,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Pipe PDF to response
       doc.pipe(res);
 
-      // Format PDF - use admin user for header
-      const adminUser = req.user;
-      formatTransactionsPdf(doc, transactions, adminUser, companyName, companyLogo);
+      // Format PDF for admin report with all clients
+      formatAdminTransactionsPdf(doc, transactionsWithUserData, companyName, companyLogo);
 
       // Finalize PDF
       doc.end();
@@ -5405,6 +5429,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'No transactions found for the specified date range' });
       }
 
+      // Fetch all unique user IDs from filtered transactions
+      const userIds = [...new Set(filteredTransactions.map(t => t.userId))];
+
+      // Get user data for these IDs in one go
+      const users = await storage.getUsersByIds(userIds);
+
+      // Map users by their ID for easier lookup
+      const userMap = users.reduce((acc, user) => {
+        acc[user.id] = user;
+        return acc;
+      }, {} as Record<number, any>);
+
+      // Attach user data to each transaction
+      const filteredTransactionsWithUserData = filteredTransactions.map(transaction => {
+        const user = userMap[transaction.userId];
+        return {
+          ...transaction,
+          user: user ? {
+            id: user.id,
+            name: user.username || user.fullName || `User #${user.id}`,
+            email: user.email || 'No email available'
+          } : undefined
+        };
+      });
+
       // Get branding settings
       const brandingSettings = await storage.getBrandingSettings();
       const companyName = brandingSettings.company_name || 'SkyPANEL';
@@ -5422,9 +5471,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Pipe PDF to response
       doc.pipe(res);
 
-      // Format PDF - use admin user for header
-      const adminUser = req.user;
-      formatTransactionsPdf(doc, filteredTransactions, adminUser, companyName, companyLogo);
+      // Format PDF for admin report with all clients
+      formatAdminTransactionsPdf(doc, filteredTransactionsWithUserData, companyName, companyLogo);
 
       // Finalize PDF
       doc.end();
