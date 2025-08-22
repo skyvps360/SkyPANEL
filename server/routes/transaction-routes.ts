@@ -217,97 +217,121 @@ function formatAdminTransactionsPdf(
   // Set up the document
   doc.font('Helvetica');
   
-  // Add company logo if available
+  let currentY = 50;
+  
+  // Add company logo if available with better spacing
   if (companyLogo) {
     try {
-      doc.image(companyLogo, 50, 45, { width: 150 });
+      doc.image(companyLogo, 50, currentY, { width: 120, height: 60 });
+      currentY += 80;
     } catch (error) {
       console.error('Error adding logo to PDF:', error);
+      doc.fontSize(20).font('Helvetica-Bold').text(companyName || 'SkyPANEL', 50, currentY);
+      currentY += 40;
     }
   } else {
-    doc.fontSize(24).text(companyName || 'SkyPANEL', 50, 50);
+    doc.fontSize(20).font('Helvetica-Bold').text(companyName || 'SkyPANEL', 50, currentY);
+    currentY += 40;
   }
   
-  // Add report header with proper centering
-  doc.fontSize(22).font('Helvetica-Bold');
+  // Add report header with proper centering and spacing
+  currentY += 20;
+  doc.fontSize(24).font('Helvetica-Bold');
   const headerText = 'ALL CLIENTS TRANSACTION REPORT';
   const headerWidth = doc.widthOfString(headerText);
   const centerX = (doc.page.width - headerWidth) / 2;
-  doc.text(headerText, centerX, companyLogo ? 130 : 100);
+  doc.text(headerText, centerX, currentY);
+  currentY += 40;
   
-  // Add spacing after header
-  doc.moveDown(3);
+  // Add decorative line under header
+  doc.moveTo(50, currentY).lineTo(550, currentY).lineWidth(2).stroke();
+  currentY += 30;
   
-  // Add report details with consistent alignment
-  doc.fontSize(12).font('Helvetica');
-  let detailsY = companyLogo ? 180 : 150;
+  // Add report details with better formatting
+  doc.fontSize(11).font('Helvetica');
   
-  // Create a details box with proper alignment
-  doc.font('Helvetica-Bold').text('Report Generated:', 50, detailsY);
-  doc.font('Helvetica').text(new Date().toLocaleDateString(), 180, detailsY);
+  // Create a details section with better layout
+  const detailsStartY = currentY;
+  doc.font('Helvetica-Bold').text('Report Generated:', 50, currentY);
+  doc.font('Helvetica').text(new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString(), 160, currentY);
   
-  detailsY += 25;
-  doc.font('Helvetica-Bold').text('Total Transactions:', 50, detailsY);
-  doc.font('Helvetica').text(transactions.length.toString(), 180, detailsY);
+  currentY += 20;
+  doc.font('Helvetica-Bold').text('Total Transactions:', 50, currentY);
+  doc.font('Helvetica').text(transactions.length.toString(), 160, currentY);
   
-  // Add separator line after details
-  detailsY += 35;
-  doc.moveTo(50, detailsY).lineTo(550, detailsY).lineWidth(0.5).stroke();
+  // Calculate and display total amount
+  const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+  currentY += 20;
+  doc.font('Helvetica-Bold').text('Total Amount:', 50, currentY);
+  doc.font('Helvetica').text(`$${totalAmount.toFixed(5)}`, 160, currentY);
   
-  // Add table headers with proper alignment and spacing
-  let y = detailsY + 25;
-  doc.font('Helvetica-Bold').fontSize(12);
+  // Add separator line after details with more spacing
+  currentY += 35;
+  doc.moveTo(50, currentY).lineTo(550, currentY).lineWidth(1).stroke();
   
-  // Define column positions for consistent alignment with proper spacing
+  // Add table headers with improved alignment and spacing
+  currentY += 25;
+  doc.font('Helvetica-Bold').fontSize(11);
+  
+  // Define column positions for better alignment and spacing
   const cols = {
     date: 50,
-    client: 130,
-    description: 240,
-    payment: 400,
+    client: 120,
+    description: 220,
+    payment: 380,
     amount: 480
   };
   
   // Define column widths for proper text wrapping
   const colWidths = {
-    date: 75,
-    client: 105,
+    date: 65,
+    client: 95,
     description: 155,
-    payment: 75,
+    payment: 95,
     amount: 70
   };
   
-  doc.text('Date', cols.date, y, { width: colWidths.date });
-  doc.text('Client ID', cols.client, y, { width: colWidths.client });
-  doc.text('Description', cols.description, y, { width: colWidths.description });
-  doc.text('Payment Method', cols.payment, y, { width: colWidths.payment });
-  doc.text('Amount', cols.amount, y, { width: colWidths.amount, align: 'right' });
+  // Add table header background (light gray)
+  doc.rect(45, currentY - 5, 510, 25).fillColor('#F5F5F5').fill();
+  doc.fillColor('#000000'); // Reset to black
   
-  // Add header underline
-  y += 20;
-  doc.moveTo(50, y).lineTo(550, y).lineWidth(1).stroke();
-  y += 15;
+  doc.text('Date', cols.date, currentY + 5, { width: colWidths.date });
+  doc.text('Client ID', cols.client, currentY + 5, { width: colWidths.client });
+  doc.text('Description', cols.description, currentY + 5, { width: colWidths.description });
+  doc.text('Payment Method', cols.payment, currentY + 5, { width: colWidths.payment });
+  doc.text('Amount', cols.amount, currentY + 5, { width: colWidths.amount, align: 'right' });
   
-  // Add transactions with consistent alignment
+  // Add header underline with better styling
+  currentY += 25;
+  doc.moveTo(45, currentY).lineTo(555, currentY).lineWidth(1.5).stroke();
+  currentY += 10;
+  
+  // Add transactions with improved alignment, spacing, and page break handling
   doc.font('Helvetica').fontSize(10);
   
   transactions.forEach((transaction, i) => {
-    // Check if we need a new page
-    if (y > 680) {
+    // Check if we need a new page (leaving space for footer and total)
+    if (currentY > 650) {
       doc.addPage();
-      y = 50;
+      currentY = 50;
       
-      // Add table headers to new page with consistent positioning
-      doc.font('Helvetica-Bold').fontSize(12);
-      doc.text('Date', cols.date, y, { width: colWidths.date });
-      doc.text('Client ID', cols.client, y, { width: colWidths.client });
-      doc.text('Description', cols.description, y, { width: colWidths.description });
-      doc.text('Method', cols.payment, y, { width: colWidths.payment });
-      doc.text('Amount', cols.amount, y, { width: colWidths.amount, align: 'right' });
+      // Add table headers to new page
+      doc.font('Helvetica-Bold').fontSize(11);
+      
+      // Add table header background on new page
+      doc.rect(45, currentY - 5, 510, 25).fillColor('#F5F5F5').fill();
+      doc.fillColor('#000000');
+      
+      doc.text('Date', cols.date, currentY + 5, { width: colWidths.date });
+      doc.text('Client ID', cols.client, currentY + 5, { width: colWidths.client });
+      doc.text('Description', cols.description, currentY + 5, { width: colWidths.description });
+      doc.text('Payment Method', cols.payment, currentY + 5, { width: colWidths.payment });
+      doc.text('Amount', cols.amount, currentY + 5, { width: colWidths.amount, align: 'right' });
       
       // Add header underline
-      y += 20;
-      doc.moveTo(50, y).lineTo(550, y).lineWidth(1).stroke();
-      y += 15;
+      currentY += 25;
+      doc.moveTo(45, currentY).lineTo(555, currentY).lineWidth(1.5).stroke();
+      currentY += 10;
       
       doc.font('Helvetica').fontSize(10);
     }
@@ -318,48 +342,65 @@ function formatAdminTransactionsPdf(
     const paymentMethod = formatPaymentMethodForPdf(transaction.paymentMethod);
     const amount = `$${transaction.amount.toFixed(5)}`;
     
-    // Use consistent column positioning with proper text wrapping
-    doc.text(date, cols.date, y, { width: colWidths.date, ellipsis: true });
-    doc.text(clientId, cols.client, y, { width: colWidths.client, ellipsis: true });
-    doc.text(description, cols.description, y, { width: colWidths.description, ellipsis: true });
-    doc.text(paymentMethod, cols.payment, y, { width: colWidths.payment, ellipsis: true });
-    doc.text(amount, cols.amount, y, { width: colWidths.amount, align: 'right' });
+    // Add alternating row background for better readability
+    if (i % 2 === 0) {
+      doc.rect(45, currentY - 2, 510, 18).fillColor('#FAFAFA').fill();
+      doc.fillColor('#000000');
+    }
     
-    y += 20;
+    // Use consistent column positioning with proper text wrapping
+    doc.text(date, cols.date, currentY + 2, { width: colWidths.date, ellipsis: true });
+    doc.text(clientId, cols.client, currentY + 2, { width: colWidths.client, ellipsis: true });
+    doc.text(description, cols.description, currentY + 2, { width: colWidths.description, ellipsis: true });
+    doc.text(paymentMethod, cols.payment, currentY + 2, { width: colWidths.payment, ellipsis: true });
+    doc.text(amount, cols.amount, currentY + 2, { width: colWidths.amount, align: 'right' });
+    
+    currentY += 18;
     
     // Add subtle separator line between transactions
     if (i < transactions.length - 1) {
-      doc.moveTo(50, y + 2).lineTo(550, y + 2).lineWidth(0.2).strokeColor('#E0E0E0').stroke().strokeColor('#000000');
-      y += 8;
+      doc.moveTo(45, currentY + 1).lineTo(555, currentY + 1).lineWidth(0.3).strokeColor('#E8E8E8').stroke().strokeColor('#000000');
+      currentY += 4;
     }
   });
   
-  // Add total section with proper spacing and alignment
-  y += 20;
-  doc.moveTo(50, y).lineTo(550, y).lineWidth(1.5).stroke();
-  y += 20;
+  // Add total section with enhanced styling
+  currentY += 25;
+  doc.moveTo(45, currentY).lineTo(555, currentY).lineWidth(2).stroke();
+  currentY += 15;
   
   const total = transactions.reduce((sum, t) => sum + t.amount, 0);
   
-  // Create a highlighted total section
+  // Create a highlighted total section with background
+  doc.rect(45, currentY - 5, 510, 30).fillColor('#F0F8FF').fill();
+  doc.fillColor('#000000');
+  
   doc.font('Helvetica-Bold').fontSize(14);
-  doc.text('TOTAL AMOUNT:', cols.payment, y, { width: colWidths.payment });
-  doc.text(`$${total.toFixed(5)}`, cols.amount, y, { width: colWidths.amount, align: 'right' });
+  doc.text('TOTAL AMOUNT:', cols.payment, currentY + 8, { width: colWidths.payment });
+  doc.text(`$${total.toFixed(5)}`, cols.amount, currentY + 8, { width: colWidths.amount, align: 'right' });
   
   // Add final separator line
-  y += 25;
-  doc.moveTo(50, y).lineTo(550, y).lineWidth(1.5).stroke();
+  currentY += 35;
+  doc.moveTo(45, currentY).lineTo(555, currentY).lineWidth(2).stroke();
   
-  // Add footer with proper positioning and styling
-  const footerY = Math.max(y + 40, 720);
-  doc.fontSize(9).font('Helvetica');
+  // Add footer with improved positioning and styling
+  const footerY = Math.max(currentY + 30, 720);
+  doc.fontSize(9).font('Helvetica-Oblique');
   const footerText = `Generated by ${companyName || 'SkyPANEL'} Admin Panel`;
   const dateText = `${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`;
   
+  // Add footer background
+  doc.rect(45, footerY - 5, 510, 20).fillColor('#F8F8F8').fill();
+  doc.fillColor('#666666');
+  
   // Center the footer text properly
-  const footerWidth = doc.widthOfString(footerText + ' - ' + dateText);
+  const footerFullText = `${footerText} - ${dateText}`;
+  const footerWidth = doc.widthOfString(footerFullText);
   const footerCenterX = Math.max(50, (doc.page.width - footerWidth) / 2);
-  doc.text(`${footerText} - ${dateText}`, footerCenterX, footerY, { width: 500, align: 'center' });
+  doc.text(footerFullText, footerCenterX, footerY, { width: 500, align: 'center' });
+  
+  // Reset color
+  doc.fillColor('#000000');
 }
 
 // Get user credits
