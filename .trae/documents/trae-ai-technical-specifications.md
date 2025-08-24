@@ -41,6 +41,32 @@ graph TD
 - **Network**: 1 Gbps
 - **GPU**: NVIDIA RTX 3060 or equivalent (for enhanced performance)
 
+### 1.4 Configuration
+
+#### Environment Variables
+Trae AI uses environment variables for configuration management through a `.env` file:
+
+- **Application Port**: Defined by the `PORT` variable in `.env` file (default: 3333)
+- **Database Configuration**: Connection strings and credentials
+- **API Keys**: External service authentication tokens
+- **Feature Flags**: Enable/disable specific functionality
+- **Logging Level**: Control verbosity of application logs
+
+#### Configuration Management
+- **Environment Files**: `.env` for local development, `.env.production` for production
+- **Configuration Validation**: Automatic validation of required environment variables on startup
+- **Hot Reloading**: Dynamic configuration updates without service restart (where applicable)
+- **Secrets Management**: Integration with external secret stores (HashiCorp Vault, AWS Secrets Manager)
+
+#### Default Configuration
+```env
+PORT=3333
+NODE_ENV=development
+LOG_LEVEL=info
+DATABASE_URL=postgresql://localhost:5432/trae_ai
+REDIS_URL=redis://localhost:6379
+```
+
 ## 2. Technical Components
 
 ### 2.1 AI Engine Core
