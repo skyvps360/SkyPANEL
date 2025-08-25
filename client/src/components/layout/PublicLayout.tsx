@@ -1,5 +1,5 @@
 import React from "react";
-import { SharedNavbar } from "./SharedNavbar";
+import { CardNav } from "./CardNav";
 import { SharedFooter } from "./SharedFooter";
 import { useQuery } from "@tanstack/react-query";
 import { getBrandColors } from "@/lib/brand-theme";
@@ -86,7 +86,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   return (
     <div className="flex flex-col min-h-screen" style={cssVariables}>
 
-      <SharedNavbar />
+      <CardNav />
       {/* Trustpilot Review Collector widget - visible near header */}
       <TrustpilotWidget />
       <main className="flex-grow">{children}</main>
