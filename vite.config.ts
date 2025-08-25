@@ -36,7 +36,7 @@ export default defineConfig(async ({ mode }) => {
     return plugins;
   };
   
-  // always use port 5000
+  // always use port 3333
   const replitPlugins = await loadReplitPlugins();
  
   return {
