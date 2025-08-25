@@ -7,6 +7,7 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { Button } from "@/components/ui/button";
 import { DatacenterLeafletMap } from "@/components/datacenter/DatacenterLeafletMap";
 import { getBrandColors } from "@/lib/brand-theme";
+import { Particles } from "@/components/ui/particles";
 
 
 /**
@@ -22,6 +23,8 @@ export default function LandingPage() {
     message: "System is currently under maintenance",
     estimatedCompletion: ""
   });
+  
+  // Particle configuration now uses fixed values from customization settings
   
   // Fetch platform statistics
   const { data: platformStats, isLoading: statsLoading } = useQuery({
@@ -49,6 +52,8 @@ export default function LandingPage() {
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+  
+
   
   // Fetch public settings for enterprise features section
   const { data: publicSettings = {} } = useQuery<Record<string, string>>({
@@ -106,7 +111,7 @@ export default function LandingPage() {
           />
         )}
         
-        {/* Hero Section - Modern, bold design with animated gradient */}
+        {/* Hero Section - Modern, bold design with particle background */}
         <section 
           className="relative py-28 px-6 bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden"
           style={{ 
@@ -114,14 +119,32 @@ export default function LandingPage() {
                          linear-gradient(to bottom right, ${brandColors.primary.extraLight}, #111827)`
           }}
         >
-          {/* Animated background patterns */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-full h-full" 
-                 style={{ 
-                   backgroundImage: `radial-gradient(${brandColors.primary.full} 1px, transparent 1px)`,
-                   backgroundSize: '30px 30px' 
-                 }}></div>
+          {/* Particle Background Effect */}
+          <div className="absolute inset-0">
+            <Particles
+              particleCount={1000}
+              particleSpread={50}
+              speed={0.3}
+              particleColors={[
+                brandColors.primary.full, 
+                brandColors.primary.light, 
+                brandColors.secondary.full,
+                '#ffffff',
+                brandColors.accent.light
+              ]}
+              moveParticlesOnHover={true}
+              particleHoverFactor={2}
+              alphaParticles={true}
+              particleBaseSize={200}
+              sizeRandomness={0.8}
+              cameraDistance={25}
+              disableRotation={false}
+              className="opacity-50 md:opacity-60"
+            />
           </div>
+          
+          {/* Subtle overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-900/20 to-gray-800/40"></div>
           
           <div className="container mx-auto relative">
             <div className="flex flex-col lg:flex-row items-center max-w-7xl mx-auto">
