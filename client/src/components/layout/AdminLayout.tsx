@@ -39,30 +39,6 @@ import { cn } from "@/lib/utils";
 import { getBrandColors } from "@/lib/brand-theme";
 
 
-const adminMenuItems = [
-  { href: "/admin", icon: Home, label: "Admin Dashboard" },
-  { href: "/admin/tickets", icon: Ticket, label: "Tickets" },
-  { href: "/admin/users", icon: Users, label: "Users" },
-  { href: "/admin/billing", icon: DollarSign, label: "Billing" },
-  { href: "/admin/servers", icon: Server, label: "Servers" },
-  { href: "/admin/user-awards", icon: Gift, label: "User Awards" },
-  { href: "/admin/coupon", icon: Ticket, label: "Coupon Management" },
-
-  // { href: "/admin/dns", icon: Globe, label: "DNS Management" }, // DNS disabled
-  { href: "/admin/mail", icon: Mail, label: "Email Logs" },
-  { href: "/admin/email-templates", icon: Mail, label: "Email Templates" },
-  { href: "/admin/blog", icon: PenTool, label: "Company Blog" },
-  { href: "/admin/docs", icon: FileText, label: "Documentation" },
-  { href: "/admin/api-docs", icon: FileText, label: "API Documentation" },
-  { href: "/admin/datacenter-locations", icon: Globe, label: "Datacenter Locations" },
-  { href: "/admin/plan-features", icon: List, label: "Plan Features" },
-  { href: "/admin/package-pricing", icon: DollarSign, label: "Package Pricing" },
-  { href: "/admin/faq-management", icon: HelpCircle, label: "FAQ Management" },
-  { href: "/admin/legal", icon: FileCheck, label: "Legal Content" },
-  { href: "/admin/oauth-settings", icon: Shield, label: "OAuth SSO" },
-  { href: "/admin/settings", icon: Settings, label: "Settings" },
-];
-
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
@@ -198,6 +174,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     retry: false,
   });
 
+  // Fetch DNS system status
+  const { data: dnsSystemStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/settings/dns-system-status"],
+    staleTime: 30 * 1000, // 30 seconds
+  });
+
   // Fetch users for search
   const { data: usersData = [] } = useQuery<UserType[]>({
     queryKey: ["/api/admin/users"],
@@ -248,6 +230,42 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }), [brandSettings?.primary_color, brandSettings?.company_color, brandSettings?.secondary_color, brandSettings?.accent_color]);
 
   const brandColors = useMemo(() => getBrandColors(brandColorOptions), [brandColorOptions]);
+
+  // Dynamic admin menu items based on DNS system status
+  const adminMenuItems = useMemo(() => {
+    const baseMenuItems = [
+      { href: "/admin", icon: Home, label: "Admin Dashboard" },
+      { href: "/admin/tickets", icon: Ticket, label: "Tickets" },
+      { href: "/admin/users", icon: Users, label: "Users" },
+      { href: "/admin/billing", icon: DollarSign, label: "Billing" },
+      { href: "/admin/servers", icon: Server, label: "Servers" },
+      { href: "/admin/user-awards", icon: Gift, label: "User Awards" },
+      { href: "/admin/coupon", icon: Ticket, label: "Coupon Management" },
+    ];
+    
+    // Conditionally add DNS management if DNS system is enabled
+    if (dnsSystemStatus?.enabled !== false) {
+      baseMenuItems.push({ href: "/admin/dns", icon: Globe, label: "DNS Management" });
+    }
+    
+    // Add remaining menu items
+    baseMenuItems.push(
+      { href: "/admin/mail", icon: Mail, label: "Email Logs" },
+      { href: "/admin/email-templates", icon: Mail, label: "Email Templates" },
+      { href: "/admin/blog", icon: PenTool, label: "Company Blog" },
+      { href: "/admin/docs", icon: FileText, label: "Documentation" },
+      { href: "/admin/api-docs", icon: FileText, label: "API Documentation" },
+      { href: "/admin/datacenter-locations", icon: Globe, label: "Datacenter Locations" },
+      { href: "/admin/plan-features", icon: List, label: "Plan Features" },
+      { href: "/admin/package-pricing", icon: DollarSign, label: "Package Pricing" },
+      { href: "/admin/faq-management", icon: HelpCircle, label: "FAQ Management" },
+      { href: "/admin/legal", icon: FileCheck, label: "Legal Content" },
+      { href: "/admin/oauth-settings", icon: Shield, label: "OAuth SSO" },
+      { href: "/admin/settings", icon: Settings, label: "Settings" }
+    );
+    
+    return baseMenuItems;
+  }, [dnsSystemStatus?.enabled]);
 
   // Apply brand colors to CSS variables and Shadcn theme when settings are loaded
   useEffect(() => {
