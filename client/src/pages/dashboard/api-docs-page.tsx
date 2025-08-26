@@ -1,4 +1,5 @@
 import React, { useState, useMemo, createContext, useContext, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1041,8 +1042,14 @@ export default function DashboardApiDocsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  // Fetch DNS system status
+  const { data: dnsSystemStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/settings/dns-system-status"],
+    staleTime: 5 * 1000, // 5 seconds
+  });
+
   // API Scopes definition
-  const apiScopes: ApiScope[] = [
+  const allApiScopes: ApiScope[] = [
     { name: "read:user", description: "Read user profile information" },
     { name: "write:user", description: "Update user profile information" },
     { name: "read:servers", description: "View server information and status" },
@@ -1056,6 +1063,14 @@ export default function DashboardApiDocsPage() {
     { name: "read:coupons", description: "View and validate coupon codes" },
     { name: "write:coupons", description: "Claim and manage coupon codes" },
   ];
+
+  // Filter API scopes based on DNS system status
+  const apiScopes = allApiScopes.filter(scope => {
+    if ((scope.name === "read:dns" || scope.name === "write:dns") && dnsSystemStatus?.enabled === false) {
+      return false;
+    }
+    return true;
+  });
 
   // Handle tag selection
   const handleTagSelect = (tag: string) => {
@@ -1551,14 +1566,17 @@ export default function DashboardApiDocsPage() {
     }
   ];
 
+  // Filter DNS endpoints based on system status
+  const filteredDnsEndpoints = dnsSystemStatus?.enabled !== false ? dnsEndpoints : [];
+
   // Get all unique tags from endpoints
   const allTags = useMemo(() => {
     const tags = new Set<string>();
-    [...userEndpoints, ...serverEndpoints, ...dnsEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...couponEndpoints].forEach(endpoint => {
+    [...userEndpoints, ...serverEndpoints, ...filteredDnsEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...couponEndpoints].forEach(endpoint => {
       endpoint.tags?.forEach(tag => tags.add(tag));
     });
     return Array.from(tags).sort();
-  }, []);
+  }, [filteredDnsEndpoints]);
 
   return (
     <DashboardLayout>
@@ -1713,7 +1731,7 @@ export default function DashboardApiDocsPage() {
               
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className="text-sm px-3 py-1">
-                  {[...userEndpoints, ...serverEndpoints, ...dnsEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...couponEndpoints].length} Total Endpoints
+                  {[...userEndpoints, ...serverEndpoints, ...filteredDnsEndpoints, ...billingEndpoints, ...apiKeyEndpoints, ...couponEndpoints].length} Total Endpoints
                 </Badge>
               </div>
             </div>
@@ -1745,7 +1763,7 @@ export default function DashboardApiDocsPage() {
                 <ApiCategory
                   title="DNS Management"
                   description="Endpoints for managing DNS domains and records"
-                  endpoints={dnsEndpoints}
+                  endpoints={filteredDnsEndpoints}
                   onTagSelect={handleTagSelect}
                   selectedTags={selectedTags}
                   toast={toast}

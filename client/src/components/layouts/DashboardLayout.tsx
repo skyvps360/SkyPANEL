@@ -251,6 +251,13 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
     enabled: !!user,
   });
 
+  // Fetch DNS system status
+  const { data: dnsSystemStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/settings/dns-system-status"],
+    staleTime: 5 * 1000, // 5 seconds - reduced for more responsive updates
+    enabled: !!user,
+  });
+
   // Fetch VirtFusion cron status to determine if SSO button should be hidden
   const { data: virtfusionCronData } = useQuery<{
     success: boolean;
@@ -418,7 +425,11 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
         href: "/dashboard/api-docs",
         icon: <Code className="h-5 w-5 mr-3" />,
       },
-      {
+    ];
+    
+    // Only add DNS navigation if DNS system is enabled
+    if (dnsSystemStatus?.enabled !== false) {
+      nav.push({
         name: "DNS Management",
         href: "/dns",
         icon: <Globe className="h-5 w-5 mr-3" />,
@@ -429,8 +440,9 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
             icon: <CreditCard className="h-4 w-4 mr-3" />,
           },
         ],
-      },
-    ];
+      });
+    }
+    
     // Only add the awards child if enabled
     if (awardSystemStatus?.enabled === true) {
       const billingNav = nav.find(item => item.name === "Billing & Payments");
@@ -443,7 +455,15 @@ function DashboardLayoutComponent({ children }: DashboardLayoutProps) {
       }
     }
     return nav;
-  }, [companyName, awardSystemStatus?.enabled, navigationUpdateTrigger]);
+  }, [companyName, awardSystemStatus?.enabled, dnsSystemStatus?.enabled, navigationUpdateTrigger]);
+
+  // Filter global shortcuts to exclude DNS items when DNS system is disabled
+  const filteredGlobalShortcuts = globalShortcuts.filter(shortcut => {
+    if ((shortcut.id === "dns" || shortcut.id === "dns-plans") && dnsSystemStatus?.enabled === false) {
+      return false;
+    }
+    return true;
+  });
 
   // Admin navigation items - empty as admin link is in dropdown
   const adminNavigation: NavigationItem[] = [];

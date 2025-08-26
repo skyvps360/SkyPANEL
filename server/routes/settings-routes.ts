@@ -43,6 +43,18 @@ router.get('/award-system-status', async (req, res) => {
   }
 });
 
+// Get DNS system status (no auth required for navigation)
+router.get('/dns-system-status', async (req, res) => {
+  try {
+    const { SettingsService } = await import('../settings-service');
+    const enabled = await SettingsService.isDnsSystemEnabled();
+    res.json({ enabled });
+  } catch (error) {
+    console.error('Error fetching DNS system status:', error);
+    res.status(500).json({ error: 'Failed to fetch DNS system status' });
+  }
+});
+
 
 
 // Get setting by key

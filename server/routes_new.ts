@@ -42,6 +42,7 @@ import apiOnlyRoutes from "./routes/api-only-routes";
 
 import dnsRoutes from "./routes/dns";
 import adminDnsRoutes from "./routes/admin-dns";
+import { requireDnsEnabled } from "./middleware/dns-middleware";
 import serverRoutes from "./routes/server-routes";
 import publicSlaRoutes from "./routes/public-sla-routes";
 import transactionRoutes, { formatAdminTransactionsPdf } from "./routes/transaction-routes";
@@ -3087,10 +3088,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Custom Credits System Endpoints
 
-  // DNS Plans Management Endpoints
-
-  // Get all available DNS plans
-  app.get("/api/dns-plans", async (req, res) => {
+  // DNS Plans Management Endpoints (conditionally available)
+  if (isDnsEnabled) {
+    // Get all available DNS plans
+    app.get("/api/dns-plans", requireDnsEnabled, async (req, res) => {
     try {
       const plans = await db.select()
         .from(dnsPlansTable)
@@ -3105,7 +3106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user's DNS plan subscriptions
-  app.get("/api/dns-plans/subscriptions", isAuthenticated, async (req, res) => {
+  app.get("/api/dns-plans/subscriptions", isAuthenticated, requireDnsEnabled, async (req, res) => {
     try {
       const userId = req.user!.id;
 
@@ -3142,7 +3143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Purchase a DNS plan using custom credits
-  app.post("/api/dns-plans/purchase", isAuthenticated, async (req, res) => {
+  app.post("/api/dns-plans/purchase", isAuthenticated, requireDnsEnabled, async (req, res) => {
     try {
       const { planId } = req.body;
       const userId = req.user!.id;
@@ -3292,7 +3293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Change DNS plan (upgrade/downgrade) with prorated billing
-  app.post("/api/dns-plans/change", isAuthenticated, async (req, res) => {
+  app.post("/api/dns-plans/change", isAuthenticated, requireDnsEnabled, async (req, res) => {
     try {
       const { planId, selectedDomainIds } = req.body;
       const userId = req.user!.id;
@@ -3723,7 +3724,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cancel a DNS plan subscription
-  app.post("/api/dns-plans/cancel", isAuthenticated, async (req, res) => {
+  app.post("/api/dns-plans/cancel", isAuthenticated, requireDnsEnabled, async (req, res) => {
     try {
       const { subscriptionId } = req.body;
       const userId = req.user!.id;
@@ -3769,7 +3770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user's DNS plan limits and usage
-  app.get("/api/dns-plans/limits", isAuthenticated, async (req, res) => {
+  app.get("/api/dns-plans/limits", isAuthenticated, requireDnsEnabled, async (req, res) => {
     try {
       const userId = req.user!.id;
 
@@ -3865,6 +3866,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+
+  } // End of DNS plans conditional block
 
 
 
@@ -12616,9 +12619,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // Register DNS routes
-  app.use("/api/dns", isAuthenticated, dnsRoutes);
-  app.use("/api/admin", isAuthenticated, isAdmin, adminDnsRoutes);
+  // Register DNS routes (conditionally based on DNS system setting)
+  const { SettingsService } = await import('./settings-service');
+  const isDnsEnabled = await SettingsService.isDnsSystemEnabled();
+  
+  if (isDnsEnabled) {
+    app.use("/api/dns", isAuthenticated, requireDnsEnabled, dnsRoutes);
+    app.use("/api/admin", isAuthenticated, isAdmin, requireDnsEnabled, adminDnsRoutes);
+  }
 
   // Register Server routes
   app.use("/api/servers", isAuthenticated, serverRoutes);

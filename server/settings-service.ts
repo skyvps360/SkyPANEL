@@ -181,4 +181,34 @@ export class SettingsService {
       throw error;
     }
   }
+
+  /**
+   * Check if DNS system is enabled
+   * @returns Promise<boolean>
+   */
+  static async isDnsSystemEnabled(): Promise<boolean> {
+    try {
+      const setting = await this.getSetting('dns_system_enabled');
+      // If no setting exists, default to enabled (true)
+      // If setting exists, return the actual value
+      return setting === null ? true : setting === 'true';
+    } catch (error) {
+      console.error('Error checking DNS system status:', error);
+      return true; // Default to enabled on error
+    }
+  }
+
+  /**
+   * Enable or disable the DNS system
+   * @param enabled Whether to enable the DNS system
+   * @returns Promise<void>
+   */
+  static async setDnsSystemEnabled(enabled: boolean): Promise<void> {
+    try {
+      await this.setSetting('dns_system_enabled', enabled.toString());
+    } catch (error) {
+      console.error('Error setting DNS system status:', error);
+      throw error;
+    }
+  }
 }

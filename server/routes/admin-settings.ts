@@ -304,4 +304,32 @@ router.delete('/settings/logo', isAdmin, async (req, res) => {
   }
 });
 
+// Get DNS system status
+router.get('/settings/dns-system/status', isAdmin, async (req, res) => {
+  try {
+    const enabled = await SettingsService.isDnsSystemEnabled();
+    return res.json({ enabled });
+  } catch (error) {
+    console.error('Error getting DNS system status:', error);
+    return res.status(500).json({ error: 'Failed to get DNS system status' });
+  }
+});
+
+// Toggle DNS system
+router.put('/settings/dns-system/toggle', isAdmin, async (req, res) => {
+  try {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'Enabled must be a boolean value' });
+    }
+
+    await SettingsService.setDnsSystemEnabled(enabled);
+    return res.json({ message: 'DNS system status updated successfully', enabled });
+  } catch (error) {
+    console.error('Error toggling DNS system:', error);
+    return res.status(500).json({ error: 'Failed to toggle DNS system' });
+  }
+});
+
 export default router;

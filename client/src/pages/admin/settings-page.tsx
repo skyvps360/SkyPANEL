@@ -444,6 +444,12 @@ export default function SettingsPage() {
     staleTime: 30000, // Cache for 30 seconds
   });
 
+  // Fetch DNS system status
+  const { data: dnsSystemStatus, refetch: refetchDnsSystemStatus } = useQuery<{ enabled: boolean }>({
+    queryKey: ["/api/admin/settings/dns-system/status"],
+    staleTime: 30000, // Cache for 30 seconds
+  });
+
 
 
   // Notifications settings form
@@ -650,6 +656,31 @@ export default function SettingsPage() {
       toast({
         title: 'Error triggering monthly billing',
         description: error.message || 'Failed to trigger monthly billing',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  // DNS system toggle mutation
+  const toggleDnsSystemMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      return apiRequest('/api/admin/settings/dns-system/toggle', {
+        method: 'PUT',
+        body: { enabled }
+      });
+    },
+    onSuccess: (data, enabled) => {
+      refetchDnsSystemStatus();
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/dns-system-status"] });
+      toast({
+        title: 'DNS system updated',
+        description: `DNS management system has been ${enabled ? 'enabled' : 'disabled'}.`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error updating DNS system',
+        description: error.message || 'Failed to update DNS system status',
         variant: 'destructive'
       });
     }
@@ -2568,6 +2599,30 @@ export default function SettingsPage() {
                       Configure DNS billing automation and InterServer settings
                     </p>
                   </div>
+
+                  {/* DNS System Enable/Disable Toggle */}
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-base font-medium">DNS Management System</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Enable or disable the entire DNS management system
+                          </p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            ⚠️ Disabling this will hide DNS features from users and admin navigation
+                          </p>
+                        </div>
+                        <Switch
+                          checked={dnsSystemStatus?.enabled ?? true}
+                          onCheckedChange={(checked) => {
+                            toggleDnsSystemMutation.mutate(checked);
+                          }}
+                          disabled={toggleDnsSystemMutation.isPending}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   {/* DNS Overview Documentation */}
                   <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
