@@ -203,7 +203,7 @@ export function CardNav({
                 style={{ 
                   backgroundColor: branding?.company_logo ? 'transparent' : brandColors.primary.full,
                   padding: branding?.company_logo ? '0' : undefined
-                }}
+                } as React.CSSProperties}
               >
                 {branding?.company_logo ? (
                   <img
@@ -245,8 +245,8 @@ export function CardNav({
                         style={{
                           backgroundColor: active ? item.bgColor : 'rgba(255, 255, 255, 0.9)',
                           color: active ? item.textColor : '#374151',
-                          ringColor: active ? item.bgColor : 'transparent'
-                        }}
+                          '--ring-color': active ? item.bgColor : 'transparent'
+                        } as React.CSSProperties}
                         onMouseEnter={() => handleCardHover(index, true)}
                         onMouseLeave={() => handleCardHover(index, false)}
                       >
@@ -266,8 +266,8 @@ export function CardNav({
                         style={{
                           backgroundColor: active ? item.bgColor : 'rgba(255, 255, 255, 0.9)',
                           color: active ? item.textColor : '#374151',
-                          ringColor: active ? item.bgColor : 'transparent'
-                        }}
+                          '--ring-color': active ? item.bgColor : 'transparent'
+                        } as React.CSSProperties}
                         onMouseEnter={() => handleCardHover(index, true)}
                         onMouseLeave={() => handleCardHover(index, false)}
                       >
@@ -283,8 +283,8 @@ export function CardNav({
                         style={{
                           backgroundColor: active ? item.bgColor : 'rgba(255, 255, 255, 0.9)',
                           color: active ? item.textColor : '#374151',
-                          ringColor: active ? item.bgColor : 'transparent'
-                        }}
+                          '--ring-color': active ? item.bgColor : 'transparent'
+                        } as React.CSSProperties}
                         onMouseEnter={() => handleCardHover(index, true)}
                         onMouseLeave={() => handleCardHover(index, false)}
                       >
@@ -305,7 +305,7 @@ export function CardNav({
                   backgroundColor: buttonBgColor,
                   color: buttonTextColor,
                   borderColor: brandColors.primary.medium,
-                }}
+                } as React.CSSProperties}
                 onMouseOver={(e) => {
                   e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
                   e.currentTarget.style.borderColor = brandColors.primary.full;
@@ -329,7 +329,7 @@ export function CardNav({
               style={{
                 color: menuColor || brandColors.primary.full,
                 backgroundColor: 'transparent'
-              }}
+              } as React.CSSProperties}
               onMouseOver={(e) => {
                 e.currentTarget.style.backgroundColor = brandColors.primary.lighter;
               }}
@@ -373,7 +373,7 @@ export function CardNav({
                       style={{
                         backgroundColor: active ? item.bgColor : 'transparent',
                         color: active ? item.textColor : '#374151'
-                      }}
+                      } as React.CSSProperties}
                     >
                       {item.label}
                     </div>
@@ -389,7 +389,7 @@ export function CardNav({
                       style={{
                         backgroundColor: active ? item.bgColor : 'transparent',
                         color: active ? item.textColor : '#374151'
-                      }}
+                      } as React.CSSProperties}
                     >
                       {item.label}
                     </div>
@@ -401,7 +401,7 @@ export function CardNav({
                       style={{
                         backgroundColor: active ? item.bgColor : 'transparent',
                         color: active ? item.textColor : '#374151'
-                      }}
+                      } as React.CSSProperties}
                     >
                       {item.label}
                     </div>

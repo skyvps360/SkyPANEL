@@ -83,10 +83,19 @@ export function PublicLayout({ children }: PublicLayoutProps) {
     "--color-brand-lighter-legacy": brandColors.primary.lighter,
   } as React.CSSProperties;
 
+  const navItems = [
+    { label: "Home", link: "/" },
+    { label: "Plans", link: "/plans" },
+    { label: "Our Team", link: "/team" },
+    { label: "Blog", link: "/blog" },
+    { label: "Documentation", link: "/docs" },
+    { label: "Status", link: "/status" },
+  ];
+
   return (
     <div className="flex flex-col min-h-screen" style={cssVariables}>
 
-      <CardNav />
+      <CardNav items={navItems} />
       {/* Trustpilot Review Collector widget - visible near header */}
       <TrustpilotWidget />
       <main className="flex-grow">{children}</main>
