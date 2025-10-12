@@ -1,3 +1,5 @@
+# Work has been halted. I will be trying to continue the further development of this billing panel and integrate more into it but as i do not have the financials to keep this project running for development i will need to sideline it.
+
 # 🚀 SkyPANEL - Enterprise VirtFusion Management Platform
 <div align="center">
   <h3>🌟 Next-Generation VPS Hosting Control Panel 🌟</h3>
@@ -2024,3 +2026,4 @@ While not required, attribution is appreciated:
   <h3>🌟 Thank you for choosing SkyPANEL! 🌟</h3>
   <p>Built with ❤️ by the SkyVPS360.xyz team</p>
 </div>
+
