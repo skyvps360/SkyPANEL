@@ -2020,7 +2020,10 @@ While not required, attribution is appreciated:
 - **Social Media**: Share your SkyPANEL deployment on social media
 - **Community**: Contribute back to the community with improvements
 
-# Images
+---
+
+## images
+
 <img width="1919" height="961" alt="image" src="https://github.com/user-attachments/assets/18b5c462-14e5-4030-96ca-9e1bde0a5534" />
 <img width="1913" height="946" alt="image" src="https://github.com/user-attachments/assets/13309f66-0c22-4d67-ab2b-f03039894125" />
 <img width="1918" height="947" alt="image" src="https://github.com/user-attachments/assets/3e569669-4165-4663-b0a7-6e5c5e46ab16" />
@@ -2072,5 +2075,6 @@ While not required, attribution is appreciated:
   <h3>🌟 Thank you for choosing SkyPANEL! 🌟</h3>
   <p>Built with ❤️ by the SkyVPS360.xyz team</p>
 </div>
+
 
 
